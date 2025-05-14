@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
@@ -36,7 +38,7 @@ func generateAndSendCharts(admin *Admin) {
 		),
 	)
 
-	msg := tgbotapi.NewMessage(admin.TelegramID, "برای مشاهده نمودارها، یکی از گزینه‌های زیر را انتخاب کنید:")
+	msg := tgbotapi.NewMessage(admin.TelegramID, "برای دانلود نمودار های سیستم روی گزینه های بالا کلیک کنید ✅")
 	msg.ReplyMarkup = keyboard
 	bot.Send(msg)
 }
@@ -69,26 +71,35 @@ func handleChartCallback(admin *Admin, chartType string) {
 		return
 	}
 
-	// Send the HTML file directly
-	doc := tgbotapi.NewDocument(admin.TelegramID, tgbotapi.FilePath(htmlFile))
-	doc.Caption = fmt.Sprintf("📊 نمودار %s", getChartName(chartType))
-	bot.Send(doc)
+	// Convert HTML to PNG using wkhtmltoimage
+	pngFile := strings.Replace(htmlFile, ".html", ".png", 1)
+	cmd := exec.Command("wkhtmltoimage", "--width", "1200", "--height", "800", htmlFile, pngFile)
+	if err := cmd.Run(); err != nil {
+		sendMessage(admin.TelegramID, "❌ خطا در تبدیل نمودار به تصویر")
+		return
+	}
 
-	// Clean up the file
+	// Send the PNG file as a photo
+	photo := tgbotapi.NewPhoto(admin.TelegramID, tgbotapi.FilePath(pngFile))
+	photo.Caption = fmt.Sprintf("📊 نمودار %s", getChartName(chartType))
+	bot.Send(photo)
+
+	// Clean up the files
 	os.Remove(htmlFile)
+	os.Remove(pngFile)
 }
 
 // getChartName returns the Persian name for a chart type
 func getChartName(chartType string) string {
 	switch chartType {
 	case "users":
-		return "آمار کاربران"
+		return "کاربران"
 	case "sessions":
-		return "آمار جلسات"
+		return "جلسات"
 	case "videos":
-		return "آمار ویدیوها"
+		return "ویدیوها"
 	case "exercises":
-		return "آمار تمرین‌ها"
+		return "تمرین‌ها"
 	default:
 		return "نامشخص"
 	}

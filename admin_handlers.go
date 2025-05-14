@@ -68,7 +68,7 @@ func handleAdminCommand(admin *Admin, command string, args []string) string {
 func handleAdminStats(admin *Admin, args []string) string {
 	// Generate and send all charts
 	generateAndSendCharts(admin)
-	return "✅ نمودارهای آماری با موفقیت ارسال شدند"
+	return "برای دانلود نمودار های سیستم روی گزینه های بالا کلیک کنید ✅"
 }
 
 // handleAdminUsers manages users
