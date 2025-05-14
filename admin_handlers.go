@@ -519,8 +519,8 @@ func handleMessage(update *tgbotapi.Update) {
 		if update.Message.IsCommand() {
 			switch update.Message.Command() {
 			case "start":
-				// Only send welcome message if user already exists
-				if !isNewUser(update.Message.From.ID) {
+				// Send welcome message only for new users
+				if isNewUser(update.Message.From.ID) {
 					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
 					msg.ReplyMarkup = getMainMenuKeyboard()
 					bot.Send(msg)

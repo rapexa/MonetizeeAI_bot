@@ -23,18 +23,13 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 		}
 		db.Create(&user)
 
-		// Send welcome message
-		msg := tgbotapi.NewMessage(from.ID, "👋 به ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
-		msg.ReplyMarkup = getMainMenuKeyboard()
-		bot.Send(msg)
-
 		// Get and send session 1 info
 		var session Session
 		if err := db.Where("number = ?", 1).First(&session).Error; err == nil {
 			var video Video
 			db.Where("session_id = ?", session.ID).First(&video)
 
-			// Create session message without welcome message
+			// Create session message
 			sessionMsg := fmt.Sprintf("📚 جلسه %d: %s\n\n%s\n\n📺 ویدیو: %s",
 				session.Number,
 				session.Title,
