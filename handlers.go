@@ -119,7 +119,13 @@ func handleExerciseSubmission(user *User, content string) string {
 	return fmt.Sprintf("🎉 تمرین شما با موفقیت ثبت شد!\n\n📚 جلسه بعدی شما:\n%s\n\n%s", nextSession.Title, nextSession.Description)
 }
 
-func handleMessage(update tgbotapi.Update) {
+// sendMessage is a helper function to send messages
+func sendMessage(chatID int64, text string) {
+	msg := tgbotapi.NewMessage(chatID, text)
+	bot.Send(msg)
+}
+
+func handleMessage(update *tgbotapi.Update) {
 	// Check if user is admin
 	if isAdmin(update.Message.From.ID) {
 		admin := getAdmin(update.Message.From.ID)
@@ -138,5 +144,7 @@ func handleMessage(update tgbotapi.Update) {
 	}
 
 	// Handle regular user commands
-	// ... existing code ...
+	user := getUserOrCreate(update.Message.From)
+	response := processUserInput(update.Message.Text, user)
+	sendMessage(update.Message.Chat.ID, response)
 }

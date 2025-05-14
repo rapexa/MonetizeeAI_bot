@@ -43,34 +43,35 @@ func init() {
 }
 
 func main() {
-	bot.Debug = true
-	log.Printf("Authorized on account %s", bot.Self.UserName)
+	// Initialize bot
+	bot, err = tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_TOKEN"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	// Set up update channel
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 60
-
 	updates := bot.GetUpdatesChan(updateConfig)
 
+	// Handle updates
 	for update := range updates {
-		if update.Message == nil {
-			continue
+		if update.Message != nil {
+			handleMessage(&update)
 		}
-
-		// Handle incoming messages
-		go handleMessage(update.Message)
 	}
 }
 
-func handleMessage(message *tgbotapi.Message) {
+func handleMessage(message *tgbotapi.Update) {
 	// Get or create user
-	user := getUserOrCreate(message.From)
+	user := getUserOrCreate(message.Message.From)
 
 	// Create response message
-	msg := tgbotapi.NewMessage(message.Chat.ID, "")
+	msg := tgbotapi.NewMessage(message.Message.Chat.ID, "")
 
 	// Handle commands
-	if message.IsCommand() {
-		switch message.Command() {
+	if message.Message.IsCommand() {
+		switch message.Message.Command() {
 		case "start":
 			msg.Text = "Welcome to MonetizeAI! I'm your AI assistant for the course. Let's begin your journey to building a successful AI-powered business."
 			msg.ReplyMarkup = getMainMenuKeyboard()
@@ -81,7 +82,7 @@ func handleMessage(message *tgbotapi.Message) {
 		}
 	} else {
 		// Handle regular messages
-		msg.Text = processUserInput(message.Text, user)
+		msg.Text = processUserInput(message.Message.Text, user)
 	}
 
 	if _, err := bot.Send(msg); err != nil {
@@ -102,4 +103,4 @@ func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	)
 	keyboard.ResizeKeyboard = true
 	return keyboard
-} 
+}
