@@ -2,14 +2,12 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"gorm.io/gorm"
 )
 
 // Add these constants at the top of the file
@@ -1246,34 +1244,27 @@ func handleSupportCommand(user *User) string {
 		"• ساعات پاسخگویی: 9 صبح تا 9 شب"
 }
 
-func performBackup(admin *Admin) string {
-	// Create backup directory if it doesn't exist
-	backupDir := "backups"
-	if err := os.MkdirAll(backupDir, 0755); err != nil {
-		return "❌ خطا در ایجاد پوشه پشتیبان‌گیری"
-	}
+// Fix the Backup struct fields
+type Backup struct {
+	gorm.Model
+	FilePath   string
+	IsComplete bool
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
 
-	// Generate backup filename with timestamp
-	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	backupFile := filepath.Join(backupDir, fmt.Sprintf("backup_%s.sql", timestamp))
-
-	// Perform database backup
-	cmd := exec.Command("mysqldump", "-u", "root", "-p", "monetize_ai", "-r", backupFile)
-	if err := cmd.Run(); err != nil {
-		return "❌ خطا در پشتیبان‌گیری از پایگاه داده"
-	}
-
-	// Create backup record
-	backup := Backup{
-		AdminID:    admin.ID,
-		FilePath:   backupFile,
+// Update the backup creation code
+func createBackup() (*Backup, error) {
+	backup := &Backup{
+		FilePath:   fmt.Sprintf("backups/backup_%s.sql", time.Now().Format("2006-01-02_15-04-05")),
+		IsComplete: false,
 		CreatedAt:  time.Now(),
-		IsComplete: true,
-	}
-	if err := db.Create(&backup).Error; err != nil {
-		return "❌ خطا در ثبت اطلاعات پشتیبان‌گیری"
+		UpdatedAt:  time.Now(),
 	}
 
-	logAdminAction(admin, "backup", fmt.Sprintf("پشتیبان‌گیری انجام شد: %s", backupFile), "system", 0)
-	return fmt.Sprintf("✅ پشتیبان‌گیری با موفقیت انجام شد\n📁 مسیر فایل: %s", backupFile)
+	if err := db.Create(backup).Error; err != nil {
+		return nil, err
+	}
+
+	return backup, nil
 }
