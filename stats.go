@@ -82,11 +82,29 @@ func handleChartCallback(admin *Admin, chartType string) {
 	// Convert chart to PNG
 	switch c := chart.(type) {
 	case *charts.Line:
-		err = c.RenderToFile(pngFile)
+		f, err := os.Create(pngFile)
+		if err != nil {
+			sendMessage(admin.TelegramID, "❌ خطا در ایجاد فایل نمودار")
+			return
+		}
+		defer f.Close()
+		err = c.Render(f)
 	case *charts.Pie:
-		err = c.RenderToFile(pngFile)
+		f, err := os.Create(pngFile)
+		if err != nil {
+			sendMessage(admin.TelegramID, "❌ خطا در ایجاد فایل نمودار")
+			return
+		}
+		defer f.Close()
+		err = c.Render(f)
 	case *charts.Bar:
-		err = c.RenderToFile(pngFile)
+		f, err := os.Create(pngFile)
+		if err != nil {
+			sendMessage(admin.TelegramID, "❌ خطا در ایجاد فایل نمودار")
+			return
+		}
+		defer f.Close()
+		err = c.Render(f)
 	default:
 		sendMessage(admin.TelegramID, "❌ نوع نمودار پشتیبانی نمی‌شود")
 		return
