@@ -9,7 +9,6 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"gorm.io/gorm"
 )
 
 var (
@@ -188,7 +187,7 @@ func formatFileSize(size int64) string {
 
 // Backup represents a database backup record
 type Backup struct {
-	gorm.Model
+	ID          uint `gorm:"primaryKey"`
 	Filename    string
 	Size        int64
 	CreatedAt   time.Time

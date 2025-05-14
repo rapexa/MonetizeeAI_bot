@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
@@ -17,9 +18,8 @@ var (
 )
 
 func initDB() {
-	// Initialize database with custom config
-	dsn := os.Getenv("MYSQL_DSN")
 	var err error
+	dsn := os.Getenv("MYSQL_DSN")
 	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
@@ -27,26 +27,33 @@ func initDB() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	// Get the underlying SQL database
+	// Set connection pool settings
 	sqlDB, err := db.DB()
 	if err != nil {
 		log.Fatal("Failed to get database instance:", err)
 	}
-
-	// Set connection pool settings
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	// Auto migrate models with error handling
-	err = db.AutoMigrate(&User{}, &Video{}, &Session{}, &Exercise{}, &UserSession{}, &Admin{}, &AdminAction{})
+	// Auto-migrate the schema
+	err = db.AutoMigrate(
+		&User{},
+		&Video{},
+		&Session{},
+		&Exercise{},
+		&UserSession{},
+		&Admin{},
+		&AdminAction{},
+		&Backup{},
+	)
 	if err != nil {
-		// Log the error but don't panic
-		log.Printf("Warning: Some migrations failed: %v", err)
+		log.Printf("Warning: Migration error: %v", err)
 	}
 
 	// Verify database connection
-	if err := sqlDB.Ping(); err != nil {
-		log.Fatal("Failed to ping database:", err)
+	if err := db.Raw("SELECT 1").Error; err != nil {
+		log.Fatal("Failed to verify database connection:", err)
 	}
 }
 
