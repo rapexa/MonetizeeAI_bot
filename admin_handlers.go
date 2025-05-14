@@ -482,7 +482,7 @@ func handleMessage(update *tgbotapi.Update) {
 						return
 					}
 
-					logAdminAction(admin, "edit_session", fmt.Sprintf("Edited session %d", sessionNum), "session", session.ID)
+					logAdminAction(admin, "edit_session", fmt.Sprintf("Edited session %d", sessionNum))
 					sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت بروزرسانی شد", sessionNum))
 					delete(adminStates, admin.TelegramID)
 					return
@@ -675,7 +675,7 @@ func handleBanUser(admin *Admin, userID string) {
 		return
 	}
 
-	logAdminAction(admin, "ban_user", fmt.Sprintf("Banned user %s", user.Username), "user", user.ID)
+	logAdminAction(admin, "ban_user", fmt.Sprintf("Banned user %s", user.Username))
 	sendMessage(admin.TelegramID, fmt.Sprintf("✅ کاربر %s با موفقیت مسدود شد", user.Username))
 }
 
@@ -699,7 +699,7 @@ func handleUnbanUser(admin *Admin, userID string) {
 		return
 	}
 
-	logAdminAction(admin, "unban_user", fmt.Sprintf("Unbanned user %s", user.Username), "user", user.ID)
+	logAdminAction(admin, "unban_user", fmt.Sprintf("Unbanned user %s", user.Username))
 	sendMessage(admin.TelegramID, fmt.Sprintf("✅ مسدودیت کاربر %s با موفقیت برداشته شد", user.Username))
 }
 
@@ -790,7 +790,7 @@ func handleAddSessionResponse(admin *Admin, response string) {
 		return
 	}
 
-	logAdminAction(admin, "add_session", fmt.Sprintf("Added session %d: %s", session.Number, session.Title), "session", session.ID)
+	logAdminAction(admin, "add_session", fmt.Sprintf("Added session %d: %s", session.Number, session.Title))
 	sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت ایجاد شد", sessionNum))
 }
 
@@ -822,7 +822,7 @@ func handleSessionNumberResponse(admin *Admin, response string) {
 		msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش جلسه %d:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|توضیحات", sessionNum))
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
-		logAdminAction(admin, "edit_session", fmt.Sprintf("Edited session %d", sessionNum), "session", session.ID)
+		logAdminAction(admin, "edit_session", fmt.Sprintf("Edited session %d", sessionNum))
 		sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت بروزرسانی شد", sessionNum))
 
 	case StateDeleteSession:
@@ -831,7 +831,7 @@ func handleSessionNumberResponse(admin *Admin, response string) {
 			sendMessage(admin.TelegramID, "❌ خطا در حذف جلسه")
 			return
 		}
-		logAdminAction(admin, "delete_session", fmt.Sprintf("Deleted session %d: %s", session.Number, session.Title), "session", session.ID)
+		logAdminAction(admin, "delete_session", fmt.Sprintf("Deleted session %d: %s", session.Number, session.Title))
 		sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت حذف شد", sessionNum))
 		delete(adminStates, admin.TelegramID)
 	}
@@ -921,7 +921,7 @@ func handleDeleteVideo(admin *Admin, params []string) string {
 		return ""
 	}
 
-	logAdminAction(admin, "delete_video", fmt.Sprintf("Deleted video %s", videoID), "video", video.ID)
+	logAdminAction(admin, "delete_video", fmt.Sprintf("Deleted video %s", videoID))
 	bot.Send(tgbotapi.NewMessage(admin.TelegramID, "✅ ویدیو با موفقیت حذف شد"))
 	return ""
 }
@@ -1029,13 +1029,11 @@ func handleUserSearchResponse(admin *Admin, searchText string) {
 var adminStates = make(map[int64]string)
 
 // Add this function to log admin actions
-func logAdminAction(admin *Admin, action string, details string, entityType string, entityID uint) {
+func logAdminAction(admin *Admin, action string, details string) {
 	adminAction := AdminAction{
-		AdminID:    admin.ID,
-		Action:     action,
-		Details:    details,
-		EntityType: entityType,
-		EntityID:   entityID,
+		AdminID: admin.ID,
+		Action:  action,
+		Details: details,
 	}
 	db.Create(&adminAction)
 }
