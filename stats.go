@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -21,6 +22,9 @@ func generateAndSendCharts(admin *Admin) {
 		return
 	}
 
+	// First, send the text statistics
+	sendTextStatistics(admin)
+
 	// Generate and send each chart
 	charts := []struct {
 		name     string
@@ -38,20 +42,69 @@ func generateAndSendCharts(admin *Admin) {
 		bot.Send(msg)
 
 		// Generate chart
-		filename, err := chart.generate()
+		htmlFile, err := chart.generate()
 		if err != nil {
 			sendMessage(admin.TelegramID, fmt.Sprintf("❌ خطا در ایجاد نمودار %s: %v", chart.name, err))
 			continue
 		}
 
+		// Convert HTML to image
+		imageFile := htmlFile[:len(htmlFile)-5] + ".png"
+		cmd := exec.Command("chromium-browser", "--headless", "--disable-gpu", "--screenshot="+imageFile, "--window-size=1200,800", htmlFile)
+		if err := cmd.Run(); err != nil {
+			sendMessage(admin.TelegramID, fmt.Sprintf("❌ خطا در تبدیل نمودار %s به تصویر: %v", chart.name, err))
+			continue
+		}
+
 		// Send chart as photo
-		photo := tgbotapi.NewPhoto(admin.TelegramID, tgbotapi.FilePath(filename))
+		photo := tgbotapi.NewPhoto(admin.TelegramID, tgbotapi.FilePath(imageFile))
 		photo.Caption = fmt.Sprintf("📊 نمودار %s", chart.name)
 		bot.Send(photo)
 
-		// Clean up the file
-		os.Remove(filename)
+		// Clean up the files
+		os.Remove(htmlFile)
+		os.Remove(imageFile)
 	}
+}
+
+// sendTextStatistics sends the text-based statistics
+func sendTextStatistics(admin *Admin) {
+	var stats struct {
+		TotalUsers     int64
+		ActiveUsers    int64
+		BannedUsers    int64
+		TotalSessions  int64
+		TotalVideos    int64
+		TotalExercises int64
+	}
+
+	// Get statistics
+	db.Model(&User{}).Count(&stats.TotalUsers)
+	db.Model(&User{}).Where("is_active = ?", true).Count(&stats.ActiveUsers)
+	db.Model(&User{}).Where("is_active = ?", false).Count(&stats.BannedUsers)
+	db.Model(&Session{}).Count(&stats.TotalSessions)
+	db.Model(&Video{}).Count(&stats.TotalVideos)
+	db.Model(&Exercise{}).Count(&stats.TotalExercises)
+
+	response := fmt.Sprintf("📊 آمار سیستم:\n\n"+
+		"👥 کاربران:\n"+
+		"• کل کاربران: %d\n"+
+		"• کاربران فعال: %d\n"+
+		"• کاربران مسدود: %d\n\n"+
+		"📚 جلسات:\n"+
+		"• کل جلسات: %d\n\n"+
+		"🎥 ویدیوها:\n"+
+		"• کل ویدیوها: %d\n\n"+
+		"✍️ تمرین‌ها:\n"+
+		"• کل تمرین‌ها: %d",
+		stats.TotalUsers,
+		stats.ActiveUsers,
+		stats.BannedUsers,
+		stats.TotalSessions,
+		stats.TotalVideos,
+		stats.TotalExercises)
+
+	sendMessage(admin.TelegramID, response)
 }
 
 // generateUserStats generates user statistics chart
