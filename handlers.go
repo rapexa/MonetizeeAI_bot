@@ -129,18 +129,60 @@ func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("📊 آمار سیستم"),
+			tgbotapi.NewKeyboardButton("💾 پشتیبان‌گیری"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("👥 مدیریت کاربران"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("📚 مدیریت جلسات"),
-			tgbotapi.NewKeyboardButton("🎥 مدیریت ویدیوها"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("✍️ مدیریت تمرین‌ها"),
+			tgbotapi.NewKeyboardButton("🎥 مدیریت ویدیوها"),
 			tgbotapi.NewKeyboardButton("📝 لاگ‌های سیستم"),
 		),
 	)
 	keyboard.ResizeKeyboard = true
+	return keyboard
+}
+
+func getActionKeyboard(itemType string, itemID uint) tgbotapi.InlineKeyboardMarkup {
+	var keyboard tgbotapi.InlineKeyboardMarkup
+
+	switch itemType {
+	case "user":
+		keyboard = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🚫 مسدود کردن", fmt.Sprintf("ban_%d", itemID)),
+				tgbotapi.NewInlineKeyboardButtonData("✅ آزاد کردن", fmt.Sprintf("unban_%d", itemID)),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("📊 جزئیات", fmt.Sprintf("details_%d", itemID)),
+				tgbotapi.NewInlineKeyboardButtonData("❌ حذف", fmt.Sprintf("delete_%d", itemID)),
+			),
+		)
+	case "session":
+		keyboard = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش", fmt.Sprintf("edit_%d", itemID)),
+				tgbotapi.NewInlineKeyboardButtonData("❌ حذف", fmt.Sprintf("delete_%d", itemID)),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("📊 آمار", fmt.Sprintf("stats_%d", itemID)),
+				tgbotapi.NewInlineKeyboardButtonData("🎥 ویدیوها", fmt.Sprintf("videos_%d", itemID)),
+			),
+		)
+	case "video":
+		keyboard = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش", fmt.Sprintf("edit_%d", itemID)),
+				tgbotapi.NewInlineKeyboardButtonData("❌ حذف", fmt.Sprintf("delete_%d", itemID)),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("📊 آمار", fmt.Sprintf("stats_%d", itemID)),
+				tgbotapi.NewInlineKeyboardButtonData("🔗 لینک", fmt.Sprintf("link_%d", itemID)),
+			),
+		)
+	}
+
 	return keyboard
 }
 
@@ -187,8 +229,8 @@ func handleMessage(update *tgbotapi.Update) {
 			response := handleAdminVideos(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
 			return
-		case "✍️ مدیریت تمرین‌ها":
-			response := handleAdminExercises(admin, []string{})
+		case "💾 پشتیبان‌گیری":
+			response := handleAdminBackup(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
 			return
 		case "📝 لاگ‌های سیستم":

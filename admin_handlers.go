@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 // AdminCommand represents an admin command with its handler
@@ -59,84 +60,110 @@ func handleAdminCommand(admin *Admin, command string, args []string) string {
 
 // handleAdminStats shows system statistics
 func handleAdminStats(admin *Admin, args []string) string {
-	var totalUsers, activeUsers, totalSessions, totalVideos, totalExercises int64
-	var pendingExercises int64
+	var stats struct {
+		TotalUsers     int64
+		ActiveUsers    int64
+		BannedUsers    int64
+		TotalSessions  int64
+		TotalVideos    int64
+		TotalExercises int64
+	}
 
-	db.Model(&User{}).Count(&totalUsers)
-	db.Model(&User{}).Where("is_active = ?", true).Count(&activeUsers)
-	db.Model(&Session{}).Count(&totalSessions)
-	db.Model(&Video{}).Count(&totalVideos)
-	db.Model(&Exercise{}).Count(&totalExercises)
-	db.Model(&Exercise{}).Where("status = ?", "pending").Count(&pendingExercises)
+	// Get user statistics
+	db.Model(&User{}).Count(&stats.TotalUsers)
+	db.Model(&User{}).Where("is_banned = ?", false).Count(&stats.ActiveUsers)
+	db.Model(&User{}).Where("is_banned = ?", true).Count(&stats.BannedUsers)
 
-	return fmt.Sprintf(`📊 آمار سیستم:
+	// Get session statistics
+	db.Model(&Session{}).Count(&stats.TotalSessions)
 
-👥 کاربران:
-• کل کاربران: %d
-• کاربران فعال: %d
+	// Get video statistics
+	db.Model(&Video{}).Count(&stats.TotalVideos)
 
-📚 محتوا:
-• تعداد جلسات: %d
-• تعداد ویدیوها: %d
+	// Get exercise statistics
+	db.Model(&Exercise{}).Count(&stats.TotalExercises)
 
-✍️ تمرین‌ها:
-• کل تمرین‌ها: %d
-• تمرین‌های در انتظار: %d`,
-		totalUsers, activeUsers, totalSessions, totalVideos, totalExercises, pendingExercises)
+	response := fmt.Sprintf("📊 آمار سیستم:\n\n"+
+		"👥 کاربران:\n"+
+		"• کل کاربران: %d\n"+
+		"• کاربران فعال: %d\n"+
+		"• کاربران مسدود: %d\n\n"+
+		"📚 جلسات:\n"+
+		"• کل جلسات: %d\n\n"+
+		"🎥 ویدیوها:\n"+
+		"• کل ویدیوها: %d\n\n"+
+		"✍️ تمرین‌ها:\n"+
+		"• کل تمرین‌ها: %d",
+		stats.TotalUsers,
+		stats.ActiveUsers,
+		stats.BannedUsers,
+		stats.TotalSessions,
+		stats.TotalVideos,
+		stats.TotalExercises)
+
+	// Add inline keyboard for detailed stats
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("📈 نمودار کاربران", "user_chart"),
+			tgbotapi.NewInlineKeyboardButtonData("📈 نمودار جلسات", "session_chart"),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("📈 نمودار ویدیوها", "video_chart"),
+			tgbotapi.NewInlineKeyboardButtonData("📈 نمودار تمرین‌ها", "exercise_chart"),
+		),
+	)
+	msg := tgbotapi.NewMessage(admin.TelegramID, response)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+
+	return "از دکمه‌های زیر برای مشاهده نمودارهای آماری استفاده کنید"
 }
 
 // handleAdminUsers manages users
 func handleAdminUsers(admin *Admin, args []string) string {
 	if len(args) == 0 {
-		// Show user list
 		var users []User
-		db.Limit(10).Order("created_at desc").Find(&users)
+		db.Order("created_at desc").Limit(10).Find(&users)
 
-		response := "👥 لیست کاربران (۱۰ مورد آخر):\n\n"
+		response := "👥 آخرین کاربران:\n\n"
 		for _, user := range users {
-			response += fmt.Sprintf("ID: %d\nنام: %s %s\nیوزر: @%s\nجلسه: %d\nوضعیت: %v\n\n",
-				user.ID, user.FirstName, user.LastName, user.Username, user.CurrentSession, user.IsActive)
+			status := "✅ فعال"
+			if user.IsBanned {
+				status = "❌ مسدود"
+			}
+			response += fmt.Sprintf("👤 %s\n📱 آیدی: %d\n📊 وضعیت: %s\n⏰ تاریخ عضویت: %s\n\n",
+				user.Username,
+				user.TelegramID,
+				status,
+				user.CreatedAt.Format("2006-01-02 15:04:05"))
 		}
-		response += "\nدستورات:\n• ban [آیدی] - مسدود کردن کاربر\n• unban [آیدی] - آزاد کردن کاربر"
-		return response
+
+		// Add inline keyboard for actions
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🔍 جستجوی کاربر", "search_user"),
+				tgbotapi.NewInlineKeyboardButtonData("📊 آمار کاربران", "user_stats"),
+			),
+		)
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
+
+		return "از دکمه‌های زیر برای مدیریت کاربران استفاده کنید"
 	}
 
-	// Handle user management commands
+	// Handle user actions
 	switch args[0] {
 	case "ban":
 		if len(args) < 2 {
 			return "❌ لطفا آیدی کاربر را وارد کنید"
 		}
-		userID, err := strconv.ParseUint(args[1], 10, 32)
-		if err != nil {
-			return "❌ آیدی نامعتبر"
-		}
-		var user User
-		if err := db.First(&user, userID).Error; err != nil {
-			return "❌ کاربر یافت نشد"
-		}
-		user.IsActive = false
-		db.Save(&user)
-		logAdminAction(admin, "ban_user", fmt.Sprintf("Banned user %d", userID), "user", uint(userID))
-		return "✅ کاربر با موفقیت مسدود شد"
-
+		return banUser(admin, args[1])
 	case "unban":
 		if len(args) < 2 {
 			return "❌ لطفا آیدی کاربر را وارد کنید"
 		}
-		userID, err := strconv.ParseUint(args[1], 10, 32)
-		if err != nil {
-			return "❌ آیدی نامعتبر"
-		}
-		var user User
-		if err := db.First(&user, userID).Error; err != nil {
-			return "❌ کاربر یافت نشد"
-		}
-		user.IsActive = true
-		db.Save(&user)
-		logAdminAction(admin, "unban_user", fmt.Sprintf("Unbanned user %d", userID), "user", uint(userID))
-		return "✅ کاربر با موفقیت آزاد شد"
-
+		return unbanUser(admin, args[1])
 	default:
 		return "❌ دستور نامعتبر"
 	}
@@ -145,38 +172,47 @@ func handleAdminUsers(admin *Admin, args []string) string {
 // handleAdminSessions manages sessions
 func handleAdminSessions(admin *Admin, args []string) string {
 	if len(args) == 0 {
-		// Show session list
 		var sessions []Session
-		db.Order("number").Find(&sessions)
+		db.Order("number desc").Limit(10).Find(&sessions)
 
-		response := "📚 لیست جلسات:\n\n"
+		response := "📚 آخرین جلسات:\n\n"
 		for _, session := range sessions {
-			response += fmt.Sprintf("شماره: %d\nعنوان: %s\n\n", session.Number, session.Title)
+			response += fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
+				session.Number,
+				session.Title,
+				session.Description)
 		}
-		response += "\nدستورات:\n• edit [شماره] [عنوان] [توضیحات] - ویرایش جلسه"
-		return response
+
+		// Add inline keyboard for actions
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("➕ افزودن جلسه", "add_session"),
+				tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش جلسه", "edit_session"),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف جلسه", "delete_session"),
+				tgbotapi.NewInlineKeyboardButtonData("📊 آمار جلسات", "session_stats"),
+			),
+		)
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
+
+		return "از دکمه‌های زیر برای مدیریت جلسات استفاده کنید"
 	}
 
-	// Handle session management commands
+	// Handle session actions
 	switch args[0] {
 	case "edit":
 		if len(args) < 4 {
-			return "❌ فرمت دستور: /admin_sessions edit [شماره] [عنوان] [توضیحات]"
+			return "❌ لطفا شماره جلسه، عنوان و توضیحات را وارد کنید"
 		}
-		sessionNum, err := strconv.Atoi(args[1])
-		if err != nil {
-			return "❌ شماره جلسه نامعتبر"
+		return editSession(admin, args[1], args[2], args[3])
+	case "delete":
+		if len(args) < 2 {
+			return "❌ لطفا شماره جلسه را وارد کنید"
 		}
-		var session Session
-		if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
-			return "❌ جلسه یافت نشد"
-		}
-		session.Title = args[2]
-		session.Description = strings.Join(args[3:], " ")
-		db.Save(&session)
-		logAdminAction(admin, "edit_session", fmt.Sprintf("Edited session %d", sessionNum), "session", session.ID)
-		return "✅ جلسه با موفقیت ویرایش شد"
-
+		return deleteSession(admin, args[1])
 	default:
 		return "❌ دستور نامعتبر"
 	}
@@ -185,61 +221,46 @@ func handleAdminSessions(admin *Admin, args []string) string {
 // handleAdminVideos manages videos
 func handleAdminVideos(admin *Admin, args []string) string {
 	if len(args) == 0 {
-		// Show video list
 		var videos []Video
-		db.Preload("Session").Order("created_at desc").Limit(10).Find(&videos)
+		db.Order("created_at desc").Limit(10).Find(&videos)
 
-		response := "🎥 لیست ویدیوها (۱۰ مورد آخر):\n\n"
+		response := "🎥 آخرین ویدیوها:\n\n"
 		for _, video := range videos {
-			response += fmt.Sprintf("ID: %d\nعنوان: %s\nجلسه: %d\nلینک: %s\n\n",
-				video.ID, video.Title, video.Session.Number, video.VideoLink)
+			response += fmt.Sprintf("📺 %s\n🔗 %s\n\n",
+				video.Title,
+				video.URL)
 		}
-		response += "\nدستورات:\n• add [شماره_جلسه] [عنوان] [لینک] - افزودن ویدیو\n• edit [آیدی] [عنوان] [لینک] - ویرایش ویدیو"
-		return response
+
+		// Add inline keyboard for actions
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("➕ افزودن ویدیو", "add_video"),
+				tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش ویدیو", "edit_video"),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف ویدیو", "delete_video"),
+				tgbotapi.NewInlineKeyboardButtonData("📊 آمار ویدیوها", "video_stats"),
+			),
+		)
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
+
+		return "از دکمه‌های زیر برای مدیریت ویدیوها استفاده کنید"
 	}
 
-	// Handle video management commands
+	// Handle video actions
 	switch args[0] {
 	case "add":
 		if len(args) < 4 {
-			return "❌ فرمت دستور: /admin_videos add [شماره_جلسه] [عنوان] [لینک]"
+			return "❌ لطفا شماره جلسه، عنوان و لینک ویدیو را وارد کنید"
 		}
-		sessionNum, err := strconv.Atoi(args[1])
-		if err != nil {
-			return "❌ شماره جلسه نامعتبر"
-		}
-		var session Session
-		if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
-			return "❌ جلسه یافت نشد"
-		}
-		video := Video{
-			Title:     args[2],
-			VideoLink: args[3],
-			SessionID: session.ID,
-			Date:      time.Now(),
-		}
-		db.Create(&video)
-		logAdminAction(admin, "add_video", fmt.Sprintf("Added video for session %d", sessionNum), "video", video.ID)
-		return "✅ ویدیو با موفقیت اضافه شد"
-
+		return addVideo(admin, args[1], args[2], args[3])
 	case "edit":
 		if len(args) < 4 {
-			return "❌ فرمت دستور: /admin_videos edit [آیدی] [عنوان] [لینک]"
+			return "❌ لطفا آیدی ویدیو، عنوان و لینک را وارد کنید"
 		}
-		videoID, err := strconv.ParseUint(args[1], 10, 32)
-		if err != nil {
-			return "❌ آیدی نامعتبر"
-		}
-		var video Video
-		if err := db.First(&video, videoID).Error; err != nil {
-			return "❌ ویدیو یافت نشد"
-		}
-		video.Title = args[2]
-		video.VideoLink = args[3]
-		db.Save(&video)
-		logAdminAction(admin, "edit_video", fmt.Sprintf("Edited video %d", videoID), "video", uint(videoID))
-		return "✅ ویدیو با موفقیت ویرایش شد"
-
+		return editVideo(admin, args[1], args[2], args[3])
 	default:
 		return "❌ دستور نامعتبر"
 	}
