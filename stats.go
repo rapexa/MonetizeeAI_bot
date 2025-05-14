@@ -71,11 +71,35 @@ func handleChartCallback(admin *Admin, chartType string) {
 		return
 	}
 
-	// Convert HTML to PNG using wkhtmltoimage
+	// Convert HTML to PNG using Chrome/Chromium
 	pngFile := strings.Replace(htmlFile, ".html", ".png", 1)
-	cmd := exec.Command("wkhtmltoimage", "--width", "1200", "--height", "800", htmlFile, pngFile)
+
+	// Try different Chrome/Chromium commands based on the OS
+	chromeCmds := []string{
+		"chromium-browser",
+		"chromium",
+		"google-chrome",
+		"chrome",
+	}
+
+	var cmd *exec.Cmd
+	for _, chromeCmd := range chromeCmds {
+		cmd = exec.Command(chromeCmd,
+			"--headless",
+			"--disable-gpu",
+			"--no-sandbox",
+			"--disable-dev-shm-usage",
+			"--screenshot="+pngFile,
+			"--window-size=1200,800",
+			"file://"+htmlFile,
+		)
+		if err := cmd.Run(); err == nil {
+			break
+		}
+	}
+
 	if err := cmd.Run(); err != nil {
-		sendMessage(admin.TelegramID, "❌ خطا در تبدیل نمودار به تصویر")
+		sendMessage(admin.TelegramID, "❌ خطا در تبدیل نمودار به تصویر. لطفا مطمئن شوید که Chrome یا Chromium نصب شده است.")
 		return
 	}
 
