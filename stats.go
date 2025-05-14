@@ -117,48 +117,52 @@ func handleChartCallback(admin *Admin, chartType string) {
 		return
 	}
 
-	// Convert HTML to PNG using wkhtmltoimage
-	pngFile := strings.Replace(htmlFile, ".html", ".png", 1)
-	cmd := exec.Command("wkhtmltoimage", "--width", "1200", "--height", "800", htmlFile, pngFile)
-	if err := cmd.Run(); err != nil {
-		// If wkhtmltoimage fails, try using Chrome/Chromium
-		chromeCmds := []string{
-			"chromium-browser",
-			"chromium",
-			"google-chrome",
-			"chrome",
-		}
+	// Convert HTML to PDF using Chrome/Chromium
+	pdfFile := strings.Replace(htmlFile, ".html", ".pdf", 1)
 
-		var cmd *exec.Cmd
-		for _, chromeCmd := range chromeCmds {
-			cmd = exec.Command(chromeCmd,
-				"--headless",
-				"--disable-gpu",
-				"--no-sandbox",
-				"--disable-dev-shm-usage",
-				"--screenshot="+pngFile,
-				"--window-size=1200,800",
-				"file://"+htmlFile,
-			)
-			if err := cmd.Run(); err == nil {
-				break
-			}
-		}
+	// Try different Chrome/Chromium commands
+	chromeCmds := []string{
+		"chromium-browser",
+		"chromium",
+		"google-chrome",
+		"chrome",
+	}
 
-		if err := cmd.Run(); err != nil {
-			sendMessage(admin.TelegramID, "❌ خطا در تبدیل نمودار به تصویر. لطفا مطمئن شوید که wkhtmltoimage یا Chrome نصب شده است.")
-			return
+	var cmd *exec.Cmd
+	for _, chromeCmd := range chromeCmds {
+		cmd = exec.Command(chromeCmd,
+			"--headless",
+			"--disable-gpu",
+			"--no-sandbox",
+			"--disable-dev-shm-usage",
+			"--print-to-pdf="+pdfFile,
+			"--print-to-pdf-no-header",
+			"--paper-width", "11.69", // A4 width in inches
+			"--paper-height", "8.27", // A4 height in inches
+			"--margin-top", "0.4", // 10mm in inches
+			"--margin-right", "0.4",
+			"--margin-bottom", "0.4",
+			"--margin-left", "0.4",
+			"file://"+htmlFile,
+		)
+		if err := cmd.Run(); err == nil {
+			break
 		}
 	}
 
-	// Send the PNG file as a photo
-	photo := tgbotapi.NewPhoto(admin.TelegramID, tgbotapi.FilePath(pngFile))
-	photo.Caption = fmt.Sprintf("📊 نمودار %s", getChartName(chartType))
-	bot.Send(photo)
+	if err := cmd.Run(); err != nil {
+		sendMessage(admin.TelegramID, "❌ خطا در تبدیل نمودار به PDF. لطفا مطمئن شوید که Chrome یا Chromium نصب شده است.")
+		return
+	}
+
+	// Send the PDF file as a document
+	doc := tgbotapi.NewDocument(admin.TelegramID, tgbotapi.FilePath(pdfFile))
+	doc.Caption = fmt.Sprintf("📊 نمودار %s", getChartName(chartType))
+	bot.Send(doc)
 
 	// Clean up the files
 	os.Remove(htmlFile)
-	os.Remove(pngFile)
+	os.Remove(pdfFile)
 }
 
 // getChartName returns the Persian name for a chart type
