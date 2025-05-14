@@ -11,6 +11,9 @@ import (
 	"gorm.io/gorm"
 )
 
+var backupSchedule *time.Ticker
+var stopBackup chan bool
+
 // handleAdminBackup handles database backup operations
 func handleAdminBackup(admin *Admin, args []string) string {
 	if len(args) == 0 {
@@ -22,6 +25,8 @@ func handleAdminBackup(admin *Admin, args []string) string {
 		return performBackup(admin)
 	case "schedule":
 		return scheduleBackup(admin)
+	case "stop":
+		return stopScheduledBackup(admin)
 	default:
 		return "❌ دستور نامعتبر"
 	}
@@ -79,8 +84,50 @@ func performBackup(admin *Admin) string {
 
 // scheduleBackup sets up automatic daily backups
 func scheduleBackup(admin *Admin) string {
-	// TODO: Implement scheduling logic
+	// Stop existing schedule if any
+	if backupSchedule != nil {
+		stopScheduledBackup(admin)
+	}
+
+	// Create new ticker for daily backups at midnight
+	now := time.Now()
+	nextRun := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+	delay := nextRun.Sub(now)
+
+	// Create channels for control
+	stopBackup = make(chan bool)
+
+	// Start the backup scheduler
+	go func() {
+		// Wait for the first backup time
+		time.Sleep(delay)
+
+		// Create ticker for daily backups
+		backupSchedule = time.NewTicker(24 * time.Hour)
+		defer backupSchedule.Stop()
+
+		for {
+			select {
+			case <-backupSchedule.C:
+				performBackup(admin)
+			case <-stopBackup:
+				return
+			}
+		}
+	}()
+
 	return "⏰ پشتیبان‌گیری خودکار هر روز در ساعت 00:00 انجام می‌شود"
+}
+
+// stopScheduledBackup stops the automatic backup schedule
+func stopScheduledBackup(admin *Admin) string {
+	if backupSchedule != nil {
+		backupSchedule.Stop()
+		backupSchedule = nil
+		stopBackup <- true
+		return "⏹️ پشتیبان‌گیری خودکار متوقف شد"
+	}
+	return "❌ هیچ برنامه پشتیبان‌گیری فعال نیست"
 }
 
 // getFileSize returns the size of a file in bytes

@@ -267,3 +267,276 @@ func handleMessage(update *tgbotapi.Update) {
 	response := processUserInput(update.Message.Text, user)
 	sendMessage(update.Message.Chat.ID, response)
 }
+
+// handleCallbackQuery processes callback queries from inline keyboards
+func handleCallbackQuery(update tgbotapi.Update) {
+	query := update.CallbackQuery
+	admin := getAdmin(query.From.ID)
+	if admin == nil {
+		bot.Send(tgbotapi.NewMessage(query.From.ID, "❌ دسترسی غیرمجاز"))
+		return
+	}
+
+	// Split callback data to get action and parameters
+	parts := strings.Split(query.Data, ":")
+	action := parts[0]
+	params := parts[1:]
+
+	switch action {
+	case "user_chart":
+		handleUserChart(admin, params)
+	case "session_chart":
+		handleSessionChart(admin, params)
+	case "video_chart":
+		handleVideoChart(admin, params)
+	case "exercise_chart":
+		handleExerciseChart(admin, params)
+	case "search_user":
+		handleSearchUser(admin, params)
+	case "user_stats":
+		handleUserStats(admin, params)
+	case "add_session":
+		handleAddSession(admin, params)
+	case "edit_session":
+		handleEditSession(admin, params)
+	case "delete_session":
+		handleDeleteSession(admin, params)
+	case "session_stats":
+		handleSessionStats(admin, params)
+	case "add_video":
+		handleAddVideo(admin, params)
+	case "edit_video":
+		handleEditVideo(admin, params)
+	case "delete_video":
+		handleDeleteVideo(admin, params)
+	case "video_stats":
+		handleVideoStats(admin, params)
+	default:
+		bot.Send(tgbotapi.NewMessage(query.From.ID, "❌ عملیات نامعتبر"))
+	}
+
+	// Answer callback query to remove loading state
+	bot.Send(tgbotapi.NewCallback(query.ID, ""))
+}
+
+// Chart handlers
+func handleUserChart(admin *Admin, params []string) {
+	// TODO: Implement user statistics chart
+	bot.Send(tgbotapi.NewMessage(admin.TelegramID, "📊 نمودار آمار کاربران در حال آماده‌سازی..."))
+}
+
+func handleSessionChart(admin *Admin, params []string) {
+	// TODO: Implement session statistics chart
+	bot.Send(tgbotapi.NewMessage(admin.TelegramID, "📊 نمودار آمار جلسات در حال آماده‌سازی..."))
+}
+
+func handleVideoChart(admin *Admin, params []string) {
+	// TODO: Implement video statistics chart
+	bot.Send(tgbotapi.NewMessage(admin.TelegramID, "📊 نمودار آمار ویدیوها در حال آماده‌سازی..."))
+}
+
+func handleExerciseChart(admin *Admin, params []string) {
+	// TODO: Implement exercise statistics chart
+	bot.Send(tgbotapi.NewMessage(admin.TelegramID, "📊 نمودار آمار تمرین‌ها در حال آماده‌سازی..."))
+}
+
+// User management handlers
+func handleSearchUser(admin *Admin, params []string) {
+	msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی یا نام کاربری را وارد کنید:")
+	msg.ReplyMarkup = tgbotapi.NewForceReply()
+	bot.Send(msg)
+}
+
+func handleUserStats(admin *Admin, params []string) {
+	var stats struct {
+		TotalUsers    int64
+		ActiveUsers   int64
+		BannedUsers   int64
+		NewUsersToday int64
+		NewUsersWeek  int64
+		NewUsersMonth int64
+	}
+
+	// Get user statistics
+	db.Model(&User{}).Count(&stats.TotalUsers)
+	db.Model(&User{}).Where("is_active = ?", true).Count(&stats.ActiveUsers)
+	db.Model(&User{}).Where("is_active = ?", false).Count(&stats.BannedUsers)
+
+	today := time.Now().Truncate(24 * time.Hour)
+	weekAgo := today.AddDate(0, 0, -7)
+	monthAgo := today.AddDate(0, -1, 0)
+
+	db.Model(&User{}).Where("created_at >= ?", today).Count(&stats.NewUsersToday)
+	db.Model(&User{}).Where("created_at >= ?", weekAgo).Count(&stats.NewUsersWeek)
+	db.Model(&User{}).Where("created_at >= ?", monthAgo).Count(&stats.NewUsersMonth)
+
+	response := fmt.Sprintf("📊 آمار کاربران:\n\n"+
+		"👥 کل کاربران: %d\n"+
+		"✅ کاربران فعال: %d\n"+
+		"❌ کاربران مسدود: %d\n\n"+
+		"📈 کاربران جدید:\n"+
+		"• امروز: %d\n"+
+		"• هفته گذشته: %d\n"+
+		"• ماه گذشته: %d",
+		stats.TotalUsers,
+		stats.ActiveUsers,
+		stats.BannedUsers,
+		stats.NewUsersToday,
+		stats.NewUsersWeek,
+		stats.NewUsersMonth)
+
+	bot.Send(tgbotapi.NewMessage(admin.TelegramID, response))
+}
+
+// Session management handlers
+func handleAddSession(admin *Admin, params []string) {
+	msg := tgbotapi.NewMessage(admin.TelegramID, "➕ افزودن جلسه جدید:\n\nلطفا اطلاعات را به فرمت زیر وارد کنید:\nشماره جلسه|عنوان|توضیحات")
+	msg.ReplyMarkup = tgbotapi.NewForceReply()
+	bot.Send(msg)
+}
+
+func handleEditSession(admin *Admin, params []string) {
+	if len(params) == 0 {
+		msg := tgbotapi.NewMessage(admin.TelegramID, "✏️ ویرایش جلسه:\n\nلطفا شماره جلسه را وارد کنید:")
+		msg.ReplyMarkup = tgbotapi.NewForceReply()
+		bot.Send(msg)
+		return
+	}
+
+	sessionNum := params[0]
+	msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش جلسه %s:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|توضیحات", sessionNum))
+	msg.ReplyMarkup = tgbotapi.NewForceReply()
+	bot.Send(msg)
+}
+
+func handleDeleteSession(admin *Admin, params []string) {
+	if len(params) == 0 {
+		msg := tgbotapi.NewMessage(admin.TelegramID, "🗑️ حذف جلسه:\n\nلطفا شماره جلسه را وارد کنید:")
+		msg.ReplyMarkup = tgbotapi.NewForceReply()
+		bot.Send(msg)
+		return
+	}
+
+	sessionNum := params[0]
+	response := deleteSession(admin, sessionNum)
+	bot.Send(tgbotapi.NewMessage(admin.TelegramID, response))
+}
+
+func handleSessionStats(admin *Admin, params []string) {
+	var stats struct {
+		TotalSessions     int64
+		TotalVideos       int64
+		TotalExercises    int64
+		ActiveSessions    int64
+		CompletedSessions int64
+	}
+
+	// Get session statistics
+	db.Model(&Session{}).Count(&stats.TotalSessions)
+	db.Model(&Video{}).Count(&stats.TotalVideos)
+	db.Model(&Exercise{}).Count(&stats.TotalExercises)
+	db.Model(&Session{}).Where("is_active = ?", true).Count(&stats.ActiveSessions)
+	db.Model(&Session{}).Where("is_completed = ?", true).Count(&stats.CompletedSessions)
+
+	response := fmt.Sprintf("📊 آمار جلسات:\n\n"+
+		"📚 کل جلسات: %d\n"+
+		"✅ جلسات فعال: %d\n"+
+		"🏁 جلسات تکمیل شده: %d\n\n"+
+		"📈 محتوا:\n"+
+		"• کل ویدیوها: %d\n"+
+		"• کل تمرین‌ها: %d",
+		stats.TotalSessions,
+		stats.ActiveSessions,
+		stats.CompletedSessions,
+		stats.TotalVideos,
+		stats.TotalExercises)
+
+	bot.Send(tgbotapi.NewMessage(admin.TelegramID, response))
+}
+
+// Video management handlers
+func handleAddVideo(admin *Admin, params []string) {
+	if len(params) == 0 {
+		msg := tgbotapi.NewMessage(admin.TelegramID, "➕ افزودن ویدیو:\n\nلطفا شماره جلسه را وارد کنید:")
+		msg.ReplyMarkup = tgbotapi.NewForceReply()
+		bot.Send(msg)
+		return
+	}
+
+	sessionNum := params[0]
+	msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("➕ افزودن ویدیو به جلسه %s:\n\nلطفا اطلاعات را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", sessionNum))
+	msg.ReplyMarkup = tgbotapi.NewForceReply()
+	bot.Send(msg)
+}
+
+func handleEditVideo(admin *Admin, params []string) {
+	if len(params) == 0 {
+		msg := tgbotapi.NewMessage(admin.TelegramID, "✏️ ویرایش ویدیو:\n\nلطفا آیدی ویدیو را وارد کنید:")
+		msg.ReplyMarkup = tgbotapi.NewForceReply()
+		bot.Send(msg)
+		return
+	}
+
+	videoID := params[0]
+	msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش ویدیو %s:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", videoID))
+	msg.ReplyMarkup = tgbotapi.NewForceReply()
+	bot.Send(msg)
+}
+
+func handleDeleteVideo(admin *Admin, params []string) {
+	if len(params) == 0 {
+		msg := tgbotapi.NewMessage(admin.TelegramID, "🗑️ حذف ویدیو:\n\nلطفا آیدی ویدیو را وارد کنید:")
+		msg.ReplyMarkup = tgbotapi.NewForceReply()
+		bot.Send(msg)
+		return
+	}
+
+	videoID := params[0]
+	var video Video
+	if err := db.First(&video, videoID).Error; err != nil {
+		bot.Send(tgbotapi.NewMessage(admin.TelegramID, "❌ ویدیو یافت نشد"))
+		return
+	}
+
+	if err := db.Delete(&video).Error; err != nil {
+		bot.Send(tgbotapi.NewMessage(admin.TelegramID, "❌ خطا در حذف ویدیو"))
+		return
+	}
+
+	logAdminAction(admin, "delete_video", fmt.Sprintf("Deleted video %s", videoID), "video", video.ID)
+	bot.Send(tgbotapi.NewMessage(admin.TelegramID, "✅ ویدیو با موفقیت حذف شد"))
+}
+
+func handleVideoStats(admin *Admin, params []string) {
+	var stats struct {
+		TotalVideos     int64
+		VideosToday     int64
+		VideosWeek      int64
+		VideosMonth     int64
+		AverageDuration float64
+	}
+
+	// Get video statistics
+	db.Model(&Video{}).Count(&stats.TotalVideos)
+
+	today := time.Now().Truncate(24 * time.Hour)
+	weekAgo := today.AddDate(0, 0, -7)
+	monthAgo := today.AddDate(0, -1, 0)
+
+	db.Model(&Video{}).Where("created_at >= ?", today).Count(&stats.VideosToday)
+	db.Model(&Video{}).Where("created_at >= ?", weekAgo).Count(&stats.VideosWeek)
+	db.Model(&Video{}).Where("created_at >= ?", monthAgo).Count(&stats.VideosMonth)
+
+	response := fmt.Sprintf("📊 آمار ویدیوها:\n\n"+
+		"🎥 کل ویدیوها: %d\n\n"+
+		"📈 ویدیوهای جدید:\n"+
+		"• امروز: %d\n"+
+		"• هفته گذشته: %d\n"+
+		"• ماه گذشته: %d",
+		stats.TotalVideos,
+		stats.VideosToday,
+		stats.VideosWeek,
+		stats.VideosMonth)
+
+	bot.Send(tgbotapi.NewMessage(admin.TelegramID, response))
+}
