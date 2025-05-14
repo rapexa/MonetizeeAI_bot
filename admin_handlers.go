@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -234,26 +237,10 @@ func handleAdminVideos(admin *Admin, args []string) string {
 		}
 		return addVideo(admin, args[1], args[2], args[3])
 	case "edit":
-		// Show list of videos first
-		var videos []Video
-		db.Preload("Session").Order("created_at desc").Find(&videos)
-
-		response := "📺 لیست ویدیوها:\n\n"
-		for _, video := range videos {
-			response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d\n🔗 لینک: %s\n\n",
-				video.ID,
-				video.Title,
-				video.Session.Number,
-				video.VideoLink)
+		if len(args) < 4 {
+			return "❌ لطفا آیدی ویدیو، عنوان و لینک را وارد کنید"
 		}
-		response += "\n✏️ لطفا آیدی ویدیو مورد نظر را وارد کنید:"
-
-		msg := tgbotapi.NewMessage(admin.TelegramID, response)
-		msg.ReplyMarkup = tgbotapi.ForceReply{}
-		bot.Send(msg)
-		adminStates[admin.TelegramID] = StateEditVideo
-		return ""
-
+		return editVideo(admin, args[1], args[2], args[3])
 	default:
 		return "❌ دستور نامعتبر"
 	}
@@ -268,7 +255,7 @@ func handleAdminExercises(admin *Admin, args []string) string {
 
 		response := "✍️ تمرین‌های در انتظار بررسی:\n\n"
 		for _, exercise := range exercises {
-			response += fmt.Sprintf("ID: %d\nکاربر: %s\nجلسه: %d\nمحتوا: %s\n\n",
+			response += fmt.Sprintf("🆔 آیدی: %d\n👤 کاربر: %s\n📚 جلسه: %d\n📝 محتوا: %s\n\n",
 				exercise.ID, exercise.User.Username, exercise.Session.Number, exercise.Content)
 		}
 		response += "\nدستورات:\n• approve [آیدی] [نظرات] - تایید تمرین\n• reject [آیدی] [نظرات] - رد تمرین"
@@ -523,145 +510,10 @@ func handleMessage(update *tgbotapi.Update) {
 					return
 				}
 
-				logAdminAction(admin, "delete_video", fmt.Sprintf("Deleted video %d: %s", videoID, video.Title), "video", video.ID)
+				logAdminAction(admin, "delete_video", fmt.Sprintf("ویدیو %s حذف شد", videoID), "video", video.ID)
 				sendMessage(admin.TelegramID, fmt.Sprintf("✅ ویدیو %d با موفقیت حذف شد", videoID))
 				delete(adminStates, admin.TelegramID)
-
-			default:
-				if strings.HasPrefix(state, StateEditSession+":") {
-					// Handle session edit info input
-					parts := strings.Split(state, ":")
-					if len(parts) != 2 {
-						sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
-						return
-					}
-
-					sessionNum, err := strconv.Atoi(parts[1])
-					if err != nil {
-						sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
-						return
-					}
-
-					infoParts := strings.Split(update.Message.Text, "|")
-					if len(infoParts) != 2 {
-						sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|توضیحات")
-						return
-					}
-
-					title := strings.TrimSpace(infoParts[0])
-					description := strings.TrimSpace(infoParts[1])
-
-					var session Session
-					if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
-						sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
-						return
-					}
-
-					session.Title = title
-					session.Description = description
-					if err := db.Save(&session).Error; err != nil {
-						sendMessage(admin.TelegramID, "❌ خطا در بروزرسانی جلسه")
-						return
-					}
-
-					logAdminAction(admin, "edit_session", fmt.Sprintf("Edited session %d", sessionNum), "session", session.ID)
-					sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت بروزرسانی شد", sessionNum))
-					delete(adminStates, admin.TelegramID)
-					return
-				}
-				if strings.HasPrefix(state, StateAddVideo+":") {
-					// Handle video info input
-					parts := strings.Split(state, ":")
-					if len(parts) != 2 {
-						sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
-						return
-					}
-
-					sessionNum, err := strconv.Atoi(parts[1])
-					if err != nil {
-						sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
-						return
-					}
-
-					infoParts := strings.Split(update.Message.Text, "|")
-					if len(infoParts) != 2 {
-						sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو")
-						return
-					}
-
-					title := strings.TrimSpace(infoParts[0])
-					videoLink := strings.TrimSpace(infoParts[1])
-
-					var session Session
-					if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
-						sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
-						return
-					}
-
-					video := Video{
-						Title:     title,
-						VideoLink: videoLink,
-						SessionID: session.ID,
-						Date:      time.Now(),
-					}
-
-					if err := db.Create(&video).Error; err != nil {
-						sendMessage(admin.TelegramID, "❌ خطا در افزودن ویدیو")
-						return
-					}
-
-					logAdminAction(admin, "add_video", fmt.Sprintf("Added video to session %d: %s", sessionNum, title), "video", video.ID)
-					sendMessage(admin.TelegramID, fmt.Sprintf("✅ ویدیو با موفقیت به جلسه %d اضافه شد", sessionNum))
-					delete(adminStates, admin.TelegramID)
-					return
-				}
-				if strings.HasPrefix(state, StateEditVideo+":") {
-					// Handle video edit info input
-					parts := strings.Split(state, ":")
-					if len(parts) != 2 {
-						sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
-						return
-					}
-
-					videoID, err := strconv.ParseUint(parts[1], 10, 32)
-					if err != nil {
-						sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
-						return
-					}
-
-					infoParts := strings.Split(update.Message.Text, "|")
-					if len(infoParts) != 2 {
-						sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو")
-						return
-					}
-
-					title := strings.TrimSpace(infoParts[0])
-					videoLink := strings.TrimSpace(infoParts[1])
-
-					var video Video
-					if err := db.First(&video, videoID).Error; err != nil {
-						sendMessage(admin.TelegramID, "❌ ویدیو یافت نشد")
-						return
-					}
-
-					video.Title = title
-					video.VideoLink = videoLink
-
-					if err := db.Save(&video).Error; err != nil {
-						sendMessage(admin.TelegramID, "❌ خطا در بروزرسانی ویدیو")
-						return
-					}
-
-					logAdminAction(admin, "edit_video", fmt.Sprintf("Edited video %d: %s", videoID, title), "video", video.ID)
-					sendMessage(admin.TelegramID, fmt.Sprintf("✅ ویدیو با موفقیت بروزرسانی شد"))
-					delete(adminStates, admin.TelegramID)
-
-					// Show admin menu after completion
-					msg := tgbotapi.NewMessage(admin.TelegramID, "منوی ادمین:")
-					msg.ReplyMarkup = getAdminKeyboard()
-					bot.Send(msg)
-					return
-				}
+				return
 			}
 		}
 
@@ -735,12 +587,12 @@ func handleMessage(update *tgbotapi.Update) {
 	if update.Message.IsCommand() {
 		switch update.Message.Command() {
 		case "start":
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Welcome to MonetizeAI! I'm your AI assistant for the course. Let's begin your journey to building a successful AI-powered business.")
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
 			msg.ReplyMarkup = getMainMenuKeyboard()
 			bot.Send(msg)
 			return
 		case "help":
-			sendMessage(update.Message.Chat.ID, "I'm here to help you with your MonetizeAI course journey. Use the menu buttons to navigate through the course.")
+			sendMessage(update.Message.Chat.ID, "من اینجا هستم تا در سفر دوره مونیتایز به شما کمک کنم. از دکمه‌های منو برای پیمایش در دوره استفاده کنید.")
 			return
 		}
 	}
@@ -876,7 +728,7 @@ func handleBanUser(admin *Admin, userID string) {
 		return
 	}
 
-	logAdminAction(admin, "ban_user", fmt.Sprintf("Banned user %s", user.Username), "user", user.ID)
+	logAdminAction(admin, "ban_user", fmt.Sprintf("کاربر %s مسدود شد", user.Username), "user", user.ID)
 	sendMessage(admin.TelegramID, fmt.Sprintf("✅ کاربر %s با موفقیت مسدود شد", user.Username))
 }
 
@@ -900,7 +752,7 @@ func handleUnbanUser(admin *Admin, userID string) {
 		return
 	}
 
-	logAdminAction(admin, "unban_user", fmt.Sprintf("Unbanned user %s", user.Username), "user", user.ID)
+	logAdminAction(admin, "unban_user", fmt.Sprintf("مسدودیت کاربر %s برداشته شد", user.Username), "user", user.ID)
 	sendMessage(admin.TelegramID, fmt.Sprintf("✅ مسدودیت کاربر %s با موفقیت برداشته شد", user.Username))
 }
 
@@ -991,7 +843,7 @@ func handleAddSessionResponse(admin *Admin, response string) {
 		return
 	}
 
-	logAdminAction(admin, "add_session", fmt.Sprintf("Added session %d: %s", session.Number, session.Title), "session", session.ID)
+	logAdminAction(admin, "add_session", fmt.Sprintf("جلسه %d اضافه شد: %s", session.Number, session.Title), "session", session.ID)
 	sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت ایجاد شد", sessionNum))
 }
 
@@ -1030,7 +882,7 @@ func handleSessionNumberResponse(admin *Admin, response string) {
 			sendMessage(admin.TelegramID, "❌ خطا در حذف جلسه")
 			return
 		}
-		logAdminAction(admin, "delete_session", fmt.Sprintf("Deleted session %d: %s", session.Number, session.Title), "session", session.ID)
+		logAdminAction(admin, "delete_session", fmt.Sprintf("جلسه %d حذف شد: %s", session.Number, session.Title), "session", session.ID)
 		sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت حذف شد", sessionNum))
 		delete(adminStates, admin.TelegramID)
 	}
@@ -1120,7 +972,7 @@ func handleDeleteVideo(admin *Admin, params []string) string {
 		return ""
 	}
 
-	logAdminAction(admin, "delete_video", fmt.Sprintf("Deleted video %s", videoID), "video", video.ID)
+	logAdminAction(admin, "delete_video", fmt.Sprintf("ویدیو %s حذف شد", videoID), "video", video.ID)
 	bot.Send(tgbotapi.NewMessage(admin.TelegramID, "✅ ویدیو با موفقیت حذف شد"))
 	return ""
 }
@@ -1226,3 +1078,202 @@ func handleUserSearchResponse(admin *Admin, searchText string) {
 
 // Add this at the top of the file with other global variables
 var adminStates = make(map[int64]string)
+
+func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	keyboard := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("📚 جلسات"),
+			tgbotapi.NewKeyboardButton("🎥 ویدیوها"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("✍️ تمرین‌ها"),
+			tgbotapi.NewKeyboardButton("📊 پیشرفت من"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("❓ راهنما"),
+			tgbotapi.NewKeyboardButton("📞 پشتیبانی"),
+		),
+	)
+	keyboard.ResizeKeyboard = true
+	return keyboard
+}
+
+func processUserInput(text string, user *User) string {
+	switch text {
+	case "📚 جلسات":
+		return handleSessionsCommand(user)
+	case "🎥 ویدیوها":
+		return handleVideosCommand(user)
+	case "✍️ تمرین‌ها":
+		return handleExercisesCommand(user)
+	case "📊 پیشرفت من":
+		return handleProgressCommand(user)
+	case "❓ راهنما":
+		return handleHelpCommand(user)
+	case "📞 پشتیبانی":
+		return handleSupportCommand(user)
+	default:
+		return "لطفا از دکمه‌های منو استفاده کنید"
+	}
+}
+
+func handleSessionsCommand(user *User) string {
+	var sessions []Session
+	db.Where("is_active = ?", true).Order("number").Find(&sessions)
+
+	if len(sessions) == 0 {
+		return "📚 در حال حاضر هیچ جلسه‌ای موجود نیست"
+	}
+
+	response := "📚 لیست جلسات:\n\n"
+	for _, session := range sessions {
+		// Check if user has completed this session
+		var progress UserProgress
+		isCompleted := false
+		if err := db.Where("user_id = ? AND session_id = ?", user.ID, session.ID).First(&progress).Error; err == nil {
+			isCompleted = progress.IsCompleted
+		}
+
+		status := "⏳ در انتظار"
+		if isCompleted {
+			status = "✅ تکمیل شده"
+		}
+
+		response += fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n%s\n\n",
+			session.Number,
+			session.Title,
+			session.Description,
+			status)
+	}
+
+	return response
+}
+
+func handleVideosCommand(user *User) string {
+	var videos []Video
+	db.Preload("Session").Order("created_at desc").Find(&videos)
+
+	if len(videos) == 0 {
+		return "🎥 در حال حاضر هیچ ویدیویی موجود نیست"
+	}
+
+	response := "🎥 لیست ویدیوها:\n\n"
+	for _, video := range videos {
+		response += fmt.Sprintf("📺 %s\n📚 جلسه: %d\n🔗 %s\n\n",
+			video.Title,
+			video.Session.Number,
+			video.VideoLink)
+	}
+
+	return response
+}
+
+func handleExercisesCommand(user *User) string {
+	var exercises []Exercise
+	db.Preload("Session").Where("user_id = ?", user.ID).Order("created_at desc").Find(&exercises)
+
+	if len(exercises) == 0 {
+		return "✍️ شما هنوز هیچ تمرینی ارسال نکرده‌اید"
+	}
+
+	response := "✍️ تمرین‌های شما:\n\n"
+	for _, exercise := range exercises {
+		status := "⏳ در انتظار بررسی"
+		if exercise.Status == "approved" {
+			status = "✅ تایید شده"
+		} else if exercise.Status == "needs_revision" {
+			status = "🔄 نیاز به اصلاح"
+		}
+
+		response += fmt.Sprintf("📚 جلسه %d\n📝 %s\n%s\n\n",
+			exercise.Session.Number,
+			exercise.Content,
+			status)
+	}
+
+	return response
+}
+
+func handleProgressCommand(user *User) string {
+	var stats struct {
+		TotalSessions     int64
+		CompletedSessions int64
+		TotalExercises    int64
+		ApprovedExercises int64
+	}
+
+	// Get total sessions
+	db.Model(&Session{}).Where("is_active = ?", true).Count(&stats.TotalSessions)
+
+	// Get completed sessions
+	db.Model(&UserProgress{}).Where("user_id = ? AND is_completed = ?", user.ID, true).Count(&stats.CompletedSessions)
+
+	// Get exercise statistics
+	db.Model(&Exercise{}).Where("user_id = ?", user.ID).Count(&stats.TotalExercises)
+	db.Model(&Exercise{}).Where("user_id = ? AND status = ?", user.ID, "approved").Count(&stats.ApprovedExercises)
+
+	progress := float64(stats.CompletedSessions) / float64(stats.TotalSessions) * 100
+	exerciseProgress := float64(stats.ApprovedExercises) / float64(stats.TotalExercises) * 100
+
+	response := fmt.Sprintf("📊 پیشرفت شما:\n\n"+
+		"📚 جلسات:\n"+
+		"• تکمیل شده: %d/%d (%.1f%%)\n\n"+
+		"✍️ تمرین‌ها:\n"+
+		"• تایید شده: %d/%d (%.1f%%)",
+		stats.CompletedSessions,
+		stats.TotalSessions,
+		progress,
+		stats.ApprovedExercises,
+		stats.TotalExercises,
+		exerciseProgress)
+
+	return response
+}
+
+func handleHelpCommand(user *User) string {
+	return "❓ راهنمای استفاده از ربات:\n\n" +
+		"1️⃣ برای مشاهده جلسات از دکمه '📚 جلسات' استفاده کنید\n" +
+		"2️⃣ ویدیوهای آموزشی را از بخش '🎥 ویدیوها' مشاهده کنید\n" +
+		"3️⃣ تمرین‌های خود را از بخش '✍️ تمرین‌ها' ارسال کنید\n" +
+		"4️⃣ پیشرفت خود را از بخش '📊 پیشرفت من' مشاهده کنید\n" +
+		"5️⃣ در صورت نیاز به کمک از بخش '📞 پشتیبانی' استفاده کنید"
+}
+
+func handleSupportCommand(user *User) string {
+	return "📞 برای ارتباط با پشتیبانی:\n\n" +
+		"• تلگرام: @support\n" +
+		"• ایمیل: support@example.com\n" +
+		"• ساعات پاسخگویی: 9 صبح تا 9 شب"
+}
+
+func performBackup(admin *Admin) string {
+	// Create backup directory if it doesn't exist
+	backupDir := "backups"
+	if err := os.MkdirAll(backupDir, 0755); err != nil {
+		return "❌ خطا در ایجاد پوشه پشتیبان‌گیری"
+	}
+
+	// Generate backup filename with timestamp
+	timestamp := time.Now().Format("2006-01-02_15-04-05")
+	backupFile := filepath.Join(backupDir, fmt.Sprintf("backup_%s.sql", timestamp))
+
+	// Perform database backup
+	cmd := exec.Command("mysqldump", "-u", "root", "-p", "monetize_ai", "-r", backupFile)
+	if err := cmd.Run(); err != nil {
+		return "❌ خطا در پشتیبان‌گیری از پایگاه داده"
+	}
+
+	// Create backup record
+	backup := Backup{
+		AdminID:    admin.ID,
+		FilePath:   backupFile,
+		CreatedAt:  time.Now(),
+		IsComplete: true,
+	}
+	if err := db.Create(&backup).Error; err != nil {
+		return "❌ خطا در ثبت اطلاعات پشتیبان‌گیری"
+	}
+
+	logAdminAction(admin, "backup", fmt.Sprintf("پشتیبان‌گیری انجام شد: %s", backupFile), "system", 0)
+	return fmt.Sprintf("✅ پشتیبان‌گیری با موفقیت انجام شد\n📁 مسیر فایل: %s", backupFile)
+}

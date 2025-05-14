@@ -26,13 +26,13 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 
 func processUserInput(text string, user *User) string {
 	switch text {
-	case "📚 Current Session":
+	case "📚 جلسه فعلی":
 		return getCurrentSessionInfo(user)
-	case "✅ Submit Exercise":
-		return "Please submit your exercise for the current session. Write your answer in the next message."
-	case "📊 Progress":
+	case "✅ ارسال تمرین":
+		return "لطفا تمرین خود را برای جلسه فعلی ارسال کنید. پاسخ خود را در پیام بعدی بنویسید."
+	case "📊 پیشرفت":
 		return getProgressInfo(user)
-	case "❓ Help":
+	case "❓ راهنما":
 		return getHelpMessage()
 	default:
 		return handleExerciseSubmission(user, text)
@@ -42,14 +42,14 @@ func processUserInput(text string, user *User) string {
 func getCurrentSessionInfo(user *User) string {
 	var session Session
 	if err := db.First(&session, user.CurrentSession).Error; err != nil {
-		return "Error retrieving session information. Please try again later."
+		return "خطا در دریافت اطلاعات جلسه. لطفا دوباره تلاش کنید."
 	}
 
 	var video Video
 	db.Where("session_id = ?", session.ID).First(&video)
 
 	// Create a message with the session thumbnail
-	message := fmt.Sprintf("📚 Session %d: %s\n\n%s\n\n📺 Video: %s",
+	message := fmt.Sprintf("📚 جلسه %d: %s\n\n%s\n\n📺 ویدیو: %s",
 		session.Number,
 		session.Title,
 		session.Description,
@@ -67,21 +67,21 @@ func getProgressInfo(user *User) string {
 	var completedExercises int64
 	db.Model(&Exercise{}).Where("user_id = ? AND status = ?", user.ID, "approved").Count(&completedExercises)
 
-	return fmt.Sprintf("📊 Your Progress:\n\n• Current Session: %d\n• Completed Exercises: %d\n• Active Status: %v",
+	return fmt.Sprintf("📊 پیشرفت شما:\n\n• جلسه فعلی: %d\n• تمرین‌های تکمیل شده: %d\n• وضعیت فعال: %v",
 		user.CurrentSession,
 		completedExercises,
 		user.IsActive)
 }
 
 func getHelpMessage() string {
-	return `❓ How to use MonetizeAI Bot:
+	return `❓ راهنمای استفاده از ربات MonetizeAI:
 
-1. Use the menu buttons to navigate
-2. Submit your exercises for review
-3. Get feedback and improve your work
-4. Progress through the course sessions
+1. از دکمه‌های منو برای پیمایش استفاده کنید
+2. تمرین‌های خود را برای بررسی ارسال کنید
+3. بازخورد دریافت کنید و کار خود را بهبود دهید
+4. در جلسات دوره پیشرفت کنید
 
-Need more help? Contact support.`
+نیاز به کمک بیشتر دارید؟ با پشتیبانی تماس بگیرید.`
 }
 
 func handleExerciseSubmission(user *User, content string) string {
@@ -127,12 +127,12 @@ func sendMessage(chatID int64, text string) {
 func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("📚 Current Session"),
-			tgbotapi.NewKeyboardButton("✅ Submit Exercise"),
+			tgbotapi.NewKeyboardButton("📚 جلسه فعلی"),
+			tgbotapi.NewKeyboardButton("✅ ارسال تمرین"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("📊 Progress"),
-			tgbotapi.NewKeyboardButton("❓ Help"),
+			tgbotapi.NewKeyboardButton("📊 پیشرفت"),
+			tgbotapi.NewKeyboardButton("❓ راهنما"),
 		),
 	)
 	keyboard.ResizeKeyboard = true

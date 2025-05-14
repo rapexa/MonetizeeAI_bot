@@ -172,3 +172,80 @@ func logAdminAction(admin *Admin, action, details, targetType string, targetID u
 	}
 	db.Create(&log)
 }
+
+// deleteVideo deletes a video
+func deleteVideo(admin *Admin, videoID string) string {
+	id, err := strconv.ParseUint(videoID, 10, 32)
+	if err != nil {
+		return "❌ آیدی نامعتبر"
+	}
+
+	var video Video
+	if err := db.First(&video, id).Error; err != nil {
+		return "❌ ویدیو یافت نشد"
+	}
+
+	if err := db.Delete(&video).Error; err != nil {
+		return "❌ خطا در حذف ویدیو"
+	}
+
+	logAdminAction(admin, "delete_video", fmt.Sprintf("حذف ویدیو %d", id), "video", uint(id))
+	return "✅ ویدیو با موفقیت حذف شد"
+}
+
+// getAdminStats returns admin statistics
+func getAdminStats() string {
+	var stats struct {
+		TotalUsers     int64
+		ActiveUsers    int64
+		TotalSessions  int64
+		TotalVideos    int64
+		TotalExercises int64
+	}
+
+	db.Model(&User{}).Count(&stats.TotalUsers)
+	db.Model(&User{}).Where("is_active = ?", true).Count(&stats.ActiveUsers)
+	db.Model(&Session{}).Count(&stats.TotalSessions)
+	db.Model(&Video{}).Count(&stats.TotalVideos)
+	db.Model(&Exercise{}).Count(&stats.TotalExercises)
+
+	return fmt.Sprintf("📊 آمار سیستم:\n\n"+
+		"👥 کاربران:\n"+
+		"• کل کاربران: %d\n"+
+		"• کاربران فعال: %d\n\n"+
+		"📚 جلسات:\n"+
+		"• کل جلسات: %d\n\n"+
+		"🎥 ویدیوها:\n"+
+		"• کل ویدیوها: %d\n\n"+
+		"✍️ تمرین‌ها:\n"+
+		"• کل تمرین‌ها: %d",
+		stats.TotalUsers,
+		stats.ActiveUsers,
+		stats.TotalSessions,
+		stats.TotalVideos,
+		stats.TotalExercises)
+}
+
+// getAdminLogs returns recent admin actions
+func getAdminLogs() string {
+	var logs []AdminAction
+	db.Preload("Admin").Order("created_at desc").Limit(10).Find(&logs)
+
+	if len(logs) == 0 {
+		return "📝 هیچ عملیاتی ثبت نشده است"
+	}
+
+	response := "📝 آخرین عملیات‌های ادمین:\n\n"
+	for _, log := range logs {
+		response += fmt.Sprintf("👤 %s\n"+
+			"📌 عملیات: %s\n"+
+			"📝 جزئیات: %s\n"+
+			"⏰ زمان: %s\n\n",
+			log.Admin.Username,
+			log.Action,
+			log.Details,
+			log.CreatedAt.Format("2006-01-02 15:04:05"))
+	}
+
+	return response
+}
