@@ -86,7 +86,11 @@ func getCurrentSessionInfo(user *User) string {
 	photo.Caption = message
 	bot.Send(photo)
 
-	return "" // Return empty string since we're sending the message directly
+	// Send instruction message
+	instructionMsg := "بعد از ارسال تکالیف این جلسه و ارسال تمرین و بررسی جواب شما به ویدیو بعدی منتقل خواهید شد"
+	bot.Send(tgbotapi.NewMessage(user.TelegramID, instructionMsg))
+
+	return "" // Return empty string since we're sending the messages directly
 }
 
 func getProgressInfo(user *User) string {
