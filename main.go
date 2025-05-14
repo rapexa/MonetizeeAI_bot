@@ -56,34 +56,6 @@ func main() {
 	}
 }
 
-func handleMessage(message *tgbotapi.Update) {
-	// Get or create user
-	user := getUserOrCreate(message.Message.From)
-
-	// Create response message
-	msg := tgbotapi.NewMessage(message.Message.Chat.ID, "")
-
-	// Handle commands
-	if message.Message.IsCommand() {
-		switch message.Message.Command() {
-		case "start":
-			msg.Text = "Welcome to MonetizeAI! I'm your AI assistant for the course. Let's begin your journey to building a successful AI-powered business."
-			msg.ReplyMarkup = getMainMenuKeyboard()
-		case "help":
-			msg.Text = "I'm here to help you with your MonetizeAI course journey. Use the menu buttons to navigate through the course."
-		default:
-			msg.Text = "I don't know that command"
-		}
-	} else {
-		// Handle regular messages
-		msg.Text = processUserInput(message.Message.Text, user)
-	}
-
-	if _, err := bot.Send(msg); err != nil {
-		log.Printf("Error sending message: %v", err)
-	}
-}
-
 func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(

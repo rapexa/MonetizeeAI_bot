@@ -143,8 +143,24 @@ func handleMessage(update *tgbotapi.Update) {
 		}
 	}
 
-	// Handle regular user commands
+	// Get or create user
 	user := getUserOrCreate(update.Message.From)
+
+	// Handle commands
+	if update.Message.IsCommand() {
+		switch update.Message.Command() {
+		case "start":
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Welcome to MonetizeAI! I'm your AI assistant for the course. Let's begin your journey to building a successful AI-powered business.")
+			msg.ReplyMarkup = getMainMenuKeyboard()
+			bot.Send(msg)
+			return
+		case "help":
+			sendMessage(update.Message.Chat.ID, "I'm here to help you with your MonetizeAI course journey. Use the menu buttons to navigate through the course.")
+			return
+		}
+	}
+
+	// Handle regular messages
 	response := processUserInput(update.Message.Text, user)
 	sendMessage(update.Message.Chat.ID, response)
 }
