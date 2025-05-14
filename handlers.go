@@ -343,7 +343,7 @@ func handleExerciseChart(admin *Admin, params []string) {
 // User management handlers
 func handleSearchUser(admin *Admin, params []string) {
 	msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی یا نام کاربری را وارد کنید:")
-	msg.ReplyMarkup = tgbotapi.NewForceReply()
+	msg.ReplyMarkup = tgbotapi.ForceReply{}
 	bot.Send(msg)
 }
 
@@ -391,28 +391,28 @@ func handleUserStats(admin *Admin, params []string) {
 // Session management handlers
 func handleAddSession(admin *Admin, params []string) {
 	msg := tgbotapi.NewMessage(admin.TelegramID, "➕ افزودن جلسه جدید:\n\nلطفا اطلاعات را به فرمت زیر وارد کنید:\nشماره جلسه|عنوان|توضیحات")
-	msg.ReplyMarkup = tgbotapi.NewForceReply()
+	msg.ReplyMarkup = tgbotapi.ForceReply{}
 	bot.Send(msg)
 }
 
 func handleEditSession(admin *Admin, params []string) {
 	if len(params) == 0 {
 		msg := tgbotapi.NewMessage(admin.TelegramID, "✏️ ویرایش جلسه:\n\nلطفا شماره جلسه را وارد کنید:")
-		msg.ReplyMarkup = tgbotapi.NewForceReply()
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		return
 	}
 
 	sessionNum := params[0]
 	msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش جلسه %s:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|توضیحات", sessionNum))
-	msg.ReplyMarkup = tgbotapi.NewForceReply()
+	msg.ReplyMarkup = tgbotapi.ForceReply{}
 	bot.Send(msg)
 }
 
 func handleDeleteSession(admin *Admin, params []string) {
 	if len(params) == 0 {
 		msg := tgbotapi.NewMessage(admin.TelegramID, "🗑️ حذف جلسه:\n\nلطفا شماره جلسه را وارد کنید:")
-		msg.ReplyMarkup = tgbotapi.NewForceReply()
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		return
 	}
@@ -458,35 +458,35 @@ func handleSessionStats(admin *Admin, params []string) {
 func handleAddVideo(admin *Admin, params []string) {
 	if len(params) == 0 {
 		msg := tgbotapi.NewMessage(admin.TelegramID, "➕ افزودن ویدیو:\n\nلطفا شماره جلسه را وارد کنید:")
-		msg.ReplyMarkup = tgbotapi.NewForceReply()
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		return
 	}
 
 	sessionNum := params[0]
 	msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("➕ افزودن ویدیو به جلسه %s:\n\nلطفا اطلاعات را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", sessionNum))
-	msg.ReplyMarkup = tgbotapi.NewForceReply()
+	msg.ReplyMarkup = tgbotapi.ForceReply{}
 	bot.Send(msg)
 }
 
 func handleEditVideo(admin *Admin, params []string) {
 	if len(params) == 0 {
 		msg := tgbotapi.NewMessage(admin.TelegramID, "✏️ ویرایش ویدیو:\n\nلطفا آیدی ویدیو را وارد کنید:")
-		msg.ReplyMarkup = tgbotapi.NewForceReply()
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		return
 	}
 
 	videoID := params[0]
 	msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش ویدیو %s:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", videoID))
-	msg.ReplyMarkup = tgbotapi.NewForceReply()
+	msg.ReplyMarkup = tgbotapi.ForceReply{}
 	bot.Send(msg)
 }
 
 func handleDeleteVideo(admin *Admin, params []string) {
 	if len(params) == 0 {
 		msg := tgbotapi.NewMessage(admin.TelegramID, "🗑️ حذف ویدیو:\n\nلطفا آیدی ویدیو را وارد کنید:")
-		msg.ReplyMarkup = tgbotapi.NewForceReply()
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		return
 	}
