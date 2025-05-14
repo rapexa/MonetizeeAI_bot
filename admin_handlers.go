@@ -46,6 +46,11 @@ var adminCommands = []AdminCommand{
 		Description: "📝 مشاهده لاگ‌های سیستم",
 		Handler:     handleAdminLogs,
 	},
+	{
+		Command:     "/backup",
+		Description: "💾 پشتیبان‌گیری از دیتابیس",
+		Handler:     handleAdminBackup,
+	},
 }
 
 // handleAdminCommand processes admin commands
@@ -356,4 +361,72 @@ func getAdmin(telegramID int64) *Admin {
 		return nil
 	}
 	return &admin
+}
+
+func handleMessage(update *tgbotapi.Update) {
+	// Check if user is admin
+	if isAdmin(update.Message.From.ID) {
+		admin := getAdmin(update.Message.From.ID)
+		if admin == nil {
+			sendMessage(update.Message.Chat.ID, "❌ خطا در دریافت اطلاعات ادمین")
+			return
+		}
+
+		// Handle admin commands
+		if update.Message.IsCommand() {
+			switch update.Message.Command() {
+			case "start":
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به پنل مدیریت خوش آمدید!\n\nاز منوی زیر برای مدیریت سیستم استفاده کنید:")
+				msg.ReplyMarkup = getAdminKeyboard()
+				bot.Send(msg)
+				return
+			case "backup":
+				args := strings.Fields(update.Message.CommandArguments())
+				response := handleAdminBackup(admin, args)
+				sendMessage(update.Message.Chat.ID, response)
+				return
+			default:
+				args := strings.Fields(update.Message.CommandArguments())
+				response := handleAdminCommand(admin, "/"+update.Message.Command(), args)
+				sendMessage(update.Message.Chat.ID, response)
+				return
+			}
+		}
+
+		// Handle admin menu buttons
+		switch update.Message.Text {
+		case "📊 آمار سیستم":
+			response := handleAdminStats(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "👥 مدیریت کاربران":
+			response := handleAdminUsers(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "📚 مدیریت جلسات":
+			response := handleAdminSessions(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "🎥 مدیریت ویدیوها":
+			response := handleAdminVideos(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "💾 پشتیبان‌گیری":
+			response := handleAdminBackup(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "📝 لاگ‌های سیستم":
+			response := handleAdminLogs(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		}
+
+		// Send admin keyboard if no command matched
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "منوی ادمین:")
+		msg.ReplyMarkup = getAdminKeyboard()
+		bot.Send(msg)
+		return
+	}
+
+	// ... rest of the code ...
 }
