@@ -30,6 +30,20 @@ type UserProgress struct {
 	Session     Session `gorm:"foreignKey:SessionID"`
 }
 
+// Update the Session model definition
+type Session struct {
+	ID          uint   `gorm:"primaryKey"`
+	Number      int    `gorm:"uniqueIndex;not null"`
+	Title       string `gorm:"not null"`
+	Description string `gorm:"type:text"`
+	IsActive    bool   `gorm:"default:true"`
+	IsCompleted bool   `gorm:"default:false"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Videos      []Video    `gorm:"foreignKey:SessionID"`
+	Exercises   []Exercise `gorm:"foreignKey:SessionID"`
+}
+
 // AdminCommand represents an admin command with its handler
 type AdminCommand struct {
 	Command     string
