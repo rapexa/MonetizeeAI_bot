@@ -13,13 +13,44 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 	var user User
 	result := db.Where("telegram_id = ?", from.ID).First(&user)
 	if result.Error == gorm.ErrRecordNotFound {
+		// Create new user
 		user = User{
-			TelegramID: from.ID,
-			Username:   from.UserName,
-			FirstName:  from.FirstName,
-			LastName:   from.LastName,
+			TelegramID:     from.ID,
+			Username:       from.UserName,
+			FirstName:      from.FirstName,
+			LastName:       from.LastName,
+			CurrentSession: 1, // Set initial session to 1
 		}
 		db.Create(&user)
+
+		// Send welcome message
+		msg := tgbotapi.NewMessage(from.ID, "👋 به ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
+		msg.ReplyMarkup = getMainMenuKeyboard()
+		bot.Send(msg)
+
+		// Get and send session 1 info
+		var session Session
+		if err := db.Where("number = ?", 1).First(&session).Error; err == nil {
+			var video Video
+			db.Where("session_id = ?", session.ID).First(&video)
+
+			// Create session message
+			sessionMsg := fmt.Sprintf("📚 جلسه %d: %s\n\n%s\n\n📺 ویدیو: %s",
+				session.Number,
+				session.Title,
+				session.Description,
+				video.VideoLink)
+
+			// Send session thumbnail with message
+			if session.ThumbnailURL != "" {
+				photo := tgbotapi.NewPhoto(from.ID, tgbotapi.FileURL(session.ThumbnailURL))
+				photo.Caption = sessionMsg
+				bot.Send(photo)
+			} else {
+				// If no thumbnail, just send the message
+				bot.Send(tgbotapi.NewMessage(from.ID, sessionMsg))
+			}
+		}
 	}
 	return &user
 }

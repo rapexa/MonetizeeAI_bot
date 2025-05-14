@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"gorm.io/gorm"
 )
 
 // Add these constants at the top of the file
@@ -518,9 +519,12 @@ func handleMessage(update *tgbotapi.Update) {
 		if update.Message.IsCommand() {
 			switch update.Message.Command() {
 			case "start":
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به پنل مدیریت خوش آمدید!\n\nاز منوی زیر برای مدیریت سیستم استفاده کنید:")
-				msg.ReplyMarkup = getAdminMainMenuKeyboard()
-				bot.Send(msg)
+				// Only send welcome message if user already exists
+				if !isNewUser(update.Message.From.ID) {
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
+					msg.ReplyMarkup = getMainMenuKeyboard()
+					bot.Send(msg)
+				}
 				return
 			default:
 				args := strings.Fields(update.Message.CommandArguments())
@@ -584,9 +588,12 @@ func handleMessage(update *tgbotapi.Update) {
 	if update.Message.IsCommand() {
 		switch update.Message.Command() {
 		case "start":
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
-			msg.ReplyMarkup = getMainMenuKeyboard()
-			bot.Send(msg)
+			// Only send welcome message if user already exists
+			if !isNewUser(update.Message.From.ID) {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
+				msg.ReplyMarkup = getMainMenuKeyboard()
+				bot.Send(msg)
+			}
 			return
 		case "help":
 			sendMessage(update.Message.Chat.ID, "من اینجا هستم تا در سفر دوره مونیتایز به شما کمک کنم. از دکمه‌های منو برای پیمایش در دوره استفاده کنید.")
@@ -1093,4 +1100,11 @@ func getAdminMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	)
 	keyboard.ResizeKeyboard = true
 	return keyboard
+}
+
+// Add this helper function at the end of the file
+func isNewUser(telegramID int64) bool {
+	var user User
+	result := db.Where("telegram_id = ?", telegramID).First(&user)
+	return result.Error == gorm.ErrRecordNotFound
 }
