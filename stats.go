@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -25,45 +24,73 @@ func generateAndSendCharts(admin *Admin) {
 	// First, send the text statistics
 	sendTextStatistics(admin)
 
-	// Generate and send each chart
-	charts := []struct {
-		name     string
-		generate func() (string, error)
-	}{
-		{"آمار کاربران", generateUserStats},
-		{"آمار جلسات", generateSessionStats},
-		{"آمار ویدیوها", generateVideoStats},
-		{"آمار تمرین‌ها", generateExerciseStats},
+	// Send chart selection buttons
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("📊 نمودار کاربران", "chart:users"),
+			tgbotapi.NewInlineKeyboardButtonData("📊 نمودار جلسات", "chart:sessions"),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("📊 نمودار ویدیوها", "chart:videos"),
+			tgbotapi.NewInlineKeyboardButtonData("📊 نمودار تمرین‌ها", "chart:exercises"),
+		),
+	)
+
+	msg := tgbotapi.NewMessage(admin.TelegramID, "برای مشاهده نمودارها، یکی از گزینه‌های زیر را انتخاب کنید:")
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+}
+
+// handleChartCallback handles chart generation requests
+func handleChartCallback(admin *Admin, chartType string) {
+	// Send "preparing" message
+	msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("📊 نمودار %s در حال آماده‌سازی...", getChartName(chartType)))
+	bot.Send(msg)
+
+	// Generate chart
+	var htmlFile string
+	var err error
+	switch chartType {
+	case "users":
+		htmlFile, err = generateUserStats()
+	case "sessions":
+		htmlFile, err = generateSessionStats()
+	case "videos":
+		htmlFile, err = generateVideoStats()
+	case "exercises":
+		htmlFile, err = generateExerciseStats()
+	default:
+		sendMessage(admin.TelegramID, "❌ نوع نمودار نامعتبر")
+		return
 	}
 
-	for _, chart := range charts {
-		// Send "preparing" message
-		msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("📊 نمودار %s در حال آماده‌سازی...", chart.name))
-		bot.Send(msg)
+	if err != nil {
+		sendMessage(admin.TelegramID, fmt.Sprintf("❌ خطا در ایجاد نمودار: %v", err))
+		return
+	}
 
-		// Generate chart
-		htmlFile, err := chart.generate()
-		if err != nil {
-			sendMessage(admin.TelegramID, fmt.Sprintf("❌ خطا در ایجاد نمودار %s: %v", chart.name, err))
-			continue
-		}
+	// Send the HTML file directly
+	doc := tgbotapi.NewDocument(admin.TelegramID, tgbotapi.FilePath(htmlFile))
+	doc.Caption = fmt.Sprintf("📊 نمودار %s", getChartName(chartType))
+	bot.Send(doc)
 
-		// Convert HTML to image
-		imageFile := htmlFile[:len(htmlFile)-5] + ".png"
-		cmd := exec.Command("chromium-browser", "--headless", "--disable-gpu", "--screenshot="+imageFile, "--window-size=1200,800", htmlFile)
-		if err := cmd.Run(); err != nil {
-			sendMessage(admin.TelegramID, fmt.Sprintf("❌ خطا در تبدیل نمودار %s به تصویر: %v", chart.name, err))
-			continue
-		}
+	// Clean up the file
+	os.Remove(htmlFile)
+}
 
-		// Send chart as photo
-		photo := tgbotapi.NewPhoto(admin.TelegramID, tgbotapi.FilePath(imageFile))
-		photo.Caption = fmt.Sprintf("📊 نمودار %s", chart.name)
-		bot.Send(photo)
-
-		// Clean up the files
-		os.Remove(htmlFile)
-		os.Remove(imageFile)
+// getChartName returns the Persian name for a chart type
+func getChartName(chartType string) string {
+	switch chartType {
+	case "users":
+		return "آمار کاربران"
+	case "sessions":
+		return "آمار جلسات"
+	case "videos":
+		return "آمار ویدیوها"
+	case "exercises":
+		return "آمار تمرین‌ها"
+	default:
+		return "نامشخص"
 	}
 }
 

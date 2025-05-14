@@ -429,6 +429,10 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	params := parts[1:]
 
 	switch action {
+	case "chart":
+		if len(params) > 0 {
+			handleChartCallback(admin, params[0])
+		}
 	case "user_chart":
 		handleUserChart(admin, params)
 	case "session_chart":
