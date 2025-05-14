@@ -5,19 +5,35 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"gorm.io/gorm"
 )
 
-var backupSchedule *time.Ticker
-var stopBackup chan bool
+var (
+	backupSchedule *time.Ticker
+	stopBackup     chan bool
+)
 
 // handleAdminBackup handles database backup operations
 func handleAdminBackup(admin *Admin, args []string) string {
 	if len(args) == 0 {
-		return "💾 پشتیبان‌گیری از دیتابیس:\n\n• /backup now - پشتیبان‌گیری فوری\n• /backup schedule - تنظیم زمان پشتیبان‌گیری"
+		// Show backup menu
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("💾 پشتیبان‌گیری فوری", "backup:now"),
+				tgbotapi.NewInlineKeyboardButtonData("⏰ تنظیم زمان پشتیبان‌گیری", "backup:schedule"),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("❌ توقف پشتیبان‌گیری خودکار", "backup:stop"),
+			),
+		)
+		msg := tgbotapi.NewMessage(admin.TelegramID, "💾 مدیریت پشتیبان‌گیری:\n\nاز گزینه‌های زیر استفاده کنید:")
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
+		return ""
 	}
 
 	switch args[0] {
@@ -32,51 +48,68 @@ func handleAdminBackup(admin *Admin, args []string) string {
 	}
 }
 
-// performBackup performs an immediate database backup
+// performBackup creates a database backup
 func performBackup(admin *Admin) string {
+	// Parse DSN to get database credentials
+	dsn := os.Getenv("MYSQL_DSN")
+	parts := strings.Split(dsn, "@")
+	if len(parts) != 2 {
+		return "❌ خطا در فرمت DSN دیتابیس"
+	}
+
+	credentials := strings.Split(parts[0], ":")
+	if len(credentials) != 2 {
+		return "❌ خطا در فرمت DSN دیتابیس"
+	}
+
+	user := credentials[0]
+	password := credentials[1]
+
 	// Create backup directory if it doesn't exist
 	backupDir := "backups"
 	if err := os.MkdirAll(backupDir, 0755); err != nil {
-		return "❌ خطا در ایجاد پوشه پشتیبان"
+		return "❌ خطا در ایجاد پوشه پشتیبان‌گیری"
 	}
 
 	// Generate backup filename with timestamp
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	filename := fmt.Sprintf("backup_%s.sql", timestamp)
-	backupPath := filepath.Join(backupDir, filename)
+	filename := filepath.Join(backupDir, fmt.Sprintf("backup_%s.sql", timestamp))
 
-	// Get database credentials from environment
-	dbUser := os.Getenv("MYSQL_USER")
-	dbPass := os.Getenv("MYSQL_PASSWORD")
-	dbName := os.Getenv("MYSQL_DATABASE")
+	// Extract database name from DSN
+	dbName := strings.Split(parts[1], "/")[1]
+	dbName = strings.Split(dbName, "?")[0]
 
-	// Create mysqldump command
+	// Create mysqldump command with credentials
 	cmd := exec.Command("mysqldump",
-		"-u", dbUser,
-		"-p"+dbPass,
-		"--databases", dbName,
-		"--result-file="+backupPath)
+		"-u", user,
+		"-p"+password, // Note: This is not secure for production
+		"--single-transaction",
+		"--quick",
+		"--lock-tables=false",
+		dbName,
+		"-r", filename)
 
-	// Execute backup
+	// Run the backup command
 	if err := cmd.Run(); err != nil {
-		return "❌ خطا در پشتیبان‌گیری: " + err.Error()
+		return fmt.Sprintf("❌ خطا در پشتیبان‌گیری: %v", err)
 	}
 
 	// Create backup record
 	backup := Backup{
 		Filename:    filename,
-		Size:        getFileSize(backupPath),
+		Size:        getFileSize(filename),
 		CreatedAt:   time.Now(),
 		CreatedByID: admin.ID,
 	}
-	db.Create(&backup)
+	if err := db.Create(&backup).Error; err != nil {
+		return "❌ خطا در ثبت اطلاعات پشتیبان‌گیری"
+	}
 
 	// Send backup file to admin
-	doc := tgbotapi.NewDocument(admin.TelegramID, tgbotapi.FilePath(backupPath))
-	doc.Caption = fmt.Sprintf("✅ پشتیبان‌گیری با موفقیت انجام شد\n\n📁 نام فایل: %s\n📊 حجم: %s\n⏰ تاریخ: %s",
-		filename,
-		formatFileSize(backup.Size),
-		backup.CreatedAt.Format("2006-01-02 15:04:05"))
+	doc := tgbotapi.NewDocument(admin.TelegramID, tgbotapi.FilePath(filename))
+	doc.Caption = fmt.Sprintf("✅ پشتیبان‌گیری با موفقیت انجام شد\n\n📁 نام فایل: %s\n📊 حجم: %s",
+		filepath.Base(filename),
+		formatFileSize(backup.Size))
 	bot.Send(doc)
 
 	return "✅ پشتیبان‌گیری با موفقیت انجام شد"
