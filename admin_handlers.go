@@ -519,17 +519,40 @@ func handleMessage(update *tgbotapi.Update) {
 		if update.Message.IsCommand() {
 			switch update.Message.Command() {
 			case "start":
-				// Send welcome message only for new users
+				// Send welcome message and session info for new users
 				if isNewUser(update.Message.From.ID) {
+					// Send welcome message
 					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
 					msg.ReplyMarkup = getMainMenuKeyboard()
 					bot.Send(msg)
+
+					// Get and send session 1 info
+					var session Session
+					if err := db.Where("number = ?", 1).First(&session).Error; err == nil {
+						var video Video
+						db.Where("session_id = ?", session.ID).First(&video)
+
+						// Create session message
+						sessionMsg := fmt.Sprintf("📚 جلسه %d: %s\n\n%s\n\n📺 ویدیو: %s",
+							session.Number,
+							session.Title,
+							session.Description,
+							video.VideoLink)
+
+						// Send session thumbnail with message
+						if session.ThumbnailURL != "" {
+							photo := tgbotapi.NewPhoto(update.Message.Chat.ID, tgbotapi.FileURL(session.ThumbnailURL))
+							photo.Caption = sessionMsg
+							bot.Send(photo)
+						} else {
+							// If no thumbnail, just send the message
+							bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, sessionMsg))
+						}
+					}
 				}
 				return
-			default:
-				args := strings.Fields(update.Message.CommandArguments())
-				response := handleAdminCommand(admin, "/"+update.Message.Command(), args)
-				sendMessage(update.Message.Chat.ID, response)
+			case "help":
+				sendMessage(update.Message.Chat.ID, "من اینجا هستم تا در سفر دوره مونیتایز به شما کمک کنم. از دکمه‌های منو برای پیمایش در دوره استفاده کنید.")
 				return
 			}
 		}
