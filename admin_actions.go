@@ -18,7 +18,7 @@ func banUser(admin *Admin, telegramID string) string {
 		return "❌ کاربر یافت نشد"
 	}
 
-	user.IsBanned = true
+	user.IsActive = false
 	if err := db.Save(&user).Error; err != nil {
 		return "❌ خطا در مسدود کردن کاربر"
 	}
@@ -39,7 +39,7 @@ func unbanUser(admin *Admin, telegramID string) string {
 		return "❌ کاربر یافت نشد"
 	}
 
-	user.IsBanned = false
+	user.IsActive = true
 	if err := db.Save(&user).Error; err != nil {
 		return "❌ خطا در آزاد کردن کاربر"
 	}
@@ -126,7 +126,7 @@ func addVideo(admin *Admin, sessionNum, title, url string) string {
 
 	video := Video{
 		Title:     title,
-		URL:       url,
+		VideoLink: url,
 		SessionID: session.ID,
 		Date:      time.Now(),
 	}
@@ -152,7 +152,7 @@ func editVideo(admin *Admin, videoID, title, url string) string {
 	}
 
 	video.Title = title
-	video.URL = url
+	video.VideoLink = url
 	if err := db.Save(&video).Error; err != nil {
 		return "❌ خطا در ویرایش ویدیو"
 	}

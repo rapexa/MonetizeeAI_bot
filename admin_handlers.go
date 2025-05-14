@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 // AdminCommand represents an admin command with its handler
@@ -114,7 +114,9 @@ func handleAdminStats(admin *Admin, args []string) string {
 	)
 	msg := tgbotapi.NewMessage(admin.TelegramID, response)
 	msg.ReplyMarkup = keyboard
-	bot.Send(msg)
+	if _, err := bot.Send(msg); err != nil {
+		return "❌ خطا در ارسال پیام"
+	}
 
 	return "از دکمه‌های زیر برای مشاهده نمودارهای آماری استفاده کنید"
 }
@@ -128,7 +130,7 @@ func handleAdminUsers(admin *Admin, args []string) string {
 		response := "👥 آخرین کاربران:\n\n"
 		for _, user := range users {
 			status := "✅ فعال"
-			if user.IsBanned {
+			if !user.IsActive {
 				status = "❌ مسدود"
 			}
 			response += fmt.Sprintf("👤 %s\n📱 آیدی: %d\n📊 وضعیت: %s\n⏰ تاریخ عضویت: %s\n\n",
@@ -147,7 +149,9 @@ func handleAdminUsers(admin *Admin, args []string) string {
 		)
 		msg := tgbotapi.NewMessage(admin.TelegramID, response)
 		msg.ReplyMarkup = keyboard
-		bot.Send(msg)
+		if _, err := bot.Send(msg); err != nil {
+			return "❌ خطا در ارسال پیام"
+		}
 
 		return "از دکمه‌های زیر برای مدیریت کاربران استفاده کنید"
 	}
