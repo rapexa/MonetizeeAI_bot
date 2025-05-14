@@ -232,7 +232,7 @@ func handleAdminVideos(admin *Admin, args []string) string {
 		for _, video := range videos {
 			response += fmt.Sprintf("📺 %s\n🔗 %s\n\n",
 				video.Title,
-				video.URL)
+				video.VideoLink)
 		}
 
 		// Add inline keyboard for actions
@@ -248,7 +248,9 @@ func handleAdminVideos(admin *Admin, args []string) string {
 		)
 		msg := tgbotapi.NewMessage(admin.TelegramID, response)
 		msg.ReplyMarkup = keyboard
-		bot.Send(msg)
+		if _, err := bot.Send(msg); err != nil {
+			return "❌ خطا در ارسال پیام"
+		}
 
 		return "از دکمه‌های زیر برای مدیریت ویدیوها استفاده کنید"
 	}
@@ -303,7 +305,6 @@ func handleAdminExercises(admin *Admin, args []string) string {
 		exercise.Status = "approved"
 		exercise.Feedback = strings.Join(args[2:], " ")
 		db.Save(&exercise)
-		logAdminAction(admin, "approve_exercise", fmt.Sprintf("Approved exercise %d", exerciseID), "exercise", uint(exerciseID))
 		return "✅ تمرین با موفقیت تایید شد"
 
 	case "reject":
@@ -321,7 +322,6 @@ func handleAdminExercises(admin *Admin, args []string) string {
 		exercise.Status = "needs_revision"
 		exercise.Feedback = strings.Join(args[2:], " ")
 		db.Save(&exercise)
-		logAdminAction(admin, "reject_exercise", fmt.Sprintf("Rejected exercise %d", exerciseID), "exercise", uint(exerciseID))
 		return "✅ تمرین با موفقیت رد شد"
 
 	default:
@@ -340,18 +340,6 @@ func handleAdminLogs(admin *Admin, args []string) string {
 			action.Admin.Username, action.Action, action.Details, action.CreatedAt.Format("2006-01-02 15:04:05"))
 	}
 	return response
-}
-
-// logAdminAction logs admin activities
-func logAdminAction(admin *Admin, action string, details string, targetType string, targetID uint) {
-	adminAction := AdminAction{
-		AdminID:    admin.ID,
-		Action:     action,
-		Details:    details,
-		TargetType: targetType,
-		TargetID:   targetID,
-	}
-	db.Create(&adminAction)
 }
 
 // isAdmin checks if a user is an admin

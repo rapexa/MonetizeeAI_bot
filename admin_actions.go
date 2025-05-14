@@ -169,7 +169,6 @@ func logAdminAction(admin *Admin, action, details, targetType string, targetID u
 		Details:    details,
 		TargetType: targetType,
 		TargetID:   targetID,
-		CreatedAt:  time.Now(),
 	}
 	db.Create(&log)
 }
