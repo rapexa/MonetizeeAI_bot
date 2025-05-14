@@ -15,7 +15,6 @@ type User struct {
 	LastName      string
 	CurrentSession int    `gorm:"default:1"`
 	IsActive      bool   `gorm:"default:true"`
-	Sessions      []Session
 	Exercises     []Exercise
 }
 
@@ -27,7 +26,7 @@ type Video struct {
 	Date        time.Time
 	VideoLink   string
 	SessionID   uint
-	Session     Session
+	Session     Session `gorm:"foreignKey:SessionID"`
 }
 
 // Session represents a course session
@@ -37,7 +36,6 @@ type Session struct {
 	Title       string
 	Description string
 	Videos      []Video
-	Users       []User
 	Exercises   []Exercise
 }
 
@@ -45,11 +43,19 @@ type Session struct {
 type Exercise struct {
 	gorm.Model
 	UserID      uint
-	User        User
+	User        User    `gorm:"foreignKey:UserID"`
 	SessionID   uint
-	Session     Session
+	Session     Session `gorm:"foreignKey:SessionID"`
 	Content     string
 	Status      string `gorm:"default:'pending'"` // pending, approved, needs_revision
 	Feedback    string
 	SubmittedAt time.Time
+}
+
+// UserSession represents the many-to-many relationship between users and sessions
+type UserSession struct {
+	UserID    uint `gorm:"primaryKey"`
+	SessionID uint `gorm:"primaryKey"`
+	User      User    `gorm:"foreignKey:UserID"`
+	Session   Session `gorm:"foreignKey:SessionID"`
 } 

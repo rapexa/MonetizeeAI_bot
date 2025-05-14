@@ -36,7 +36,7 @@ func init() {
 	}
 
 	// Auto migrate models
-	err = db.AutoMigrate(&User{}, &Video{}, &Session{}, &Exercise{})
+	err = db.AutoMigrate(&User{}, &Video{}, &Session{}, &Exercise{}, &UserSession{})
 	if err != nil {
 		log.Panic("Failed to migrate database:", err)
 	}
