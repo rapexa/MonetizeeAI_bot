@@ -136,7 +136,7 @@ func generateSessionStats() (string, error) {
 	err := db.Raw(`
 		SELECT 
 			CASE 
-				WHEN completed_at IS NOT NULL THEN 'تکمیل شده'
+				WHEN status = 'completed' THEN 'تکمیل شده'
 				ELSE 'در حال انجام'
 			END as status,
 			COUNT(*) as count
@@ -200,7 +200,7 @@ func generateVideoStats() (string, error) {
 	}
 
 	err := db.Raw(`
-		SELECT v.title, COUNT(us.id) as view_count
+		SELECT v.title, COUNT(us.session_id) as view_count
 		FROM videos v
 		LEFT JOIN user_sessions us ON us.video_id = v.id
 		GROUP BY v.id, v.title
@@ -271,7 +271,7 @@ func generateExerciseStats() (string, error) {
 	err := db.Raw(`
 		SELECT 
 			e.title,
-			COUNT(CASE WHEN us.completed_at IS NOT NULL THEN 1 END) * 100.0 / COUNT(*) as completion_rate
+			COUNT(CASE WHEN us.status = 'completed' THEN 1 END) * 100.0 / COUNT(*) as completion_rate
 		FROM exercises e
 		LEFT JOIN user_sessions us ON us.exercise_id = e.id
 		GROUP BY e.id, e.title
