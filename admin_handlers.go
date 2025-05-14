@@ -97,6 +97,7 @@ func handleAdminUsers(admin *Admin, args []string) string {
 			response += fmt.Sprintf("ID: %d\nنام: %s %s\nیوزر: @%s\nجلسه: %d\nوضعیت: %v\n\n",
 				user.ID, user.FirstName, user.LastName, user.Username, user.CurrentSession, user.IsActive)
 		}
+		response += "\nدستورات:\n• ban [آیدی] - مسدود کردن کاربر\n• unban [آیدی] - آزاد کردن کاربر"
 		return response
 	}
 
@@ -152,6 +153,7 @@ func handleAdminSessions(admin *Admin, args []string) string {
 		for _, session := range sessions {
 			response += fmt.Sprintf("شماره: %d\nعنوان: %s\n\n", session.Number, session.Title)
 		}
+		response += "\nدستورات:\n• edit [شماره] [عنوان] [توضیحات] - ویرایش جلسه"
 		return response
 	}
 
@@ -192,6 +194,7 @@ func handleAdminVideos(admin *Admin, args []string) string {
 			response += fmt.Sprintf("ID: %d\nعنوان: %s\nجلسه: %d\nلینک: %s\n\n",
 				video.ID, video.Title, video.Session.Number, video.VideoLink)
 		}
+		response += "\nدستورات:\n• add [شماره_جلسه] [عنوان] [لینک] - افزودن ویدیو\n• edit [آیدی] [عنوان] [لینک] - ویرایش ویدیو"
 		return response
 	}
 
@@ -254,6 +257,7 @@ func handleAdminExercises(admin *Admin, args []string) string {
 			response += fmt.Sprintf("ID: %d\nکاربر: %s\nجلسه: %d\nمحتوا: %s\n\n",
 				exercise.ID, exercise.User.Username, exercise.Session.Number, exercise.Content)
 		}
+		response += "\nدستورات:\n• approve [آیدی] [نظرات] - تایید تمرین\n• reject [آیدی] [نظرات] - رد تمرین"
 		return response
 	}
 

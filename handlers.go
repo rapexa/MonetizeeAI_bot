@@ -125,6 +125,25 @@ func sendMessage(chatID int64, text string) {
 	bot.Send(msg)
 }
 
+func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	keyboard := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("📊 آمار سیستم"),
+			tgbotapi.NewKeyboardButton("👥 مدیریت کاربران"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("📚 مدیریت جلسات"),
+			tgbotapi.NewKeyboardButton("🎥 مدیریت ویدیوها"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("✍️ مدیریت تمرین‌ها"),
+			tgbotapi.NewKeyboardButton("📝 لاگ‌های سیستم"),
+		),
+	)
+	keyboard.ResizeKeyboard = true
+	return keyboard
+}
+
 func handleMessage(update *tgbotapi.Update) {
 	// Check if user is admin
 	if isAdmin(update.Message.From.ID) {
@@ -141,6 +160,40 @@ func handleMessage(update *tgbotapi.Update) {
 			sendMessage(update.Message.Chat.ID, response)
 			return
 		}
+
+		// Handle admin menu buttons
+		switch update.Message.Text {
+		case "📊 آمار سیستم":
+			response := handleAdminStats(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "👥 مدیریت کاربران":
+			response := handleAdminUsers(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "📚 مدیریت جلسات":
+			response := handleAdminSessions(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "🎥 مدیریت ویدیوها":
+			response := handleAdminVideos(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "✍️ مدیریت تمرین‌ها":
+			response := handleAdminExercises(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "📝 لاگ‌های سیستم":
+			response := handleAdminLogs(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		}
+
+		// Send admin keyboard if no command matched
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "منوی ادمین:")
+		msg.ReplyMarkup = getAdminKeyboard()
+		bot.Send(msg)
+		return
 	}
 
 	// Get or create user
