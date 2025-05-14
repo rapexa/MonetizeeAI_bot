@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -34,7 +35,7 @@ func processUserInput(text string, user *User) string {
 	case "❓ Help":
 		return getHelpMessage()
 	default:
-		return handleExerciseSubmission(text, user)
+		return handleExerciseSubmission(user, text)
 	}
 }
 
@@ -47,11 +48,19 @@ func getCurrentSessionInfo(user *User) string {
 	var video Video
 	db.Where("session_id = ?", session.ID).First(&video)
 
-	return fmt.Sprintf("📚 Session %d: %s\n\n%s\n\n📺 Video: %s",
+	// Create a message with the session thumbnail
+	message := fmt.Sprintf("📚 Session %d: %s\n\n%s\n\n📺 Video: %s",
 		session.Number,
 		session.Title,
 		session.Description,
 		video.VideoLink)
+
+	// Send the thumbnail photo with the message
+	photo := tgbotapi.NewPhoto(user.TelegramID, tgbotapi.FileURL(session.ThumbnailURL))
+	photo.Caption = message
+	bot.Send(photo)
+
+	return message
 }
 
 func getProgressInfo(user *User) string {
@@ -75,21 +84,36 @@ func getHelpMessage() string {
 Need more help? Contact support.`
 }
 
-func handleExerciseSubmission(text string, user *User) string {
-	// Create new exercise submission
+func handleExerciseSubmission(user *User, content string) string {
+	// Create new exercise
 	exercise := Exercise{
 		UserID:      user.ID,
 		SessionID:   uint(user.CurrentSession),
-		Content:     text,
+		Content:     content,
+		Status:      "approved", // Automatically approve
+		Feedback:    "عالی! تمرین شما تایید شد. به جلسه بعدی می‌روید.",
 		SubmittedAt: time.Now(),
-		Status:      "pending",
 	}
 
+	// Save exercise
 	if err := db.Create(&exercise).Error; err != nil {
-		return "Error submitting your exercise. Please try again."
+		log.Printf("Error saving exercise: %v", err)
+		return "متأسفانه در ثبت تمرین مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
 	}
 
-	// TODO: Implement OpenAI API integration for exercise review
-	// For now, return a simple acknowledgment
-	return "✅ Your exercise has been submitted! I'll review it and provide feedback soon."
-} 
+	// Move user to next session
+	user.CurrentSession++
+	if err := db.Save(user).Error; err != nil {
+		log.Printf("Error updating user session: %v", err)
+		return "تمرین شما ثبت شد، اما در به‌روزرسانی جلسه مشکلی پیش آمد."
+	}
+
+	// Get next session info
+	var nextSession Session
+	if err := db.Where("number = ?", user.CurrentSession).First(&nextSession).Error; err != nil {
+		log.Printf("Error getting next session: %v", err)
+		return "تمرین شما با موفقیت ثبت شد و به جلسه بعدی منتقل شدید."
+	}
+
+	return fmt.Sprintf("🎉 تمرین شما با موفقیت ثبت شد!\n\n📚 جلسه بعدی شما:\n%s\n\n%s", nextSession.Title, nextSession.Description)
+}

@@ -9,13 +9,13 @@ import (
 // User represents a Telegram user in our system
 type User struct {
 	gorm.Model
-	TelegramID    int64  `gorm:"uniqueIndex"`
-	Username      string
-	FirstName     string
-	LastName      string
-	CurrentSession int    `gorm:"default:1"`
-	IsActive      bool   `gorm:"default:true"`
-	Exercises     []Exercise
+	TelegramID     int64 `gorm:"uniqueIndex"`
+	Username       string
+	FirstName      string
+	LastName       string
+	CurrentSession int  `gorm:"default:1"`
+	IsActive       bool `gorm:"default:true"`
+	Exercises      []Exercise
 }
 
 // Video represents a course video
@@ -32,18 +32,20 @@ type Video struct {
 // Session represents a course session
 type Session struct {
 	gorm.Model
-	Number      int    `gorm:"uniqueIndex"`
-	Title       string
-	Description string
-	Videos      []Video
-	Exercises   []Exercise
+	Number       int `gorm:"unique"`
+	Title        string
+	Description  string
+	ThumbnailURL string
+	Videos       []Video
+	Exercises    []Exercise
+	Users        []User `gorm:"many2many:user_sessions;"`
 }
 
 // Exercise represents a user's exercise submission
 type Exercise struct {
 	gorm.Model
 	UserID      uint
-	User        User    `gorm:"foreignKey:UserID"`
+	User        User `gorm:"foreignKey:UserID"`
 	SessionID   uint
 	Session     Session `gorm:"foreignKey:SessionID"`
 	Content     string
@@ -54,8 +56,8 @@ type Exercise struct {
 
 // UserSession represents the many-to-many relationship between users and sessions
 type UserSession struct {
-	UserID    uint `gorm:"primaryKey"`
-	SessionID uint `gorm:"primaryKey"`
+	UserID    uint    `gorm:"primaryKey"`
+	SessionID uint    `gorm:"primaryKey"`
 	User      User    `gorm:"foreignKey:UserID"`
 	Session   Session `gorm:"foreignKey:SessionID"`
-} 
+}
