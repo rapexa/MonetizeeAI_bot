@@ -374,7 +374,7 @@ func handleMessage(update *tgbotapi.Update) {
 			sendMessage(update.Message.Chat.ID, response)
 			return
 		case "💾 پشتیبان‌گیری":
-			response := handleAdminBackup(admin, []string{})
+			response := performBackup(admin)
 			sendMessage(update.Message.Chat.ID, response)
 			return
 		case "📝 لاگ‌های سیستم":
