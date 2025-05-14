@@ -466,6 +466,7 @@ func handleMessage(update *tgbotapi.Update) {
 				msg.ReplyMarkup = tgbotapi.ForceReply{}
 				bot.Send(msg)
 				adminStates[admin.TelegramID] = fmt.Sprintf("%s:%d", StateAddVideo, sessionNum)
+				return
 
 			case StateEditVideo:
 				// Handle video ID input for editing
@@ -548,6 +549,51 @@ func handleMessage(update *tgbotapi.Update) {
 
 					logAdminAction(admin, "edit_session", fmt.Sprintf("Edited session %d", sessionNum), "session", session.ID)
 					sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت بروزرسانی شد", sessionNum))
+					delete(adminStates, admin.TelegramID)
+					return
+				}
+				if strings.HasPrefix(state, StateAddVideo+":") {
+					// Handle video info input
+					parts := strings.Split(state, ":")
+					if len(parts) != 2 {
+						sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
+						return
+					}
+
+					sessionNum, err := strconv.Atoi(parts[1])
+					if err != nil {
+						sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
+						return
+					}
+
+					infoParts := strings.Split(update.Message.Text, "|")
+					if len(infoParts) != 2 {
+						sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو")
+						return
+					}
+
+					title := strings.TrimSpace(infoParts[0])
+					videoLink := strings.TrimSpace(infoParts[1])
+
+					var session Session
+					if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
+						sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
+						return
+					}
+
+					video := Video{
+						Title:     title,
+						VideoLink: videoLink,
+						SessionID: session.ID,
+					}
+
+					if err := db.Create(&video).Error; err != nil {
+						sendMessage(admin.TelegramID, "❌ خطا در افزودن ویدیو")
+						return
+					}
+
+					logAdminAction(admin, "add_video", fmt.Sprintf("Added video to session %d: %s", sessionNum, title), "video", video.ID)
+					sendMessage(admin.TelegramID, fmt.Sprintf("✅ ویدیو با موفقیت به جلسه %d اضافه شد", sessionNum))
 					delete(adminStates, admin.TelegramID)
 					return
 				}
