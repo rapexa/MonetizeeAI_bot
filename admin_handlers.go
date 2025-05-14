@@ -9,12 +9,14 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-// Add these states to the adminStates map handling
+// Add these constants at the top of the file
 const (
 	StateWaitingForUserID      = "waiting_for_user_id"
 	StateWaitingForSessionNum  = "waiting_for_session_num"
 	StateWaitingForSessionInfo = "waiting_for_session_info"
 	StateWaitingForVideoInfo   = "waiting_for_video_info"
+	StateEditSession           = "edit_session"
+	StateDeleteSession         = "delete_session"
 )
 
 // Add this with other model definitions at the top of the file
@@ -355,62 +357,106 @@ func handleMessage(update *tgbotapi.Update) {
 
 		// Check admin state
 		if state, exists := adminStates[admin.TelegramID]; exists {
-			switch {
-			case state == StateWaitingForUserID:
+			switch state {
+			case StateWaitingForUserID:
 				delete(adminStates, admin.TelegramID)
 				handleUserSearchResponse(admin, update.Message.Text)
 				return
 
-			case state == StateWaitingForSessionInfo:
+			case StateWaitingForSessionInfo:
 				delete(adminStates, admin.TelegramID)
 				handleAddSessionResponse(admin, update.Message.Text)
 				return
 
-			case state == StateWaitingForSessionNum:
+			case StateWaitingForSessionNum:
 				delete(adminStates, admin.TelegramID)
 				handleSessionNumberResponse(admin, update.Message.Text)
 				return
 
-			case strings.HasPrefix(state, "edit_session:"):
-				// Handle session edit response
-				parts := strings.Split(state, ":")
-				if len(parts) != 2 {
-					sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
-					return
-				}
-				sessionNum, err := strconv.Atoi(parts[1])
+			case StateEditSession:
+				// Handle session number input for editing
+				sessionNum, err := strconv.Atoi(strings.TrimSpace(update.Message.Text))
 				if err != nil {
-					sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
+					sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
 					return
 				}
 
-				// Parse the new session info
-				infoParts := strings.Split(update.Message.Text, "|")
-				if len(infoParts) != 2 {
-					sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|توضیحات")
-					return
-				}
-
-				title := strings.TrimSpace(infoParts[0])
-				description := strings.TrimSpace(infoParts[1])
-
-				// Update the session
 				var session Session
 				if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
 					sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
 					return
 				}
 
-				session.Title = title
-				session.Description = description
-				if err := db.Save(&session).Error; err != nil {
-					sendMessage(admin.TelegramID, "❌ خطا در بروزرسانی جلسه")
+				msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش جلسه %d:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|توضیحات", sessionNum))
+				msg.ReplyMarkup = tgbotapi.ForceReply{}
+				bot.Send(msg)
+				adminStates[admin.TelegramID] = fmt.Sprintf("%s:%d", StateEditSession, sessionNum)
+				return
+
+			case StateDeleteSession:
+				// Handle session number input for deletion
+				sessionNum, err := strconv.Atoi(strings.TrimSpace(update.Message.Text))
+				if err != nil {
+					sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
 					return
 				}
 
-				sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت بروزرسانی شد", sessionNum))
+				var session Session
+				if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
+					sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
+					return
+				}
+
+				if err := db.Delete(&session).Error; err != nil {
+					sendMessage(admin.TelegramID, "❌ خطا در حذف جلسه")
+					return
+				}
+
+				sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت حذف شد", sessionNum))
 				delete(adminStates, admin.TelegramID)
 				return
+
+			default:
+				if strings.HasPrefix(state, StateEditSession+":") {
+					// Handle session edit info input
+					parts := strings.Split(state, ":")
+					if len(parts) != 2 {
+						sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
+						return
+					}
+
+					sessionNum, err := strconv.Atoi(parts[1])
+					if err != nil {
+						sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
+						return
+					}
+
+					infoParts := strings.Split(update.Message.Text, "|")
+					if len(infoParts) != 2 {
+						sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|توضیحات")
+						return
+					}
+
+					title := strings.TrimSpace(infoParts[0])
+					description := strings.TrimSpace(infoParts[1])
+
+					var session Session
+					if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
+						sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
+						return
+					}
+
+					session.Title = title
+					session.Description = description
+					if err := db.Save(&session).Error; err != nil {
+						sendMessage(admin.TelegramID, "❌ خطا در بروزرسانی جلسه")
+						return
+					}
+
+					sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت بروزرسانی شد", sessionNum))
+					delete(adminStates, admin.TelegramID)
+					return
+				}
 			}
 		}
 
@@ -542,13 +588,13 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		msg := tgbotapi.NewMessage(admin.TelegramID, "✏️ ویرایش جلسه:\n\nلطفا شماره جلسه را وارد کنید:")
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
-		adminStates[admin.TelegramID] = StateWaitingForSessionNum
+		adminStates[admin.TelegramID] = StateEditSession
 
 	case "delete_session":
 		msg := tgbotapi.NewMessage(admin.TelegramID, "🗑️ حذف جلسه:\n\nلطفا شماره جلسه را وارد کنید:")
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
-		adminStates[admin.TelegramID] = StateWaitingForSessionNum
+		adminStates[admin.TelegramID] = StateDeleteSession
 
 	case "session_stats":
 		handleSessionStats(admin, []string{})
