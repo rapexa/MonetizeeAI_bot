@@ -414,6 +414,15 @@ func handleMessage(update *tgbotapi.Update) {
 	sendMessage(update.Message.Chat.ID, response)
 }
 
+// getAdminByTelegramID returns admin by telegram ID
+func getAdminByTelegramID(telegramID int64) *Admin {
+	var admin Admin
+	if err := db.Where("telegram_id = ?", telegramID).First(&admin).Error; err != nil {
+		return nil
+	}
+	return &admin
+}
+
 // handleCallbackQuery processes callback queries from inline keyboards
 func handleCallbackQuery(update tgbotapi.Update) {
 	admin := getAdminByTelegramID(update.CallbackQuery.From.ID)
@@ -432,28 +441,26 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	param := parts[1]
 
 	switch action {
-	case "user":
-		handleUserCallback(admin, param)
-	case "session":
-		handleSessionCallback(admin, param)
-	case "video":
-		handleVideoCallback(admin, param)
-	case "exercise":
-		handleExerciseCallback(admin, param)
-	case "ban":
-		handleBanCallback(admin, param)
-	case "unban":
-		handleUnbanCallback(admin, param)
-	case "delete":
-		handleDeleteCallback(admin, param)
-	case "edit":
-		handleEditCallback(admin, param)
-	case "approve":
-		handleApproveCallback(admin, param)
-	case "reject":
-		handleRejectCallback(admin, param)
-	case "back":
-		handleBackCallback(admin, param)
+	case "search_user":
+		handleSearchUser(admin, []string{})
+	case "user_stats":
+		handleUserStats(admin, []string{})
+	case "add_session":
+		handleAddSession(admin, []string{})
+	case "edit_session":
+		handleEditSession(admin, []string{})
+	case "delete_session":
+		handleDeleteSession(admin, []string{})
+	case "session_stats":
+		handleSessionStats(admin, []string{})
+	case "add_video":
+		handleAddVideo(admin, []string{})
+	case "edit_video":
+		handleEditVideo(admin, []string{})
+	case "delete_video":
+		handleDeleteVideo(admin, []string{})
+	case "video_stats":
+		handleVideoStats(admin, []string{})
 	default:
 		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")
 	}
