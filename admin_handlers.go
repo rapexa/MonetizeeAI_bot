@@ -9,6 +9,14 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+// Add these states to the adminStates map handling
+const (
+	StateWaitingForUserID      = "waiting_for_user_id"
+	StateWaitingForSessionNum  = "waiting_for_session_num"
+	StateWaitingForSessionInfo = "waiting_for_session_info"
+	StateWaitingForVideoInfo   = "waiting_for_video_info"
+)
+
 // Add this with other model definitions at the top of the file
 type UserProgress struct {
 	ID          uint `gorm:"primaryKey"`
@@ -348,11 +356,19 @@ func handleMessage(update *tgbotapi.Update) {
 		// Check admin state
 		if state, exists := adminStates[admin.TelegramID]; exists {
 			switch state {
-			case "waiting_for_user_id":
-				// Clear the state
+			case StateWaitingForUserID:
 				delete(adminStates, admin.TelegramID)
-				// Handle the user ID input
 				handleUserSearchResponse(admin, update.Message.Text)
+				return
+
+			case StateWaitingForSessionInfo:
+				delete(adminStates, admin.TelegramID)
+				handleAddSessionResponse(admin, update.Message.Text)
+				return
+
+			case StateWaitingForSessionNum:
+				delete(adminStates, admin.TelegramID)
+				handleSessionNumberResponse(admin, update.Message.Text)
 				return
 			}
 		}
@@ -470,34 +486,53 @@ func handleCallbackQuery(update tgbotapi.Update) {
 
 	switch action {
 	case "search_user":
-		// Send a message asking for user ID
 		msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی کاربر را وارد کنید:")
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
-		// Store the admin's state to expect a user ID response
-		adminStates[admin.TelegramID] = "waiting_for_user_id"
-	case "user_stats":
-		handleUserStats(admin, []string{})
-	case "ban":
-		handleBanUser(admin, param)
-	case "unban":
-		handleUnbanUser(admin, param)
+		adminStates[admin.TelegramID] = StateWaitingForUserID
+
 	case "add_session":
-		handleAddSession(admin, []string{})
+		msg := tgbotapi.NewMessage(admin.TelegramID, "➕ افزودن جلسه جدید:\n\nلطفا اطلاعات را به فرمت زیر وارد کنید:\nشماره جلسه|عنوان|توضیحات")
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		bot.Send(msg)
+		adminStates[admin.TelegramID] = StateWaitingForSessionInfo
+
 	case "edit_session":
-		handleEditSession(admin, []string{})
+		msg := tgbotapi.NewMessage(admin.TelegramID, "✏️ ویرایش جلسه:\n\nلطفا شماره جلسه را وارد کنید:")
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		bot.Send(msg)
+		adminStates[admin.TelegramID] = StateWaitingForSessionNum
+
 	case "delete_session":
-		handleDeleteSession(admin, []string{})
+		msg := tgbotapi.NewMessage(admin.TelegramID, "🗑️ حذف جلسه:\n\nلطفا شماره جلسه را وارد کنید:")
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		bot.Send(msg)
+		adminStates[admin.TelegramID] = StateWaitingForSessionNum
+
 	case "session_stats":
 		handleSessionStats(admin, []string{})
+
+	case "user_stats":
+		handleUserStats(admin, []string{})
+
+	case "ban":
+		handleBanUser(admin, param)
+
+	case "unban":
+		handleUnbanUser(admin, param)
+
 	case "add_video":
 		handleAddVideo(admin, []string{})
+
 	case "edit_video":
 		handleEditVideo(admin, []string{})
+
 	case "delete_video":
 		handleDeleteVideo(admin, []string{})
+
 	case "video_stats":
 		handleVideoStats(admin, []string{})
+
 	default:
 		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")
 	}
@@ -598,40 +633,84 @@ func handleUserStats(admin *Admin, params []string) {
 	bot.Send(tgbotapi.NewMessage(admin.TelegramID, response))
 }
 
-// Session management handlers
-func handleAddSession(admin *Admin, params []string) {
-	msg := tgbotapi.NewMessage(admin.TelegramID, "➕ افزودن جلسه جدید:\n\nلطفا اطلاعات را به فرمت زیر وارد کنید:\nشماره جلسه|عنوان|توضیحات")
-	msg.ReplyMarkup = tgbotapi.ForceReply{}
-	bot.Send(msg)
-}
-
-func handleEditSession(admin *Admin, params []string) {
-	if len(params) == 0 {
-		msg := tgbotapi.NewMessage(admin.TelegramID, "✏️ ویرایش جلسه:\n\nلطفا شماره جلسه را وارد کنید:")
-		msg.ReplyMarkup = tgbotapi.ForceReply{}
-		bot.Send(msg)
+// handleAddSessionResponse processes the response for adding a new session
+func handleAddSessionResponse(admin *Admin, response string) {
+	parts := strings.Split(response, "|")
+	if len(parts) != 3 {
+		sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nشماره جلسه|عنوان|توضیحات")
 		return
 	}
 
-	sessionNum := params[0]
-	msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش جلسه %s:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|توضیحات", sessionNum))
-	msg.ReplyMarkup = tgbotapi.ForceReply{}
-	bot.Send(msg)
-}
-
-func handleDeleteSession(admin *Admin, params []string) {
-	if len(params) == 0 {
-		msg := tgbotapi.NewMessage(admin.TelegramID, "🗑️ حذف جلسه:\n\nلطفا شماره جلسه را وارد کنید:")
-		msg.ReplyMarkup = tgbotapi.ForceReply{}
-		bot.Send(msg)
+	sessionNum, err := strconv.Atoi(strings.TrimSpace(parts[0]))
+	if err != nil {
+		sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
 		return
 	}
 
-	sessionNum := params[0]
-	response := deleteSession(admin, sessionNum)
-	bot.Send(tgbotapi.NewMessage(admin.TelegramID, response))
+	title := strings.TrimSpace(parts[1])
+	description := strings.TrimSpace(parts[2])
+
+	// Check if session number already exists
+	var existingSession Session
+	if err := db.Where("number = ?", sessionNum).First(&existingSession).Error; err == nil {
+		sendMessage(admin.TelegramID, "❌ این شماره جلسه قبلا استفاده شده است")
+		return
+	}
+
+	// Create new session
+	session := Session{
+		Number:      sessionNum,
+		Title:       title,
+		Description: description,
+		IsActive:    true,
+	}
+
+	if err := db.Create(&session).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ خطا در ایجاد جلسه")
+		return
+	}
+
+	sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت ایجاد شد", sessionNum))
 }
 
+// handleSessionNumberResponse processes the response for session number input
+func handleSessionNumberResponse(admin *Admin, response string) {
+	sessionNum, err := strconv.Atoi(strings.TrimSpace(response))
+	if err != nil {
+		sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
+		return
+	}
+
+	var session Session
+	if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
+		return
+	}
+
+	// Get the current state to determine the action
+	state, exists := adminStates[admin.TelegramID]
+	if !exists {
+		sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
+		return
+	}
+
+	switch state {
+	case "edit_session":
+		msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش جلسه %d:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|توضیحات", sessionNum))
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		bot.Send(msg)
+		adminStates[admin.TelegramID] = StateWaitingForSessionInfo
+
+	case "delete_session":
+		if err := db.Delete(&session).Error; err != nil {
+			sendMessage(admin.TelegramID, "❌ خطا در حذف جلسه")
+			return
+		}
+		sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت حذف شد", sessionNum))
+	}
+}
+
+// handleSessionStats shows session statistics
 func handleSessionStats(admin *Admin, params []string) {
 	var stats struct {
 		TotalSessions     int64
@@ -665,59 +744,62 @@ func handleSessionStats(admin *Admin, params []string) {
 }
 
 // Video management handlers
-func handleAddVideo(admin *Admin, params []string) {
+func handleAddVideo(admin *Admin, params []string) string {
 	if len(params) == 0 {
 		msg := tgbotapi.NewMessage(admin.TelegramID, "➕ افزودن ویدیو:\n\nلطفا شماره جلسه را وارد کنید:")
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
-		return
+		return ""
 	}
 
 	sessionNum := params[0]
 	msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("➕ افزودن ویدیو به جلسه %s:\n\nلطفا اطلاعات را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", sessionNum))
 	msg.ReplyMarkup = tgbotapi.ForceReply{}
 	bot.Send(msg)
+	return ""
 }
 
-func handleEditVideo(admin *Admin, params []string) {
+func handleEditVideo(admin *Admin, params []string) string {
 	if len(params) == 0 {
 		msg := tgbotapi.NewMessage(admin.TelegramID, "✏️ ویرایش ویدیو:\n\nلطفا آیدی ویدیو را وارد کنید:")
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
-		return
+		return ""
 	}
 
 	videoID := params[0]
 	msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش ویدیو %s:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", videoID))
 	msg.ReplyMarkup = tgbotapi.ForceReply{}
 	bot.Send(msg)
+	return ""
 }
 
-func handleDeleteVideo(admin *Admin, params []string) {
+func handleDeleteVideo(admin *Admin, params []string) string {
 	if len(params) == 0 {
 		msg := tgbotapi.NewMessage(admin.TelegramID, "🗑️ حذف ویدیو:\n\nلطفا آیدی ویدیو را وارد کنید:")
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
-		return
+		return ""
 	}
 
 	videoID := params[0]
 	var video Video
 	if err := db.First(&video, videoID).Error; err != nil {
 		bot.Send(tgbotapi.NewMessage(admin.TelegramID, "❌ ویدیو یافت نشد"))
-		return
+		return ""
 	}
 
 	if err := db.Delete(&video).Error; err != nil {
 		bot.Send(tgbotapi.NewMessage(admin.TelegramID, "❌ خطا در حذف ویدیو"))
-		return
+		return ""
 	}
 
 	logAdminAction(admin, "delete_video", fmt.Sprintf("Deleted video %s", videoID), "video", video.ID)
 	bot.Send(tgbotapi.NewMessage(admin.TelegramID, "✅ ویدیو با موفقیت حذف شد"))
+	return ""
 }
 
-func handleVideoStats(admin *Admin, params []string) {
+func handleVideoStats(admin *Admin, params []string) string {
 	var stats struct {
 		TotalVideos     int64
 		VideosToday     int64
@@ -749,6 +831,7 @@ func handleVideoStats(admin *Admin, params []string) {
 		stats.VideosMonth)
 
 	bot.Send(tgbotapi.NewMessage(admin.TelegramID, response))
+	return ""
 }
 
 // handleUserSearchResponse processes the response to a user search prompt
