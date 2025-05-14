@@ -66,9 +66,9 @@ func handleAdminCommand(admin *Admin, command string, args []string) string {
 
 // handleAdminStats handles the admin statistics command
 func handleAdminStats(admin *Admin, args []string) string {
-	// Generate and send all charts
-	generateAndSendCharts(admin)
-	return "برای دانلود نمودار های سیستم روی گزینه های بالا کلیک کنید ✅"
+	// Generate and send statistics
+	generateAndSendStats(admin)
+	return "برای دانلود آمار سیستم روی گزینه های بالا کلیک کنید ✅"
 }
 
 // handleAdminUsers manages users
@@ -416,57 +416,47 @@ func handleMessage(update *tgbotapi.Update) {
 
 // handleCallbackQuery processes callback queries from inline keyboards
 func handleCallbackQuery(update tgbotapi.Update) {
-	query := update.CallbackQuery
-	admin := getAdmin(query.From.ID)
+	admin := getAdminByTelegramID(update.CallbackQuery.From.ID)
 	if admin == nil {
-		bot.Send(tgbotapi.NewMessage(query.From.ID, "❌ دسترسی غیرمجاز"))
+		sendMessage(update.CallbackQuery.From.ID, "❌ شما دسترسی به این بخش را ندارید")
 		return
 	}
 
-	// Split callback data to get action and parameters
-	parts := strings.Split(query.Data, ":")
-	action := parts[0]
-	params := parts[1:]
-
-	switch action {
-	case "chart":
-		if len(params) > 0 {
-			handleChartCallback(admin, params[0])
-		}
-	case "user_chart":
-		handleUserChart(admin, params)
-	case "session_chart":
-		handleSessionChart(admin, params)
-	case "video_chart":
-		handleVideoChart(admin, params)
-	case "exercise_chart":
-		handleExerciseChart(admin, params)
-	case "search_user":
-		handleSearchUser(admin, params)
-	case "user_stats":
-		handleUserStats(admin, params)
-	case "add_session":
-		handleAddSession(admin, params)
-	case "edit_session":
-		handleEditSession(admin, params)
-	case "delete_session":
-		handleDeleteSession(admin, params)
-	case "session_stats":
-		handleSessionStats(admin, params)
-	case "add_video":
-		handleAddVideo(admin, params)
-	case "edit_video":
-		handleEditVideo(admin, params)
-	case "delete_video":
-		handleDeleteVideo(admin, params)
-	case "video_stats":
-		handleVideoStats(admin, params)
-	default:
-		bot.Send(tgbotapi.NewMessage(query.From.ID, "❌ عملیات نامعتبر"))
+	// Parse callback data
+	parts := strings.Split(update.CallbackQuery.Data, ":")
+	if len(parts) < 2 {
+		return
 	}
 
-	// Answer callback query to remove loading state
-	bot.Send(tgbotapi.NewCallback(query.ID, ""))
+	action := parts[0]
+	param := parts[1]
+
+	switch action {
+	case "user":
+		handleUserCallback(admin, param)
+	case "session":
+		handleSessionCallback(admin, param)
+	case "video":
+		handleVideoCallback(admin, param)
+	case "exercise":
+		handleExerciseCallback(admin, param)
+	case "ban":
+		handleBanCallback(admin, param)
+	case "unban":
+		handleUnbanCallback(admin, param)
+	case "delete":
+		handleDeleteCallback(admin, param)
+	case "edit":
+		handleEditCallback(admin, param)
+	case "approve":
+		handleApproveCallback(admin, param)
+	case "reject":
+		handleRejectCallback(admin, param)
+	case "back":
+		handleBackCallback(admin, param)
+	default:
+		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")
+	}
 }
 
 // Chart handlers

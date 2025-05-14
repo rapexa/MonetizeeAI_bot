@@ -14,33 +14,10 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-// generateAndSendCharts generates and sends all statistics charts
-func generateAndSendCharts(admin *Admin) {
-	// Create charts directory if it doesn't exist
-	chartsDir := "charts"
-	if err := os.MkdirAll(chartsDir, 0755); err != nil {
-		sendMessage(admin.TelegramID, "❌ خطا در ایجاد پوشه نمودارها")
-		return
-	}
-
-	// First, send the text statistics
+// generateAndSendStats generates and sends system statistics
+func generateAndSendStats(admin *Admin) {
+	// Send the text statistics
 	sendTextStatistics(admin)
-
-	// Send chart selection buttons
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("📊 نمودار کاربران", "chart:users"),
-			tgbotapi.NewInlineKeyboardButtonData("📊 نمودار جلسات", "chart:sessions"),
-		),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("📊 نمودار ویدیوها", "chart:videos"),
-			tgbotapi.NewInlineKeyboardButtonData("📊 نمودار تمرین‌ها", "chart:exercises"),
-		),
-	)
-
-	msg := tgbotapi.NewMessage(admin.TelegramID, "برای دانلود نمودار های سیستم روی گزینه های بالا کلیک کنید ✅")
-	msg.ReplyMarkup = keyboard
-	bot.Send(msg)
 }
 
 // handleChartCallback handles chart generation requests
@@ -190,6 +167,9 @@ func sendTextStatistics(admin *Admin) {
 		TotalSessions  int64
 		TotalVideos    int64
 		TotalExercises int64
+		NewUsersToday  int64
+		NewUsersWeek   int64
+		NewUsersMonth  int64
 	}
 
 	// Get statistics
@@ -200,11 +180,24 @@ func sendTextStatistics(admin *Admin) {
 	db.Model(&Video{}).Count(&stats.TotalVideos)
 	db.Model(&Exercise{}).Count(&stats.TotalExercises)
 
+	// Get new user statistics
+	today := time.Now().Truncate(24 * time.Hour)
+	weekAgo := today.AddDate(0, 0, -7)
+	monthAgo := today.AddDate(0, -1, 0)
+
+	db.Model(&User{}).Where("created_at >= ?", today).Count(&stats.NewUsersToday)
+	db.Model(&User{}).Where("created_at >= ?", weekAgo).Count(&stats.NewUsersWeek)
+	db.Model(&User{}).Where("created_at >= ?", monthAgo).Count(&stats.NewUsersMonth)
+
 	response := fmt.Sprintf("📊 آمار سیستم:\n\n"+
 		"👥 کاربران:\n"+
 		"• کل کاربران: %d\n"+
 		"• کاربران فعال: %d\n"+
 		"• کاربران مسدود: %d\n\n"+
+		"📈 کاربران جدید:\n"+
+		"• امروز: %d\n"+
+		"• هفته گذشته: %d\n"+
+		"• ماه گذشته: %d\n\n"+
 		"📚 جلسات:\n"+
 		"• کل جلسات: %d\n\n"+
 		"🎥 ویدیوها:\n"+
@@ -214,6 +207,9 @@ func sendTextStatistics(admin *Admin) {
 		stats.TotalUsers,
 		stats.ActiveUsers,
 		stats.BannedUsers,
+		stats.NewUsersToday,
+		stats.NewUsersWeek,
+		stats.NewUsersMonth,
 		stats.TotalSessions,
 		stats.TotalVideos,
 		stats.TotalExercises)
