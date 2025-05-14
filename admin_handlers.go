@@ -9,6 +9,19 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+// Add this with other model definitions at the top of the file
+type UserProgress struct {
+	ID          uint `gorm:"primaryKey"`
+	UserID      uint `gorm:"not null"`
+	SessionID   uint `gorm:"not null"`
+	IsCompleted bool `gorm:"default:false"`
+	CompletedAt time.Time
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	User        User    `gorm:"foreignKey:UserID"`
+	Session     Session `gorm:"foreignKey:SessionID"`
+}
+
 // AdminCommand represents an admin command with its handler
 type AdminCommand struct {
 	Command     string
