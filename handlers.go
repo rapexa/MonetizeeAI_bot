@@ -155,10 +155,18 @@ func handleMessage(update *tgbotapi.Update) {
 
 		// Handle admin commands
 		if update.Message.IsCommand() {
-			args := strings.Fields(update.Message.CommandArguments())
-			response := handleAdminCommand(admin, "/"+update.Message.Command(), args)
-			sendMessage(update.Message.Chat.ID, response)
-			return
+			switch update.Message.Command() {
+			case "start":
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به پنل مدیریت خوش آمدید!\n\nاز منوی زیر برای مدیریت سیستم استفاده کنید:")
+				msg.ReplyMarkup = getAdminKeyboard()
+				bot.Send(msg)
+				return
+			default:
+				args := strings.Fields(update.Message.CommandArguments())
+				response := handleAdminCommand(admin, "/"+update.Message.Command(), args)
+				sendMessage(update.Message.Chat.ID, response)
+				return
+			}
 		}
 
 		// Handle admin menu buttons
@@ -196,7 +204,7 @@ func handleMessage(update *tgbotapi.Update) {
 		return
 	}
 
-	// Get or create user
+	// Handle regular user commands
 	user := getUserOrCreate(update.Message.From)
 
 	// Handle commands
