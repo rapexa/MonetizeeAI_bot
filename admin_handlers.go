@@ -332,6 +332,18 @@ func handleMessage(update *tgbotapi.Update) {
 			return
 		}
 
+		// Check admin state
+		if state, exists := adminStates[admin.TelegramID]; exists {
+			switch state {
+			case "waiting_for_user_id":
+				// Clear the state
+				delete(adminStates, admin.TelegramID)
+				// Handle the user ID input
+				handleUserSearchResponse(admin, update.Message.Text)
+				return
+			}
+		}
+
 		// Handle admin commands
 		if update.Message.IsCommand() {
 			switch update.Message.Command() {
@@ -433,18 +445,30 @@ func handleCallbackQuery(update tgbotapi.Update) {
 
 	// Parse callback data
 	parts := strings.Split(update.CallbackQuery.Data, ":")
-	if len(parts) < 2 {
+	if len(parts) < 1 {
 		return
 	}
 
 	action := parts[0]
-	param := parts[1]
+	param := ""
+	if len(parts) > 1 {
+		param = parts[1]
+	}
 
 	switch action {
 	case "search_user":
-		handleSearchUser(admin, []string{})
+		// Send a message asking for user ID
+		msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی کاربر را وارد کنید:")
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		bot.Send(msg)
+		// Store the admin's state to expect a user ID response
+		adminStates[admin.TelegramID] = "waiting_for_user_id"
 	case "user_stats":
 		handleUserStats(admin, []string{})
+	case "ban":
+		handleBanUser(admin, param)
+	case "unban":
+		handleUnbanUser(admin, param)
 	case "add_session":
 		handleAddSession(admin, []string{})
 	case "edit_session":
@@ -461,10 +485,6 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		handleDeleteVideo(admin, []string{})
 	case "video_stats":
 		handleVideoStats(admin, []string{})
-	case "ban":
-		handleBanUser(admin, param)
-	case "unban":
-		handleUnbanUser(admin, param)
 	default:
 		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")
 	}
@@ -720,59 +740,67 @@ func handleVideoStats(admin *Admin, params []string) {
 
 // handleUserSearchResponse processes the response to a user search prompt
 func handleUserSearchResponse(admin *Admin, searchText string) {
-	var users []User
-	query := db.Model(&User{})
+	// Try to parse as user ID
+	userID, err := strconv.ParseInt(searchText, 10, 64)
+	if err != nil {
+		sendMessage(admin.TelegramID, "❌ لطفا یک آیدی معتبر وارد کنید")
+		return
+	}
 
-	// Try to parse as user ID first
-	if userID, err := strconv.ParseInt(searchText, 10, 64); err == nil {
-		query = query.Where("telegram_id = ?", userID)
+	var user User
+	if err := db.Where("telegram_id = ?", userID).First(&user).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ کاربر یافت نشد")
+		return
+	}
+
+	// Get user's session progress
+	var completedSessions int64
+	db.Model(&UserProgress{}).Where("user_id = ? AND is_completed = ?", user.ID, true).Count(&completedSessions)
+
+	// Get user's exercise submissions
+	var exerciseCount int64
+	db.Model(&Exercise{}).Where("user_id = ?", user.ID).Count(&exerciseCount)
+
+	// Format the response
+	status := "✅ فعال"
+	if !user.IsActive {
+		status = "❌ مسدود"
+	}
+
+	response := fmt.Sprintf("👤 اطلاعات کاربر:\n\n"+
+		"📱 آیدی تلگرام: %d\n"+
+		"👤 نام کاربری: %s\n"+
+		"📊 وضعیت: %s\n"+
+		"⏰ تاریخ عضویت: %s\n"+
+		"📚 جلسات تکمیل شده: %d\n"+
+		"✍️ تعداد تمرین‌ها: %d",
+		user.TelegramID,
+		user.Username,
+		status,
+		user.CreatedAt.Format("2006-01-02 15:04:05"),
+		completedSessions,
+		exerciseCount)
+
+	// Create action buttons
+	var keyboard tgbotapi.InlineKeyboardMarkup
+	if user.IsActive {
+		keyboard = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🚫 مسدود کردن کاربر", fmt.Sprintf("ban:%d", user.TelegramID)),
+			),
+		)
 	} else {
-		// If not a valid ID, search by username
-		query = query.Where("username LIKE ?", "%"+searchText+"%")
+		keyboard = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("✅ رفع مسدودیت کاربر", fmt.Sprintf("unban:%d", user.TelegramID)),
+			),
+		)
 	}
-
-	if err := query.Find(&users).Error; err != nil {
-		sendMessage(admin.TelegramID, "❌ خطا در جستجوی کاربر")
-		return
-	}
-
-	if len(users) == 0 {
-		sendMessage(admin.TelegramID, "❌ کاربری یافت نشد")
-		return
-	}
-
-	response := "🔍 نتایج جستجو:\n\n"
-	for _, user := range users {
-		status := "✅ فعال"
-		if !user.IsActive {
-			status = "❌ مسدود"
-		}
-		response += fmt.Sprintf("👤 %s\n📱 آیدی: %d\n📊 وضعیت: %s\n⏰ تاریخ عضویت: %s\n\n",
-			user.Username,
-			user.TelegramID,
-			status,
-			user.CreatedAt.Format("2006-01-02 15:04:05"))
-	}
-
-	// Add action buttons for each user
-	var rows []tgbotapi.InlineKeyboardButton
-	for _, user := range users {
-		if user.IsActive {
-			rows = append(rows, tgbotapi.NewInlineKeyboardButtonData(
-				fmt.Sprintf("🚫 مسدود کردن %s", user.Username),
-				fmt.Sprintf("ban:%d", user.TelegramID)))
-		} else {
-			rows = append(rows, tgbotapi.NewInlineKeyboardButtonData(
-				fmt.Sprintf("✅ رفع مسدودیت %s", user.Username),
-				fmt.Sprintf("unban:%d", user.TelegramID)))
-		}
-	}
-
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(rows...),
-	)
 
 	msg := tgbotapi.NewMessage(admin.TelegramID, response)
 	msg.ReplyMarkup = keyboard
 	bot.Send(msg)
 }
+
+// Add this at the top of the file with other global variables
+var adminStates = make(map[int64]string)
