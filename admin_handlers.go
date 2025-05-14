@@ -234,10 +234,25 @@ func handleAdminVideos(admin *Admin, args []string) string {
 		}
 		return addVideo(admin, args[1], args[2], args[3])
 	case "edit":
-		if len(args) < 4 {
-			return "❌ لطفا آیدی ویدیو، عنوان و لینک را وارد کنید"
+		// Show list of videos first
+		var videos []Video
+		db.Preload("Session").Order("created_at desc").Find(&videos)
+
+		response := "📺 لیست ویدیوها:\n\n"
+		for _, video := range videos {
+			response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d\n🔗 لینک: %s\n\n",
+				video.ID,
+				video.Title,
+				video.Session.Number,
+				video.VideoLink)
 		}
-		return editVideo(admin, args[1], args[2], args[3])
+		response += "\n✏️ لطفا آیدی ویدیو مورد نظر را وارد کنید:"
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		bot.Send(msg)
+		adminStates[admin.TelegramID] = StateEditVideo
+
 	default:
 		return "❌ دستور نامعتبر"
 	}
@@ -756,7 +771,21 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		adminStates[admin.TelegramID] = StateAddVideo
 
 	case "edit_video":
-		msg := tgbotapi.NewMessage(admin.TelegramID, "✏️ ویرایش ویدیو:\n\nلطفا آیدی ویدیو را وارد کنید:")
+		// Show list of videos first
+		var videos []Video
+		db.Preload("Session").Order("created_at desc").Find(&videos)
+
+		response := "📺 لیست ویدیوها:\n\n"
+		for _, video := range videos {
+			response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d\n🔗 لینک: %s\n\n",
+				video.ID,
+				video.Title,
+				video.Session.Number,
+				video.VideoLink)
+		}
+		response += "\n✏️ لطفا آیدی ویدیو مورد نظر را وارد کنید:"
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateEditVideo
