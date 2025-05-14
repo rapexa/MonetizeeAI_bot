@@ -86,7 +86,7 @@ func getCurrentSessionInfo(user *User) string {
 	photo.Caption = message
 	bot.Send(photo)
 
-	return message
+	return "" // Return empty string since we're sending the message directly
 }
 
 func getProgressInfo(user *User) string {
