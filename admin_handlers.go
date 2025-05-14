@@ -482,7 +482,7 @@ func handleMessage(update *tgbotapi.Update) {
 						return
 					}
 
-					logAdminAction(admin, "edit_session", fmt.Sprintf("Edited session %d", sessionNum))
+					logAdminAction(admin, "edit_session", fmt.Sprintf("Edited session %d", sessionNum), "session", session.ID)
 					sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت بروزرسانی شد", sessionNum))
 					delete(adminStates, admin.TelegramID)
 					return
@@ -1025,15 +1025,3 @@ func handleUserSearchResponse(admin *Admin, searchText string) {
 
 // Add this at the top of the file with other global variables
 var adminStates = make(map[int64]string)
-
-// Add this function to log admin actions
-func logAdminAction(admin *Admin, action string, details string, category string, objectID uint) {
-	adminAction := AdminAction{
-		AdminID:  admin.ID,
-		Action:   action,
-		Details:  details,
-		Category: category,
-		ObjectID: objectID,
-	}
-	db.Create(&adminAction)
-}
