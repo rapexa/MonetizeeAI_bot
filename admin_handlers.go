@@ -300,13 +300,42 @@ func handleAdminExercises(admin *Admin, args []string) string {
 // handleAdminLogs shows system logs
 func handleAdminLogs(admin *Admin, args []string) string {
 	var actions []AdminAction
-	db.Preload("Admin").Order("created_at desc").Limit(10).Find(&actions)
+	db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions)
+
+	if len(actions) == 0 {
+		return "📝 هیچ فعالیتی ثبت نشده است"
+	}
 
 	response := "📝 آخرین فعالیت‌های ادمین:\n\n"
 	for _, action := range actions {
-		response += fmt.Sprintf("ادمین: %s\nعملیات: %s\nجزئیات: %s\nتاریخ: %s\n\n",
-			action.Admin.Username, action.Action, action.Details, action.CreatedAt.Format("2006-01-02 15:04:05"))
+		// Format the action type for better readability
+		actionType := action.Action
+		switch action.Action {
+		case "add_session":
+			actionType = "➕ افزودن جلسه"
+		case "edit_session":
+			actionType = "✏️ ویرایش جلسه"
+		case "delete_session":
+			actionType = "🗑️ حذف جلسه"
+		case "add_video":
+			actionType = "➕ افزودن ویدیو"
+		case "edit_video":
+			actionType = "✏️ ویرایش ویدیو"
+		case "delete_video":
+			actionType = "🗑️ حذف ویدیو"
+		case "ban_user":
+			actionType = "🚫 مسدود کردن کاربر"
+		case "unban_user":
+			actionType = "✅ رفع مسدودیت کاربر"
+		}
+
+		response += fmt.Sprintf("👤 ادمین: %s\n📝 عملیات: %s\n📋 جزئیات: %s\n⏰ تاریخ: %s\n\n",
+			action.Admin.Username,
+			actionType,
+			action.Details,
+			action.CreatedAt.Format("2006-01-02 15:04:05"))
 	}
+
 	return response
 }
 
@@ -453,6 +482,7 @@ func handleMessage(update *tgbotapi.Update) {
 						return
 					}
 
+					logAdminAction(admin, "edit_session", fmt.Sprintf("Edited session %d", sessionNum), "session", session.ID)
 					sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت بروزرسانی شد", sessionNum))
 					delete(adminStates, admin.TelegramID)
 					return
@@ -645,6 +675,7 @@ func handleBanUser(admin *Admin, userID string) {
 		return
 	}
 
+	logAdminAction(admin, "ban_user", fmt.Sprintf("Banned user %s", user.Username), "user", user.ID)
 	sendMessage(admin.TelegramID, fmt.Sprintf("✅ کاربر %s با موفقیت مسدود شد", user.Username))
 }
 
@@ -668,6 +699,7 @@ func handleUnbanUser(admin *Admin, userID string) {
 		return
 	}
 
+	logAdminAction(admin, "unban_user", fmt.Sprintf("Unbanned user %s", user.Username), "user", user.ID)
 	sendMessage(admin.TelegramID, fmt.Sprintf("✅ مسدودیت کاربر %s با موفقیت برداشته شد", user.Username))
 }
 
@@ -758,6 +790,7 @@ func handleAddSessionResponse(admin *Admin, response string) {
 		return
 	}
 
+	logAdminAction(admin, "add_session", fmt.Sprintf("Added session %d: %s", session.Number, session.Title), "session", session.ID)
 	sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت ایجاد شد", sessionNum))
 }
 
@@ -783,19 +816,22 @@ func handleSessionNumberResponse(admin *Admin, response string) {
 	}
 
 	switch state {
-	case "edit_session":
+	case StateEditSession:
 		// Store the session number in the state for the next step
 		adminStates[admin.TelegramID] = fmt.Sprintf("edit_session:%d", sessionNum)
 		msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش جلسه %d:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|توضیحات", sessionNum))
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
+		logAdminAction(admin, "edit_session", fmt.Sprintf("Edited session %d", sessionNum), "session", session.ID)
+		sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت بروزرسانی شد", sessionNum))
 
-	case "delete_session":
+	case StateDeleteSession:
 		// Delete the session
 		if err := db.Delete(&session).Error; err != nil {
 			sendMessage(admin.TelegramID, "❌ خطا در حذف جلسه")
 			return
 		}
+		logAdminAction(admin, "delete_session", fmt.Sprintf("Deleted session %d: %s", session.Number, session.Title), "session", session.ID)
 		sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت حذف شد", sessionNum))
 		delete(adminStates, admin.TelegramID)
 	}
@@ -991,3 +1027,15 @@ func handleUserSearchResponse(admin *Admin, searchText string) {
 
 // Add this at the top of the file with other global variables
 var adminStates = make(map[int64]string)
+
+// Add this function to log admin actions
+func logAdminAction(admin *Admin, action string, details string, entityType string, entityID uint) {
+	adminAction := AdminAction{
+		AdminID:    admin.ID,
+		Action:     action,
+		Details:    details,
+		EntityType: entityType,
+		EntityID:   entityID,
+	}
+	db.Create(&adminAction)
+}
