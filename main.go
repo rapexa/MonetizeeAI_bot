@@ -43,20 +43,6 @@ func init() {
 }
 
 func main() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	// Initialize database
-	initDB()
-
-	// Initialize bot
-	bot, err = tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_TOKEN"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Set up update configuration
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 60
@@ -67,7 +53,7 @@ func main() {
 	// Handle updates
 	for update := range updates {
 		if update.Message != nil {
-			handleMessage(update)
+			handleMessage(&update)
 		} else if update.CallbackQuery != nil {
 			handleCallbackQuery(update)
 		}
