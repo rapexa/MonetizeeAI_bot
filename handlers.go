@@ -22,6 +22,30 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 			CurrentSession: 1, // Set initial session to 1
 		}
 		db.Create(&user)
+
+		// Send session 1 info for new users
+		var session Session
+		if err := db.Where("number = ?", 1).First(&session).Error; err == nil {
+			var video Video
+			db.Where("session_id = ?", session.ID).First(&video)
+
+			// Create session message
+			sessionMsg := fmt.Sprintf("📚 جلسه %d: %s\n\n%s\n\n📺 ویدیو: %s",
+				session.Number,
+				session.Title,
+				session.Description,
+				video.VideoLink)
+
+			// Send session thumbnail with message
+			if session.ThumbnailURL != "" {
+				photo := tgbotapi.NewPhoto(from.ID, tgbotapi.FileURL(session.ThumbnailURL))
+				photo.Caption = sessionMsg
+				bot.Send(photo)
+			} else {
+				// If no thumbnail, just send the message
+				bot.Send(tgbotapi.NewMessage(from.ID, sessionMsg))
+			}
+		}
 	}
 	return &user
 }
