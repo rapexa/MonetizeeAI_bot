@@ -36,19 +36,13 @@ func init() {
 	}
 
 	// Auto migrate models
-	err = db.AutoMigrate(&User{}, &Video{}, &Session{}, &Exercise{}, &UserSession{})
+	err = db.AutoMigrate(&User{}, &Video{}, &Session{}, &Exercise{}, &UserSession{}, &Admin{}, &AdminAction{})
 	if err != nil {
 		log.Panic("Failed to migrate database:", err)
 	}
 }
 
 func main() {
-	// Initialize bot
-	bot, err = tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_TOKEN"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Set up update channel
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 60
