@@ -252,6 +252,7 @@ func handleAdminVideos(admin *Admin, args []string) string {
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateEditVideo
+		return ""
 
 	default:
 		return "❌ دستور نامعتبر"
