@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -49,11 +46,6 @@ var adminCommands = []AdminCommand{
 		Command:     "/admin_logs",
 		Description: "📝 مشاهده لاگ‌های سیستم",
 		Handler:     handleAdminLogs,
-	},
-	{
-		Command:     "/backup",
-		Description: "💾 پشتیبان‌گیری از دیتابیس",
-		Handler:     handleAdminBackup,
 	},
 }
 
@@ -683,42 +675,4 @@ func handleVideoStats(admin *Admin, params []string) {
 		stats.VideosMonth)
 
 	bot.Send(tgbotapi.NewMessage(admin.TelegramID, response))
-}
-
-// handleAdminBackup handles database backup
-func handleAdminBackup(admin *Admin, args []string) string {
-	// Create backup directory if it doesn't exist
-	backupDir := "backups"
-	if err := os.MkdirAll(backupDir, 0755); err != nil {
-		return "❌ خطا در ایجاد پوشه پشتیبان‌گیری"
-	}
-
-	// Generate backup filename with timestamp
-	timestamp := time.Now().Format("20060102_150405")
-	backupFile := filepath.Join(backupDir, fmt.Sprintf("backup_%s.sql", timestamp))
-
-	// Create backup using mysqldump
-	cmd := exec.Command("mysqldump",
-		"-u", dbConfig.User,
-		"-p"+dbConfig.Password,
-		"-h", dbConfig.Host,
-		"-P", dbConfig.Port,
-		dbConfig.Name,
-		"--result-file="+backupFile)
-
-	if err := cmd.Run(); err != nil {
-		return "❌ خطا در ایجاد پشتیبان"
-	}
-
-	// Send the backup file
-	doc := tgbotapi.NewDocument(admin.TelegramID, tgbotapi.FilePath(backupFile))
-	doc.Caption = "💾 پشتیبان دیتابیس"
-	if _, err := bot.Send(doc); err != nil {
-		return "❌ خطا در ارسال فایل پشتیبان"
-	}
-
-	// Clean up the backup file
-	os.Remove(backupFile)
-
-	return "✅ پشتیبان با موفقیت ایجاد و ارسال شد"
 }
