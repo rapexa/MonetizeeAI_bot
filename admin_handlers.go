@@ -519,7 +519,7 @@ func handleMessage(update *tgbotapi.Update) {
 			switch update.Message.Command() {
 			case "start":
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به پنل مدیریت خوش آمدید!\n\nاز منوی زیر برای مدیریت سیستم استفاده کنید:")
-				msg.ReplyMarkup = getAdminKeyboard()
+				msg.ReplyMarkup = getAdminMainMenuKeyboard()
 				bot.Send(msg)
 				return
 			default:
@@ -1076,7 +1076,7 @@ func handleUserSearchResponse(admin *Admin, searchText string) {
 // Add this at the top of the file with other global variables
 var adminStates = make(map[int64]string)
 
-func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
+func getAdminMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("📚 جلسات"),
