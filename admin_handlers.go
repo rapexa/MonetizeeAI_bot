@@ -322,6 +322,7 @@ func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	return keyboard
 }
 
+// handleMessage processes incoming messages
 func handleMessage(update *tgbotapi.Update) {
 	// Check if user is admin
 	if isAdmin(update.Message.From.ID) {
@@ -343,6 +344,15 @@ func handleMessage(update *tgbotapi.Update) {
 				args := strings.Fields(update.Message.CommandArguments())
 				response := handleAdminCommand(admin, "/"+update.Message.Command(), args)
 				sendMessage(update.Message.Chat.ID, response)
+				return
+			}
+		}
+
+		// Check if this is a response to a search prompt
+		if update.Message.ReplyToMessage != nil {
+			replyText := update.Message.ReplyToMessage.Text
+			if strings.Contains(replyText, "لطفا آیدی یا نام کاربری را وارد کنید") {
+				handleUserSearchResponse(admin, update.Message.Text)
 				return
 			}
 		}
@@ -706,4 +716,63 @@ func handleVideoStats(admin *Admin, params []string) {
 		stats.VideosMonth)
 
 	bot.Send(tgbotapi.NewMessage(admin.TelegramID, response))
+}
+
+// handleUserSearchResponse processes the response to a user search prompt
+func handleUserSearchResponse(admin *Admin, searchText string) {
+	var users []User
+	query := db.Model(&User{})
+
+	// Try to parse as user ID first
+	if userID, err := strconv.ParseInt(searchText, 10, 64); err == nil {
+		query = query.Where("telegram_id = ?", userID)
+	} else {
+		// If not a valid ID, search by username
+		query = query.Where("username LIKE ?", "%"+searchText+"%")
+	}
+
+	if err := query.Find(&users).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ خطا در جستجوی کاربر")
+		return
+	}
+
+	if len(users) == 0 {
+		sendMessage(admin.TelegramID, "❌ کاربری یافت نشد")
+		return
+	}
+
+	response := "🔍 نتایج جستجو:\n\n"
+	for _, user := range users {
+		status := "✅ فعال"
+		if !user.IsActive {
+			status = "❌ مسدود"
+		}
+		response += fmt.Sprintf("👤 %s\n📱 آیدی: %d\n📊 وضعیت: %s\n⏰ تاریخ عضویت: %s\n\n",
+			user.Username,
+			user.TelegramID,
+			status,
+			user.CreatedAt.Format("2006-01-02 15:04:05"))
+	}
+
+	// Add action buttons for each user
+	var rows []tgbotapi.InlineKeyboardButton
+	for _, user := range users {
+		if user.IsActive {
+			rows = append(rows, tgbotapi.NewInlineKeyboardButtonData(
+				fmt.Sprintf("🚫 مسدود کردن %s", user.Username),
+				fmt.Sprintf("ban:%d", user.TelegramID)))
+		} else {
+			rows = append(rows, tgbotapi.NewInlineKeyboardButtonData(
+				fmt.Sprintf("✅ رفع مسدودیت %s", user.Username),
+				fmt.Sprintf("unban:%d", user.TelegramID)))
+		}
+	}
+
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(rows...),
+	)
+
+	msg := tgbotapi.NewMessage(admin.TelegramID, response)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
 }
