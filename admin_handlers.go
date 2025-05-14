@@ -363,6 +363,25 @@ func getAdmin(telegramID int64) *Admin {
 	return &admin
 }
 
+func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	keyboard := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("📊 آمار سیستم"),
+			tgbotapi.NewKeyboardButton("💾 پشتیبان‌گیری"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("👥 مدیریت کاربران"),
+			tgbotapi.NewKeyboardButton("📚 مدیریت جلسات"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("🎥 مدیریت ویدیوها"),
+			tgbotapi.NewKeyboardButton("📝 لاگ‌های سیستم"),
+		),
+	)
+	keyboard.ResizeKeyboard = true
+	return keyboard
+}
+
 func handleMessage(update *tgbotapi.Update) {
 	// Check if user is admin
 	if isAdmin(update.Message.From.ID) {
@@ -428,5 +447,24 @@ func handleMessage(update *tgbotapi.Update) {
 		return
 	}
 
-	// ... rest of the code ...
+	// If not admin, let the user handlers process the message
+	user := getUserOrCreate(update.Message.From)
+
+	// Handle commands
+	if update.Message.IsCommand() {
+		switch update.Message.Command() {
+		case "start":
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Welcome to MonetizeAI! I'm your AI assistant for the course. Let's begin your journey to building a successful AI-powered business.")
+			msg.ReplyMarkup = getMainMenuKeyboard()
+			bot.Send(msg)
+			return
+		case "help":
+			sendMessage(update.Message.Chat.ID, "I'm here to help you with your MonetizeAI course journey. Use the menu buttons to navigate through the course.")
+			return
+		}
+	}
+
+	// Handle regular messages
+	response := processUserInput(update.Message.Text, user)
+	sendMessage(update.Message.Chat.ID, response)
 }
