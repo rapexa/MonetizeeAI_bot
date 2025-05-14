@@ -84,7 +84,7 @@ func generateUserStats() (string, error) {
 			Title: "آمار ثبت‌نام کاربران در 30 روز گذشته",
 		}),
 		charts.WithTooltipOpts(opts.Tooltip{
-			Show: types.Bool(true),
+			Show: types.Bool(1),
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			Name: "تاریخ",
@@ -158,7 +158,7 @@ func generateSessionStats() (string, error) {
 			Title: "وضعیت جلسات",
 		}),
 		charts.WithTooltipOpts(opts.Tooltip{
-			Show: types.Bool(true),
+			Show: types.Bool(1),
 		}),
 	)
 
@@ -175,7 +175,7 @@ func generateSessionStats() (string, error) {
 	pie.AddSeries("جلسات", items).
 		SetSeriesOptions(
 			charts.WithLabelOpts(opts.Label{
-				Show:      types.Bool(true),
+				Show:      types.Bool(1),
 				Formatter: "{b}: {c} ({d}%)",
 			}),
 		)
@@ -222,7 +222,7 @@ func generateVideoStats() (string, error) {
 			Title: "10 ویدیوی پربازدید",
 		}),
 		charts.WithTooltipOpts(opts.Tooltip{
-			Show: types.Bool(true),
+			Show: types.Bool(1),
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			Name: "تعداد بازدید",
@@ -245,7 +245,7 @@ func generateVideoStats() (string, error) {
 		AddSeries("تعداد بازدید", generateBarItems(counts)).
 		SetSeriesOptions(
 			charts.WithLabelOpts(opts.Label{
-				Show: types.Bool(true),
+				Show: types.Bool(1),
 			}),
 		)
 
@@ -293,7 +293,7 @@ func generateExerciseStats() (string, error) {
 			Title: "نرخ تکمیل تمرین‌ها",
 		}),
 		charts.WithTooltipOpts(opts.Tooltip{
-			Show: types.Bool(true),
+			Show: types.Bool(1),
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			Name: "درصد تکمیل",
@@ -316,7 +316,7 @@ func generateExerciseStats() (string, error) {
 		AddSeries("درصد تکمیل", generateBarItems(rates)).
 		SetSeriesOptions(
 			charts.WithLabelOpts(opts.Label{
-				Show:      types.Bool(true),
+				Show:      types.Bool(1),
 				Formatter: "{c}%",
 			}),
 		)
