@@ -3,9 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
@@ -50,17 +48,17 @@ func handleChartCallback(admin *Admin, chartType string) {
 	bot.Send(msg)
 
 	// Generate chart
-	var htmlFile string
+	var chart interface{}
 	var err error
 	switch chartType {
 	case "users":
-		htmlFile, err = generateUserStats()
+		chart, err = generateUserStats()
 	case "sessions":
-		htmlFile, err = generateSessionStats()
+		chart, err = generateSessionStats()
 	case "videos":
-		htmlFile, err = generateVideoStats()
+		chart, err = generateVideoStats()
 	case "exercises":
-		htmlFile, err = generateExerciseStats()
+		chart, err = generateExerciseStats()
 	default:
 		sendMessage(admin.TelegramID, "❌ نوع نمودار نامعتبر")
 		return
@@ -71,35 +69,31 @@ func handleChartCallback(admin *Admin, chartType string) {
 		return
 	}
 
-	// Convert HTML to PNG using Chrome/Chromium
-	pngFile := strings.Replace(htmlFile, ".html", ".png", 1)
-
-	// Try different Chrome/Chromium commands based on the OS
-	chromeCmds := []string{
-		"chromium-browser",
-		"chromium",
-		"google-chrome",
-		"chrome",
+	// Create charts directory if it doesn't exist
+	chartsDir := "charts"
+	if err := os.MkdirAll(chartsDir, 0755); err != nil {
+		sendMessage(admin.TelegramID, "❌ خطا در ایجاد پوشه نمودارها")
+		return
 	}
 
-	var cmd *exec.Cmd
-	for _, chromeCmd := range chromeCmds {
-		cmd = exec.Command(chromeCmd,
-			"--headless",
-			"--disable-gpu",
-			"--no-sandbox",
-			"--disable-dev-shm-usage",
-			"--screenshot="+pngFile,
-			"--window-size=1200,800",
-			"file://"+htmlFile,
-		)
-		if err := cmd.Run(); err == nil {
-			break
-		}
+	// Generate PNG file
+	pngFile := filepath.Join(chartsDir, fmt.Sprintf("%s_stats_%s.png", chartType, time.Now().Format("20060102_150405")))
+
+	// Convert chart to PNG
+	switch c := chart.(type) {
+	case *charts.Line:
+		err = c.RenderToFile(pngFile)
+	case *charts.Pie:
+		err = c.RenderToFile(pngFile)
+	case *charts.Bar:
+		err = c.RenderToFile(pngFile)
+	default:
+		sendMessage(admin.TelegramID, "❌ نوع نمودار پشتیبانی نمی‌شود")
+		return
 	}
 
-	if err := cmd.Run(); err != nil {
-		sendMessage(admin.TelegramID, "❌ خطا در تبدیل نمودار به تصویر. لطفا مطمئن شوید که Chrome یا Chromium نصب شده است.")
+	if err != nil {
+		sendMessage(admin.TelegramID, "❌ خطا در ذخیره نمودار")
 		return
 	}
 
@@ -108,8 +102,7 @@ func handleChartCallback(admin *Admin, chartType string) {
 	photo.Caption = fmt.Sprintf("📊 نمودار %s", getChartName(chartType))
 	bot.Send(photo)
 
-	// Clean up the files
-	os.Remove(htmlFile)
+	// Clean up the file
 	os.Remove(pngFile)
 }
 
@@ -170,7 +163,7 @@ func sendTextStatistics(admin *Admin) {
 }
 
 // generateUserStats generates user statistics chart
-func generateUserStats() (string, error) {
+func generateUserStats() (interface{}, error) {
 	// Get user registration data for the last 30 days
 	var stats []struct {
 		Date  string
@@ -186,7 +179,7 @@ func generateUserStats() (string, error) {
 	`).Scan(&stats).Error
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Create line chart
@@ -229,19 +222,11 @@ func generateUserStats() (string, error) {
 			}),
 		)
 
-	// Save chart
-	filename := filepath.Join("charts", fmt.Sprintf("user_stats_%s.html", time.Now().Format("20060102_150405")))
-	f, err := os.Create(filename)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	return filename, line.Render(f)
+	return line, nil
 }
 
 // generateSessionStats generates session statistics chart
-func generateSessionStats() (string, error) {
+func generateSessionStats() (interface{}, error) {
 	// Get session completion data
 	var stats []struct {
 		Status string
@@ -261,7 +246,7 @@ func generateSessionStats() (string, error) {
 	`).Scan(&stats).Error
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Create pie chart
@@ -296,19 +281,11 @@ func generateSessionStats() (string, error) {
 			}),
 		)
 
-	// Save chart
-	filename := filepath.Join("charts", fmt.Sprintf("session_stats_%s.html", time.Now().Format("20060102_150405")))
-	f, err := os.Create(filename)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	return filename, pie.Render(f)
+	return pie, nil
 }
 
 // generateVideoStats generates video statistics chart
-func generateVideoStats() (string, error) {
+func generateVideoStats() (interface{}, error) {
 	// Get video view data
 	var stats []struct {
 		VideoTitle string
@@ -325,7 +302,7 @@ func generateVideoStats() (string, error) {
 	`).Scan(&stats).Error
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Create bar chart
@@ -365,19 +342,11 @@ func generateVideoStats() (string, error) {
 			}),
 		)
 
-	// Save chart
-	filename := filepath.Join("charts", fmt.Sprintf("video_stats_%s.html", time.Now().Format("20060102_150405")))
-	f, err := os.Create(filename)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	return filename, bar.Render(f)
+	return bar, nil
 }
 
 // generateExerciseStats generates exercise statistics chart
-func generateExerciseStats() (string, error) {
+func generateExerciseStats() (interface{}, error) {
 	// Get exercise completion data
 	var stats []struct {
 		ExerciseTitle  string
@@ -396,7 +365,7 @@ func generateExerciseStats() (string, error) {
 	`).Scan(&stats).Error
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Create horizontal bar chart
@@ -437,15 +406,7 @@ func generateExerciseStats() (string, error) {
 			}),
 		)
 
-	// Save chart
-	filename := filepath.Join("charts", fmt.Sprintf("exercise_stats_%s.html", time.Now().Format("20060102_150405")))
-	f, err := os.Create(filename)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	return filename, bar.Render(f)
+	return bar, nil
 }
 
 // Helper functions for chart data generation
