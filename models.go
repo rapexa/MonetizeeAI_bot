@@ -59,6 +59,8 @@ type Session struct {
 	Title        string
 	Description  string
 	ThumbnailURL string
+	IsActive     bool `gorm:"default:true"`
+	IsCompleted  bool `gorm:"default:false"`
 	Videos       []Video
 	Exercises    []Exercise
 	Users        []User `gorm:"many2many:user_sessions;"`
