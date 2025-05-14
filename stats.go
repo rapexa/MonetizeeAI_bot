@@ -107,7 +107,7 @@ func generateUserStats() (string, error) {
 		AddSeries("تعداد کاربران", generateLineItems(counts)).
 		SetSeriesOptions(
 			charts.WithLineChartOpts(opts.LineChart{
-				Smooth: true,
+				Smooth: opts.Bool(true),
 			}),
 			charts.WithAreaStyleOpts(opts.AreaStyle{
 				Opacity: 0.2,
