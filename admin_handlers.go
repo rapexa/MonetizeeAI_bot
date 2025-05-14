@@ -438,7 +438,6 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	}
 
 	action := parts[0]
-	param := parts[1]
 
 	switch action {
 	case "search_user":
