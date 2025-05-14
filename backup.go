@@ -99,6 +99,7 @@ func performBackup(admin *Admin) string {
 		Filename:    filename,
 		Size:        getFileSize(filename),
 		CreatedByID: admin.ID,
+		IsComplete:  true,
 	}
 	if err := db.Create(&backup).Error; err != nil {
 		return "❌ خطا در ثبت اطلاعات پشتیبان‌گیری"
@@ -192,4 +193,5 @@ type Backup struct {
 	Size        int64
 	CreatedByID uint
 	CreatedBy   Admin `gorm:"foreignKey:CreatedByID"`
+	IsComplete  bool  `gorm:"default:false"`
 }
