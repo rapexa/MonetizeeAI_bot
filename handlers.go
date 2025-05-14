@@ -34,7 +34,7 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 			var video Video
 			db.Where("session_id = ?", session.ID).First(&video)
 
-			// Create session message
+			// Create session message without welcome message
 			sessionMsg := fmt.Sprintf("📚 جلسه %d: %s\n\n%s\n\n📺 ویدیو: %s",
 				session.Number,
 				session.Title,
