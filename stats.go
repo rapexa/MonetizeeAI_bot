@@ -136,11 +136,12 @@ func generateSessionStats() (string, error) {
 	err := db.Raw(`
 		SELECT 
 			CASE 
-				WHEN status = 'completed' THEN 'تکمیل شده'
+				WHEN exercises.status = 'approved' THEN 'تکمیل شده'
 				ELSE 'در حال انجام'
 			END as status,
 			COUNT(*) as count
 		FROM user_sessions
+		LEFT JOIN exercises ON exercises.user_id = user_sessions.user_id AND exercises.session_id = user_sessions.session_id
 		GROUP BY status
 	`).Scan(&stats).Error
 
@@ -200,9 +201,9 @@ func generateVideoStats() (string, error) {
 	}
 
 	err := db.Raw(`
-		SELECT v.title, COUNT(us.session_id) as view_count
+		SELECT v.title, COUNT(DISTINCT us.user_id) as view_count
 		FROM videos v
-		LEFT JOIN user_sessions us ON us.video_id = v.id
+		LEFT JOIN user_sessions us ON us.session_id = v.session_id
 		GROUP BY v.id, v.title
 		ORDER BY view_count DESC
 		LIMIT 10
@@ -270,11 +271,11 @@ func generateExerciseStats() (string, error) {
 
 	err := db.Raw(`
 		SELECT 
-			e.title,
-			COUNT(CASE WHEN us.status = 'completed' THEN 1 END) * 100.0 / COUNT(*) as completion_rate
-		FROM exercises e
-		LEFT JOIN user_sessions us ON us.exercise_id = e.id
-		GROUP BY e.id, e.title
+			s.title as exercise_title,
+			COUNT(CASE WHEN e.status = 'approved' THEN 1 END) * 100.0 / COUNT(*) as completion_rate
+		FROM sessions s
+		LEFT JOIN exercises e ON e.session_id = s.id
+		GROUP BY s.id, s.title
 		ORDER BY completion_rate DESC
 		LIMIT 10
 	`).Scan(&stats).Error
