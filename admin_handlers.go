@@ -17,6 +17,9 @@ const (
 	StateWaitingForVideoInfo   = "waiting_for_video_info"
 	StateEditSession           = "edit_session"
 	StateDeleteSession         = "delete_session"
+	StateAddVideo              = "add_video"
+	StateEditVideo             = "edit_video"
+	StateDeleteVideo           = "delete_video"
 )
 
 // Add this with other model definitions at the top of the file
@@ -445,6 +448,67 @@ func handleMessage(update *tgbotapi.Update) {
 				delete(adminStates, admin.TelegramID)
 				return
 
+			case StateAddVideo:
+				// Handle session number input for adding video
+				sessionNum, err := strconv.Atoi(strings.TrimSpace(update.Message.Text))
+				if err != nil {
+					sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
+					return
+				}
+
+				var session Session
+				if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
+					sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
+					return
+				}
+
+				msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("➕ افزودن ویدیو به جلسه %d:\n\nلطفا اطلاعات را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", sessionNum))
+				msg.ReplyMarkup = tgbotapi.ForceReply{}
+				bot.Send(msg)
+				adminStates[admin.TelegramID] = fmt.Sprintf("%s:%d", StateAddVideo, sessionNum)
+
+			case StateEditVideo:
+				// Handle video ID input for editing
+				videoID, err := strconv.ParseUint(strings.TrimSpace(update.Message.Text), 10, 32)
+				if err != nil {
+					sendMessage(admin.TelegramID, "❌ آیدی ویدیو نامعتبر است")
+					return
+				}
+
+				var video Video
+				if err := db.First(&video, videoID).Error; err != nil {
+					sendMessage(admin.TelegramID, "❌ ویدیو یافت نشد")
+					return
+				}
+
+				msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش ویدیو %d:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", videoID))
+				msg.ReplyMarkup = tgbotapi.ForceReply{}
+				bot.Send(msg)
+				adminStates[admin.TelegramID] = fmt.Sprintf("%s:%d", StateEditVideo, videoID)
+
+			case StateDeleteVideo:
+				// Handle video ID input for deletion
+				videoID, err := strconv.ParseUint(strings.TrimSpace(update.Message.Text), 10, 32)
+				if err != nil {
+					sendMessage(admin.TelegramID, "❌ آیدی ویدیو نامعتبر است")
+					return
+				}
+
+				var video Video
+				if err := db.First(&video, videoID).Error; err != nil {
+					sendMessage(admin.TelegramID, "❌ ویدیو یافت نشد")
+					return
+				}
+
+				if err := db.Delete(&video).Error; err != nil {
+					sendMessage(admin.TelegramID, "❌ خطا در حذف ویدیو")
+					return
+				}
+
+				logAdminAction(admin, "delete_video", fmt.Sprintf("Deleted video %d: %s", videoID, video.Title), "video", video.ID)
+				sendMessage(admin.TelegramID, fmt.Sprintf("✅ ویدیو %d با موفقیت حذف شد", videoID))
+				delete(adminStates, admin.TelegramID)
+
 			default:
 				if strings.HasPrefix(state, StateEditSession+":") {
 					// Handle session edit info input
@@ -639,13 +703,22 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		handleUnbanUser(admin, param)
 
 	case "add_video":
-		handleAddVideo(admin, []string{})
+		msg := tgbotapi.NewMessage(admin.TelegramID, "➕ افزودن ویدیو:\n\nلطفا شماره جلسه را وارد کنید:")
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		bot.Send(msg)
+		adminStates[admin.TelegramID] = StateAddVideo
 
 	case "edit_video":
-		handleEditVideo(admin, []string{})
+		msg := tgbotapi.NewMessage(admin.TelegramID, "✏️ ویرایش ویدیو:\n\nلطفا آیدی ویدیو را وارد کنید:")
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		bot.Send(msg)
+		adminStates[admin.TelegramID] = StateEditVideo
 
 	case "delete_video":
-		handleDeleteVideo(admin, []string{})
+		msg := tgbotapi.NewMessage(admin.TelegramID, "🗑️ حذف ویدیو:\n\nلطفا آیدی ویدیو را وارد کنید:")
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		bot.Send(msg)
+		adminStates[admin.TelegramID] = StateDeleteVideo
 
 	case "video_stats":
 		handleVideoStats(admin, []string{})
