@@ -64,67 +64,11 @@ func handleAdminCommand(admin *Admin, command string, args []string) string {
 	return "❌ دستور نامعتبر"
 }
 
-// handleAdminStats shows system statistics
+// handleAdminStats handles the admin statistics command
 func handleAdminStats(admin *Admin, args []string) string {
-	var stats struct {
-		TotalUsers     int64
-		ActiveUsers    int64
-		BannedUsers    int64
-		TotalSessions  int64
-		TotalVideos    int64
-		TotalExercises int64
-	}
-
-	// Get user statistics
-	db.Model(&User{}).Count(&stats.TotalUsers)
-	db.Model(&User{}).Where("is_banned = ?", false).Count(&stats.ActiveUsers)
-	db.Model(&User{}).Where("is_banned = ?", true).Count(&stats.BannedUsers)
-
-	// Get session statistics
-	db.Model(&Session{}).Count(&stats.TotalSessions)
-
-	// Get video statistics
-	db.Model(&Video{}).Count(&stats.TotalVideos)
-
-	// Get exercise statistics
-	db.Model(&Exercise{}).Count(&stats.TotalExercises)
-
-	response := fmt.Sprintf("📊 آمار سیستم:\n\n"+
-		"👥 کاربران:\n"+
-		"• کل کاربران: %d\n"+
-		"• کاربران فعال: %d\n"+
-		"• کاربران مسدود: %d\n\n"+
-		"📚 جلسات:\n"+
-		"• کل جلسات: %d\n\n"+
-		"🎥 ویدیوها:\n"+
-		"• کل ویدیوها: %d\n\n"+
-		"✍️ تمرین‌ها:\n"+
-		"• کل تمرین‌ها: %d",
-		stats.TotalUsers,
-		stats.ActiveUsers,
-		stats.BannedUsers,
-		stats.TotalSessions,
-		stats.TotalVideos,
-		stats.TotalExercises)
-
-	// Add inline keyboard for detailed stats
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("📈 نمودار کاربران", "user_chart"),
-			tgbotapi.NewInlineKeyboardButtonData("📈 نمودار جلسات", "session_chart"),
-		),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("📈 نمودار ویدیوها", "video_chart"),
-			tgbotapi.NewInlineKeyboardButtonData("📈 نمودار تمرین‌ها", "exercise_chart"),
-		),
-	)
-	msg := tgbotapi.NewMessage(admin.TelegramID, response)
-	msg.ReplyMarkup = keyboard
-	if _, err := bot.Send(msg); err != nil {
-		return "❌ خطا در ارسال پیام"
-	}
-
-	return "از دکمه‌های زیر برای مشاهده نمودارهای آماری استفاده کنید"
+	// Generate and send all charts
+	generateAndSendCharts(admin)
+	return "✅ نمودارهای آماری با موفقیت ارسال شدند"
 }
 
 // handleAdminUsers manages users
