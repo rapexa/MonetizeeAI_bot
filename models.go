@@ -15,7 +15,30 @@ type User struct {
 	LastName       string
 	CurrentSession int  `gorm:"default:1"`
 	IsActive       bool `gorm:"default:true"`
+	IsAdmin        bool `gorm:"default:false"`
 	Exercises      []Exercise
+}
+
+// Admin represents a system administrator
+type Admin struct {
+	gorm.Model
+	TelegramID int64 `gorm:"uniqueIndex"`
+	Username   string
+	FirstName  string
+	LastName   string
+	Role       string `gorm:"default:'admin'"` // admin, super_admin
+	IsActive   bool   `gorm:"default:true"`
+}
+
+// AdminAction represents admin activities for audit log
+type AdminAction struct {
+	gorm.Model
+	AdminID    uint
+	Admin      Admin `gorm:"foreignKey:AdminID"`
+	Action     string
+	Details    string
+	TargetType string // user, session, video, exercise
+	TargetID   uint
 }
 
 // Video represents a course video

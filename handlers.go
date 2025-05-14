@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -116,4 +117,26 @@ func handleExerciseSubmission(user *User, content string) string {
 	}
 
 	return fmt.Sprintf("🎉 تمرین شما با موفقیت ثبت شد!\n\n📚 جلسه بعدی شما:\n%s\n\n%s", nextSession.Title, nextSession.Description)
+}
+
+func handleMessage(update tgbotapi.Update) {
+	// Check if user is admin
+	if isAdmin(update.Message.From.ID) {
+		admin := getAdmin(update.Message.From.ID)
+		if admin == nil {
+			sendMessage(update.Message.Chat.ID, "❌ خطا در دریافت اطلاعات ادمین")
+			return
+		}
+
+		// Handle admin commands
+		if update.Message.IsCommand() {
+			args := strings.Fields(update.Message.CommandArguments())
+			response := handleAdminCommand(admin, "/"+update.Message.Command(), args)
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		}
+	}
+
+	// Handle regular user commands
+	// ... existing code ...
 }
