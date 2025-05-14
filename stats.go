@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
@@ -76,13 +78,13 @@ func handleChartCallback(admin *Admin, chartType string) {
 		return
 	}
 
-	// Generate PNG file
-	pngFile := filepath.Join(chartsDir, fmt.Sprintf("%s_stats_%s.png", chartType, time.Now().Format("20060102_150405")))
+	// Generate HTML file first
+	htmlFile := filepath.Join(chartsDir, fmt.Sprintf("%s_stats_%s.html", chartType, time.Now().Format("20060102_150405")))
 
-	// Convert chart to PNG
+	// Save chart as HTML
 	switch c := chart.(type) {
 	case *charts.Line:
-		f, err := os.Create(pngFile)
+		f, err := os.Create(htmlFile)
 		if err != nil {
 			sendMessage(admin.TelegramID, "❌ خطا در ایجاد فایل نمودار")
 			return
@@ -90,7 +92,7 @@ func handleChartCallback(admin *Admin, chartType string) {
 		defer f.Close()
 		err = c.Render(f)
 	case *charts.Pie:
-		f, err := os.Create(pngFile)
+		f, err := os.Create(htmlFile)
 		if err != nil {
 			sendMessage(admin.TelegramID, "❌ خطا در ایجاد فایل نمودار")
 			return
@@ -98,7 +100,7 @@ func handleChartCallback(admin *Admin, chartType string) {
 		defer f.Close()
 		err = c.Render(f)
 	case *charts.Bar:
-		f, err := os.Create(pngFile)
+		f, err := os.Create(htmlFile)
 		if err != nil {
 			sendMessage(admin.TelegramID, "❌ خطا در ایجاد فایل نمودار")
 			return
@@ -115,12 +117,47 @@ func handleChartCallback(admin *Admin, chartType string) {
 		return
 	}
 
+	// Convert HTML to PNG using wkhtmltoimage
+	pngFile := strings.Replace(htmlFile, ".html", ".png", 1)
+	cmd := exec.Command("wkhtmltoimage", "--width", "1200", "--height", "800", htmlFile, pngFile)
+	if err := cmd.Run(); err != nil {
+		// If wkhtmltoimage fails, try using Chrome/Chromium
+		chromeCmds := []string{
+			"chromium-browser",
+			"chromium",
+			"google-chrome",
+			"chrome",
+		}
+
+		var cmd *exec.Cmd
+		for _, chromeCmd := range chromeCmds {
+			cmd = exec.Command(chromeCmd,
+				"--headless",
+				"--disable-gpu",
+				"--no-sandbox",
+				"--disable-dev-shm-usage",
+				"--screenshot="+pngFile,
+				"--window-size=1200,800",
+				"file://"+htmlFile,
+			)
+			if err := cmd.Run(); err == nil {
+				break
+			}
+		}
+
+		if err := cmd.Run(); err != nil {
+			sendMessage(admin.TelegramID, "❌ خطا در تبدیل نمودار به تصویر. لطفا مطمئن شوید که wkhtmltoimage یا Chrome نصب شده است.")
+			return
+		}
+	}
+
 	// Send the PNG file as a photo
 	photo := tgbotapi.NewPhoto(admin.TelegramID, tgbotapi.FilePath(pngFile))
 	photo.Caption = fmt.Sprintf("📊 نمودار %s", getChartName(chartType))
 	bot.Send(photo)
 
-	// Clean up the file
+	// Clean up the files
+	os.Remove(htmlFile)
 	os.Remove(pngFile)
 }
 
