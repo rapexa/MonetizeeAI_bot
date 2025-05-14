@@ -614,6 +614,53 @@ func handleMessage(update *tgbotapi.Update) {
 					delete(adminStates, admin.TelegramID)
 					return
 				}
+				if strings.HasPrefix(state, StateEditVideo+":") {
+					// Handle video edit info input
+					parts := strings.Split(state, ":")
+					if len(parts) != 2 {
+						sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
+						return
+					}
+
+					videoID, err := strconv.ParseUint(parts[1], 10, 32)
+					if err != nil {
+						sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
+						return
+					}
+
+					infoParts := strings.Split(update.Message.Text, "|")
+					if len(infoParts) != 2 {
+						sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو")
+						return
+					}
+
+					title := strings.TrimSpace(infoParts[0])
+					videoLink := strings.TrimSpace(infoParts[1])
+
+					var video Video
+					if err := db.First(&video, videoID).Error; err != nil {
+						sendMessage(admin.TelegramID, "❌ ویدیو یافت نشد")
+						return
+					}
+
+					video.Title = title
+					video.VideoLink = videoLink
+
+					if err := db.Save(&video).Error; err != nil {
+						sendMessage(admin.TelegramID, "❌ خطا در بروزرسانی ویدیو")
+						return
+					}
+
+					logAdminAction(admin, "edit_video", fmt.Sprintf("Edited video %d: %s", videoID, title), "video", video.ID)
+					sendMessage(admin.TelegramID, fmt.Sprintf("✅ ویدیو با موفقیت بروزرسانی شد"))
+					delete(adminStates, admin.TelegramID)
+
+					// Show admin menu after completion
+					msg := tgbotapi.NewMessage(admin.TelegramID, "منوی ادمین:")
+					msg.ReplyMarkup = getAdminKeyboard()
+					bot.Send(msg)
+					return
+				}
 			}
 		}
 
