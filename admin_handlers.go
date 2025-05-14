@@ -88,8 +88,8 @@ func handleAdminUsers(admin *Admin, args []string) string {
 		// Add inline keyboard for actions
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🔍 جستجوی کاربر", "search_user"),
-				tgbotapi.NewInlineKeyboardButtonData("📊 آمار کاربران", "user_stats"),
+				tgbotapi.NewInlineKeyboardButtonData("🔍 جستجوی کاربر", "search_user:0"),
+				tgbotapi.NewInlineKeyboardButtonData("📊 آمار کاربران", "user_stats:0"),
 			),
 		)
 		msg := tgbotapi.NewMessage(admin.TelegramID, response)
@@ -428,6 +428,7 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	}
 
 	action := parts[0]
+	param := parts[1]
 
 	switch action {
 	case "search_user":
@@ -450,39 +451,69 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		handleDeleteVideo(admin, []string{})
 	case "video_stats":
 		handleVideoStats(admin, []string{})
+	case "ban":
+		handleBanUser(admin, param)
+	case "unban":
+		handleUnbanUser(admin, param)
 	default:
 		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")
 	}
 }
 
-// Chart handlers
-func handleUserChart(admin *Admin, params []string) {
-	// TODO: Implement user statistics chart
-	bot.Send(tgbotapi.NewMessage(admin.TelegramID, "📊 نمودار آمار کاربران در حال آماده‌سازی..."))
+// handleBanUser bans a user
+func handleBanUser(admin *Admin, userID string) {
+	id, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		sendMessage(admin.TelegramID, "❌ آیدی کاربر نامعتبر است")
+		return
+	}
+
+	var user User
+	if err := db.Where("telegram_id = ?", id).First(&user).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ کاربر یافت نشد")
+		return
+	}
+
+	user.IsActive = false
+	if err := db.Save(&user).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ خطا در مسدود کردن کاربر")
+		return
+	}
+
+	sendMessage(admin.TelegramID, fmt.Sprintf("✅ کاربر %s با موفقیت مسدود شد", user.Username))
 }
 
-func handleSessionChart(admin *Admin, params []string) {
-	// TODO: Implement session statistics chart
-	bot.Send(tgbotapi.NewMessage(admin.TelegramID, "📊 نمودار آمار جلسات در حال آماده‌سازی..."))
+// handleUnbanUser unbans a user
+func handleUnbanUser(admin *Admin, userID string) {
+	id, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		sendMessage(admin.TelegramID, "❌ آیدی کاربر نامعتبر است")
+		return
+	}
+
+	var user User
+	if err := db.Where("telegram_id = ?", id).First(&user).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ کاربر یافت نشد")
+		return
+	}
+
+	user.IsActive = true
+	if err := db.Save(&user).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ خطا در رفع مسدودیت کاربر")
+		return
+	}
+
+	sendMessage(admin.TelegramID, fmt.Sprintf("✅ مسدودیت کاربر %s با موفقیت برداشته شد", user.Username))
 }
 
-func handleVideoChart(admin *Admin, params []string) {
-	// TODO: Implement video statistics chart
-	bot.Send(tgbotapi.NewMessage(admin.TelegramID, "📊 نمودار آمار ویدیوها در حال آماده‌سازی..."))
-}
-
-func handleExerciseChart(admin *Admin, params []string) {
-	// TODO: Implement exercise statistics chart
-	bot.Send(tgbotapi.NewMessage(admin.TelegramID, "📊 نمودار آمار تمرین‌ها در حال آماده‌سازی..."))
-}
-
-// User management handlers
+// handleSearchUser handles user search
 func handleSearchUser(admin *Admin, params []string) {
 	msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی یا نام کاربری را وارد کنید:")
 	msg.ReplyMarkup = tgbotapi.ForceReply{}
 	bot.Send(msg)
 }
 
+// handleUserStats shows user statistics
 func handleUserStats(admin *Admin, params []string) {
 	var stats struct {
 		TotalUsers    int64
