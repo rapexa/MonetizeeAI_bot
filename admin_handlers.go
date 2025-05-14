@@ -585,6 +585,7 @@ func handleMessage(update *tgbotapi.Update) {
 						Title:     title,
 						VideoLink: videoLink,
 						SessionID: session.ID,
+						Date:      time.Now(),
 					}
 
 					if err := db.Create(&video).Error; err != nil {
