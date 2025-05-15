@@ -282,7 +282,7 @@ func handleChatGPTMessage(user *User, message string) string {
 
 	// Prepare the request body
 	requestBody := map[string]interface{}{
-		"model": "gpt-4",
+		"model": "gpt-4.1-2025-04-14",
 		"messages": []map[string]string{
 			{
 				"role":    "system",
@@ -293,18 +293,22 @@ func handleChatGPTMessage(user *User, message string) string {
 				"content": message,
 			},
 		},
+		"temperature": 1.0,
+		"top_p":       1.0,
 	}
 
 	// Convert request body to JSON
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
-		return "❌ خطا در پردازش درخواست"
+		log.Printf("Error marshaling request: %v", err)
+		return "❌ خطا در پردازش درخواست. لطفا دوباره تلاش کنید."
 	}
 
 	// Create HTTP request
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return "❌ خطا در ایجاد درخواست"
+		log.Printf("Error creating request: %v", err)
+		return "❌ خطا در ایجاد درخواست. لطفا دوباره تلاش کنید."
 	}
 
 	// Set headers
@@ -315,42 +319,78 @@ func handleChatGPTMessage(user *User, message string) string {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "❌ خطا در ارتباط با سرور"
+		log.Printf("Error sending request: %v", err)
+		return "❌ خطا در ارتباط با سرور. لطفا دوباره تلاش کنید."
 	}
 	defer resp.Body.Close()
 
 	// Read response
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "❌ خطا در خواندن پاسخ"
+		log.Printf("Error reading response: %v", err)
+		return "❌ خطا در خواندن پاسخ. لطفا دوباره تلاش کنید."
 	}
+
+	// Log the raw response for debugging
+	log.Printf("Raw API response: %s", string(body))
 
 	// Parse response
 	var result map[string]interface{}
 	if err := json.Unmarshal(body, &result); err != nil {
-		return "❌ خطا در پردازش پاسخ"
+		log.Printf("Error unmarshaling response: %v", err)
+		return "❌ خطا در پردازش پاسخ. لطفا دوباره تلاش کنید."
 	}
 
-	// Extract the response text
-	choices, ok := result["choices"].([]interface{})
-	if !ok || len(choices) == 0 {
-		return "❌ پاسخ نامعتبر از سرور"
+	// Check for API errors
+	if errObj, ok := result["error"].(map[string]interface{}); ok {
+		errMsg := "❌ خطا در دریافت پاسخ"
+		if msg, ok := errObj["message"].(string); ok {
+			errMsg += ": " + msg
+		}
+		log.Printf("API Error: %v", errObj)
+		return errMsg
 	}
 
-	choice, ok := choices[0].(map[string]interface{})
+	// Check if status is completed
+	if status, ok := result["status"].(string); !ok || status != "completed" {
+		log.Printf("Invalid status in response: %v", result)
+		return "❌ پاسخ ناقص از سرور. لطفا دوباره تلاش کنید."
+	}
+
+	// Extract the output array
+	output, ok := result["output"].([]interface{})
+	if !ok || len(output) == 0 {
+		log.Printf("Invalid output in response: %v", result)
+		return "❌ پاسخ نامعتبر از سرور. لطفا دوباره تلاش کنید."
+	}
+
+	// Get the first output message
+	outputMsg, ok := output[0].(map[string]interface{})
 	if !ok {
-		return "❌ خطا در پردازش پاسخ"
+		log.Printf("Invalid output message format: %v", output[0])
+		return "❌ خطا در پردازش پیام. لطفا دوباره تلاش کنید."
 	}
 
-	messageObj, ok := choice["message"].(map[string]interface{})
+	// Get the content array
+	content, ok := outputMsg["content"].([]interface{})
+	if !ok || len(content) == 0 {
+		log.Printf("Invalid content in output message: %v", outputMsg)
+		return "❌ خطا در پردازش محتوا. لطفا دوباره تلاش کنید."
+	}
+
+	// Get the first content item
+	contentItem, ok := content[0].(map[string]interface{})
 	if !ok {
-		return "❌ خطا در پردازش پیام"
+		log.Printf("Invalid content item format: %v", content[0])
+		return "❌ خطا در پردازش محتوا. لطفا دوباره تلاش کنید."
 	}
 
-	content, ok := messageObj["content"].(string)
+	// Get the text
+	text, ok := contentItem["text"].(string)
 	if !ok {
-		return "❌ خطا در پردازش محتوا"
+		log.Printf("Invalid text format: %v", contentItem)
+		return "❌ خطا در پردازش متن. لطفا دوباره تلاش کنید."
 	}
 
-	return content
+	return text
 }
