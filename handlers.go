@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -115,7 +114,17 @@ func processUserInput(input string, user *User) string {
 		bot.Send(msg)
 		return ""
 	case "💬 چت با هدایتگر":
-		return "👋 سلام! من هدایتگر هوشمند دوره هستم. سوال خود را بپرسید تا کمکتان کنم."
+		userStates[user.TelegramID] = "chat_mode"
+		msg := tgbotapi.NewMessage(user.TelegramID, "👋 سلام! من هدایتگر هوشمند دوره هستم. سوال خود را بپرسید تا کمکتان کنم.")
+		msg.ReplyMarkup = getChatKeyboard()
+		bot.Send(msg)
+		return ""
+	case "🔚 اتمام مکالمه با هدایتگر":
+		userStates[user.TelegramID] = ""
+		msg := tgbotapi.NewMessage(user.TelegramID, "مکالمه با هدایتگر به پایان رسید. به منوی اصلی بازگشتید.")
+		msg.ReplyMarkup = getMainMenuKeyboard()
+		bot.Send(msg)
+		return ""
 	default:
 		if state == "submitting_exercise" {
 			userStates[user.TelegramID] = ""
@@ -124,16 +133,17 @@ func processUserInput(input string, user *User) string {
 			bot.Send(msg)
 			return ""
 		}
+
+		if state == "chat_mode" {
+			response := handleChatGPTMessage(user, input)
+			msg := tgbotapi.NewMessage(user.TelegramID, response)
+			msg.ReplyMarkup = getChatKeyboard()
+			bot.Send(msg)
+			return ""
+		}
+
 		return "لطفا از دکمه‌های منو استفاده کنید."
 	}
-
-	// Check if user is in chat mode
-	if state == "chat_mode" {
-		response := handleChatGPTMessage(user, input)
-		return response
-	}
-
-	return ""
 }
 
 func getCurrentSessionInfo(user *User) string {
@@ -256,16 +266,19 @@ func getExerciseSubmissionKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	return keyboard
 }
 
-// Add this new function to handle ChatGPT interactions
+func getChatKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	keyboard := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("🔚 اتمام مکالمه با هدایتگر"),
+		),
+	)
+	keyboard.ResizeKeyboard = true
+	return keyboard
+}
+
 func handleChatGPTMessage(user *User, message string) string {
 	// Create the API request
 	url := "https://api.openai.com/v1/chat/completions"
-
-	// Get API key from environment variable
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		return "❌ خطا در پیکربندی سیستم. لطفا با پشتیبانی تماس بگیرید."
-	}
 
 	// Prepare the request body
 	requestBody := map[string]interface{}{
@@ -273,7 +286,7 @@ func handleChatGPTMessage(user *User, message string) string {
 		"messages": []map[string]string{
 			{
 				"role":    "system",
-				"content": "You are a helpful course assistant for MonetizeeAI. Provide clear, concise, and relevant answers to help students with their questions about the course content.",
+				"content": "You are a helpful course assistant for MonetizeeAI. Provide clear, concise, and relevant answers to help students with their questions about the course content. Always respond in Persian.",
 			},
 			{
 				"role":    "user",
@@ -296,7 +309,7 @@ func handleChatGPTMessage(user *User, message string) string {
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Authorization", "Bearer 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")
 
 	// Send request
 	client := &http.Client{}
