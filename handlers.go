@@ -29,6 +29,16 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 		}
 		db.Create(&user)
 
+		// Check if user is admin
+		var admin Admin
+		if err := db.Where("telegram_id = ?", from.ID).First(&admin).Error; err == nil {
+			// User is admin, send admin welcome message
+			msg := tgbotapi.NewMessage(from.ID, "به پنل مدیریت خوش اومدین از دکمه های زیر میتونید به سیستم دسترسی داشته باشید")
+			msg.ReplyMarkup = getAdminKeyboard()
+			bot.Send(msg)
+			return &user
+		}
+
 		// Send session 1 info for new users
 		var session Session
 		if err := db.Where("number = ?", 1).First(&session).Error; err == nil {
@@ -51,6 +61,16 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 				// If no thumbnail, just send the message
 				bot.Send(tgbotapi.NewMessage(from.ID, sessionMsg))
 			}
+		}
+	} else {
+		// Check if existing user is admin
+		var admin Admin
+		if err := db.Where("telegram_id = ?", from.ID).First(&admin).Error; err == nil {
+			// User is admin, send admin welcome message
+			msg := tgbotapi.NewMessage(from.ID, "به پنل مدیریت خوش اومدین از دکمه های زیر میتونید به سیستم دسترسی داشته باشید")
+			msg.ReplyMarkup = getAdminKeyboard()
+			bot.Send(msg)
+			return &user
 		}
 	}
 	return &user
@@ -143,6 +163,7 @@ func getHelpMessage() string {
 4. در جلسات دوره پیشرفت کنید
 
 نیاز به کمک بیشتر دارید؟ با پشتیبانی تماس بگیرید.
+
 📞 09121234567
 `
 }
