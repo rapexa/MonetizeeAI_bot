@@ -352,46 +352,33 @@ func handleChatGPTMessage(user *User, message string) string {
 		return errMsg
 	}
 
-	// Check if status is completed
-	if status, ok := result["status"].(string); !ok || status != "completed" {
-		log.Printf("Invalid status in response: %v", result)
-		return "❌ پاسخ ناقص از سرور. لطفا دوباره تلاش کنید."
-	}
-
-	// Extract the output array
-	output, ok := result["output"].([]interface{})
-	if !ok || len(output) == 0 {
-		log.Printf("Invalid output in response: %v", result)
+	// Extract the choices array
+	choices, ok := result["choices"].([]interface{})
+	if !ok || len(choices) == 0 {
+		log.Printf("Invalid choices in response: %v", result)
 		return "❌ پاسخ نامعتبر از سرور. لطفا دوباره تلاش کنید."
 	}
 
-	// Get the first output message
-	outputMsg, ok := output[0].(map[string]interface{})
+	// Get the first choice
+	choice, ok := choices[0].(map[string]interface{})
 	if !ok {
-		log.Printf("Invalid output message format: %v", output[0])
+		log.Printf("Invalid choice format: %v", choices[0])
+		return "❌ خطا در پردازش پاسخ. لطفا دوباره تلاش کنید."
+	}
+
+	// Get the message
+	message, ok := choice["message"].(map[string]interface{})
+	if !ok {
+		log.Printf("Invalid message format: %v", choice)
 		return "❌ خطا در پردازش پیام. لطفا دوباره تلاش کنید."
 	}
 
-	// Get the content array
-	content, ok := outputMsg["content"].([]interface{})
-	if !ok || len(content) == 0 {
-		log.Printf("Invalid content in output message: %v", outputMsg)
+	// Get the content
+	content, ok := message["content"].(string)
+	if !ok {
+		log.Printf("Invalid content format: %v", message)
 		return "❌ خطا در پردازش محتوا. لطفا دوباره تلاش کنید."
 	}
 
-	// Get the first content item
-	contentItem, ok := content[0].(map[string]interface{})
-	if !ok {
-		log.Printf("Invalid content item format: %v", content[0])
-		return "❌ خطا در پردازش محتوا. لطفا دوباره تلاش کنید."
-	}
-
-	// Get the text
-	text, ok := contentItem["text"].(string)
-	if !ok {
-		log.Printf("Invalid text format: %v", contentItem)
-		return "❌ خطا در پردازش متن. لطفا دوباره تلاش کنید."
-	}
-
-	return text
+	return content
 }
