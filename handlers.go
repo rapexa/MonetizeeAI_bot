@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -261,6 +262,12 @@ func handleChatGPTMessage(user *User, message string) string {
 	// Create the API request
 	url := "https://api.openai.com/v1/chat/completions"
 
+	// Get API key from environment variable
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		return "❌ خطا در پیکربندی سیستم. لطفا با پشتیبانی تماس بگیرید."
+	}
+
 	// Prepare the request body
 	requestBody := map[string]interface{}{
 		"model": "gpt-4",
@@ -290,7 +297,7 @@ func handleChatGPTMessage(user *User, message string) string {
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer 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")
+	req.Header.Set("Authorization", "Bearer "+apiKey)
 
 	// Send request
 	client := &http.Client{}
