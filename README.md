@@ -53,7 +53,7 @@ A powerful Telegram bot for managing and delivering educational content, built w
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/MonetizeeAI_bot.git
+git clone https://github.com/rapexa/MonetizeeAI_bot.git
 cd MonetizeeAI_bot
 ```
 
