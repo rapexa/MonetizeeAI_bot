@@ -1,142 +1,121 @@
-# MonetizeAI Telegram Bot
+# MonetizeeAI Bot 🤖
 
-A specialized Telegram bot designed to support students of the MonetizeAI course, providing an interactive learning experience with AI-powered feedback and guidance. This bot helps users build a real income-generating system using AI in just 14 days.
+A powerful Telegram bot for managing and delivering educational content, built with Go. This bot provides a comprehensive platform for course management, user progress tracking, and administrative controls.
 
-## 🌟 Key Features
+## 🌟 Features
 
-- 📚 **Session-based Course Delivery**
-  - Structured 14-day learning path
-  - Step-by-step guidance
-  - Interactive session management
-  - Progress tracking per session
+### For Users
+- 📚 Access to course sessions and content
+- 🎥 Video lessons management
+- ✍️ Exercise submission and tracking
+- 📊 Progress monitoring
+- 💬 Interactive learning experience
 
-- ✅ **Exercise Management**
-  - Submit exercises for each session
-  - AI-powered feedback system
-  - Exercise status tracking
-  - Revision suggestions
-
-- 📊 **Progress Tracking**
-  - Real-time progress monitoring
-  - Session completion status
-  - Exercise completion rates
-  - Overall course progress
-
-- 🤖 **AI Integration**
-  - OpenAI-powered feedback
-  - Intelligent exercise review
-  - Personalized suggestions
-  - Learning path optimization
-
-- 🎥 **Content Management**
-  - Video content integration
-  - Session-specific materials
-  - Easy content access
-  - Structured learning resources
-
-- 📱 **User Experience**
-  - Glass-style button design
-  - Intuitive navigation
-  - Responsive interface
-  - Clear progress indicators
+### For Administrators
+- 👥 User management system
+- 📊 Comprehensive statistics
+- 📚 Course content management
+- 🎥 Video content management
+- 📝 System logs and monitoring
+- 💾 Backup functionality
 
 ## 🛠️ Technical Stack
 
-- **Backend**: Go 1.21+
-- **Database**: MySQL 5.7+
+- **Language**: Go
+- **Database**: MySQL
+- **Telegram API**: go-telegram-bot-api
 - **ORM**: GORM
-- **API Integration**: 
-  - Telegram Bot API
-  - OpenAI API
-- **Environment**: Docker-ready
+- **Environment**: godotenv
 
-## 📋 Prerequisites
+## 📋 Project Structure
 
-- Go 1.21 or higher
-- MySQL 5.7 or higher
-- Telegram Bot Token (from [@BotFather](https://t.me/botfather))
-- OpenAI API Key
-- Git
-
-## 🚀 Setup Instructions
-
-1. **Clone the Repository**
-```bash
-git clone https://github.com/yourusername/monetizeeai-bot.git
-cd monetizeeai-bot
+```
+├── main.go              # Application entry point
+├── models.go            # Database models
+├── handlers.go          # User message handlers
+├── admin_handlers.go    # Admin-specific handlers
+├── admin_actions.go     # Admin action implementations
+├── stats.go            # Statistics and reporting
+├── backup.go           # Backup functionality
+├── admin_setup.sql     # Admin database setup
+└── commands.sql        # SQL commands and queries
 ```
 
-2. **Install Dependencies**
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Go 1.16 or higher
+- MySQL 5.7 or higher
+- Telegram Bot Token
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/MonetizeeAI_bot.git
+cd MonetizeeAI_bot
+```
+
+2. Install dependencies:
 ```bash
 go mod download
 ```
 
-3. **Environment Configuration**
-Create a `.env` file in the root directory:
-```
-TELEGRAM_BOT_TOKEN=your_bot_token_here
-OPENAI_API_KEY=your_openai_api_key_here
-MYSQL_DSN=root:password@tcp(127.0.0.1:3306)/monetizeeai?charset=utf8mb4&parseTime=True&loc=Local
-DEBUG=true
-PORT=8080
-```
-
-4. **Database Setup**
-```sql
-CREATE DATABASE monetizeeai CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-Run the database migrations:
+3. Set up environment variables:
 ```bash
-mysql -u root -p < commands.sql
+cp .env.example .env
+# Edit .env with your configuration
 ```
 
-5. **Run the Application**
+4. Initialize the database:
 ```bash
-go run .
+mysql -u your_username -p your_database < commands.sql
+mysql -u your_username -p your_database < admin_setup.sql
 ```
 
-## 📁 Project Structure
-
-```
-monetizeeai-bot/
-├── main.go           # Application entry point
-├── models.go         # Database models
-├── handlers.go       # Message handlers
-├── commands.sql      # Database setup
-├── .env             # Environment variables
-├── go.mod           # Go dependencies
-└── README.md        # Documentation
+5. Build and run:
+```bash
+go build
+./bot
 ```
 
-## 💾 Database Schema
 
-The bot uses the following main entities:
+## 📚 Usage
 
-- **Users**
-  - Telegram user information
-  - Course progress tracking
-  - Session management
-  - Exercise submissions
+### User Commands
+- `/start` - Start the bot and get welcome message
+- `/help` - Get help and instructions
+- `/progress` - Check your learning progress
+- `/current` - View current session
+- `/next` - Move to next session
+- `/previous` - Go to previous session
 
-- **Sessions**
-  - Course content structure
-  - Learning materials
-  - Exercise requirements
-  - Progress tracking
+### Admin Commands
+- `/admin_stats` - View system statistics
+- `/admin_users` - Manage users
+- `/admin_sessions` - Manage course sessions
+- `/admin_videos` - Manage video content
+- `/admin_logs` - View system logs
 
-- **Videos**
-  - Course video content
-  - Session-specific materials
-  - Learning resources
-  - Content organization
+## 🔐 Security
 
-- **Exercises**
-  - User submissions
-  - Feedback system
-  - Progress tracking
-  - Status management
+- Admin authentication system
+- User session management
+- Secure database operations
+- Input validation and sanitization
 
-## 🔄 Development Workflow
+## 📊 Database Schema
+
+The bot uses several key tables:
+- Users
+- Sessions
+- Videos
+- Exercises
+- UserProgress
+- AdminActions
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -144,52 +123,25 @@ The bot uses the following main entities:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📝 Code Style
+## 📝 License
 
-- Follow Go standard formatting
-- Use meaningful variable names
-- Add comments for complex logic
-- Keep functions focused and small
-- Write unit tests for new features
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔍 Testing
+## 👥 Authors
 
-```bash
-# Run all tests
-go test ./...
+- Your Name - Initial work
 
-# Run specific test
-go test ./... -run TestName
-```
+## 🙏 Acknowledgments
 
-## 📈 Performance Considerations
-
-- Database indexes for frequent queries
-- Efficient message handling
-- Optimized database queries
-- Proper error handling
-- Resource cleanup
-
-## 🔒 Security
-
-- Environment variable protection
-- API key security
-- Database access control
-- Input validation
-- Error message sanitization
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+- Telegram Bot API
+- Go Telegram Bot API library
+- GORM
+- All contributors and supporters
 
 ## 📞 Support
 
 For support, please open an issue in the GitHub repository or contact the development team.
+
+---
+
+Made with ❤️ by Ambridge Team
