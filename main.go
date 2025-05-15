@@ -26,7 +26,7 @@ func initDB() {
 	var err error
 	dsn := os.Getenv("MYSQL_DSN")
 	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: gormlogger.Default.LogMode(gormlogger.Info),
+		Logger: gormlogger.Default.LogMode(gormlogger.Warn),
 	})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
