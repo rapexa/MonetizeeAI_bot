@@ -68,17 +68,29 @@ func processUserInput(text string, user *User) string {
 		return getCurrentSessionInfo(user)
 	case "✅ ارسال تمرین":
 		state.IsSubmittingExercise = true
-		return "لطفا تمرین خود را برای جلسه فعلی ارسال کنید. پاسخ خود را در پیام بعدی بنویسید."
+		msg := tgbotapi.NewMessage(user.TelegramID, "لطفا تمرین خود را برای جلسه فعلی ارسال کنید. پاسخ خود را در پیام بعدی بنویسید.")
+		msg.ReplyMarkup = getExerciseSubmissionKeyboard()
+		bot.Send(msg)
+		return ""
 	case "📊 پیشرفت":
 		state.IsSubmittingExercise = false
 		return getProgressInfo(user)
 	case "❓ راهنما":
 		state.IsSubmittingExercise = false
 		return getHelpMessage()
+	case "🔙 بازگشت":
+		state.IsSubmittingExercise = false
+		msg := tgbotapi.NewMessage(user.TelegramID, "به منوی اصلی بازگشتید.")
+		msg.ReplyMarkup = getMainMenuKeyboard()
+		bot.Send(msg)
+		return ""
 	default:
 		if state.IsSubmittingExercise {
 			state.IsSubmittingExercise = false
-			return handleExerciseSubmission(user, text)
+			msg := tgbotapi.NewMessage(user.TelegramID, handleExerciseSubmission(user, text))
+			msg.ReplyMarkup = getMainMenuKeyboard()
+			bot.Send(msg)
+			return ""
 		}
 		return "لطفا از دکمه‌های منو استفاده کنید."
 	}
@@ -182,6 +194,16 @@ func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("📊 پیشرفت"),
 			tgbotapi.NewKeyboardButton("❓ راهنما"),
+		),
+	)
+	keyboard.ResizeKeyboard = true
+	return keyboard
+}
+
+func getExerciseSubmissionKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	keyboard := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("🔙 بازگشت"),
 		),
 	)
 	keyboard.ResizeKeyboard = true
