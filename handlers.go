@@ -5,13 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	"MonetizeeAI_bot/logger"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -204,13 +206,19 @@ func handleExerciseSubmission(user *User, content string) string {
 	// Get current session info
 	var session Session
 	if err := db.Where("number = ?", user.CurrentSession).First(&session).Error; err != nil {
-		log.Printf("Error getting session: %v", err)
+		logger.Error("Failed to get session",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Int("session_number", user.CurrentSession),
+			zap.Error(err))
 		return "❌ خطا در دریافت اطلاعات جلسه. لطفا دوباره تلاش کنید."
 	}
 
 	var video Video
 	if err := db.Where("session_id = ?", session.ID).First(&video).Error; err != nil {
-		log.Printf("Error getting video: %v", err)
+		logger.Error("Failed to get video",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Uint("session_id", session.ID),
+			zap.Error(err))
 		return "❌ خطا در دریافت اطلاعات ویدیو. لطفا دوباره تلاش کنید."
 	}
 
@@ -254,16 +262,10 @@ FEEDBACK: [your detailed feedback]`,
 	// Split the response into lines
 	lines := strings.Split(evaluation, "\n")
 	for _, line := range lines {
-		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "APPROVED:") {
 			approved = strings.Contains(strings.ToLower(line), "yes")
 		} else if strings.HasPrefix(line, "FEEDBACK:") {
-			// Get everything after "FEEDBACK:" including newlines
-			feedbackStart := strings.Index(evaluation, "FEEDBACK:")
-			if feedbackStart != -1 {
-				feedback = strings.TrimSpace(evaluation[feedbackStart+9:])
-			}
-			break // We found the feedback, no need to continue
+			feedback = strings.TrimSpace(strings.TrimPrefix(line, "FEEDBACK:"))
 		}
 	}
 
@@ -292,7 +294,10 @@ FEEDBACK: [your detailed feedback]`,
 
 	// Save exercise
 	if err := db.Create(&exercise).Error; err != nil {
-		log.Printf("Error saving exercise: %v", err)
+		logger.Error("Failed to save exercise",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Uint("session_id", session.ID),
+			zap.Error(err))
 		return "❌ خطا در ثبت تمرین. لطفا دوباره تلاش کنید."
 	}
 
@@ -300,16 +305,27 @@ FEEDBACK: [your detailed feedback]`,
 		// Move user to next session
 		user.CurrentSession++
 		if err := db.Save(user).Error; err != nil {
-			log.Printf("Error updating user session: %v", err)
+			logger.Error("Failed to update user session",
+				zap.Int64("user_id", user.TelegramID),
+				zap.Int("new_session", user.CurrentSession),
+				zap.Error(err))
 			return "❌ خطا در به‌روزرسانی جلسه. لطفا دوباره تلاش کنید."
 		}
 
 		// Get next session info
 		var nextSession Session
 		if err := db.Where("number = ?", user.CurrentSession).First(&nextSession).Error; err != nil {
-			log.Printf("Error getting next session: %v", err)
+			logger.Error("Failed to get next session",
+				zap.Int64("user_id", user.TelegramID),
+				zap.Int("session_number", user.CurrentSession),
+				zap.Error(err))
 			return fmt.Sprintf("🎉 %s\n\nبه جلسه بعدی منتقل شدید!", feedback)
 		}
+
+		logger.Info("User moved to next session",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Int("old_session", user.CurrentSession-1),
+			zap.Int("new_session", user.CurrentSession))
 
 		return fmt.Sprintf("🎉 %s\n\n📚 جلسه بعدی شما:\n%s\n\n%s",
 			feedback,
@@ -318,6 +334,11 @@ FEEDBACK: [your detailed feedback]`,
 	}
 
 	// If not approved, return feedback for improvement
+	logger.Info("Exercise needs improvement",
+		zap.Int64("user_id", user.TelegramID),
+		zap.Uint("session_id", session.ID),
+		zap.Bool("approved", approved))
+
 	return fmt.Sprintf("📝 %s\n\nلطفا با توجه به راهنمایی‌های بالا، تمرین خود را اصلاح کنید و دوباره ارسال کنید.", feedback)
 }
 
@@ -389,14 +410,18 @@ func handleChatGPTMessage(user *User, message string) string {
 	// Convert request body to JSON
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
-		log.Printf("Error marshaling request: %v", err)
+		logger.Error("Failed to marshal request",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
 		return "❌ خطا در پردازش درخواست. لطفا دوباره تلاش کنید."
 	}
 
 	// Create HTTP request
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		log.Printf("Error creating request: %v", err)
+		logger.Error("Failed to create request",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
 		return "❌ خطا در ایجاد درخواست. لطفا دوباره تلاش کنید."
 	}
 
@@ -408,7 +433,9 @@ func handleChatGPTMessage(user *User, message string) string {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("Error sending request: %v", err)
+		logger.Error("Failed to send request",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
 		return "❌ خطا در ارتباط با سرور. لطفا دوباره تلاش کنید."
 	}
 	defer resp.Body.Close()
@@ -416,17 +443,23 @@ func handleChatGPTMessage(user *User, message string) string {
 	// Read response
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("Error reading response: %v", err)
+		logger.Error("Failed to read response",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
 		return "❌ خطا در خواندن پاسخ. لطفا دوباره تلاش کنید."
 	}
 
 	// Log the raw response for debugging
-	log.Printf("Raw API response: %s", string(body))
+	logger.Debug("Raw API response",
+		zap.Int64("user_id", user.TelegramID),
+		zap.String("response", string(body)))
 
 	// Parse response
 	var result map[string]interface{}
 	if err := json.Unmarshal(body, &result); err != nil {
-		log.Printf("Error unmarshaling response: %v", err)
+		logger.Error("Failed to unmarshal response",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
 		return "❌ خطا در پردازش پاسخ. لطفا دوباره تلاش کنید."
 	}
 
@@ -436,35 +469,45 @@ func handleChatGPTMessage(user *User, message string) string {
 		if msg, ok := errObj["message"].(string); ok {
 			errMsg += ": " + msg
 		}
-		log.Printf("API Error: %v", errObj)
+		logger.Error("API Error",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Any("error", errObj))
 		return errMsg
 	}
 
 	// Extract the choices array
 	choices, ok := result["choices"].([]interface{})
 	if !ok || len(choices) == 0 {
-		log.Printf("Invalid choices in response: %v", result)
+		logger.Error("Invalid choices in response",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Any("result", result))
 		return "❌ پاسخ نامعتبر از سرور. لطفا دوباره تلاش کنید."
 	}
 
 	// Get the first choice
 	choice, ok := choices[0].(map[string]interface{})
 	if !ok {
-		log.Printf("Invalid choice format: %v", choices[0])
+		logger.Error("Invalid choice format",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Any("choice", choices[0]))
 		return "❌ خطا در پردازش پاسخ. لطفا دوباره تلاش کنید."
 	}
 
 	// Get the message
 	messageObj, ok := choice["message"].(map[string]interface{})
 	if !ok {
-		log.Printf("Invalid message format: %v", choice)
+		logger.Error("Invalid message format",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Any("choice", choice))
 		return "❌ خطا در پردازش پیام. لطفا دوباره تلاش کنید."
 	}
 
 	// Get the content
 	content, ok := messageObj["content"].(string)
 	if !ok {
-		log.Printf("Invalid content format: %v", messageObj)
+		logger.Error("Invalid content format",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Any("message", messageObj))
 		return "❌ خطا در پردازش محتوا. لطفا دوباره تلاش کنید."
 	}
 

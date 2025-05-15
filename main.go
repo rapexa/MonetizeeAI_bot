@@ -3,10 +3,15 @@ package main
 import (
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
+
+	"MonetizeeAI_bot/logger"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -66,16 +71,39 @@ func init() {
 	// Initialize database
 	initDB()
 
+	// Initialize logger
+	logger.InitLogger()
+	defer logger.Sync()
+
+	// Create logs directory if it doesn't exist
+	if err := os.MkdirAll("logs", 0755); err != nil {
+		log.Fatalf("Failed to create logs directory: %v", err)
+	}
+
 	// Initialize bot
 	var err error
 	bot, err = tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_TOKEN"))
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("Failed to initialize bot", zap.Error(err))
 	}
+
+	bot.Debug = false
+	logger.Info("Bot started", zap.String("username", bot.Self.UserName))
 
 	// Set up update configuration
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 60
+
+	// Handle graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigChan
+		logger.Info("Shutting down bot...")
+		bot.StopReceivingUpdates()
+		os.Exit(0)
+	}()
 
 	// Start receiving updates
 	updates := bot.GetUpdatesChan(updateConfig)
@@ -83,7 +111,13 @@ func init() {
 	// Process updates
 	for update := range updates {
 		if update.Message != nil {
-			handleMessage(&update)
+			// Log incoming message
+			logger.Debug("Received message",
+				zap.Int64("user_id", update.Message.From.ID),
+				zap.String("username", update.Message.From.UserName),
+				zap.String("text", update.Message.Text))
+
+			handleMessage(update.Message)
 		} else if update.CallbackQuery != nil {
 			handleCallbackQuery(update)
 		}
