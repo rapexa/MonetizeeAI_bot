@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -200,37 +201,105 @@ func getHelpMessage() string {
 }
 
 func handleExerciseSubmission(user *User, content string) string {
-	// Create new exercise
+	// Get current session info
+	var session Session
+	if err := db.Where("number = ?", user.CurrentSession).First(&session).Error; err != nil {
+		log.Printf("Error getting session: %v", err)
+		return "❌ خطا در دریافت اطلاعات جلسه. لطفا دوباره تلاش کنید."
+	}
+
+	var video Video
+	if err := db.Where("session_id = ?", session.ID).First(&video).Error; err != nil {
+		log.Printf("Error getting video: %v", err)
+		return "❌ خطا در دریافت اطلاعات ویدیو. لطفا دوباره تلاش کنید."
+	}
+
+	// Prepare context for ChatGPT
+	context := fmt.Sprintf(`Session Title: %s
+Session Description: %s
+Video Title: %s
+Video Description: %s
+
+Student's Exercise Submission:
+%s
+
+Please evaluate this exercise submission according to these criteria:
+1. Check if the answer aligns with the session's learning objectives
+2. If the answer is incomplete or incorrect:
+   - Provide specific feedback on what's missing
+   - Give helpful hints and examples
+   - Guide them to improve their answer
+3. If the answer is good:
+   - Provide positive reinforcement
+   - Give permission to move to next session
+4. Keep the tone friendly and encouraging
+5. Respond in Persian
+
+Format your response as:
+APPROVED: [yes/no]
+FEEDBACK: [your detailed feedback]`,
+		session.Title,
+		session.Description,
+		video.Title,
+		video.Description,
+		content)
+
+	// Get evaluation from ChatGPT
+	evaluation := handleChatGPTMessage(user, context)
+
+	// Parse the response
+	var approved bool
+	var feedback string
+
+	// Split the response into lines
+	lines := strings.Split(evaluation, "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "APPROVED:") {
+			approved = strings.Contains(strings.ToLower(line), "yes")
+		} else if strings.HasPrefix(line, "FEEDBACK:") {
+			feedback = strings.TrimPrefix(line, "FEEDBACK:")
+		}
+	}
+
+	// Create exercise record
 	exercise := Exercise{
 		UserID:      user.ID,
 		SessionID:   uint(user.CurrentSession),
 		Content:     content,
-		Status:      "approved", // Automatically approve
-		Feedback:    "عالی! تمرین شما تایید شد. به جلسه بعدی منتقل خواهید شد.",
+		Status:      "pending",
+		Feedback:    feedback,
 		SubmittedAt: time.Now(),
 	}
 
 	// Save exercise
 	if err := db.Create(&exercise).Error; err != nil {
 		log.Printf("Error saving exercise: %v", err)
-		return "متأسفانه در ثبت تمرین مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
+		return "❌ خطا در ثبت تمرین. لطفا دوباره تلاش کنید."
 	}
 
-	// Move user to next session
-	user.CurrentSession++
-	if err := db.Save(user).Error; err != nil {
-		log.Printf("Error updating user session: %v", err)
-		return "تمرین شما ثبت شد، اما در به‌روزرسانی جلسه مشکلی پیش آمد."
+	if approved {
+		// Move user to next session
+		user.CurrentSession++
+		if err := db.Save(user).Error; err != nil {
+			log.Printf("Error updating user session: %v", err)
+			return "❌ خطا در به‌روزرسانی جلسه. لطفا دوباره تلاش کنید."
+		}
+
+		// Get next session info
+		var nextSession Session
+		if err := db.Where("number = ?", user.CurrentSession).First(&nextSession).Error; err != nil {
+			log.Printf("Error getting next session: %v", err)
+			return fmt.Sprintf("🎉 %s\n\nبه جلسه بعدی منتقل شدید!", feedback)
+		}
+
+		return fmt.Sprintf("🎉 %s\n\n📚 جلسه بعدی شما:\n%s\n\n%s",
+			feedback,
+			nextSession.Title,
+			nextSession.Description)
 	}
 
-	// Get next session info
-	var nextSession Session
-	if err := db.Where("number = ?", user.CurrentSession).First(&nextSession).Error; err != nil {
-		log.Printf("Error getting next session: %v", err)
-		return "تمرین شما با موفقیت ثبت شد و به جلسه بعدی منتقل شدید."
-	}
-
-	return fmt.Sprintf("🎉 تمرین شما با موفقیت ثبت شد!\n\n📚 جلسه بعدی شما:\n%s\n\n%s", nextSession.Title, nextSession.Description)
+	// If not approved, return feedback for improvement
+	return fmt.Sprintf("📝 %s\n\nلطفا با توجه به راهنمایی‌های بالا، تمرین خود را اصلاح کنید و دوباره ارسال کنید.", feedback)
 }
 
 // sendMessage is a helper function to send messages
