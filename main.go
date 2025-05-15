@@ -68,17 +68,17 @@ func init() {
 		log.Fatal("Error loading .env file")
 	}
 
-	// Initialize database
-	initDB()
+	// Create logs directory if it doesn't exist
+	if err := os.MkdirAll("logs", 0755); err != nil {
+		log.Fatalf("Failed to create logs directory: %v", err)
+	}
 
 	// Initialize logger
 	logger.InitLogger()
 	defer logger.Sync()
 
-	// Create logs directory if it doesn't exist
-	if err := os.MkdirAll("logs", 0755); err != nil {
-		log.Fatalf("Failed to create logs directory: %v", err)
-	}
+	// Initialize database
+	initDB()
 
 	// Initialize bot
 	var err error
