@@ -257,7 +257,20 @@ FEEDBACK: [your detailed feedback]`,
 		if strings.HasPrefix(line, "APPROVED:") {
 			approved = strings.Contains(strings.ToLower(line), "yes")
 		} else if strings.HasPrefix(line, "FEEDBACK:") {
-			feedback = strings.TrimPrefix(line, "FEEDBACK:")
+			feedback = strings.TrimSpace(strings.TrimPrefix(line, "FEEDBACK:"))
+		}
+	}
+
+	// If feedback is empty, provide default feedback
+	if feedback == "" {
+		if approved {
+			feedback = "عالی! تمرین شما با موفقیت انجام شد و نشان می‌دهد که مفاهیم را به خوبی درک کرده‌اید."
+		} else {
+			feedback = "تمرین شما نیاز به بهبود دارد. لطفا موارد زیر را در نظر بگیرید:\n\n" +
+				"1. آیا تمام نکات مهم جلسه را در نظر گرفته‌اید؟\n" +
+				"2. آیا پاسخ شما با اهداف یادگیری جلسه همخوانی دارد؟\n" +
+				"3. آیا می‌توانید جزئیات بیشتری به پاسخ خود اضافه کنید؟\n\n" +
+				"لطفا با توجه به این نکات، تمرین خود را اصلاح کنید."
 		}
 	}
 
