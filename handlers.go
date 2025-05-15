@@ -254,10 +254,16 @@ FEEDBACK: [your detailed feedback]`,
 	// Split the response into lines
 	lines := strings.Split(evaluation, "\n")
 	for _, line := range lines {
+		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "APPROVED:") {
 			approved = strings.Contains(strings.ToLower(line), "yes")
 		} else if strings.HasPrefix(line, "FEEDBACK:") {
-			feedback = strings.TrimSpace(strings.TrimPrefix(line, "FEEDBACK:"))
+			// Get everything after "FEEDBACK:" including newlines
+			feedbackStart := strings.Index(evaluation, "FEEDBACK:")
+			if feedbackStart != -1 {
+				feedback = strings.TrimSpace(evaluation[feedbackStart+9:])
+			}
+			break // We found the feedback, no need to continue
 		}
 	}
 
