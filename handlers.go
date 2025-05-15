@@ -231,15 +231,14 @@ func sendMessage(chatID int64, text string) {
 func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("📚 جلسات"),
-			tgbotapi.NewKeyboardButton("🎥 ویدیوها"),
+			tgbotapi.NewKeyboardButton("📚 جلسه فعلی"),
+			tgbotapi.NewKeyboardButton("✅ ارسال تمرین"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("✍️ تمرین‌ها"),
-			tgbotapi.NewKeyboardButton("📊 پیشرفت من"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("📊 پیشرفت"),
 			tgbotapi.NewKeyboardButton("❓ راهنما"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("💬 چت با هدایتگر"),
 		),
 	)
