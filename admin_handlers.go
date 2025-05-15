@@ -381,175 +381,15 @@ func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
 // handleMessage processes incoming messages
 func handleMessage(update *tgbotapi.Update) {
 	// Check if user is admin
-	if isAdmin(update.Message.From.ID) {
-		admin := getAdmin(update.Message.From.ID)
-		if admin == nil {
-			sendMessage(update.Message.Chat.ID, "❌ خطا در دریافت اطلاعات ادمین")
-			return
-		}
-
-		// Check admin state
-		if state, exists := adminStates[admin.TelegramID]; exists {
-			switch state {
-			case StateWaitingForUserID:
-				delete(adminStates, admin.TelegramID)
-				handleUserSearchResponse(admin, update.Message.Text)
-				return
-
-			case StateWaitingForSessionInfo:
-				delete(adminStates, admin.TelegramID)
-				handleAddSessionResponse(admin, update.Message.Text)
-				return
-
-			case StateWaitingForSessionNum:
-				delete(adminStates, admin.TelegramID)
-				handleSessionNumberResponse(admin, update.Message.Text)
-				return
-
-			case StateEditSession:
-				// Handle session number input for editing
-				sessionNum, err := strconv.Atoi(strings.TrimSpace(update.Message.Text))
-				if err != nil {
-					sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
-					return
-				}
-
-				var session Session
-				if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
-					sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
-					return
-				}
-
-				msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش جلسه %d:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|توضیحات", sessionNum))
-				msg.ReplyMarkup = tgbotapi.ForceReply{}
-				bot.Send(msg)
-				adminStates[admin.TelegramID] = fmt.Sprintf("%s:%d", StateEditSession, sessionNum)
-				return
-
-			case StateDeleteSession:
-				// Handle session number input for deletion
-				sessionNum, err := strconv.Atoi(strings.TrimSpace(update.Message.Text))
-				if err != nil {
-					sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
-					return
-				}
-
-				var session Session
-				if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
-					sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
-					return
-				}
-
-				if err := db.Delete(&session).Error; err != nil {
-					sendMessage(admin.TelegramID, "❌ خطا در حذف جلسه")
-					return
-				}
-
-				sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت حذف شد", sessionNum))
-				delete(adminStates, admin.TelegramID)
-				return
-
-			case StateAddVideo:
-				// Handle session number input for adding video
-				sessionNum, err := strconv.Atoi(strings.TrimSpace(update.Message.Text))
-				if err != nil {
-					sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
-					return
-				}
-
-				var session Session
-				if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
-					sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
-					return
-				}
-
-				msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("➕ افزودن ویدیو به جلسه %d:\n\nلطفا اطلاعات را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", sessionNum))
-				msg.ReplyMarkup = tgbotapi.ForceReply{}
-				bot.Send(msg)
-				adminStates[admin.TelegramID] = fmt.Sprintf("%s:%d", StateAddVideo, sessionNum)
-				return
-
-			case StateEditVideo:
-				// Handle video ID input for editing
-				videoID, err := strconv.ParseUint(strings.TrimSpace(update.Message.Text), 10, 32)
-				if err != nil {
-					sendMessage(admin.TelegramID, "❌ آیدی ویدیو نامعتبر است")
-					return
-				}
-
-				var video Video
-				if err := db.First(&video, videoID).Error; err != nil {
-					sendMessage(admin.TelegramID, "❌ ویدیو یافت نشد")
-					return
-				}
-
-				msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش ویدیو %d:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", videoID))
-				msg.ReplyMarkup = tgbotapi.ForceReply{}
-				bot.Send(msg)
-				adminStates[admin.TelegramID] = fmt.Sprintf("%s:%d", StateEditVideo, videoID)
-				return
-
-			case StateDeleteVideo:
-				// Handle video ID input for deletion
-				videoID, err := strconv.ParseUint(strings.TrimSpace(update.Message.Text), 10, 32)
-				if err != nil {
-					sendMessage(admin.TelegramID, "❌ آیدی ویدیو نامعتبر است")
-					return
-				}
-
-				var video Video
-				if err := db.First(&video, videoID).Error; err != nil {
-					sendMessage(admin.TelegramID, "❌ ویدیو یافت نشد")
-					return
-				}
-
-				if err := db.Delete(&video).Error; err != nil {
-					sendMessage(admin.TelegramID, "❌ خطا در حذف ویدیو")
-					return
-				}
-
-				logAdminAction(admin, "delete_video", fmt.Sprintf("ویدیو %s حذف شد", videoID), "video", video.ID)
-				sendMessage(admin.TelegramID, fmt.Sprintf("✅ ویدیو %d با موفقیت حذف شد", videoID))
-				delete(adminStates, admin.TelegramID)
-				return
-			}
-		}
-
+	admin := getAdminByTelegramID(update.Message.From.ID)
+	if admin != nil {
 		// Handle admin commands
 		if update.Message.IsCommand() {
 			switch update.Message.Command() {
 			case "start":
-				if isNewUser(update.Message.From.ID) {
-					// Send welcome message for new users
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
-					msg.ReplyMarkup = getMainMenuKeyboard()
-					bot.Send(msg)
-				} else {
-					// For existing users, send their current session info
-					user := getUserOrCreate(update.Message.From)
-					var session Session
-					if err := db.Where("number = ?", user.CurrentSession).First(&session).Error; err == nil {
-						var video Video
-						db.Where("session_id = ?", session.ID).First(&video)
-
-						// Create session message
-						sessionMsg := fmt.Sprintf("📚 جلسه %d: %s\n\n%s\n\n📺 ویدیو: %s",
-							session.Number,
-							session.Title,
-							session.Description,
-							video.VideoLink)
-
-						// Send session thumbnail with message
-						if session.ThumbnailURL != "" {
-							photo := tgbotapi.NewPhoto(update.Message.Chat.ID, tgbotapi.FileURL(session.ThumbnailURL))
-							photo.Caption = sessionMsg
-							bot.Send(photo)
-						} else {
-							// If no thumbnail, just send the message
-							bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, sessionMsg))
-						}
-					}
-				}
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "به پنل مدیریت خوش اومدین از دکمه های زیر میتونید به سیستم دسترسی داشته باشید")
+				msg.ReplyMarkup = getAdminKeyboard()
+				bot.Send(msg)
 				return
 			case "help":
 				sendMessage(update.Message.Chat.ID, "من اینجا هستم تا در سفر دوره مونیتایز به شما کمک کنم. از دکمه‌های منو برای پیمایش در دوره استفاده کنید.")
@@ -602,6 +442,7 @@ func handleMessage(update *tgbotapi.Update) {
 			bot.Send(msg)
 			return
 		}
+		return
 	}
 
 	// If not admin, let the user handlers process the message
