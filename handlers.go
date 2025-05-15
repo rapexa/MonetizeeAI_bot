@@ -16,6 +16,31 @@ type UserState struct {
 }
 
 func getUserOrCreate(from *tgbotapi.User) *User {
+	// First check if user is admin
+	var admin Admin
+	if err := db.Where("telegram_id = ?", from.ID).First(&admin).Error; err == nil {
+		// User is admin, send admin welcome message and return
+		msg := tgbotapi.NewMessage(from.ID, "به پنل مدیریت خوش اومدین از دکمه های زیر میتونید به سیستم دسترسی داشته باشید")
+		msg.ReplyMarkup = getAdminKeyboard()
+		bot.Send(msg)
+
+		// Create or get user record without showing course content
+		var user User
+		result := db.Where("telegram_id = ?", from.ID).First(&user)
+		if result.Error == gorm.ErrRecordNotFound {
+			user = User{
+				TelegramID:     from.ID,
+				Username:       from.UserName,
+				FirstName:      from.FirstName,
+				LastName:       from.LastName,
+				CurrentSession: 1,
+			}
+			db.Create(&user)
+		}
+		return &user
+	}
+
+	// Handle regular user
 	var user User
 	result := db.Where("telegram_id = ?", from.ID).First(&user)
 	if result.Error == gorm.ErrRecordNotFound {
@@ -28,16 +53,6 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 			CurrentSession: 1, // Set initial session to 1
 		}
 		db.Create(&user)
-
-		// Check if user is admin
-		var admin Admin
-		if err := db.Where("telegram_id = ?", from.ID).First(&admin).Error; err == nil {
-			// User is admin, send admin welcome message
-			msg := tgbotapi.NewMessage(from.ID, "به پنل مدیریت خوش اومدین از دکمه های زیر میتونید به سیستم دسترسی داشته باشید")
-			msg.ReplyMarkup = getAdminKeyboard()
-			bot.Send(msg)
-			return &user
-		}
 
 		// Send session 1 info for new users
 		var session Session
@@ -61,16 +76,6 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 				// If no thumbnail, just send the message
 				bot.Send(tgbotapi.NewMessage(from.ID, sessionMsg))
 			}
-		}
-	} else {
-		// Check if existing user is admin
-		var admin Admin
-		if err := db.Where("telegram_id = ?", from.ID).First(&admin).Error; err == nil {
-			// User is admin, send admin welcome message
-			msg := tgbotapi.NewMessage(from.ID, "به پنل مدیریت خوش اومدین از دکمه های زیر میتونید به سیستم دسترسی داشته باشید")
-			msg.ReplyMarkup = getAdminKeyboard()
-			bot.Send(msg)
-			return &user
 		}
 	}
 	return &user
