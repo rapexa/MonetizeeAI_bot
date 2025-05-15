@@ -367,16 +367,16 @@ func handleChatGPTMessage(user *User, message string) string {
 	}
 
 	// Get the message
-	message, ok := choice["message"].(map[string]interface{})
+	messageObj, ok := choice["message"].(map[string]interface{})
 	if !ok {
 		log.Printf("Invalid message format: %v", choice)
 		return "❌ خطا در پردازش پیام. لطفا دوباره تلاش کنید."
 	}
 
 	// Get the content
-	content, ok := message["content"].(string)
+	content, ok := messageObj["content"].(string)
 	if !ok {
-		log.Printf("Invalid content format: %v", message)
+		log.Printf("Invalid content format: %v", messageObj)
 		return "❌ خطا در پردازش محتوا. لطفا دوباره تلاش کنید."
 	}
 
