@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 var (
@@ -26,7 +26,7 @@ func initDB() {
 	var err error
 	dsn := os.Getenv("MYSQL_DSN")
 	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: gormlogger.Default.LogMode(gormlogger.Info),
 	})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
@@ -117,7 +117,7 @@ func init() {
 				zap.String("username", update.Message.From.UserName),
 				zap.String("text", update.Message.Text))
 
-			handleMessage(update.Message)
+			handleMessage(&update)
 		} else if update.CallbackQuery != nil {
 			handleCallbackQuery(update)
 		}
