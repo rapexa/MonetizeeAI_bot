@@ -9,6 +9,12 @@ import (
 	"gorm.io/gorm"
 )
 
+var userStates = make(map[int64]*UserState)
+
+type UserState struct {
+	IsSubmittingExercise bool
+}
+
 func getUserOrCreate(from *tgbotapi.User) *User {
 	var user User
 	result := db.Where("telegram_id = ?", from.ID).First(&user)
@@ -51,17 +57,30 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 }
 
 func processUserInput(text string, user *User) string {
+	state, exists := userStates[user.TelegramID]
+	if !exists {
+		state = &UserState{}
+		userStates[user.TelegramID] = state
+	}
+
 	switch text {
 	case "📚 جلسه فعلی":
 		return getCurrentSessionInfo(user)
 	case "✅ ارسال تمرین":
+		state.IsSubmittingExercise = true
 		return "لطفا تمرین خود را برای جلسه فعلی ارسال کنید. پاسخ خود را در پیام بعدی بنویسید."
 	case "📊 پیشرفت":
+		state.IsSubmittingExercise = false
 		return getProgressInfo(user)
 	case "❓ راهنما":
+		state.IsSubmittingExercise = false
 		return getHelpMessage()
 	default:
-		return handleExerciseSubmission(user, text)
+		if state.IsSubmittingExercise {
+			state.IsSubmittingExercise = false
+			return handleExerciseSubmission(user, text)
+		}
+		return "لطفا از دکمه‌های منو استفاده کنید."
 	}
 }
 
@@ -121,7 +140,7 @@ func handleExerciseSubmission(user *User, content string) string {
 		SessionID:   uint(user.CurrentSession),
 		Content:     content,
 		Status:      "approved", // Automatically approve
-		Feedback:    "عالی! تمرین شما تایید شد. به جلسه بعدی می‌روید.",
+		Feedback:    "عالی! تمرین شما تایید شد. به جلسه بعدی منتقل خواهید شد.",
 		SubmittedAt: time.Now(),
 	}
 
