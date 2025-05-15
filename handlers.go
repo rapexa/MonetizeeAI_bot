@@ -1,15 +1,19 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"gorm.io/gorm"
 )
 
-var userStates = make(map[int64]*UserState)
+var userStates = make(map[int64]string)
 
 type UserState struct {
 	IsSubmittingExercise bool
@@ -81,44 +85,54 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 	return &user
 }
 
-func processUserInput(text string, user *User) string {
+func processUserInput(input string, user *User) string {
 	state, exists := userStates[user.TelegramID]
 	if !exists {
-		state = &UserState{}
+		state = ""
 		userStates[user.TelegramID] = state
 	}
 
-	switch text {
+	switch input {
 	case "📚 جلسه فعلی":
 		return getCurrentSessionInfo(user)
 	case "✅ ارسال تمرین":
-		state.IsSubmittingExercise = true
+		userStates[user.TelegramID] = "submitting_exercise"
 		msg := tgbotapi.NewMessage(user.TelegramID, "لطفا تمرین خود را برای جلسه فعلی ارسال کنید. پاسخ خود را در پیام بعدی بنویسید.")
 		msg.ReplyMarkup = getExerciseSubmissionKeyboard()
 		bot.Send(msg)
 		return ""
 	case "📊 پیشرفت":
-		state.IsSubmittingExercise = false
+		userStates[user.TelegramID] = ""
 		return getProgressInfo(user)
 	case "❓ راهنما":
-		state.IsSubmittingExercise = false
+		userStates[user.TelegramID] = ""
 		return getHelpMessage()
 	case "🔙 بازگشت":
-		state.IsSubmittingExercise = false
+		userStates[user.TelegramID] = ""
 		msg := tgbotapi.NewMessage(user.TelegramID, "به منوی اصلی بازگشتید.")
 		msg.ReplyMarkup = getMainMenuKeyboard()
 		bot.Send(msg)
 		return ""
+	case "💬 چت با هدایتگر":
+		return "👋 سلام! من هدایتگر هوشمند دوره هستم. سوال خود را بپرسید تا کمکتان کنم."
 	default:
-		if state.IsSubmittingExercise {
-			state.IsSubmittingExercise = false
-			msg := tgbotapi.NewMessage(user.TelegramID, handleExerciseSubmission(user, text))
+		if state == "submitting_exercise" {
+			userStates[user.TelegramID] = ""
+			msg := tgbotapi.NewMessage(user.TelegramID, handleExerciseSubmission(user, input))
 			msg.ReplyMarkup = getMainMenuKeyboard()
 			bot.Send(msg)
 			return ""
 		}
 		return "لطفا از دکمه‌های منو استفاده کنید."
 	}
+
+	// Check if user is in chat mode
+	if state == "chat_mode" {
+		response := handleChatGPTMessage(user, input)
+		return response
+	}
+
+	return ""
 }
 
 func getCurrentSessionInfo(user *User) string {
@@ -216,12 +230,16 @@ func sendMessage(chatID int64, text string) {
 func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("📚 جلسه فعلی"),
-			tgbotapi.NewKeyboardButton("✅ ارسال تمرین"),
+			tgbotapi.NewKeyboardButton("📚 جلسات"),
+			tgbotapi.NewKeyboardButton("🎥 ویدیوها"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("📊 پیشرفت"),
+			tgbotapi.NewKeyboardButton("✍️ تمرین‌ها"),
+			tgbotapi.NewKeyboardButton("📊 پیشرفت من"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("❓ راهنما"),
+			tgbotapi.NewKeyboardButton("💬 چت با هدایتگر"),
 		),
 	)
 	keyboard.ResizeKeyboard = true
@@ -236,4 +254,84 @@ func getExerciseSubmissionKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	)
 	keyboard.ResizeKeyboard = true
 	return keyboard
+}
+
+// Add this new function to handle ChatGPT interactions
+func handleChatGPTMessage(user *User, message string) string {
+	// Create the API request
+	url := "https://api.openai.com/v1/chat/completions"
+
+	// Prepare the request body
+	requestBody := map[string]interface{}{
+		"model": "gpt-4",
+		"messages": []map[string]string{
+			{
+				"role":    "system",
+				"content": "You are a helpful course assistant for MonetizeeAI. Provide clear, concise, and relevant answers to help students with their questions about the course content.",
+			},
+			{
+				"role":    "user",
+				"content": message,
+			},
+		},
+	}
+
+	// Convert request body to JSON
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return "❌ خطا در پردازش درخواست"
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return "❌ خطا در ایجاد درخواست"
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer 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")
+
+	// Send request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "❌ خطا در ارتباط با سرور"
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "❌ خطا در خواندن پاسخ"
+	}
+
+	// Parse response
+	var result map[string]interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return "❌ خطا در پردازش پاسخ"
+	}
+
+	// Extract the response text
+	choices, ok := result["choices"].([]interface{})
+	if !ok || len(choices) == 0 {
+		return "❌ پاسخ نامعتبر از سرور"
+	}
+
+	choice, ok := choices[0].(map[string]interface{})
+	if !ok {
+		return "❌ خطا در پردازش پاسخ"
+	}
+
+	messageObj, ok := choice["message"].(map[string]interface{})
+	if !ok {
+		return "❌ خطا در پردازش پیام"
+	}
+
+	content, ok := messageObj["content"].(string)
+	if !ok {
+		return "❌ خطا در پردازش محتوا"
+	}
+
+	return content
 }

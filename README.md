@@ -10,6 +10,7 @@ A powerful Telegram bot for managing and delivering educational content, built w
 - ✍️ Exercise submission and tracking
 - 📊 Progress monitoring
 - 💬 Interactive learning experience
+- 🤖 AI-powered course guidance (ChatGPT integration)
 
 ### For Administrators
 - 👥 User management system
@@ -26,6 +27,7 @@ A powerful Telegram bot for managing and delivering educational content, built w
 - **Telegram API**: go-telegram-bot-api
 - **ORM**: GORM
 - **Environment**: godotenv
+- **AI Integration**: OpenAI GPT-4
 
 ## 📋 Project Structure
 
@@ -48,6 +50,7 @@ A powerful Telegram bot for managing and delivering educational content, built w
 - Go 1.16 or higher
 - MySQL 5.7 or higher
 - Telegram Bot Token
+- OpenAI API Key
 
 ### Installation
 
@@ -80,7 +83,6 @@ go build
 ./bot
 ```
 
-
 ## 📚 Usage
 
 ### User Commands
@@ -90,6 +92,11 @@ go build
 - `/current` - View current session
 - `/next` - Move to next session
 - `/previous` - Go to previous session
+
+### AI Support Features
+- 💬 **Chat with Guide** - Get AI-powered assistance for course-related questions
+- 🤖 **Smart Responses** - Receive contextual answers based on course content
+- 📚 **Learning Support** - Get help with exercises and concepts
 
 ### Admin Commands
 - `/admin_stats` - View system statistics
@@ -104,6 +111,7 @@ go build
 - User session management
 - Secure database operations
 - Input validation and sanitization
+- API key protection
 
 ## 📊 Database Schema
 
@@ -136,6 +144,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Telegram Bot API
 - Go Telegram Bot API library
 - GORM
+- OpenAI GPT-4
 - All contributors and supporters
 
 ## 📞 Support
