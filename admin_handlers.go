@@ -228,14 +228,19 @@ func handleAdminVideos(admin *Admin, args []string) string {
 		var videos []Video
 		db.Preload("Session").Order("created_at desc").Find(&videos)
 
-		response := "🎥 لیست ویدیوها:\n\n"
-		for _, video := range videos {
-			response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d - %s\n🔗 لینک: %s\n\n",
-				video.ID,
-				video.Title,
-				video.Session.Number,
-				video.Session.Title,
-				video.VideoLink)
+		response := "🎥 مدیریت ویدیوها:\n\n"
+		if len(videos) == 0 {
+			response += "📝 هنوز ویدیویی ثبت نشده است.\n\n"
+		} else {
+			response += "📋 لیست ویدیوها:\n\n"
+			for _, video := range videos {
+				response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d - %s\n🔗 لینک: %s\n\n",
+					video.ID,
+					video.Title,
+					video.Session.Number,
+					video.Session.Title,
+					video.VideoLink)
+			}
 		}
 
 		// Add inline keyboard for actions
@@ -987,6 +992,12 @@ func handleAddVideoResponse(admin *Admin, text string) {
 		title := strings.TrimSpace(videoParts[0])
 		link := strings.TrimSpace(videoParts[1])
 
+		// Validate link
+		if !strings.HasPrefix(link, "http://") && !strings.HasPrefix(link, "https://") {
+			sendMessage(admin.TelegramID, "❌ لینک ویدیو باید با http:// یا https:// شروع شود")
+			return
+		}
+
 		// Get session
 		var session Session
 		if err := db.Where("number = ?", sessionNumber).First(&session).Error; err != nil {
@@ -1013,7 +1024,17 @@ func handleAddVideoResponse(admin *Admin, text string) {
 		// Send confirmation message
 		confirmationMsg := fmt.Sprintf("✅ ویدیو با موفقیت اضافه شد\n\n📝 عنوان: %s\n🔗 لینک: %s\n📚 جلسه: %d - %s",
 			title, link, session.Number, session.Title)
-		sendMessage(admin.TelegramID, confirmationMsg)
+
+		// Add inline keyboard for quick actions
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش ویدیو", fmt.Sprintf("edit_video:%d", video.ID)),
+				tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف ویدیو", fmt.Sprintf("delete_video:%d", video.ID)),
+			),
+		)
+		msg := tgbotapi.NewMessage(admin.TelegramID, confirmationMsg)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
 
 		// Show video management menu
 		handleAdminVideos(admin, []string{})
@@ -1081,6 +1102,12 @@ func handleEditVideoResponse(admin *Admin, text string) {
 		title := strings.TrimSpace(videoParts[0])
 		link := strings.TrimSpace(videoParts[1])
 
+		// Validate link
+		if !strings.HasPrefix(link, "http://") && !strings.HasPrefix(link, "https://") {
+			sendMessage(admin.TelegramID, "❌ لینک ویدیو باید با http:// یا https:// شروع شود")
+			return
+		}
+
 		// Update video
 		var video Video
 		if err := db.Preload("Session").First(&video, videoID).Error; err != nil {
@@ -1103,7 +1130,17 @@ func handleEditVideoResponse(admin *Admin, text string) {
 		// Send confirmation message
 		confirmationMsg := fmt.Sprintf("✅ ویدیو با موفقیت ویرایش شد\n\n📝 عنوان: %s\n🔗 لینک: %s\n📚 جلسه: %d - %s",
 			title, link, video.Session.Number, video.Session.Title)
-		sendMessage(admin.TelegramID, confirmationMsg)
+
+		// Add inline keyboard for quick actions
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش مجدد", fmt.Sprintf("edit_video:%d", video.ID)),
+				tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف ویدیو", fmt.Sprintf("delete_video:%d", video.ID)),
+			),
+		)
+		msg := tgbotapi.NewMessage(admin.TelegramID, confirmationMsg)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
 
 		// Show video management menu
 		handleAdminVideos(admin, []string{})
