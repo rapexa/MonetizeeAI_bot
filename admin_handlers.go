@@ -407,11 +407,8 @@ func handleMessage(update *tgbotapi.Update) {
 	// Check if user is admin
 	admin := getAdminByTelegramID(update.Message.From.ID)
 	if admin != nil {
-		fmt.Printf("Admin message received: %s\n", update.Message.Text) // Debug log
-
 		// Check if this is a response to a state prompt
 		if state, exists := adminStates[admin.TelegramID]; exists {
-			fmt.Printf("Admin state exists: %s\n", state) // Debug log
 			switch state {
 			case StateWaitingForUserID:
 				handleUserSearchResponse(admin, update.Message.Text)
@@ -445,7 +442,6 @@ func handleMessage(update *tgbotapi.Update) {
 
 		// Handle admin commands
 		if update.Message.IsCommand() {
-			fmt.Printf("Admin command received: %s\n", update.Message.Command()) // Debug log
 			switch update.Message.Command() {
 			case "start":
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "به پنل مدیریت خوش اومدین از دکمه های زیر میتونید به سیستم دسترسی داشته باشید")
@@ -459,7 +455,6 @@ func handleMessage(update *tgbotapi.Update) {
 		}
 
 		// Handle admin menu buttons
-		fmt.Printf("Checking admin menu button: %s\n", update.Message.Text) // Debug log
 		switch update.Message.Text {
 		case "📊 آمار سیستم":
 			response := handleAdminStats(admin, []string{})
@@ -470,10 +465,8 @@ func handleMessage(update *tgbotapi.Update) {
 			sendMessage(update.Message.Chat.ID, response)
 			return
 		case "📚 مدیریت جلسات":
-			fmt.Printf("Session management button clicked\n") // Debug log
 			var sessions []Session
 			if err := db.Order("number desc").Find(&sessions).Error; err != nil {
-				fmt.Printf("Error fetching sessions: %v\n", err) // Debug log
 				sendMessage(update.Message.Chat.ID, "❌ خطا در دریافت لیست جلسات")
 				return
 			}
@@ -491,13 +484,9 @@ func handleMessage(update *tgbotapi.Update) {
 				),
 			)
 			headerMsg.ReplyMarkup = keyboard
-			if _, err := bot.Send(headerMsg); err != nil {
-				fmt.Printf("Error sending header: %v\n", err)
-				sendMessage(update.Message.Chat.ID, "❌ خطا در ارسال لیست جلسات")
-				return
-			}
+			bot.Send(headerMsg)
 
-			// Send sessions in chunks of 5
+			// Send sessions in chunks
 			var currentChunk strings.Builder
 			for i, session := range sessions {
 				sessionText := fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
@@ -505,24 +494,17 @@ func handleMessage(update *tgbotapi.Update) {
 					session.Title,
 					session.Description)
 
-				// If adding this session would make the chunk too long, send current chunk and start new one
 				if currentChunk.Len()+len(sessionText) > 3000 {
 					chunkMsg := tgbotapi.NewMessage(update.Message.Chat.ID, currentChunk.String())
-					if _, err := bot.Send(chunkMsg); err != nil {
-						fmt.Printf("Error sending chunk: %v\n", err)
-						continue
-					}
+					bot.Send(chunkMsg)
 					currentChunk.Reset()
 				}
 
 				currentChunk.WriteString(sessionText)
 
-				// Send the last chunk if this is the last session
 				if i == len(sessions)-1 && currentChunk.Len() > 0 {
 					chunkMsg := tgbotapi.NewMessage(update.Message.Chat.ID, currentChunk.String())
-					if _, err := bot.Send(chunkMsg); err != nil {
-						fmt.Printf("Error sending final chunk: %v\n", err)
-					}
+					bot.Send(chunkMsg)
 				}
 			}
 			return
