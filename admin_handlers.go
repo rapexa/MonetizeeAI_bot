@@ -827,11 +827,12 @@ func handleAddVideoResponse(admin *Admin, input string) {
 		return
 	}
 
-	// Create video
+	// Create video with current date
 	video := Video{
 		Title:     parts[0],
 		VideoLink: videoLink,
 		SessionID: uint(sessionID),
+		Date:      time.Now(), // Set the current date
 	}
 
 	if err := db.Create(&video).Error; err != nil {
@@ -842,8 +843,9 @@ func handleAddVideoResponse(admin *Admin, input string) {
 
 	response := fmt.Sprintf("✅ ویدیو با موفقیت اضافه شد:\n\n"+
 		"📝 عنوان: %s\n"+
-		"🔗 لینک: %s",
-		video.Title, video.VideoLink)
+		"🔗 لینک: %s\n"+
+		"📅 تاریخ: %s",
+		video.Title, video.VideoLink, video.Date.Format("2006-01-02 15:04:05"))
 
 	// Add inline keyboard for quick actions
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
