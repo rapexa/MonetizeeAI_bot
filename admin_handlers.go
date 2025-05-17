@@ -441,7 +441,7 @@ func handleMessage(update *tgbotapi.Update) {
 	}
 
 	// If not admin, check if user is blocked
-	var user User
+	var user *User
 	if err := db.Where("telegram_id = ?", update.Message.From.ID).First(&user).Error; err == nil {
 		if !user.IsActive {
 			// User is blocked, send block message and remove keyboard
@@ -450,10 +450,10 @@ func handleMessage(update *tgbotapi.Update) {
 			bot.Send(blockMsg)
 			return
 		}
+	} else {
+		// User not found, create new user
+		user = getUserOrCreate(update.Message.From)
 	}
-
-	// If user is not blocked, proceed with normal message handling
-	user = getUserOrCreate(update.Message.From)
 
 	// Handle commands
 	if update.Message.IsCommand() {
