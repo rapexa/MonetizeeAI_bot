@@ -801,8 +801,31 @@ func handleAddSessionResponse(admin *Admin, response string) {
 		return
 	}
 
+	// Create confirmation message with all session details
+	confirmationMsg := fmt.Sprintf("✅ جلسه با موفقیت ایجاد شد:\n\n"+
+		"🆔 شماره: %d\n"+
+		"📝 عنوان: %s\n"+
+		"📄 توضیحات: %s",
+		session.Number,
+		session.Title,
+		session.Description)
+
+	// Add inline keyboard for quick actions
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش جلسه", fmt.Sprintf("edit_session:%d", session.Number)),
+			tgbotapi.NewInlineKeyboardButtonData("➕ افزودن ویدیو", fmt.Sprintf("add_video:%d", session.Number)),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف جلسه", fmt.Sprintf("delete_session:%d", session.Number)),
+		),
+	)
+	msg := tgbotapi.NewMessage(admin.TelegramID, confirmationMsg)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+
 	logAdminAction(admin, "add_session", fmt.Sprintf("جلسه %d اضافه شد: %s", session.Number, session.Title), "session", session.ID)
-	sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت ایجاد شد", sessionNum))
+	delete(adminStates, admin.TelegramID)
 }
 
 // handleSessionNumberResponse processes the response for session number input
@@ -814,7 +837,7 @@ func handleSessionNumberResponse(admin *Admin, response string) {
 	}
 
 	var session Session
-	if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
+	if err := db.First(&session, sessionNum).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
 		return
 	}
@@ -835,13 +858,21 @@ func handleSessionNumberResponse(admin *Admin, response string) {
 		bot.Send(msg)
 
 	case StateDeleteSession:
-		// Delete the session
+		// Store session info before deletion for confirmation message
+		sessionInfo := fmt.Sprintf("🆔 شماره: %d\n📝 عنوان: %s\n📄 توضیحات: %s",
+			session.Number,
+			session.Title,
+			session.Description)
+
 		if err := db.Delete(&session).Error; err != nil {
 			sendMessage(admin.TelegramID, "❌ خطا در حذف جلسه")
 			return
 		}
+
+		confirmationMsg := fmt.Sprintf("✅ جلسه با موفقیت حذف شد:\n\n%s", sessionInfo)
+		sendMessage(admin.TelegramID, confirmationMsg)
+
 		logAdminAction(admin, "delete_session", fmt.Sprintf("جلسه %d حذف شد: %s", session.Number, session.Title), "session", session.ID)
-		sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت حذف شد", sessionNum))
 		delete(adminStates, admin.TelegramID)
 	}
 }
@@ -1116,8 +1147,33 @@ func handleAddVideoResponse(admin *Admin, response string) {
 		return
 	}
 
+	// Get the session title for the confirmation message
+	var session Session
+	db.First(&session, sessionNum)
+
+	// Create confirmation message with all video details
+	confirmationMsg := fmt.Sprintf("✅ ویدیو با موفقیت اضافه شد:\n\n"+
+		"🆔 آیدی: %d\n"+
+		"📝 عنوان: %s\n"+
+		"🔗 لینک: %s\n"+
+		"📚 جلسه: %d - %s",
+		video.ID,
+		video.Title,
+		video.VideoLink,
+		session.Number,
+		session.Title)
+
+	// Add inline keyboard for quick edit
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش ویدیو", fmt.Sprintf("edit_video:%d", video.ID)),
+		),
+	)
+	msg := tgbotapi.NewMessage(admin.TelegramID, confirmationMsg)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+
 	logAdminAction(admin, "add_video", fmt.Sprintf("ویدیو اضافه شد: %s", video.Title), "video", video.ID)
-	sendMessage(admin.TelegramID, "✅ ویدیو با موفقیت اضافه شد")
 	delete(adminStates, admin.TelegramID)
 }
 
@@ -1155,7 +1211,7 @@ func handleEditVideoResponse(admin *Admin, response string) {
 
 	// Update video
 	var video Video
-	if err := db.First(&video, videoID).Error; err != nil {
+	if err := db.Preload("Session").First(&video, videoID).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ ویدیو یافت نشد")
 		return
 	}
@@ -1168,8 +1224,30 @@ func handleEditVideoResponse(admin *Admin, response string) {
 		return
 	}
 
+	// Create confirmation message with all video details
+	confirmationMsg := fmt.Sprintf("✅ ویدیو با موفقیت ویرایش شد:\n\n"+
+		"🆔 آیدی: %d\n"+
+		"📝 عنوان: %s\n"+
+		"🔗 لینک: %s\n"+
+		"📚 جلسه: %d - %s",
+		video.ID,
+		video.Title,
+		video.VideoLink,
+		video.Session.Number,
+		video.Session.Title)
+
+	// Add inline keyboard for quick actions
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش مجدد", fmt.Sprintf("edit_video:%d", video.ID)),
+			tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف ویدیو", fmt.Sprintf("delete_video:%d", video.ID)),
+		),
+	)
+	msg := tgbotapi.NewMessage(admin.TelegramID, confirmationMsg)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+
 	logAdminAction(admin, "edit_video", fmt.Sprintf("ویدیو ویرایش شد: %s", video.Title), "video", video.ID)
-	sendMessage(admin.TelegramID, "✅ ویدیو با موفقیت ویرایش شد")
 	delete(adminStates, admin.TelegramID)
 }
 
@@ -1181,18 +1259,27 @@ func handleDeleteVideoResponse(admin *Admin, response string) {
 	}
 
 	var video Video
-	if err := db.First(&video, videoID).Error; err != nil {
+	if err := db.Preload("Session").First(&video, videoID).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ ویدیو یافت نشد")
 		return
 	}
+
+	// Store video info before deletion for confirmation message
+	videoInfo := fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d - %s",
+		video.ID,
+		video.Title,
+		video.Session.Number,
+		video.Session.Title)
 
 	if err := db.Delete(&video).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ خطا در حذف ویدیو")
 		return
 	}
 
+	confirmationMsg := fmt.Sprintf("✅ ویدیو با موفقیت حذف شد:\n\n%s", videoInfo)
+	sendMessage(admin.TelegramID, confirmationMsg)
+
 	logAdminAction(admin, "delete_video", fmt.Sprintf("ویدیو حذف شد: %s", video.Title), "video", video.ID)
-	sendMessage(admin.TelegramID, "✅ ویدیو با موفقیت حذف شد")
 	delete(adminStates, admin.TelegramID)
 }
 
@@ -1214,7 +1301,7 @@ func handleEditSessionInfo(admin *Admin, response string) {
 
 	// Update session
 	var session Session
-	if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
+	if err := db.First(&session, sessionNum).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
 		return
 	}
@@ -1227,7 +1314,29 @@ func handleEditSessionInfo(admin *Admin, response string) {
 		return
 	}
 
+	// Create confirmation message with all session details
+	confirmationMsg := fmt.Sprintf("✅ جلسه با موفقیت ویرایش شد:\n\n"+
+		"🆔 شماره: %d\n"+
+		"📝 عنوان: %s\n"+
+		"📄 توضیحات: %s",
+		session.Number,
+		session.Title,
+		session.Description)
+
+	// Add inline keyboard for quick actions
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش مجدد", fmt.Sprintf("edit_session:%d", session.Number)),
+			tgbotapi.NewInlineKeyboardButtonData("➕ افزودن ویدیو", fmt.Sprintf("add_video:%d", session.Number)),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف جلسه", fmt.Sprintf("delete_session:%d", session.Number)),
+		),
+	)
+	msg := tgbotapi.NewMessage(admin.TelegramID, confirmationMsg)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+
 	logAdminAction(admin, "edit_session", fmt.Sprintf("جلسه %d ویرایش شد: %s", session.Number, session.Title), "session", session.ID)
-	sendMessage(admin.TelegramID, fmt.Sprintf("✅ جلسه %d با موفقیت ویرایش شد", sessionNum))
 	delete(adminStates, admin.TelegramID)
 }
