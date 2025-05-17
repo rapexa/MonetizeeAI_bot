@@ -1181,12 +1181,14 @@ func handleAddVideoResponse(admin *Admin, text string) {
 		parts := strings.Split(state, ":")
 		if len(parts) != 2 {
 			sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
+			delete(adminStates, admin.TelegramID)
 			return
 		}
 
 		sessionNumber, err := strconv.Atoi(parts[1])
 		if err != nil {
 			sendMessage(admin.TelegramID, "❌ خطا در پردازش شماره جلسه")
+			delete(adminStates, admin.TelegramID)
 			return
 		}
 
@@ -1209,6 +1211,7 @@ func handleAddVideoResponse(admin *Admin, text string) {
 
 		if err := db.Create(&video).Error; err != nil {
 			sendMessage(admin.TelegramID, "❌ خطا در ثبت ویدیو")
+			delete(adminStates, admin.TelegramID)
 			return
 		}
 
