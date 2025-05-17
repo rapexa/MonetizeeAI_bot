@@ -187,7 +187,7 @@ func handleAdminSessions(admin *Admin, args []string) string {
 		msg.ReplyMarkup = keyboard
 		bot.Send(msg)
 
-		return ""
+		return "از دکمه‌های زیر برای مدیریت جلسات استفاده کنید"
 	}
 
 	// Handle session actions
@@ -210,6 +210,7 @@ func handleAdminSessions(admin *Admin, args []string) string {
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateEditSession
+		return "لطفا شماره جلسه مورد نظر را وارد کنید"
 
 	case "delete":
 		if len(args) < 2 {
