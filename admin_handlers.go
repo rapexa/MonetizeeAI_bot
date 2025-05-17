@@ -1213,17 +1213,17 @@ func handleAddVideoResponse(admin *Admin, text string) {
 	}
 
 	// Send confirmation message
-	msg := fmt.Sprintf("✅ ویدیو با موفقیت اضافه شد\n\n📝 عنوان: %s\n🔗 لینک: %s\n📚 جلسه: %d",
+	confirmationMsg := fmt.Sprintf("✅ ویدیو با موفقیت اضافه شد\n\n📝 عنوان: %s\n🔗 لینک: %s\n📚 جلسه: %d",
 		title, link, sessionNumber)
-	sendMessage(admin.TelegramID, msg)
+	sendMessage(admin.TelegramID, confirmationMsg)
 
 	// Show video management menu with inline keyboard
 	var videos []Video
 	db.Preload("Session").Order("created_at desc").Find(&videos)
 
-	response := "🎥 لیست ویدیوها:\n\n"
+	videoListMsg := "🎥 لیست ویدیوها:\n\n"
 	for _, v := range videos {
-		response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d - %s\n🔗 لینک: %s\n\n",
+		videoListMsg += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d - %s\n🔗 لینک: %s\n\n",
 			v.ID,
 			v.Title,
 			v.Session.Number,
@@ -1242,7 +1242,7 @@ func handleAddVideoResponse(admin *Admin, text string) {
 			tgbotapi.NewInlineKeyboardButtonData("📊 آمار ویدیوها", "video_stats"),
 		),
 	)
-	msg = tgbotapi.NewMessage(admin.TelegramID, response)
+	msg := tgbotapi.NewMessage(admin.TelegramID, videoListMsg)
 	msg.ReplyMarkup = keyboard
 	bot.Send(msg)
 }
