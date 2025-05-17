@@ -440,8 +440,20 @@ func handleMessage(update *tgbotapi.Update) {
 		return
 	}
 
-	// If not admin, let the user handlers process the message
-	user := getUserOrCreate(update.Message.From)
+	// If not admin, check if user is blocked
+	var user User
+	if err := db.Where("telegram_id = ?", update.Message.From.ID).First(&user).Error; err == nil {
+		if !user.IsActive {
+			// User is blocked, send block message and remove keyboard
+			blockMsg := tgbotapi.NewMessage(update.Message.Chat.ID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n+989129121212")
+			blockMsg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+			bot.Send(blockMsg)
+			return
+		}
+	}
+
+	// If user is not blocked, proceed with normal message handling
+	user = getUserOrCreate(update.Message.From)
 
 	// Handle commands
 	if update.Message.IsCommand() {
@@ -591,6 +603,11 @@ func handleBanUser(admin *Admin, userID string) {
 		return
 	}
 
+	// Send notification to the blocked user
+	blockMsg := tgbotapi.NewMessage(user.TelegramID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n+989129121212")
+	blockMsg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+	bot.Send(blockMsg)
+
 	logAdminAction(admin, "ban_user", fmt.Sprintf("کاربر %s مسدود شد", user.Username), "user", user.ID)
 	sendMessage(admin.TelegramID, fmt.Sprintf("✅ کاربر %s با موفقیت مسدود شد", user.Username))
 }
@@ -614,6 +631,11 @@ func handleUnbanUser(admin *Admin, userID string) {
 		sendMessage(admin.TelegramID, "❌ خطا در رفع مسدودیت کاربر")
 		return
 	}
+
+	// Send notification to the unblocked user
+	unblockMsg := tgbotapi.NewMessage(user.TelegramID, "✅ دسترسی شما به ربات بازگردانده شد.\n\nشما می‌توانید از خدمات ربات استفاده کنید.")
+	unblockMsg.ReplyMarkup = getMainMenuKeyboard()
+	bot.Send(unblockMsg)
 
 	logAdminAction(admin, "unban_user", fmt.Sprintf("مسدودیت کاربر %s برداشته شد", user.Username), "user", user.ID)
 	sendMessage(admin.TelegramID, fmt.Sprintf("✅ مسدودیت کاربر %s با موفقیت برداشته شد", user.Username))
