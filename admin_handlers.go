@@ -332,93 +332,55 @@ func handleAdminExercises(admin *Admin, args []string) string {
 
 // handleAdminLogs shows system logs
 func handleAdminLogs(admin *Admin, args []string) string {
-	case "📝 لاگ‌های سیستم":
-		// Get logs directly
-		var actions []AdminAction
-		db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions)
+	// Get logs directly
+	var actions []AdminAction
+	db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions)
 
-		if len(actions) == 0 {
-			sendMessage(admin.TelegramID, "📝 هیچ فعالیتی ثبت نشده است")
-			return
-		}
-
-		response := "📝 آخرین فعالیت‌های ادمین:\n\n"
-		for _, action := range actions {
-			actionType := action.Action
-			switch action.Action {
-			case "add_session":
-				actionType = "➕ افزودن جلسه"
-			case "edit_session":
-				actionType = "✏️ ویرایش جلسه"
-			case "delete_session":
-				actionType = "🗑️ حذف جلسه"
-			case "add_video":
-				actionType = "➕ افزودن ویدیو"
-			case "edit_video":
-				actionType = "✏️ ویرایش ویدیو"
-			case "delete_video":
-				actionType = "🗑️ حذف ویدیو"
-			case "ban_user":
-				actionType = "🚫 مسدود کردن کاربر"
-			case "unban_user":
-				actionType = "✅ رفع مسدودیت کاربر"
-			}
-
-			response += fmt.Sprintf("👤 ادمین: %s\n📝 عملیات: %s\n📋 جزئیات: %s\n⏰ تاریخ: %s\n\n",
-				action.Admin.Username,
-				actionType,
-				action.Details,
-				action.CreatedAt.Format("2006-01-02 15:04:05"))
-		}
-
-		// Add refresh button
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🔄 بروزرسانی", "refresh_logs"),
-			),
-		)
-
-		msg := tgbotapi.NewMessage(admin.TelegramID, response)
-		msg.ReplyMarkup = keyboard
-		bot.Send(msg)
-		return
+	if len(actions) == 0 {
+		sendMessage(admin.TelegramID, "📝 هیچ فعالیتی ثبت نشده است")
+		return "📝 هیچ فعالیتی ثبت نشده است"
 	}
 
-	// If not admin, check if user is blocked
-	var user *User
-	if err := db.Where("telegram_id = ?", update.Message.From.ID).First(&user).Error; err == nil {
-		if !user.IsActive {
-			// User is blocked, send block message and remove keyboard
-			blockMsg := tgbotapi.NewMessage(update.Message.Chat.ID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n\n📞 "+SUPPORT_NUMBER)
-			blockMsg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
-			bot.Send(blockMsg)
-			return
+	response := "📝 آخرین فعالیت‌های ادمین:\n\n"
+	for _, action := range actions {
+		actionType := action.Action
+		switch action.Action {
+		case "add_session":
+			actionType = "➕ افزودن جلسه"
+		case "edit_session":
+			actionType = "✏️ ویرایش جلسه"
+		case "delete_session":
+			actionType = "🗑️ حذف جلسه"
+		case "add_video":
+			actionType = "➕ افزودن ویدیو"
+		case "edit_video":
+			actionType = "✏️ ویرایش ویدیو"
+		case "delete_video":
+			actionType = "🗑️ حذف ویدیو"
+		case "ban_user":
+			actionType = "🚫 مسدود کردن کاربر"
+		case "unban_user":
+			actionType = "✅ رفع مسدودیت کاربر"
 		}
-	} else {
-		// User not found, create new user
-		user = getUserOrCreate(update.Message.From)
+
+		response += fmt.Sprintf("👤 ادمین: %s\n📝 عملیات: %s\n📋 جزئیات: %s\n⏰ تاریخ: %s\n\n",
+			action.Admin.Username,
+			actionType,
+			action.Details,
+			action.CreatedAt.Format("2006-01-02 15:04:05"))
 	}
 
-	// Handle commands
-	if update.Message.IsCommand() {
-		switch update.Message.Command() {
-		case "start":
-			// Only send welcome message if user already exists
-			if !isNewUser(update.Message.From.ID) {
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
-				msg.ReplyMarkup = getMainMenuKeyboard()
-				bot.Send(msg)
-			}
-			return
-		case "help":
-			sendMessage(update.Message.Chat.ID, "من اینجا هستم تا در سفر دوره مونیتایز به شما کمک کنم. از دکمه‌های منو برای پیمایش در دوره استفاده کنید.")
-			return
-		}
-	}
+	// Add refresh button
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("🔄 بروزرسانی", "refresh_logs"),
+		),
+	)
 
-	// Handle regular messages
-	response := processUserInput(update.Message.Text, user)
-	sendMessage(update.Message.Chat.ID, response)
+	msg := tgbotapi.NewMessage(admin.TelegramID, response)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+	return response
 }
 
 // getAdminByTelegramID returns admin by telegram ID
