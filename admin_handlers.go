@@ -546,43 +546,23 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		adminStates[admin.TelegramID] = StateWaitingForSessionInfo
 
 	case "edit_session":
-		if param == "" {
-			// Show list of sessions first
-			var sessions []Session
-			db.Order("number desc").Find(&sessions)
+		// Show list of sessions first
+		var sessions []Session
+		db.Order("number desc").Find(&sessions)
 
-			response := "📚 لیست جلسات:\n\n"
-			for _, session := range sessions {
-				response += fmt.Sprintf("🆔 شماره: %d\n📝 عنوان: %s\n📄 توضیحات: %s\n\n",
-					session.Number,
-					session.Title,
-					session.Description)
-			}
-			response += "\n✏️ لطفا شماره جلسه مورد نظر را وارد کنید:"
-
-			msg := tgbotapi.NewMessage(admin.TelegramID, response)
-			msg.ReplyMarkup = tgbotapi.ForceReply{}
-			bot.Send(msg)
-			adminStates[admin.TelegramID] = StateEditSession
-		} else {
-			// Direct edit from button
-			sessionNum, err := strconv.Atoi(param)
-			if err != nil {
-				sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
-				return
-			}
-
-			var session Session
-			if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
-				sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
-				return
-			}
-
-			adminStates[admin.TelegramID] = fmt.Sprintf("edit_session:%d", sessionNum)
-			msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش جلسه %d:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|توضیحات", sessionNum))
-			msg.ReplyMarkup = tgbotapi.ForceReply{}
-			bot.Send(msg)
+		response := "📚 لیست جلسات:\n\n"
+		for _, session := range sessions {
+			response += fmt.Sprintf("🆔 شماره: %d\n📝 عنوان: %s\n📄 توضیحات: %s\n\n",
+				session.Number,
+				session.Title,
+				session.Description)
 		}
+		response += "\n✏️ لطفا شماره جلسه مورد نظر را وارد کنید:"
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		bot.Send(msg)
+		adminStates[admin.TelegramID] = StateEditSession
 
 	case "delete_session":
 		if param == "" {
