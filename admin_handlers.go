@@ -151,15 +151,8 @@ func handleAdminSessions(admin *Admin, args []string) string {
 		var sessions []Session
 		db.Order("number desc").Find(&sessions)
 
-		response := "📚 آخرین جلسات:\n\n"
-		for _, session := range sessions {
-			response += fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
-				session.Number,
-				session.Title,
-				session.Description)
-		}
-
-		// Add inline keyboard for actions
+		// Send header message with buttons
+		headerMsg := tgbotapi.NewMessage(admin.TelegramID, "📚 آخرین جلسات:")
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("➕ افزودن جلسه", "add_session"),
@@ -170,10 +163,40 @@ func handleAdminSessions(admin *Admin, args []string) string {
 				tgbotapi.NewInlineKeyboardButtonData("📊 آمار جلسات", "session_stats"),
 			),
 		)
-		msg := tgbotapi.NewMessage(admin.TelegramID, response)
-		msg.ReplyMarkup = keyboard
-		bot.Send(msg)
+		headerMsg.ReplyMarkup = keyboard
+		if _, err := bot.Send(headerMsg); err != nil {
+			fmt.Printf("Error sending header: %v\n", err)
+			return "❌ خطا در ارسال لیست جلسات"
+		}
 
+		// Send sessions in chunks of 5
+		var currentChunk strings.Builder
+		for i, session := range sessions {
+			sessionText := fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
+				session.Number,
+				session.Title,
+				session.Description)
+
+			// If adding this session would make the chunk too long, send current chunk and start new one
+			if currentChunk.Len()+len(sessionText) > 3000 {
+				chunkMsg := tgbotapi.NewMessage(admin.TelegramID, currentChunk.String())
+				if _, err := bot.Send(chunkMsg); err != nil {
+					fmt.Printf("Error sending chunk: %v\n", err)
+					continue
+				}
+				currentChunk.Reset()
+			}
+
+			currentChunk.WriteString(sessionText)
+
+			// Send the last chunk if this is the last session
+			if i == len(sessions)-1 && currentChunk.Len() > 0 {
+				chunkMsg := tgbotapi.NewMessage(admin.TelegramID, currentChunk.String())
+				if _, err := bot.Send(chunkMsg); err != nil {
+					fmt.Printf("Error sending final chunk: %v\n", err)
+				}
+			}
+		}
 		return ""
 	}
 
@@ -455,15 +478,8 @@ func handleMessage(update *tgbotapi.Update) {
 				return
 			}
 
-			response := "📚 آخرین جلسات:\n\n"
-			for _, session := range sessions {
-				response += fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
-					session.Number,
-					session.Title,
-					session.Description)
-			}
-
-			// Add inline keyboard for actions
+			// Send header message with buttons
+			headerMsg := tgbotapi.NewMessage(update.Message.Chat.ID, "📚 آخرین جلسات:")
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
 				tgbotapi.NewInlineKeyboardRow(
 					tgbotapi.NewInlineKeyboardButtonData("➕ افزودن جلسه", "add_session"),
@@ -474,12 +490,40 @@ func handleMessage(update *tgbotapi.Update) {
 					tgbotapi.NewInlineKeyboardButtonData("📊 آمار جلسات", "session_stats"),
 				),
 			)
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, response)
-			msg.ReplyMarkup = keyboard
-			if _, err := bot.Send(msg); err != nil {
-				fmt.Printf("Error sending session list: %v\n", err) // Debug log
+			headerMsg.ReplyMarkup = keyboard
+			if _, err := bot.Send(headerMsg); err != nil {
+				fmt.Printf("Error sending header: %v\n", err)
 				sendMessage(update.Message.Chat.ID, "❌ خطا در ارسال لیست جلسات")
 				return
+			}
+
+			// Send sessions in chunks of 5
+			var currentChunk strings.Builder
+			for i, session := range sessions {
+				sessionText := fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
+					session.Number,
+					session.Title,
+					session.Description)
+
+				// If adding this session would make the chunk too long, send current chunk and start new one
+				if currentChunk.Len()+len(sessionText) > 3000 {
+					chunkMsg := tgbotapi.NewMessage(update.Message.Chat.ID, currentChunk.String())
+					if _, err := bot.Send(chunkMsg); err != nil {
+						fmt.Printf("Error sending chunk: %v\n", err)
+						continue
+					}
+					currentChunk.Reset()
+				}
+
+				currentChunk.WriteString(sessionText)
+
+				// Send the last chunk if this is the last session
+				if i == len(sessions)-1 && currentChunk.Len() > 0 {
+					chunkMsg := tgbotapi.NewMessage(update.Message.Chat.ID, currentChunk.String())
+					if _, err := bot.Send(chunkMsg); err != nil {
+						fmt.Printf("Error sending final chunk: %v\n", err)
+					}
+				}
 			}
 			return
 		case "🎥 مدیریت ویدیوها":
