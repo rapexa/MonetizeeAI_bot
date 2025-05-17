@@ -443,6 +443,12 @@ func handleMessage(update *tgbotapi.Update) {
 				handleEditSessionInfo(admin, update.Message.Text)
 				return
 			}
+
+			// Check if this is an add video response
+			if strings.HasPrefix(state, "add_video:") {
+				handleAddVideoResponse(admin, update.Message.Text)
+				return
+			}
 		}
 
 		// Handle admin commands
@@ -1145,86 +1151,74 @@ func handleVideoStats(admin *Admin, params []string) string {
 }
 
 // handleAddVideoResponse processes the response for adding a new video
-func handleAddVideoResponse(admin *Admin, response string) {
-	// Check if this is the first step (session number)
-	if !strings.Contains(response, "|") {
-		sessionNum, err := strconv.Atoi(strings.TrimSpace(response))
+func handleAddVideoResponse(admin *Admin, text string) {
+	state := adminStates[admin.TelegramID]
+	delete(adminStates, admin.TelegramID)
+
+	// If state is just "add_video", this is the first step (selecting session)
+	if state == "add_video" {
+		// Parse session number
+		sessionNumber, err := strconv.Atoi(strings.TrimSpace(text))
 		if err != nil {
-			sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
+			sendMessage(admin.TelegramID, "❌ لطفا یک شماره جلسه معتبر وارد کنید")
 			return
 		}
 
 		// Check if session exists
 		var session Session
-		if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
-			sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
+		if err := db.Where("number = ?", sessionNumber).First(&session).Error; err != nil {
+			sendMessage(admin.TelegramID, "❌ جلسه مورد نظر یافت نشد")
 			return
 		}
 
-		// Store session number in state
-		adminStates[admin.TelegramID] = fmt.Sprintf("add_video:%d", sessionNum)
-		msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("➕ افزودن ویدیو به جلسه %d:\n\nلطفا اطلاعات را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", sessionNum))
-		msg.ReplyMarkup = tgbotapi.ForceReply{}
-		bot.Send(msg)
+		// Store session number in state for next step
+		adminStates[admin.TelegramID] = fmt.Sprintf("add_video:%d", sessionNumber)
+		sendMessage(admin.TelegramID, "📝 لطفا عنوان و لینک ویدیو را به فرمت زیر وارد کنید:\nعنوان|لینک")
 		return
 	}
 
-	// This is the second step (video info)
-	parts := strings.Split(response, "|")
+	// This is the second step (entering video details)
+	parts := strings.Split(state, ":")
 	if len(parts) != 2 {
-		sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو")
-		return
-	}
-
-	// Get session number from state
-	stateParts := strings.Split(adminStates[admin.TelegramID], ":")
-	if len(stateParts) != 2 {
 		sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
 		return
 	}
-	sessionNum, _ := strconv.Atoi(stateParts[1])
 
-	// Create new video
-	video := Video{
-		Title:     strings.TrimSpace(parts[0]),
-		VideoLink: strings.TrimSpace(parts[1]),
-		SessionID: uint(sessionNum),
-	}
-
-	if err := db.Create(&video).Error; err != nil {
-		sendMessage(admin.TelegramID, "❌ خطا در ایجاد ویدیو")
+	sessionNumber, err := strconv.Atoi(parts[1])
+	if err != nil {
+		sendMessage(admin.TelegramID, "❌ خطا در پردازش شماره جلسه")
 		return
 	}
 
-	// Get the session title for the confirmation message
-	var session Session
-	db.First(&session, sessionNum)
+	// Parse video details
+	videoParts := strings.Split(text, "|")
+	if len(videoParts) != 2 {
+		sendMessage(admin.TelegramID, "❌ لطفا اطلاعات را به فرمت صحیح وارد کنید:\nعنوان|لینک")
+		return
+	}
 
-	// Create confirmation message with all video details
-	confirmationMsg := fmt.Sprintf("✅ ویدیو با موفقیت اضافه شد:\n\n"+
-		"🆔 آیدی: %d\n"+
-		"📝 عنوان: %s\n"+
-		"🔗 لینک: %s\n"+
-		"📚 جلسه: %d - %s",
-		video.ID,
-		video.Title,
-		video.VideoLink,
-		session.Number,
-		session.Title)
+	title := strings.TrimSpace(videoParts[0])
+	link := strings.TrimSpace(videoParts[1])
 
-	// Add inline keyboard for quick actions
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش ویدیو", fmt.Sprintf("edit_video:%d", video.ID)),
-			tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف ویدیو", fmt.Sprintf("delete_video:%d", video.ID)),
-		),
-	)
-	msg := tgbotapi.NewMessage(admin.TelegramID, confirmationMsg)
-	msg.ReplyMarkup = keyboard
-	bot.Send(msg)
+	// Create new video
+	video := Video{
+		SessionNumber: sessionNumber,
+		Title:         title,
+		Link:          link,
+	}
 
-	logAdminAction(admin, "add_video", fmt.Sprintf("ویدیو اضافه شد: %s", video.Title), "video", video.ID)
-	delete(adminStates, admin.TelegramID)
+	if err := db.Create(&video).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ خطا در ثبت ویدیو")
+		return
+	}
+
+	// Send confirmation message
+	msg := fmt.Sprintf("✅ ویدیو با موفقیت اضافه شد\n\n📝 عنوان: %s\n🔗 لینک: %s\n📚 جلسه: %d",
+		title, link, sessionNumber)
+	sendMessage(admin.TelegramID, msg)
+
+	// Show video management menu
+	handleAdminVideos(admin, []string{})
 }
 
 func handleEditVideoResponse(admin *Admin, response string) {
@@ -1274,7 +1268,7 @@ func handleEditVideoResponse(admin *Admin, response string) {
 	}
 
 	video.Title = strings.TrimSpace(parts[0])
-	video.VideoLink = strings.TrimSpace(parts[1])
+	video.Link = strings.TrimSpace(parts[1])
 
 	if err := db.Save(&video).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ خطا در ویرایش ویدیو")
@@ -1289,7 +1283,7 @@ func handleEditVideoResponse(admin *Admin, response string) {
 		"📚 جلسه: %d - %s",
 		video.ID,
 		video.Title,
-		video.VideoLink,
+		video.Link,
 		video.Session.Number,
 		video.Session.Title)
 
