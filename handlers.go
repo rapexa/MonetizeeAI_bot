@@ -527,7 +527,6 @@ func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
 		),
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("💾 پشتیبان‌گیری"),
-			tgbotapi.NewKeyboardButton("📝 لاگ‌های سیستم"),
 		),
 	)
 	keyboard.ResizeKeyboard = true
