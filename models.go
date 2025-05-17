@@ -6,6 +6,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const SUPPORT_NUMBER = "+989129121212"
+
 // User represents a Telegram user in our system
 type User struct {
 	gorm.Model

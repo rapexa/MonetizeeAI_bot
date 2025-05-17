@@ -445,7 +445,7 @@ func handleMessage(update *tgbotapi.Update) {
 	if err := db.Where("telegram_id = ?", update.Message.From.ID).First(&user).Error; err == nil {
 		if !user.IsActive {
 			// User is blocked, send block message and remove keyboard
-			blockMsg := tgbotapi.NewMessage(update.Message.Chat.ID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n+989129121212")
+			blockMsg := tgbotapi.NewMessage(update.Message.Chat.ID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n\n📞 "+SUPPORT_NUMBER)
 			blockMsg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 			bot.Send(blockMsg)
 			return
@@ -604,7 +604,7 @@ func handleBanUser(admin *Admin, userID string) {
 	}
 
 	// Send notification to the blocked user
-	blockMsg := tgbotapi.NewMessage(user.TelegramID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n+989129121212")
+	blockMsg := tgbotapi.NewMessage(user.TelegramID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n\n📞 "+SUPPORT_NUMBER)
 	blockMsg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 	bot.Send(blockMsg)
 
