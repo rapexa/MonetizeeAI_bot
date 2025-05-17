@@ -987,11 +987,20 @@ func handleAddVideoResponse(admin *Admin, text string) {
 		title := strings.TrimSpace(videoParts[0])
 		link := strings.TrimSpace(videoParts[1])
 
+		// Get session
+		var session Session
+		if err := db.Where("number = ?", sessionNumber).First(&session).Error; err != nil {
+			sendMessage(admin.TelegramID, "❌ جلسه مورد نظر یافت نشد")
+			delete(adminStates, admin.TelegramID)
+			return
+		}
+
 		// Create new video
 		video := Video{
-			SessionID: uint(sessionNumber),
+			SessionID: session.ID,
 			Title:     title,
 			VideoLink: link,
+			Date:      time.Now(),
 		}
 
 		// Save video to database
@@ -1002,8 +1011,8 @@ func handleAddVideoResponse(admin *Admin, text string) {
 		}
 
 		// Send confirmation message
-		confirmationMsg := fmt.Sprintf("✅ ویدیو با موفقیت اضافه شد\n\n📝 عنوان: %s\n🔗 لینک: %s\n📚 جلسه: %d",
-			title, link, sessionNumber)
+		confirmationMsg := fmt.Sprintf("✅ ویدیو با موفقیت اضافه شد\n\n📝 عنوان: %s\n🔗 لینک: %s\n📚 جلسه: %d - %s",
+			title, link, session.Number, session.Title)
 		sendMessage(admin.TelegramID, confirmationMsg)
 
 		// Show video management menu
