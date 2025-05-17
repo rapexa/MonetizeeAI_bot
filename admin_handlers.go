@@ -1327,3 +1327,50 @@ func searchUser(admin *Admin, query string) string {
 
 	return "✅ جستجو با موفقیت انجام شد"
 }
+
+// handleMessage processes incoming messages
+func handleMessage(update tgbotapi.Update) {
+	admin := getAdminByTelegramID(update.Message.From.ID)
+	if admin == nil {
+		return
+	}
+
+	// Get current state
+	state, exists := adminStates[admin.TelegramID]
+	if !exists {
+		return
+	}
+
+	// Handle different states
+	switch state {
+	case StateWaitingForUserID:
+		handleUserSearchResponse(admin, update.Message.Text)
+
+	case StateWaitingForSessionInfo:
+		handleAddSessionResponse(admin, update.Message.Text)
+
+	case StateEditSession:
+		handleSessionNumberResponse(admin, update.Message.Text)
+
+	case StateDeleteSession:
+		handleSessionNumberResponse(admin, update.Message.Text)
+
+	case StateAddVideo:
+		handleAddVideoResponse(admin, update.Message.Text)
+
+	case StateEditVideo:
+		handleEditVideoResponse(admin, update.Message.Text)
+
+	case StateDeleteVideo:
+		handleDeleteVideoResponse(admin, update.Message.Text)
+
+	default:
+		if strings.HasPrefix(state, "edit_session:") {
+			handleEditSessionInfo(admin, update.Message.Text)
+		} else if strings.HasPrefix(state, "add_video:") {
+			handleAddVideoResponse(admin, update.Message.Text)
+		} else if strings.HasPrefix(state, "edit_video:") {
+			handleEditVideoResponse(admin, update.Message.Text)
+		}
+	}
+}
