@@ -151,9 +151,9 @@ func handleAdminSessions(admin *Admin, args []string) string {
 		var sessions []Session
 		db.Order("number desc").Find(&sessions)
 
-		response := "📚 لیست جلسات:\n\n"
+		response := "📚 آخرین جلسات:\n\n"
 		for _, session := range sessions {
-			response += fmt.Sprintf("🆔 شماره: %d\n📝 عنوان: %s\n📄 توضیحات: %s\n\n",
+			response += fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
 				session.Number,
 				session.Title,
 				session.Description)
