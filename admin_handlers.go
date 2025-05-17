@@ -151,7 +151,7 @@ func handleAdminSessions(admin *Admin, args []string) string {
 		var sessions []Session
 		db.Order("number desc").Limit(12).Find(&sessions) // Get last 12 sessions
 
-		// First send the sessions list
+		// Build the response with sessions list
 		var response strings.Builder
 		for _, session := range sessions {
 			response.WriteString(fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
@@ -160,18 +160,8 @@ func handleAdminSessions(admin *Admin, args []string) string {
 				session.Description))
 		}
 
-		// Send the sessions message first
-		sessionsMsg := tgbotapi.NewMessage(admin.TelegramID, response.String())
-		if _, err := bot.Send(sessionsMsg); err != nil {
-			sendMessage(admin.TelegramID, "❌ خطا در ارسال لیست جلسات")
-			return ""
-		}
-
-		// Wait a moment to ensure the sessions message is sent first
-		time.Sleep(500 * time.Millisecond)
-
-		// Then send a separate message with the action buttons
-		buttonsMsg := tgbotapi.NewMessage(admin.TelegramID, "")
+		// Create message with sessions list and buttons
+		msg := tgbotapi.NewMessage(admin.TelegramID, response.String())
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("➕ افزودن جلسه", "add_session"),
@@ -182,8 +172,8 @@ func handleAdminSessions(admin *Admin, args []string) string {
 				tgbotapi.NewInlineKeyboardButtonData("📊 آمار جلسات", "session_stats"),
 			),
 		)
-		buttonsMsg.ReplyMarkup = keyboard
-		bot.Send(buttonsMsg)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
 
 		return ""
 	}
@@ -459,7 +449,7 @@ func handleMessage(update *tgbotapi.Update) {
 				return
 			}
 
-			// First send the sessions list
+			// Build the response with sessions list
 			var response strings.Builder
 			for _, session := range sessions {
 				response.WriteString(fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
@@ -468,18 +458,8 @@ func handleMessage(update *tgbotapi.Update) {
 					session.Description))
 			}
 
-			// Send the sessions message first
-			sessionsMsg := tgbotapi.NewMessage(update.Message.Chat.ID, response.String())
-			if _, err := bot.Send(sessionsMsg); err != nil {
-				sendMessage(update.Message.Chat.ID, "❌ خطا در ارسال لیست جلسات")
-				return
-			}
-
-			// Wait a moment to ensure the sessions message is sent first
-			time.Sleep(500 * time.Millisecond)
-
-			// Then send a separate message with the action buttons
-			buttonsMsg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+			// Create message with sessions list and buttons
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, response.String())
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
 				tgbotapi.NewInlineKeyboardRow(
 					tgbotapi.NewInlineKeyboardButtonData("➕ افزودن جلسه", "add_session"),
@@ -490,8 +470,8 @@ func handleMessage(update *tgbotapi.Update) {
 					tgbotapi.NewInlineKeyboardButtonData("📊 آمار جلسات", "session_stats"),
 				),
 			)
-			buttonsMsg.ReplyMarkup = keyboard
-			bot.Send(buttonsMsg)
+			msg.ReplyMarkup = keyboard
+			bot.Send(msg)
 			return
 		case "🎥 مدیریت ویدیوها":
 			response := handleAdminVideos(admin, []string{})
