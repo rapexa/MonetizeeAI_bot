@@ -198,6 +198,7 @@ func handleAdminSessions(admin *Admin, args []string) string {
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateEditSession
+		return ""
 
 	case "delete":
 		if len(args) < 2 {
