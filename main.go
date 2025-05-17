@@ -166,10 +166,6 @@ func handleMessage(update tgbotapi.Update) {
 			response := performBackup(admin)
 			sendMessage(update.Message.Chat.ID, response)
 			return
-		case "📝 لاگ‌های سیستم":
-			response := handleAdminLogs(admin, []string{})
-			sendMessage(update.Message.Chat.ID, response)
-			return
 		}
 
 		// Send admin keyboard if no command matched
