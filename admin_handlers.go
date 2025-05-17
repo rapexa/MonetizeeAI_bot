@@ -1217,8 +1217,34 @@ func handleAddVideoResponse(admin *Admin, text string) {
 		title, link, sessionNumber)
 	sendMessage(admin.TelegramID, msg)
 
-	// Show video management menu
-	handleAdminVideos(admin, []string{})
+	// Show video management menu with inline keyboard
+	var videos []Video
+	db.Preload("Session").Order("created_at desc").Find(&videos)
+
+	response := "🎥 لیست ویدیوها:\n\n"
+	for _, v := range videos {
+		response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d - %s\n🔗 لینک: %s\n\n",
+			v.ID,
+			v.Title,
+			v.Session.Number,
+			v.Session.Title,
+			v.VideoLink)
+	}
+
+	// Add inline keyboard for actions
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("➕ افزودن ویدیو", "add_video"),
+			tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش ویدیو", "edit_video"),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف ویدیو", "delete_video"),
+			tgbotapi.NewInlineKeyboardButtonData("📊 آمار ویدیوها", "video_stats"),
+		),
+	)
+	msg = tgbotapi.NewMessage(admin.TelegramID, response)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
 }
 
 func handleEditVideoResponse(admin *Admin, response string) {
