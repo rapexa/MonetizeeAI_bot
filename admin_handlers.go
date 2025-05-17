@@ -69,11 +69,6 @@ var adminCommands = []AdminCommand{
 		Description: "✍️ مدیریت تمرین‌ها",
 		Handler:     handleAdminExercises,
 	},
-	{
-		Command:     "/admin_logs",
-		Description: "📝 مشاهده لاگ‌های سیستم",
-		Handler:     handleAdminLogs,
-	},
 }
 
 // Add these at the top of the file after the imports
@@ -129,9 +124,6 @@ func handleAdminUsers(admin *Admin, args []string) string {
 			),
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("📊 آمار کاربران", "user_stats:0"),
-			),
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("📝 لاگ‌های سیستم", "admin_logs"),
 			),
 		)
 		msg := tgbotapi.NewMessage(admin.TelegramID, response)
@@ -213,7 +205,6 @@ func handleAdminSessions(admin *Admin, args []string) string {
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateEditSession
-		return ""
 
 	case "delete":
 		if len(args) < 2 {
@@ -331,69 +322,6 @@ func handleAdminExercises(admin *Admin, args []string) string {
 	default:
 		return "❌ دستور نامعتبر"
 	}
-}
-
-// handleAdminLogs shows system logs
-func handleAdminLogs(admin *Admin, args []string) string {
-	// Get logs directly
-	var actions []AdminAction
-	db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions)
-
-	if len(actions) == 0 {
-		msg := tgbotapi.NewMessage(admin.TelegramID, "📝 هیچ فعالیتی ثبت نشده است")
-		bot.Send(msg)
-		return "📝 هیچ فعالیتی ثبت نشده است"
-	}
-
-	response := "📝 آخرین فعالیت‌های ادمین:\n\n"
-	for _, action := range actions {
-		actionType := action.Action
-		switch action.Action {
-		case "add_session":
-			actionType = "➕ افزودن جلسه"
-		case "edit_session":
-			actionType = "✏️ ویرایش جلسه"
-		case "delete_session":
-			actionType = "🗑️ حذف جلسه"
-		case "add_video":
-			actionType = "➕ افزودن ویدیو"
-		case "edit_video":
-			actionType = "✏️ ویرایش ویدیو"
-		case "delete_video":
-			actionType = "🗑️ حذف ویدیو"
-		case "ban_user":
-			actionType = "🚫 مسدود کردن کاربر"
-		case "unban_user":
-			actionType = "✅ رفع مسدودیت کاربر"
-		}
-
-		response += fmt.Sprintf("👤 ادمین: %s\n📝 عملیات: %s\n📋 جزئیات: %s\n⏰ تاریخ: %s\n\n",
-			action.Admin.Username,
-			actionType,
-			action.Details,
-			action.CreatedAt.Format("2006-01-02 15:04:05"))
-	}
-
-	// Add refresh button
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🔄 بروزرسانی", "refresh_logs"),
-		),
-	)
-
-	msg := tgbotapi.NewMessage(admin.TelegramID, response)
-	msg.ReplyMarkup = keyboard
-	bot.Send(msg)
-	return response
-}
-
-// getAdminByTelegramID returns admin by telegram ID
-func getAdminByTelegramID(telegramID int64) *Admin {
-	var admin Admin
-	if err := db.Where("telegram_id = ?", telegramID).First(&admin).Error; err != nil {
-		return nil
-	}
-	return &admin
 }
 
 // handleCallbackQuery processes callback queries from inline keyboards
@@ -537,70 +465,6 @@ func handleCallbackQuery(update tgbotapi.Update) {
 
 	case "video_stats":
 		handleVideoStats(admin, []string{})
-
-	case "refresh_logs":
-		handleAdminLogs(admin, []string{})
-		// Answer callback query to remove loading state
-		callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
-		bot.Request(callback)
-		return
-
-	case "admin_logs":
-		// Get logs directly
-		var actions []AdminAction
-		db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions)
-
-		if len(actions) == 0 {
-			sendMessage(admin.TelegramID, "📝 هیچ فعالیتی ثبت نشده است")
-			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
-			bot.Request(callback)
-			return
-		}
-
-		response := "📝 آخرین فعالیت‌های ادمین:\n\n"
-		for _, action := range actions {
-			actionType := action.Action
-			switch action.Action {
-			case "add_session":
-				actionType = "➕ افزودن جلسه"
-			case "edit_session":
-				actionType = "✏️ ویرایش جلسه"
-			case "delete_session":
-				actionType = "🗑️ حذف جلسه"
-			case "add_video":
-				actionType = "➕ افزودن ویدیو"
-			case "edit_video":
-				actionType = "✏️ ویرایش ویدیو"
-			case "delete_video":
-				actionType = "🗑️ حذف ویدیو"
-			case "ban_user":
-				actionType = "🚫 مسدود کردن کاربر"
-			case "unban_user":
-				actionType = "✅ رفع مسدودیت کاربر"
-			}
-
-			response += fmt.Sprintf("👤 ادمین: %s\n📝 عملیات: %s\n📋 جزئیات: %s\n⏰ تاریخ: %s\n\n",
-				action.Admin.Username,
-				actionType,
-				action.Details,
-				action.CreatedAt.Format("2006-01-02 15:04:05"))
-		}
-
-		// Add refresh button
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🔄 بروزرسانی", "refresh_logs"),
-			),
-		)
-
-		msg := tgbotapi.NewMessage(admin.TelegramID, response)
-		msg.ReplyMarkup = keyboard
-		bot.Send(msg)
-
-		// Answer callback query to remove loading state
-		callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
-		bot.Request(callback)
-		return
 
 	default:
 		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")
