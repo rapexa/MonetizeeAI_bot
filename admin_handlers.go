@@ -1202,9 +1202,9 @@ func handleAddVideoResponse(admin *Admin, text string) {
 
 	// Create new video
 	video := Video{
-		SessionNumber: sessionNumber,
-		Title:         title,
-		Link:          link,
+		SessionID: uint(sessionNumber),
+		Title:     title,
+		VideoLink: link,
 	}
 
 	if err := db.Create(&video).Error; err != nil {
@@ -1268,7 +1268,7 @@ func handleEditVideoResponse(admin *Admin, response string) {
 	}
 
 	video.Title = strings.TrimSpace(parts[0])
-	video.Link = strings.TrimSpace(parts[1])
+	video.VideoLink = strings.TrimSpace(parts[1])
 
 	if err := db.Save(&video).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ خطا در ویرایش ویدیو")
@@ -1283,7 +1283,7 @@ func handleEditVideoResponse(admin *Admin, response string) {
 		"📚 جلسه: %d - %s",
 		video.ID,
 		video.Title,
-		video.Link,
+		video.VideoLink,
 		video.Session.Number,
 		video.Session.Title)
 
