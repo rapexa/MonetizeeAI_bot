@@ -332,299 +332,54 @@ func handleAdminExercises(admin *Admin, args []string) string {
 
 // handleAdminLogs shows system logs
 func handleAdminLogs(admin *Admin, args []string) string {
-	var actions []AdminAction
-	if err := db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions).Error; err != nil {
-		msg := tgbotapi.NewMessage(admin.TelegramID, "❌ خطا در دریافت لاگ‌ها")
-		bot.Send(msg)
-		return ""
-	}
+	case "📝 لاگ‌های سیستم":
+		// Get logs directly
+		var actions []AdminAction
+		db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions)
 
-	if len(actions) == 0 {
-		msg := tgbotapi.NewMessage(admin.TelegramID, "📝 هیچ فعالیتی ثبت نشده است")
-		bot.Send(msg)
-		return ""
-	}
-
-	var response strings.Builder
-	response.WriteString("📝 آخرین فعالیت‌های ادمین:\n\n")
-
-	for _, action := range actions {
-		// Format the action type for better readability
-		actionType := action.Action
-		switch action.Action {
-		case "add_session":
-			actionType = "➕ افزودن جلسه"
-		case "edit_session":
-			actionType = "✏️ ویرایش جلسه"
-		case "delete_session":
-			actionType = "🗑️ حذف جلسه"
-		case "add_video":
-			actionType = "➕ افزودن ویدیو"
-		case "edit_video":
-			actionType = "✏️ ویرایش ویدیو"
-		case "delete_video":
-			actionType = "🗑️ حذف ویدیو"
-		case "ban_user":
-			actionType = "🚫 مسدود کردن کاربر"
-		case "unban_user":
-			actionType = "✅ رفع مسدودیت کاربر"
-		}
-
-		response.WriteString(fmt.Sprintf("👤 ادمین: %s\n📝 عملیات: %s\n📋 جزئیات: %s\n⏰ تاریخ: %s\n\n",
-			action.Admin.Username,
-			actionType,
-			action.Details,
-			action.CreatedAt.Format("2006-01-02 15:04:05")))
-	}
-
-	// Add inline keyboard for actions
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🔄 بروزرسانی", "refresh_logs"),
-		),
-	)
-
-	msg := tgbotapi.NewMessage(admin.TelegramID, response.String())
-	msg.ReplyMarkup = keyboard
-	if _, err := bot.Send(msg); err != nil {
-		errorMsg := tgbotapi.NewMessage(admin.TelegramID, "❌ خطا در ارسال لاگ‌ها")
-		bot.Send(errorMsg)
-		return ""
-	}
-
-	return ""
-}
-
-// isAdmin checks if a user is an admin
-func isAdmin(telegramID int64) bool {
-	var admin Admin
-	result := db.Where("telegram_id = ? AND is_active = ?", telegramID, true).First(&admin)
-	return result.Error == nil
-}
-
-// getAdmin returns admin by telegram ID
-func getAdmin(telegramID int64) *Admin {
-	var admin Admin
-	if err := db.Where("telegram_id = ?", telegramID).First(&admin).Error; err != nil {
-		return nil
-	}
-	return &admin
-}
-
-func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
-	keyboard := tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("📊 آمار سیستم"),
-			tgbotapi.NewKeyboardButton("💾 پشتیبان‌گیری"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("👥 مدیریت کاربران"),
-			tgbotapi.NewKeyboardButton("📚 مدیریت جلسات"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("🎥 مدیریت ویدیوها"),
-			tgbotapi.NewKeyboardButton("📝 لاگ‌های سیستم"),
-		),
-	)
-	keyboard.ResizeKeyboard = true
-	return keyboard
-}
-
-// handleMessage processes incoming messages
-func handleMessage(update *tgbotapi.Update) {
-	// Check if user is admin
-	admin := getAdminByTelegramID(update.Message.From.ID)
-	if admin != nil {
-		// Check if this is a response to a state prompt
-		if state, exists := adminStates[admin.TelegramID]; exists {
-			switch state {
-			case StateWaitingForUserID:
-				handleUserSearchResponse(admin, update.Message.Text)
-				return
-			case StateWaitingForSessionInfo:
-				handleAddSessionResponse(admin, update.Message.Text)
-				return
-			case StateEditSession:
-				handleSessionNumberResponse(admin, update.Message.Text)
-				return
-			case StateDeleteSession:
-				handleSessionNumberResponse(admin, update.Message.Text)
-				return
-			case StateAddVideo:
-				handleAddVideoResponse(admin, update.Message.Text)
-				return
-			case StateEditVideo:
-				handleEditVideoResponse(admin, update.Message.Text)
-				return
-			case StateDeleteVideo:
-				handleDeleteVideoResponse(admin, update.Message.Text)
-				return
-			}
-
-			// Check if this is an edit session info response
-			if strings.HasPrefix(state, "edit_session:") {
-				handleEditSessionInfo(admin, update.Message.Text)
-				return
-			}
-
-			// Check if this is an edit video response
-			if strings.HasPrefix(state, "edit_video:") {
-				handleEditVideoResponse(admin, update.Message.Text)
-				return
-			}
-		}
-
-		// Handle admin commands
-		if update.Message.IsCommand() {
-			switch update.Message.Command() {
-			case "start":
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "به پنل مدیریت خوش اومدین از دکمه های زیر میتونید به سیستم دسترسی داشته باشید")
-				msg.ReplyMarkup = getAdminKeyboard()
-				bot.Send(msg)
-				return
-			case "help":
-				sendMessage(update.Message.Chat.ID, "من اینجا هستم تا در سفر دوره مونیتایز به شما کمک کنم. از دکمه‌های منو برای پیمایش در دوره استفاده کنید.")
-				return
-			}
-		}
-
-		// Handle admin menu buttons
-		switch update.Message.Text {
-		case "📊 آمار سیستم":
-			response := handleAdminStats(admin, []string{})
-			sendMessage(update.Message.Chat.ID, response)
-			return
-		case "👥 مدیریت کاربران":
-			response := handleAdminUsers(admin, []string{})
-			sendMessage(update.Message.Chat.ID, response)
-			return
-		case "📚 مدیریت جلسات":
-			var sessions []Session
-			if err := db.Order("number desc").Limit(12).Find(&sessions).Error; err != nil {
-				sendMessage(update.Message.Chat.ID, "❌ خطا در دریافت لیست جلسات")
-				return
-			}
-
-			// Build the response with sessions list
-			var response strings.Builder
-			for _, session := range sessions {
-				response.WriteString(fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
-					session.Number,
-					session.Title,
-					session.Description))
-			}
-
-			// Create message with sessions list and buttons
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, response.String())
-			keyboard := tgbotapi.NewInlineKeyboardMarkup(
-				tgbotapi.NewInlineKeyboardRow(
-					tgbotapi.NewInlineKeyboardButtonData("➕ افزودن جلسه", "add_session"),
-					tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش جلسه", "edit_session"),
-				),
-				tgbotapi.NewInlineKeyboardRow(
-					tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف جلسه", "delete_session"),
-					tgbotapi.NewInlineKeyboardButtonData("📊 آمار جلسات", "session_stats"),
-				),
-			)
-			msg.ReplyMarkup = keyboard
-			bot.Send(msg)
-			return
-		case "🎥 مدیریت ویدیوها":
-			var videos []Video
-			db.Preload("Session").Order("created_at desc").Find(&videos)
-
-			response := "🎥 لیست ویدیوها:\n\n"
-			for _, video := range videos {
-				response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d - %s\n🔗 لینک: %s\n\n",
-					video.ID,
-					video.Title,
-					video.Session.Number,
-					video.Session.Title,
-					video.VideoLink)
-			}
-
-			// Add inline keyboard for actions
-			keyboard := tgbotapi.NewInlineKeyboardMarkup(
-				tgbotapi.NewInlineKeyboardRow(
-					tgbotapi.NewInlineKeyboardButtonData("➕ افزودن ویدیو", "add_video"),
-					tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش ویدیو", "edit_video"),
-				),
-				tgbotapi.NewInlineKeyboardRow(
-					tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف ویدیو", "delete_video"),
-					tgbotapi.NewInlineKeyboardButtonData("📊 آمار ویدیوها", "video_stats"),
-				),
-			)
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, response)
-			msg.ReplyMarkup = keyboard
-			bot.Send(msg)
-			return
-		case "💾 پشتیبان‌گیری":
-			response := performBackup(admin)
-			sendMessage(update.Message.Chat.ID, response)
-			return
-		case "📝 لاگ‌های سیستم":
-			// Clear any existing state
-			delete(adminStates, admin.TelegramID)
-			// Handle system logs directly
-			var actions []AdminAction
-			if err := db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions).Error; err != nil {
-				sendMessage(admin.TelegramID, "❌ خطا در دریافت لاگ‌ها")
-				return
-			}
-
-			if len(actions) == 0 {
-				sendMessage(admin.TelegramID, "📝 هیچ فعالیتی ثبت نشده است")
-				return
-			}
-
-			var response strings.Builder
-			response.WriteString("📝 آخرین فعالیت‌های ادمین:\n\n")
-
-			for _, action := range actions {
-				// Format the action type for better readability
-				actionType := action.Action
-				switch action.Action {
-				case "add_session":
-					actionType = "➕ افزودن جلسه"
-				case "edit_session":
-					actionType = "✏️ ویرایش جلسه"
-				case "delete_session":
-					actionType = "🗑️ حذف جلسه"
-				case "add_video":
-					actionType = "➕ افزودن ویدیو"
-				case "edit_video":
-					actionType = "✏️ ویرایش ویدیو"
-				case "delete_video":
-					actionType = "🗑️ حذف ویدیو"
-				case "ban_user":
-					actionType = "🚫 مسدود کردن کاربر"
-				case "unban_user":
-					actionType = "✅ رفع مسدودیت کاربر"
-				}
-
-				response.WriteString(fmt.Sprintf("👤 ادمین: %s\n📝 عملیات: %s\n📋 جزئیات: %s\n⏰ تاریخ: %s\n\n",
-					action.Admin.Username,
-					actionType,
-					action.Details,
-					action.CreatedAt.Format("2006-01-02 15:04:05")))
-			}
-
-			// Add inline keyboard for actions
-			keyboard := tgbotapi.NewInlineKeyboardMarkup(
-				tgbotapi.NewInlineKeyboardRow(
-					tgbotapi.NewInlineKeyboardButtonData("🔄 بروزرسانی", "refresh_logs"),
-				),
-			)
-
-			msg := tgbotapi.NewMessage(admin.TelegramID, response.String())
-			msg.ReplyMarkup = keyboard
-			bot.Send(msg)
+		if len(actions) == 0 {
+			sendMessage(admin.TelegramID, "📝 هیچ فعالیتی ثبت نشده است")
 			return
 		}
 
-		// Send admin keyboard if no command matched
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "منوی ادمین:")
-		msg.ReplyMarkup = getAdminKeyboard()
+		response := "📝 آخرین فعالیت‌های ادمین:\n\n"
+		for _, action := range actions {
+			actionType := action.Action
+			switch action.Action {
+			case "add_session":
+				actionType = "➕ افزودن جلسه"
+			case "edit_session":
+				actionType = "✏️ ویرایش جلسه"
+			case "delete_session":
+				actionType = "��️ حذف جلسه"
+			case "add_video":
+				actionType = "➕ افزودن ویدیو"
+			case "edit_video":
+				actionType = "✏️ ویرایش ویدیو"
+			case "delete_video":
+				actionType = "🗑️ حذف ویدیو"
+			case "ban_user":
+				actionType = "🚫 مسدود کردن کاربر"
+			case "unban_user":
+				actionType = "✅ رفع مسدودیت کاربر"
+			}
+
+			response += fmt.Sprintf("👤 ادمین: %s\n📝 عملیات: %s\n📋 جزئیات: %s\n⏰ تاریخ: %s\n\n",
+				action.Admin.Username,
+				actionType,
+				action.Details,
+				action.CreatedAt.Format("2006-01-02 15:04:05"))
+		}
+
+		// Add refresh button
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🔄 بروزرسانی", "refresh_logs"),
+			),
+		)
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
+		msg.ReplyMarkup = keyboard
 		bot.Send(msg)
 		return
 	}
