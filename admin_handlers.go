@@ -205,6 +205,7 @@ func handleAdminSessions(admin *Admin, args []string) string {
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateEditSession
+		return "لطفا شماره جلسه مورد نظر را وارد کنید"
 
 	case "delete":
 		if len(args) < 2 {

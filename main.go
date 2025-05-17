@@ -204,12 +204,13 @@ func handleMessage(update tgbotapi.Update) {
 		case "help":
 			sendMessage(update.Message.Chat.ID, "من اینجا هستم تا در سفر دوره مونیتایز به شما کمک کنم. از دکمه‌های منو برای پیمایش در دوره استفاده کنید.")
 			return
-		case "/admin_exercises":
-			if isAdmin {
-				handleAdminExercises(admin, args)
+		case "admin_exercises":
+			if admin != nil {
+				handleAdminExercises(admin, []string{})
 			} else {
 				sendMessage(update.Message.Chat.ID, "❌ شما دسترسی به این بخش را ندارید")
 			}
+			return
 		}
 	}
 
