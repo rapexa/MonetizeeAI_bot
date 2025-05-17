@@ -351,7 +351,7 @@ func handleAdminLogs(admin *Admin, args []string) string {
 			case "edit_session":
 				actionType = "✏️ ویرایش جلسه"
 			case "delete_session":
-				actionType = "��️ حذف جلسه"
+				actionType = "🗑️ حذف جلسه"
 			case "add_video":
 				actionType = "➕ افزودن ویدیو"
 			case "edit_video":
