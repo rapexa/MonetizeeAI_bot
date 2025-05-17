@@ -1332,8 +1332,18 @@ func handleEditSessionInfo(admin *Admin, response string) {
 
 	title := strings.TrimSpace(parts[0])
 	description := strings.TrimSpace(parts[1])
-	sessionNum, err := strconv.Atoi(strings.TrimSpace(parts[2]))
-	if err != nil {
+	sessionNumStr := strings.TrimSpace(parts[2])
+
+	// Remove any non-numeric characters from session number
+	sessionNumStr = strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, sessionNumStr)
+
+	sessionNum, err := strconv.Atoi(sessionNumStr)
+	if err != nil || sessionNum <= 0 {
 		sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
 		return
 	}
