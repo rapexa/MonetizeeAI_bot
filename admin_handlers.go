@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"gorm.io/gorm"
 )
 
 // Add these constants at the top of the file
@@ -75,6 +76,16 @@ var adminCommands = []AdminCommand{
 	},
 }
 
+// Add these at the top of the file after the imports
+var adminStates = make(map[int64]string)
+
+// Add this helper function
+func isNewUser(telegramID int64) bool {
+	var user User
+	result := db.Where("telegram_id = ?", telegramID).First(&user)
+	return result.Error == gorm.ErrRecordNotFound
+}
+
 // handleAdminCommand processes admin commands
 func handleAdminCommand(admin *Admin, command string, args []string) string {
 	for _, cmd := range adminCommands {
@@ -111,10 +122,12 @@ func handleAdminUsers(admin *Admin, args []string) string {
 				user.CreatedAt.Format("2006-01-02 15:04:05"))
 		}
 
-		// Add inline keyboard for actions
+		// Add inline keyboard for actions - Search button first
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("🔍 جستجوی کاربر", "search_user:0"),
+			),
+			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("📊 آمار کاربران", "user_stats:0"),
 			),
 		)
