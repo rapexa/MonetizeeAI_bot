@@ -408,6 +408,12 @@ func handleMessage(update *tgbotapi.Update) {
 				handleDeleteVideoResponse(admin, update.Message.Text)
 				return
 			}
+
+			// Check if this is an edit session info response
+			if strings.HasPrefix(state, "edit_session:") {
+				handleEditSessionInfo(admin, update.Message.Text)
+				return
+			}
 		}
 
 		// Handle admin commands
@@ -1352,7 +1358,7 @@ func handleEditSessionInfo(admin *Admin, response string) {
 
 	// Update session
 	var session Session
-	if err := db.First(&session, sessionNum).Error; err != nil {
+	if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
 		return
 	}
