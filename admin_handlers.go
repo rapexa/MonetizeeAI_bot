@@ -130,6 +130,9 @@ func handleAdminUsers(admin *Admin, args []string) string {
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("📊 آمار کاربران", "user_stats:0"),
 			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("📝 لاگ‌های سیستم", "admin_logs"),
+			),
 		)
 		msg := tgbotapi.NewMessage(admin.TelegramID, response)
 		msg.ReplyMarkup = keyboard
@@ -337,7 +340,8 @@ func handleAdminLogs(admin *Admin, args []string) string {
 	db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions)
 
 	if len(actions) == 0 {
-		sendMessage(admin.TelegramID, "📝 هیچ فعالیتی ثبت نشده است")
+		msg := tgbotapi.NewMessage(admin.TelegramID, "📝 هیچ فعالیتی ثبت نشده است")
+		bot.Send(msg)
 		return "📝 هیچ فعالیتی ثبت نشده است"
 	}
 
