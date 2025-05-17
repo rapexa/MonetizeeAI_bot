@@ -333,7 +333,11 @@ func handleAdminExercises(admin *Admin, args []string) string {
 // handleAdminLogs shows system logs
 func handleAdminLogs(admin *Admin, args []string) string {
 	var actions []AdminAction
-	db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions)
+	if err := db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions).Error; err != nil {
+		msg := tgbotapi.NewMessage(admin.TelegramID, "❌ خطا در دریافت لاگ‌ها")
+		bot.Send(msg)
+		return ""
+	}
 
 	if len(actions) == 0 {
 		msg := tgbotapi.NewMessage(admin.TelegramID, "📝 هیچ فعالیتی ثبت نشده است")
@@ -341,7 +345,9 @@ func handleAdminLogs(admin *Admin, args []string) string {
 		return ""
 	}
 
-	response := "📝 آخرین فعالیت‌های ادمین:\n\n"
+	var response strings.Builder
+	response.WriteString("📝 آخرین فعالیت‌های ادمین:\n\n")
+
 	for _, action := range actions {
 		// Format the action type for better readability
 		actionType := action.Action
@@ -364,11 +370,11 @@ func handleAdminLogs(admin *Admin, args []string) string {
 			actionType = "✅ رفع مسدودیت کاربر"
 		}
 
-		response += fmt.Sprintf("👤 ادمین: %s\n📝 عملیات: %s\n📋 جزئیات: %s\n⏰ تاریخ: %s\n\n",
+		response.WriteString(fmt.Sprintf("👤 ادمین: %s\n📝 عملیات: %s\n📋 جزئیات: %s\n⏰ تاریخ: %s\n\n",
 			action.Admin.Username,
 			actionType,
 			action.Details,
-			action.CreatedAt.Format("2006-01-02 15:04:05"))
+			action.CreatedAt.Format("2006-01-02 15:04:05")))
 	}
 
 	// Add inline keyboard for actions
@@ -377,9 +383,14 @@ func handleAdminLogs(admin *Admin, args []string) string {
 			tgbotapi.NewInlineKeyboardButtonData("🔄 بروزرسانی", "refresh_logs"),
 		),
 	)
-	msg := tgbotapi.NewMessage(admin.TelegramID, response)
+
+	msg := tgbotapi.NewMessage(admin.TelegramID, response.String())
 	msg.ReplyMarkup = keyboard
-	bot.Send(msg)
+	if _, err := bot.Send(msg); err != nil {
+		errorMsg := tgbotapi.NewMessage(admin.TelegramID, "❌ خطا در ارسال لاگ‌ها")
+		bot.Send(errorMsg)
+		return ""
+	}
 
 	return ""
 }
