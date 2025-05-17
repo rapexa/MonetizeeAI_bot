@@ -210,7 +210,6 @@ func handleAdminSessions(admin *Admin, args []string) string {
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateEditSession
-		return "لطفا شماره جلسه مورد نظر را وارد کنید"
 
 	case "delete":
 		if len(args) < 2 {
@@ -404,18 +403,6 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateDeleteSession
 
-	case "session_stats":
-		handleSessionStats(admin, []string{})
-
-	case "user_stats":
-		handleUserStats(admin, []string{})
-
-	case "ban":
-		handleBanUser(admin, param)
-
-	case "unban":
-		handleUnbanUser(admin, param)
-
 	case "add_video":
 		// Show list of sessions first
 		var sessions []Session
@@ -473,8 +460,17 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateDeleteVideo
 
+	case "session_stats":
+		handleSessionStats(admin, []string{})
+
 	case "video_stats":
 		handleVideoStats(admin, []string{})
+
+	case "ban":
+		handleBanUser(admin, param)
+
+	case "unban":
+		handleUnbanUser(admin, param)
 
 	default:
 		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")

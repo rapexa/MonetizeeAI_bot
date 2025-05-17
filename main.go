@@ -151,6 +151,30 @@ func handleMessage(update tgbotapi.Update) {
 			case StateWaitingForUserID:
 				handleUserSearchResponse(admin, update.Message.Text)
 				return
+			case StateWaitingForSessionInfo:
+				handleAddSessionResponse(admin, update.Message.Text)
+				return
+			case StateEditSession:
+				handleSessionNumberResponse(admin, update.Message.Text)
+				return
+			case StateDeleteSession:
+				handleSessionNumberResponse(admin, update.Message.Text)
+				return
+			case StateAddVideo:
+				handleAddVideoResponse(admin, update.Message.Text)
+				return
+			case StateEditVideo:
+				handleEditVideoResponse(admin, update.Message.Text)
+				return
+			case StateDeleteVideo:
+				handleDeleteVideoResponse(admin, update.Message.Text)
+				return
+			}
+
+			// Handle states with parameters
+			if strings.HasPrefix(state, "edit_session:") {
+				handleEditSessionInfo(admin, update.Message.Text)
+				return
 			}
 		}
 
