@@ -384,8 +384,11 @@ func handleMessage(update *tgbotapi.Update) {
 	// Check if user is admin
 	admin := getAdminByTelegramID(update.Message.From.ID)
 	if admin != nil {
+		fmt.Printf("Admin message received: %s\n", update.Message.Text) // Debug log
+
 		// Check if this is a response to a state prompt
 		if state, exists := adminStates[admin.TelegramID]; exists {
+			fmt.Printf("Admin state exists: %s\n", state) // Debug log
 			switch state {
 			case StateWaitingForUserID:
 				handleUserSearchResponse(admin, update.Message.Text)
@@ -419,6 +422,7 @@ func handleMessage(update *tgbotapi.Update) {
 
 		// Handle admin commands
 		if update.Message.IsCommand() {
+			fmt.Printf("Admin command received: %s\n", update.Message.Command()) // Debug log
 			switch update.Message.Command() {
 			case "start":
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "به پنل مدیریت خوش اومدین از دکمه های زیر میتونید به سیستم دسترسی داشته باشید")
@@ -432,6 +436,7 @@ func handleMessage(update *tgbotapi.Update) {
 		}
 
 		// Handle admin menu buttons
+		fmt.Printf("Checking admin menu button: %s\n", update.Message.Text) // Debug log
 		switch update.Message.Text {
 		case "📊 آمار سیستم":
 			response := handleAdminStats(admin, []string{})
@@ -442,8 +447,13 @@ func handleMessage(update *tgbotapi.Update) {
 			sendMessage(update.Message.Chat.ID, response)
 			return
 		case "📚 مدیریت جلسات":
+			fmt.Printf("Session management button clicked\n") // Debug log
 			var sessions []Session
-			db.Order("number desc").Find(&sessions)
+			if err := db.Order("number desc").Find(&sessions).Error; err != nil {
+				fmt.Printf("Error fetching sessions: %v\n", err) // Debug log
+				sendMessage(update.Message.Chat.ID, "❌ خطا در دریافت لیست جلسات")
+				return
+			}
 
 			response := "📚 آخرین جلسات:\n\n"
 			for _, session := range sessions {
@@ -466,7 +476,11 @@ func handleMessage(update *tgbotapi.Update) {
 			)
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, response)
 			msg.ReplyMarkup = keyboard
-			bot.Send(msg)
+			if _, err := bot.Send(msg); err != nil {
+				fmt.Printf("Error sending session list: %v\n", err) // Debug log
+				sendMessage(update.Message.Chat.ID, "❌ خطا در ارسال لیست جلسات")
+				return
+			}
 			return
 		case "🎥 مدیریت ویدیوها":
 			response := handleAdminVideos(admin, []string{})
