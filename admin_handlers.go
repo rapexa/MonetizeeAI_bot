@@ -448,13 +448,26 @@ func handleMessage(update *tgbotapi.Update) {
 			return
 		case "📚 مدیریت جلسات":
 			var sessions []Session
-			if err := db.Order("number desc").Find(&sessions).Error; err != nil {
+			if err := db.Order("number desc").Limit(12).Find(&sessions).Error; err != nil {
 				sendMessage(update.Message.Chat.ID, "❌ خطا در دریافت لیست جلسات")
 				return
 			}
 
-			// Send header message with buttons
-			headerMsg := tgbotapi.NewMessage(update.Message.Chat.ID, "📚 آخرین جلسات:")
+			// First send the sessions list
+			var response strings.Builder
+			for _, session := range sessions {
+				response.WriteString(fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
+					session.Number,
+					session.Title,
+					session.Description))
+			}
+
+			// Send the sessions message first
+			sessionsMsg := tgbotapi.NewMessage(update.Message.Chat.ID, response.String())
+			bot.Send(sessionsMsg)
+
+			// Then send a separate message with the action buttons
+			buttonsMsg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
 				tgbotapi.NewInlineKeyboardRow(
 					tgbotapi.NewInlineKeyboardButtonData("➕ افزودن جلسه", "add_session"),
@@ -465,30 +478,8 @@ func handleMessage(update *tgbotapi.Update) {
 					tgbotapi.NewInlineKeyboardButtonData("📊 آمار جلسات", "session_stats"),
 				),
 			)
-			headerMsg.ReplyMarkup = keyboard
-			bot.Send(headerMsg)
-
-			// Send sessions in chunks
-			var currentChunk strings.Builder
-			for i, session := range sessions {
-				sessionText := fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
-					session.Number,
-					session.Title,
-					session.Description)
-
-				if currentChunk.Len()+len(sessionText) > 3000 {
-					chunkMsg := tgbotapi.NewMessage(update.Message.Chat.ID, currentChunk.String())
-					bot.Send(chunkMsg)
-					currentChunk.Reset()
-				}
-
-				currentChunk.WriteString(sessionText)
-
-				if i == len(sessions)-1 && currentChunk.Len() > 0 {
-					chunkMsg := tgbotapi.NewMessage(update.Message.Chat.ID, currentChunk.String())
-					bot.Send(chunkMsg)
-				}
-			}
+			buttonsMsg.ReplyMarkup = keyboard
+			bot.Send(buttonsMsg)
 			return
 		case "🎥 مدیریت ویدیوها":
 			response := handleAdminVideos(admin, []string{})
