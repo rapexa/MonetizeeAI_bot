@@ -444,12 +444,6 @@ func handleMessage(update *tgbotapi.Update) {
 				return
 			}
 
-			// Check if this is an add video response
-			if strings.HasPrefix(state, "add_video:") {
-				handleAddVideoResponse(admin, update.Message.Text)
-				return
-			}
-
 			// Check if this is an edit video response
 			if strings.HasPrefix(state, "edit_video:") {
 				handleEditVideoResponse(admin, update.Message.Text)
@@ -513,8 +507,33 @@ func handleMessage(update *tgbotapi.Update) {
 			bot.Send(msg)
 			return
 		case "🎥 مدیریت ویدیوها":
-			response := handleAdminVideos(admin, []string{})
-			sendMessage(update.Message.Chat.ID, response)
+			var videos []Video
+			db.Preload("Session").Order("created_at desc").Find(&videos)
+
+			response := "🎥 لیست ویدیوها:\n\n"
+			for _, video := range videos {
+				response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d - %s\n🔗 لینک: %s\n\n",
+					video.ID,
+					video.Title,
+					video.Session.Number,
+					video.Session.Title,
+					video.VideoLink)
+			}
+
+			// Add inline keyboard for actions
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("➕ افزودن ویدیو", "add_video"),
+					tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش ویدیو", "edit_video"),
+				),
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف ویدیو", "delete_video"),
+					tgbotapi.NewInlineKeyboardButtonData("📊 آمار ویدیوها", "video_stats"),
+				),
+			)
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, response)
+			msg.ReplyMarkup = keyboard
+			bot.Send(msg)
 			return
 		case "💾 پشتیبان‌گیری":
 			response := performBackup(admin)
