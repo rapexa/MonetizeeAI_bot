@@ -369,7 +369,17 @@ func handleAdminLogs(admin *Admin, args []string) string {
 			action.CreatedAt.Format("2006-01-02 15:04:05"))
 	}
 
-	return response
+	// Add inline keyboard for actions
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("🔄 بروزرسانی", "refresh_logs"),
+		),
+	)
+	msg := tgbotapi.NewMessage(admin.TelegramID, response)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+
+	return ""
 }
 
 // isAdmin checks if a user is an admin
@@ -739,6 +749,9 @@ func handleCallbackQuery(update tgbotapi.Update) {
 
 	case "video_stats":
 		handleVideoStats(admin, []string{})
+
+	case "refresh_logs":
+		handleAdminLogs(admin, []string{})
 
 	default:
 		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")
