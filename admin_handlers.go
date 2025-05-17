@@ -562,11 +562,63 @@ func handleMessage(update *tgbotapi.Update) {
 			response := performBackup(admin)
 			sendMessage(update.Message.Chat.ID, response)
 			return
-		case "�� لاگ‌های سیستم":
+		case "📝 لاگ‌های سیستم":
 			// Clear any existing state
 			delete(adminStates, admin.TelegramID)
-			// Handle system logs
-			handleAdminLogs(admin, []string{})
+			// Handle system logs directly
+			var actions []AdminAction
+			if err := db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions).Error; err != nil {
+				sendMessage(admin.TelegramID, "❌ خطا در دریافت لاگ‌ها")
+				return
+			}
+
+			if len(actions) == 0 {
+				sendMessage(admin.TelegramID, "📝 هیچ فعالیتی ثبت نشده است")
+				return
+			}
+
+			var response strings.Builder
+			response.WriteString("📝 آخرین فعالیت‌های ادمین:\n\n")
+
+			for _, action := range actions {
+				// Format the action type for better readability
+				actionType := action.Action
+				switch action.Action {
+				case "add_session":
+					actionType = "➕ افزودن جلسه"
+				case "edit_session":
+					actionType = "✏️ ویرایش جلسه"
+				case "delete_session":
+					actionType = "🗑️ حذف جلسه"
+				case "add_video":
+					actionType = "➕ افزودن ویدیو"
+				case "edit_video":
+					actionType = "✏️ ویرایش ویدیو"
+				case "delete_video":
+					actionType = "🗑️ حذف ویدیو"
+				case "ban_user":
+					actionType = "🚫 مسدود کردن کاربر"
+				case "unban_user":
+					actionType = "✅ رفع مسدودیت کاربر"
+				}
+
+				response.WriteString(fmt.Sprintf("👤 ادمین: %s\n📝 عملیات: %s\n📋 جزئیات: %s\n⏰ تاریخ: %s\n\n",
+					action.Admin.Username,
+					actionType,
+					action.Details,
+					action.CreatedAt.Format("2006-01-02 15:04:05")))
+			}
+
+			// Add inline keyboard for actions
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("🔄 بروزرسانی", "refresh_logs"),
+				),
+			)
+
+			msg := tgbotapi.NewMessage(admin.TelegramID, response.String())
+			msg.ReplyMarkup = keyboard
+			bot.Send(msg)
 			return
 		}
 
