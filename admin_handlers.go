@@ -888,7 +888,7 @@ func handleSessionNumberResponse(admin *Admin, response string) {
 	}
 
 	var session Session
-	if err := db.First(&session, sessionNum).Error; err != nil {
+	if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
 		return
 	}
