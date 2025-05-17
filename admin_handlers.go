@@ -976,3 +976,64 @@ func handleDeleteVideoResponse(admin *Admin, input string) {
 	sendMessage(admin.TelegramID, fmt.Sprintf("✅ ویدیو با موفقیت حذف شد"))
 	delete(adminStates, admin.TelegramID)
 }
+
+// handleEditSessionInfo processes edit session info response
+func handleEditSessionInfo(admin *Admin, input string) {
+	parts := strings.Split(input, "|")
+	if len(parts) != 2 {
+		sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|توضیحات")
+		return
+	}
+
+	// Extract session ID from state
+	stateParts := strings.Split(adminStates[admin.TelegramID], ":")
+	if len(stateParts) != 2 {
+		sendMessage(admin.TelegramID, "❌ خطا در پردازش اطلاعات")
+		delete(adminStates, admin.TelegramID)
+		return
+	}
+
+	sessionID, err := strconv.ParseUint(stateParts[1], 10, 32)
+	if err != nil {
+		sendMessage(admin.TelegramID, "❌ خطا در پردازش اطلاعات")
+		delete(adminStates, admin.TelegramID)
+		return
+	}
+
+	// Update session
+	var session Session
+	if err := db.First(&session, sessionID).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
+		delete(adminStates, admin.TelegramID)
+		return
+	}
+
+	session.Title = parts[0]
+	session.Description = parts[1]
+
+	if err := db.Save(&session).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ خطا در ویرایش جلسه")
+		delete(adminStates, admin.TelegramID)
+		return
+	}
+
+	response := fmt.Sprintf("✅ جلسه با موفقیت ویرایش شد:\n\n"+
+		"📚 شماره جلسه: %d\n"+
+		"📝 عنوان: %s\n"+
+		"📄 توضیحات: %s",
+		session.Number, session.Title, session.Description)
+
+	// Add inline keyboard for quick actions
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش مجدد", fmt.Sprintf("edit_session:%d", session.ID)),
+			tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف جلسه", fmt.Sprintf("delete_session:%d", session.ID)),
+		),
+	)
+
+	msg := tgbotapi.NewMessage(admin.TelegramID, response)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+
+	delete(adminStates, admin.TelegramID)
+}
