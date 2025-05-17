@@ -149,7 +149,7 @@ func handleAdminUsers(admin *Admin, args []string) string {
 func handleAdminSessions(admin *Admin, args []string) string {
 	if len(args) == 0 {
 		var sessions []Session
-		db.Order("number desc").Limit(5).Find(&sessions) // Only get 5 most recent sessions
+		db.Order("number desc").Limit(12).Find(&sessions) // Get last 12 sessions
 
 		// First send the sessions list
 		var response strings.Builder
@@ -161,11 +161,11 @@ func handleAdminSessions(admin *Admin, args []string) string {
 				session.Description))
 		}
 
-		// Send the sessions message
+		// Send the sessions message first
 		sessionsMsg := tgbotapi.NewMessage(admin.TelegramID, response.String())
 		bot.Send(sessionsMsg)
 
-		// Send a separate message with the action buttons
+		// Then send a separate message with the action buttons
 		buttonsMsg := tgbotapi.NewMessage(admin.TelegramID, "از دکمه‌های زیر برای مدیریت جلسات استفاده کنید:")
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
