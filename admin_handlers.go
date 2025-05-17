@@ -162,7 +162,13 @@ func handleAdminSessions(admin *Admin, args []string) string {
 
 		// Send the sessions message first
 		sessionsMsg := tgbotapi.NewMessage(admin.TelegramID, response.String())
-		bot.Send(sessionsMsg)
+		if _, err := bot.Send(sessionsMsg); err != nil {
+			sendMessage(admin.TelegramID, "❌ خطا در ارسال لیست جلسات")
+			return ""
+		}
+
+		// Wait a moment to ensure the sessions message is sent first
+		time.Sleep(500 * time.Millisecond)
 
 		// Then send a separate message with the action buttons
 		buttonsMsg := tgbotapi.NewMessage(admin.TelegramID, "")
@@ -464,7 +470,13 @@ func handleMessage(update *tgbotapi.Update) {
 
 			// Send the sessions message first
 			sessionsMsg := tgbotapi.NewMessage(update.Message.Chat.ID, response.String())
-			bot.Send(sessionsMsg)
+			if _, err := bot.Send(sessionsMsg); err != nil {
+				sendMessage(update.Message.Chat.ID, "❌ خطا در ارسال لیست جلسات")
+				return
+			}
+
+			// Wait a moment to ensure the sessions message is sent first
+			time.Sleep(500 * time.Millisecond)
 
 			// Then send a separate message with the action buttons
 			buttonsMsg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
@@ -714,7 +726,7 @@ func handleBanUser(admin *Admin, userID string) {
 	}
 
 	// Send notification to the blocked user
-	blockMsg := tgbotapi.NewMessage(user.TelegramID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n\n📞 "+SUPPORT_NUMBER)
+	blockMsg := tgbotapi.NewMessage(user.TelegramID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n\n�� "+SUPPORT_NUMBER)
 	blockMsg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 	bot.Send(blockMsg)
 
