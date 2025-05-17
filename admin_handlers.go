@@ -1259,84 +1259,117 @@ func handleAddVideoResponse(admin *Admin, text string) {
 	delete(adminStates, admin.TelegramID)
 }
 
-func handleEditVideoResponse(admin *Admin, response string) {
-	// Check if this is the first step (video ID)
-	if !strings.Contains(response, "|") {
-		videoID, err := strconv.Atoi(strings.TrimSpace(response))
+// handleEditVideoResponse processes the response for editing a video
+func handleEditVideoResponse(admin *Admin, text string) {
+	state := adminStates[admin.TelegramID]
+
+	// If state is just "edit_video", this is the first step (selecting video)
+	if state == "edit_video" {
+		// Parse video ID
+		videoID, err := strconv.Atoi(strings.TrimSpace(text))
 		if err != nil {
-			sendMessage(admin.TelegramID, "❌ آیدی ویدیو نامعتبر است")
+			sendMessage(admin.TelegramID, "❌ لطفا یک آیدی معتبر وارد کنید")
 			return
 		}
 
 		// Check if video exists
 		var video Video
 		if err := db.Preload("Session").First(&video, videoID).Error; err != nil {
-			sendMessage(admin.TelegramID, "❌ ویدیو یافت نشد")
+			sendMessage(admin.TelegramID, "❌ ویدیو مورد نظر یافت نشد")
 			return
 		}
 
-		// Store video ID in state
+		// Store video ID in state for next step
 		adminStates[admin.TelegramID] = fmt.Sprintf("edit_video:%d", videoID)
-		msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش ویدیو %d:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", videoID))
-		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		sendMessage(admin.TelegramID, fmt.Sprintf("📝 لطفا عنوان و لینک جدید ویدیو را به فرمت زیر وارد کنید:\nعنوان|لینک\n\nاطلاعات فعلی:\nعنوان: %s\nلینک: %s",
+			video.Title, video.VideoLink))
+		return
+	}
+
+	// This is the second step (entering new video details)
+	if strings.HasPrefix(state, "edit_video:") {
+		parts := strings.Split(state, ":")
+		if len(parts) != 2 {
+			sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
+			delete(adminStates, admin.TelegramID)
+			return
+		}
+
+		videoID, err := strconv.Atoi(parts[1])
+		if err != nil {
+			sendMessage(admin.TelegramID, "❌ خطا در پردازش آیدی ویدیو")
+			delete(adminStates, admin.TelegramID)
+			return
+		}
+
+		// Parse video details
+		videoParts := strings.Split(text, "|")
+		if len(videoParts) != 2 {
+			sendMessage(admin.TelegramID, "❌ لطفا اطلاعات را به فرمت صحیح وارد کنید:\nعنوان|لینک")
+			return
+		}
+
+		title := strings.TrimSpace(videoParts[0])
+		link := strings.TrimSpace(videoParts[1])
+
+		// Update video
+		var video Video
+		if err := db.Preload("Session").First(&video, videoID).Error; err != nil {
+			sendMessage(admin.TelegramID, "❌ ویدیو مورد نظر یافت نشد")
+			delete(adminStates, admin.TelegramID)
+			return
+		}
+
+		video.Title = title
+		video.VideoLink = link
+
+		if err := db.Save(&video).Error; err != nil {
+			sendMessage(admin.TelegramID, "❌ خطا در ویرایش ویدیو")
+			delete(adminStates, admin.TelegramID)
+			return
+		}
+
+		// Send confirmation message
+		confirmationMsg := fmt.Sprintf("✅ ویدیو با موفقیت ویرایش شد\n\n📝 عنوان: %s\n🔗 لینک: %s\n📚 جلسه: %d - %s",
+			title, link, video.Session.Number, video.Session.Title)
+		sendMessage(admin.TelegramID, confirmationMsg)
+
+		// Show video management menu with inline keyboard
+		var videos []Video
+		db.Preload("Session").Order("created_at desc").Find(&videos)
+
+		videoListMsg := "🎥 لیست ویدیوها:\n\n"
+		for _, v := range videos {
+			videoListMsg += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d - %s\n🔗 لینک: %s\n\n",
+				v.ID,
+				v.Title,
+				v.Session.Number,
+				v.Session.Title,
+				v.VideoLink)
+		}
+
+		// Add inline keyboard for actions
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("➕ افزودن ویدیو", "add_video"),
+				tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش ویدیو", "edit_video"),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف ویدیو", "delete_video"),
+				tgbotapi.NewInlineKeyboardButtonData("📊 آمار ویدیوها", "video_stats"),
+			),
+		)
+		msg := tgbotapi.NewMessage(admin.TelegramID, videoListMsg)
+		msg.ReplyMarkup = keyboard
 		bot.Send(msg)
+
+		// Clear the admin state after successful video edit
+		delete(adminStates, admin.TelegramID)
 		return
 	}
 
-	// This is the second step (new video info)
-	parts := strings.Split(response, "|")
-	if len(parts) != 2 {
-		sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو")
-		return
-	}
-
-	// Get video ID from state
-	stateParts := strings.Split(adminStates[admin.TelegramID], ":")
-	if len(stateParts) != 2 {
-		sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
-		return
-	}
-	videoID, _ := strconv.Atoi(stateParts[1])
-
-	// Update video
-	var video Video
-	if err := db.Preload("Session").First(&video, videoID).Error; err != nil {
-		sendMessage(admin.TelegramID, "❌ ویدیو یافت نشد")
-		return
-	}
-
-	video.Title = strings.TrimSpace(parts[0])
-	video.VideoLink = strings.TrimSpace(parts[1])
-
-	if err := db.Save(&video).Error; err != nil {
-		sendMessage(admin.TelegramID, "❌ خطا در ویرایش ویدیو")
-		return
-	}
-
-	// Create confirmation message with all video details
-	confirmationMsg := fmt.Sprintf("✅ ویدیو با موفقیت ویرایش شد:\n\n"+
-		"🆔 آیدی: %d\n"+
-		"📝 عنوان: %s\n"+
-		"🔗 لینک: %s\n"+
-		"📚 جلسه: %d - %s",
-		video.ID,
-		video.Title,
-		video.VideoLink,
-		video.Session.Number,
-		video.Session.Title)
-
-	// Add inline keyboard for quick actions
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش مجدد", fmt.Sprintf("edit_video:%d", video.ID)),
-			tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف ویدیو", fmt.Sprintf("delete_video:%d", video.ID)),
-		),
-	)
-	msg := tgbotapi.NewMessage(admin.TelegramID, confirmationMsg)
-	msg.ReplyMarkup = keyboard
-	bot.Send(msg)
-
-	logAdminAction(admin, "edit_video", fmt.Sprintf("ویدیو ویرایش شد: %s", video.Title), "video", video.ID)
+	// If we get here, something went wrong with the state
+	sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
 	delete(adminStates, admin.TelegramID)
 }
 
