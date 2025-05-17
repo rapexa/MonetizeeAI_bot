@@ -1090,8 +1090,14 @@ func handleEditVideo(admin *Admin, params []string) string {
 	}
 
 	videoID := params[0]
+	var video Video
+	if err := db.Preload("Session").First(&video, videoID).Error; err != nil {
+		bot.Send(tgbotapi.NewMessage(admin.TelegramID, "❌ ویدیو یافت نشد"))
+		return ""
+	}
+
 	msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش ویدیو %s:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|لینک\n\nاطلاعات فعلی:\nعنوان: %s\nلینک: %s",
-		videoID, video.VideoLink))
+		videoID, video.Title, video.VideoLink))
 	msg.ReplyMarkup = tgbotapi.ForceReply{}
 	bot.Send(msg)
 	return ""
