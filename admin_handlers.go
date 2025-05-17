@@ -7,7 +7,6 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"gorm.io/gorm"
 )
 
 // Add these constants at the top of the file
@@ -760,9 +759,82 @@ func handleUnbanUser(admin *Admin, userID string) {
 
 // handleSearchUser handles user search
 func handleSearchUser(admin *Admin, params []string) {
-	msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی یا نام کاربری را وارد کنید:")
+	msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی عددی یا نام کاربری را وارد کنید:")
 	msg.ReplyMarkup = tgbotapi.ForceReply{}
 	bot.Send(msg)
+	adminStates[admin.TelegramID] = StateWaitingForUserID
+}
+
+// handleUserSearchResponse processes the response to a user search prompt
+func handleUserSearchResponse(admin *Admin, searchText string) {
+	// First try to parse as user ID
+	userID, err := strconv.ParseInt(searchText, 10, 64)
+	var user User
+	var searchErr error
+
+	if err == nil {
+		// If it's a valid number, search by Telegram ID
+		searchErr = db.Where("telegram_id = ?", userID).First(&user).Error
+	} else {
+		// If not a number, search by username
+		searchErr = db.Where("username ILIKE ?", "%"+searchText+"%").First(&user).Error
+	}
+
+	if searchErr != nil {
+		sendMessage(admin.TelegramID, "❌ کاربر یافت نشد. لطفا نام کاربری یا آیدی عددی را وارد کنید.")
+		return
+	}
+
+	// Get user's session progress
+	var completedSessions int64
+	db.Model(&UserProgress{}).Where("user_id = ? AND is_completed = ?", user.ID, true).Count(&completedSessions)
+
+	// Get user's exercise submissions
+	var exerciseCount int64
+	db.Model(&Exercise{}).Where("user_id = ?", user.ID).Count(&exerciseCount)
+
+	// Format the response
+	status := "✅ فعال"
+	if !user.IsActive {
+		status = "❌ مسدود"
+	}
+
+	response := fmt.Sprintf("👤 اطلاعات کاربر:\n\n"+
+		"📱 آیدی تلگرام: %d\n"+
+		"👤 نام کاربری: %s\n"+
+		"📊 وضعیت: %s\n"+
+		"⏰ تاریخ عضویت: %s\n"+
+		"📚 جلسات تکمیل شده: %d\n"+
+		"✍️ تعداد تمرین‌ها: %d",
+		user.TelegramID,
+		user.Username,
+		status,
+		user.CreatedAt.Format("2006-01-02 15:04:05"),
+		completedSessions,
+		exerciseCount)
+
+	// Create action buttons
+	var keyboard tgbotapi.InlineKeyboardMarkup
+	if user.IsActive {
+		keyboard = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🚫 مسدود کردن کاربر", fmt.Sprintf("ban:%d", user.TelegramID)),
+			),
+		)
+	} else {
+		keyboard = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("✅ رفع مسدودیت کاربر", fmt.Sprintf("unban:%d", user.TelegramID)),
+			),
+		)
+	}
+
+	msg := tgbotapi.NewMessage(admin.TelegramID, response)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+
+	// Clear the admin state after handling the search
+	delete(adminStates, admin.TelegramID)
 }
 
 // handleUserStats shows user statistics
@@ -1053,108 +1125,7 @@ func handleVideoStats(admin *Admin, params []string) string {
 	return ""
 }
 
-// handleUserSearchResponse processes the response to a user search prompt
-func handleUserSearchResponse(admin *Admin, searchText string) {
-	// Try to parse as user ID
-	userID, err := strconv.ParseInt(searchText, 10, 64)
-	if err != nil {
-		// If not a valid ID, try searching by username
-		var user User
-		if err := db.Where("username LIKE ?", "%"+searchText+"%").First(&user).Error; err != nil {
-			sendMessage(admin.TelegramID, "❌ کاربر یافت نشد")
-			return
-		}
-		userID = user.TelegramID
-	}
-
-	var user User
-	if err := db.Where("telegram_id = ?", userID).First(&user).Error; err != nil {
-		sendMessage(admin.TelegramID, "❌ کاربر یافت نشد")
-		return
-	}
-
-	// Get user's session progress
-	var completedSessions int64
-	db.Model(&UserProgress{}).Where("user_id = ? AND is_completed = ?", user.ID, true).Count(&completedSessions)
-
-	// Get user's exercise submissions
-	var exerciseCount int64
-	db.Model(&Exercise{}).Where("user_id = ?", user.ID).Count(&exerciseCount)
-
-	// Format the response
-	status := "✅ فعال"
-	if !user.IsActive {
-		status = "❌ مسدود"
-	}
-
-	response := fmt.Sprintf("👤 اطلاعات کاربر:\n\n"+
-		"📱 آیدی تلگرام: %d\n"+
-		"👤 نام کاربری: %s\n"+
-		"📊 وضعیت: %s\n"+
-		"⏰ تاریخ عضویت: %s\n"+
-		"📚 جلسات تکمیل شده: %d\n"+
-		"✍️ تعداد تمرین‌ها: %d",
-		user.TelegramID,
-		user.Username,
-		status,
-		user.CreatedAt.Format("2006-01-02 15:04:05"),
-		completedSessions,
-		exerciseCount)
-
-	// Create action buttons
-	var keyboard tgbotapi.InlineKeyboardMarkup
-	if user.IsActive {
-		keyboard = tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🚫 مسدود کردن کاربر", fmt.Sprintf("ban:%d", user.TelegramID)),
-			),
-		)
-	} else {
-		keyboard = tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("✅ رفع مسدودیت کاربر", fmt.Sprintf("unban:%d", user.TelegramID)),
-			),
-		)
-	}
-
-	msg := tgbotapi.NewMessage(admin.TelegramID, response)
-	msg.ReplyMarkup = keyboard
-	bot.Send(msg)
-
-	// Clear the admin state after handling the search
-	delete(adminStates, admin.TelegramID)
-}
-
-// Add this at the top of the file with other global variables
-var adminStates = make(map[int64]string)
-
-func getAdminMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
-	keyboard := tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("📚 جلسات"),
-			tgbotapi.NewKeyboardButton("🎥 ویدیوها"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("✍️ تمرین‌ها"),
-			tgbotapi.NewKeyboardButton("📊 پیشرفت من"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("❓ راهنما"),
-			tgbotapi.NewKeyboardButton("📞 پشتیبانی"),
-		),
-	)
-	keyboard.ResizeKeyboard = true
-	return keyboard
-}
-
-// Add this helper function at the end of the file
-func isNewUser(telegramID int64) bool {
-	var user User
-	result := db.Where("telegram_id = ?", telegramID).First(&user)
-	return result.Error == gorm.ErrRecordNotFound
-}
-
-// Add these new functions for video management
+// handleAddVideoResponse processes the response for adding a new video
 func handleAddVideoResponse(admin *Admin, response string) {
 	// Check if this is the first step (session number)
 	if !strings.Contains(response, "|") {
