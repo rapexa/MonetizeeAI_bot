@@ -174,7 +174,7 @@ func handleAdminSessions(admin *Admin, args []string) string {
 		msg.ReplyMarkup = keyboard
 		bot.Send(msg)
 
-		return "از دکمه‌های زیر برای مدیریت جلسات استفاده کنید"
+		return ""
 	}
 
 	// Handle session actions
