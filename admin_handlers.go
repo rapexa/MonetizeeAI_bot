@@ -557,7 +557,7 @@ func handleCallbackQuery(update tgbotapi.Update) {
 				session.Title,
 				session.Description)
 		}
-		response += "\n✏️ لطفا شماره جلسه مورد نظر را وارد کنید:"
+		response += "\nلطفا شماره جلسه مورد نظر برای ویرایش را ارسال کنید"
 
 		msg := tgbotapi.NewMessage(admin.TelegramID, response)
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
@@ -871,12 +871,16 @@ func handleSessionNumberResponse(admin *Admin, response string) {
 	sessionNum, err := strconv.Atoi(strings.TrimSpace(response))
 	if err != nil {
 		sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
+		// Show admin menu again
+		handleAdminSessions(admin, []string{})
 		return
 	}
 
 	var session Session
 	if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
+		// Show admin menu again
+		handleAdminSessions(admin, []string{})
 		return
 	}
 
@@ -884,6 +888,8 @@ func handleSessionNumberResponse(admin *Admin, response string) {
 	state, exists := adminStates[admin.TelegramID]
 	if !exists {
 		sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
+		// Show admin menu again
+		handleAdminSessions(admin, []string{})
 		return
 	}
 
@@ -904,6 +910,8 @@ func handleSessionNumberResponse(admin *Admin, response string) {
 
 		if err := db.Delete(&session).Error; err != nil {
 			sendMessage(admin.TelegramID, "❌ خطا در حذف جلسه")
+			// Show admin menu again
+			handleAdminSessions(admin, []string{})
 			return
 		}
 
