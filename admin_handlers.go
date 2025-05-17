@@ -164,12 +164,9 @@ func handleAdminSessions(admin *Admin, args []string) string {
 			),
 		)
 		headerMsg.ReplyMarkup = keyboard
-		if _, err := bot.Send(headerMsg); err != nil {
-			fmt.Printf("Error sending header: %v\n", err)
-			return "❌ خطا در ارسال لیست جلسات"
-		}
+		bot.Send(headerMsg)
 
-		// Send sessions in chunks of 5
+		// Send sessions in chunks
 		var currentChunk strings.Builder
 		for i, session := range sessions {
 			sessionText := fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
@@ -177,24 +174,17 @@ func handleAdminSessions(admin *Admin, args []string) string {
 				session.Title,
 				session.Description)
 
-			// If adding this session would make the chunk too long, send current chunk and start new one
 			if currentChunk.Len()+len(sessionText) > 3000 {
 				chunkMsg := tgbotapi.NewMessage(admin.TelegramID, currentChunk.String())
-				if _, err := bot.Send(chunkMsg); err != nil {
-					fmt.Printf("Error sending chunk: %v\n", err)
-					continue
-				}
+				bot.Send(chunkMsg)
 				currentChunk.Reset()
 			}
 
 			currentChunk.WriteString(sessionText)
 
-			// Send the last chunk if this is the last session
 			if i == len(sessions)-1 && currentChunk.Len() > 0 {
 				chunkMsg := tgbotapi.NewMessage(admin.TelegramID, currentChunk.String())
-				if _, err := bot.Send(chunkMsg); err != nil {
-					fmt.Printf("Error sending final chunk: %v\n", err)
-				}
+				bot.Send(chunkMsg)
 			}
 		}
 		return ""
