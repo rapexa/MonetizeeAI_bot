@@ -562,9 +562,11 @@ func handleMessage(update *tgbotapi.Update) {
 			response := performBackup(admin)
 			sendMessage(update.Message.Chat.ID, response)
 			return
-		case "📝 لاگ‌های سیستم":
-			response := handleAdminLogs(admin, []string{})
-			sendMessage(update.Message.Chat.ID, response)
+		case "�� لاگ‌های سیستم":
+			// Clear any existing state
+			delete(adminStates, admin.TelegramID)
+			// Handle system logs
+			handleAdminLogs(admin, []string{})
 			return
 		}
 
@@ -765,6 +767,17 @@ func handleCallbackQuery(update tgbotapi.Update) {
 
 	case "refresh_logs":
 		handleAdminLogs(admin, []string{})
+		// Answer callback query to remove loading state
+		callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+		bot.Request(callback)
+		return
+
+	case "admin_logs":
+		handleAdminLogs(admin, []string{})
+		// Answer callback query to remove loading state
+		callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+		bot.Request(callback)
+		return
 
 	default:
 		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")
