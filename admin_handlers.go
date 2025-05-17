@@ -442,8 +442,7 @@ func handleMessage(update *tgbotapi.Update) {
 			sendMessage(update.Message.Chat.ID, response)
 			return
 		case "📚 مدیریت جلسات":
-			response := handleAdminSessions(admin, []string{})
-			sendMessage(update.Message.Chat.ID, response)
+			handleAdminSessions(admin, []string{})
 			return
 		case "🎥 مدیریت ویدیوها":
 			response := handleAdminVideos(admin, []string{})
