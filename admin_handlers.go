@@ -393,18 +393,23 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateDeleteSession
+		return ""
 
 	case "session_stats":
 		handleSessionStats(admin, []string{})
+		return ""
 
 	case "user_stats":
 		handleUserStats(admin, []string{})
+		return ""
 
 	case "ban":
 		handleBanUser(admin, param)
+		return ""
 
 	case "unban":
 		handleUnbanUser(admin, param)
+		return ""
 
 	case "add_video":
 		// Show list of sessions first
@@ -423,6 +428,7 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateAddVideo
+		return ""
 
 	case "edit_video":
 		// Show list of videos first
@@ -443,6 +449,7 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateEditVideo
+		return ""
 
 	case "delete_video":
 		// Show list of videos first
@@ -462,17 +469,29 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateDeleteVideo
+		return ""
 
 	case "video_stats":
 		handleVideoStats(admin, []string{})
+		return ""
 
 	default:
 		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")
+		return ""
 	}
 
 	// Answer callback query to remove loading state
 	callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
 	bot.Request(callback)
+}
+
+// getAdminByTelegramID returns admin by telegram ID
+func getAdminByTelegramID(telegramID int64) *Admin {
+	var admin Admin
+	if err := db.Where("telegram_id = ?", telegramID).First(&admin).Error; err != nil {
+		return nil
+	}
+	return &admin
 }
 
 // handleBanUser bans a user
