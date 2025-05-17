@@ -153,7 +153,6 @@ func handleAdminSessions(admin *Admin, args []string) string {
 
 		// First send the sessions list
 		var response strings.Builder
-		response.WriteString("📚 جلسات اخیر:\n\n")
 		for _, session := range sessions {
 			response.WriteString(fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
 				session.Number,
@@ -166,7 +165,7 @@ func handleAdminSessions(admin *Admin, args []string) string {
 		bot.Send(sessionsMsg)
 
 		// Then send a separate message with the action buttons
-		buttonsMsg := tgbotapi.NewMessage(admin.TelegramID, "از دکمه‌های زیر برای مدیریت جلسات استفاده کنید:")
+		buttonsMsg := tgbotapi.NewMessage(admin.TelegramID, "")
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("➕ افزودن جلسه", "add_session"),
