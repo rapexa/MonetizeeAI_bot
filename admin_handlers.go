@@ -586,12 +586,6 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	}
 
 	switch action {
-	case "search_user":
-		msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی یا نام کاربری را وارد کنید:")
-		msg.ReplyMarkup = tgbotapi.ForceReply{}
-		bot.Send(msg)
-		adminStates[admin.TelegramID] = StateWaitingForUserID
-
 	case "add_session":
 		msg := tgbotapi.NewMessage(admin.TelegramID, "➕ افزودن جلسه جدید:\n\nلطفا اطلاعات را به فرمت زیر وارد کنید:\nشماره جلسه|عنوان|توضیحات")
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
@@ -618,53 +612,22 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		adminStates[admin.TelegramID] = StateEditSession
 
 	case "delete_session":
-		if param == "" {
-			// Show list of sessions first
-			var sessions []Session
-			db.Order("number desc").Find(&sessions)
+		// Show list of sessions first
+		var sessions []Session
+		db.Order("number desc").Find(&sessions)
 
-			response := "📚 لیست جلسات:\n\n"
-			for _, session := range sessions {
-				response += fmt.Sprintf("🆔 شماره: %d\n📝 عنوان: %s\n\n",
-					session.Number,
-					session.Title)
-			}
-			response += "\n🗑️ لطفا شماره جلسه مورد نظر را وارد کنید:"
-
-			msg := tgbotapi.NewMessage(admin.TelegramID, response)
-			msg.ReplyMarkup = tgbotapi.ForceReply{}
-			bot.Send(msg)
-			adminStates[admin.TelegramID] = StateDeleteSession
-		} else {
-			// Direct delete from button
-			sessionNum, err := strconv.Atoi(param)
-			if err != nil {
-				sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
-				return
-			}
-
-			var session Session
-			if err := db.Where("number = ?", sessionNum).First(&session).Error; err != nil {
-				sendMessage(admin.TelegramID, "❌ جلسه یافت نشد")
-				return
-			}
-
-			// Store session info before deletion for confirmation message
-			sessionInfo := fmt.Sprintf("🆔 شماره: %d\n📝 عنوان: %s\n📄 توضیحات: %s",
+		response := "📚 لیست جلسات:\n\n"
+		for _, session := range sessions {
+			response += fmt.Sprintf("🆔 شماره: %d\n📝 عنوان: %s\n\n",
 				session.Number,
-				session.Title,
-				session.Description)
-
-			if err := db.Delete(&session).Error; err != nil {
-				sendMessage(admin.TelegramID, "❌ خطا در حذف جلسه")
-				return
-			}
-
-			confirmationMsg := fmt.Sprintf("✅ جلسه با موفقیت حذف شد:\n\n%s", sessionInfo)
-			sendMessage(admin.TelegramID, confirmationMsg)
-
-			logAdminAction(admin, "delete_session", fmt.Sprintf("جلسه %d حذف شد: %s", session.Number, session.Title), "session", session.ID)
+				session.Title)
 		}
+		response += "\n🗑️ لطفا شماره جلسه مورد نظر را وارد کنید:"
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		bot.Send(msg)
+		adminStates[admin.TelegramID] = StateDeleteSession
 
 	case "session_stats":
 		handleSessionStats(admin, []string{})
