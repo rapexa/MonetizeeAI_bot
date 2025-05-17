@@ -181,10 +181,24 @@ func handleAdminSessions(admin *Admin, args []string) string {
 	// Handle session actions
 	switch args[0] {
 	case "edit":
-		if len(args) < 4 {
-			return "❌ لطفا شماره جلسه، عنوان و توضیحات را وارد کنید"
+		// Show list of sessions first
+		var sessions []Session
+		db.Order("number desc").Find(&sessions)
+
+		response := "📚 لیست جلسات:\n\n"
+		for _, session := range sessions {
+			response += fmt.Sprintf("🆔 شماره: %d\n📝 عنوان: %s\n📄 توضیحات: %s\n\n",
+				session.Number,
+				session.Title,
+				session.Description)
 		}
-		return editSession(admin, args[1], args[2], args[3])
+		response += "\n✏️ لطفا شماره جلسه مورد نظر برای ویرایش را ارسال کنید"
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		bot.Send(msg)
+		adminStates[admin.TelegramID] = StateEditSession
+
 	case "delete":
 		if len(args) < 2 {
 			return "❌ لطفا شماره جلسه را وارد کنید"
@@ -568,7 +582,20 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		adminStates[admin.TelegramID] = StateWaitingForSessionInfo
 
 	case "edit_session":
-		msg := tgbotapi.NewMessage(admin.TelegramID, "✏️ ویرایش جلسه:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|توضیحات|شماره جلسه جهت ادیت")
+		// Show list of sessions first
+		var sessions []Session
+		db.Order("number desc").Find(&sessions)
+
+		response := "📚 لیست جلسات:\n\n"
+		for _, session := range sessions {
+			response += fmt.Sprintf("🆔 شماره: %d\n📝 عنوان: %s\n📄 توضیحات: %s\n\n",
+				session.Number,
+				session.Title,
+				session.Description)
+		}
+		response += "\n✏️ لطفا شماره جلسه مورد نظر برای ویرایش را ارسال کنید"
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateEditSession
@@ -1325,21 +1352,18 @@ func handleDeleteVideoResponse(admin *Admin, response string) {
 // handleEditSessionInfo processes the response for editing session info
 func handleEditSessionInfo(admin *Admin, response string) {
 	parts := strings.Split(response, "|")
-	if len(parts) != 3 {
-		sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|توضیحات|شماره جلسه جهت ادیت")
+	if len(parts) != 2 {
+		sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|توضیحات")
 		return
 	}
 
-	title := strings.TrimSpace(parts[0])
-	description := strings.TrimSpace(parts[1])
-	sessionNumStr := strings.TrimSpace(parts[2])
-
-	// Convert session number to integer
-	sessionNum, err := strconv.Atoi(sessionNumStr)
-	if err != nil {
-		sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
+	// Get session number from state
+	stateParts := strings.Split(adminStates[admin.TelegramID], ":")
+	if len(stateParts) != 2 {
+		sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
 		return
 	}
+	sessionNum, _ := strconv.Atoi(stateParts[1])
 
 	// Update session
 	var session Session
@@ -1348,8 +1372,8 @@ func handleEditSessionInfo(admin *Admin, response string) {
 		return
 	}
 
-	session.Title = title
-	session.Description = description
+	session.Title = strings.TrimSpace(parts[0])
+	session.Description = strings.TrimSpace(parts[1])
 
 	if err := db.Save(&session).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ خطا در ویرایش جلسه")
