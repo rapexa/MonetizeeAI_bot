@@ -501,7 +501,7 @@ func handleCallbackQuery(update tgbotapi.Update) {
 
 	switch action {
 	case "search_user":
-		msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی کاربر را وارد کنید:")
+		msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی یا نام کاربری را وارد کنید:")
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateWaitingForUserID
@@ -885,8 +885,13 @@ func handleUserSearchResponse(admin *Admin, searchText string) {
 	// Try to parse as user ID
 	userID, err := strconv.ParseInt(searchText, 10, 64)
 	if err != nil {
-		sendMessage(admin.TelegramID, "❌ لطفا یک آیدی معتبر وارد کنید")
-		return
+		// If not a valid ID, try searching by username
+		var user User
+		if err := db.Where("username LIKE ?", "%"+searchText+"%").First(&user).Error; err != nil {
+			sendMessage(admin.TelegramID, "❌ کاربر یافت نشد")
+			return
+		}
+		userID = user.TelegramID
 	}
 
 	var user User
@@ -942,6 +947,9 @@ func handleUserSearchResponse(admin *Admin, searchText string) {
 	msg := tgbotapi.NewMessage(admin.TelegramID, response)
 	msg.ReplyMarkup = keyboard
 	bot.Send(msg)
+
+	// Clear the admin state after handling the search
+	delete(adminStates, admin.TelegramID)
 }
 
 // Add this at the top of the file with other global variables
