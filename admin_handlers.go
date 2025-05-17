@@ -149,10 +149,24 @@ func handleAdminUsers(admin *Admin, args []string) string {
 func handleAdminSessions(admin *Admin, args []string) string {
 	if len(args) == 0 {
 		var sessions []Session
-		db.Order("number desc").Find(&sessions)
+		db.Order("number desc").Limit(5).Find(&sessions) // Only get 5 most recent sessions
 
-		// Send header message with buttons
-		headerMsg := tgbotapi.NewMessage(admin.TelegramID, "📚 آخرین جلسات:")
+		// First send the sessions list
+		var response strings.Builder
+		response.WriteString("📚 جلسات اخیر:\n\n")
+		for _, session := range sessions {
+			response.WriteString(fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
+				session.Number,
+				session.Title,
+				session.Description))
+		}
+
+		// Send the sessions message
+		sessionsMsg := tgbotapi.NewMessage(admin.TelegramID, response.String())
+		bot.Send(sessionsMsg)
+
+		// Send a separate message with the action buttons
+		buttonsMsg := tgbotapi.NewMessage(admin.TelegramID, "از دکمه‌های زیر برای مدیریت جلسات استفاده کنید:")
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("➕ افزودن جلسه", "add_session"),
@@ -163,30 +177,9 @@ func handleAdminSessions(admin *Admin, args []string) string {
 				tgbotapi.NewInlineKeyboardButtonData("📊 آمار جلسات", "session_stats"),
 			),
 		)
-		headerMsg.ReplyMarkup = keyboard
-		bot.Send(headerMsg)
+		buttonsMsg.ReplyMarkup = keyboard
+		bot.Send(buttonsMsg)
 
-		// Send sessions in chunks
-		var currentChunk strings.Builder
-		for i, session := range sessions {
-			sessionText := fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
-				session.Number,
-				session.Title,
-				session.Description)
-
-			if currentChunk.Len()+len(sessionText) > 3000 {
-				chunkMsg := tgbotapi.NewMessage(admin.TelegramID, currentChunk.String())
-				bot.Send(chunkMsg)
-				currentChunk.Reset()
-			}
-
-			currentChunk.WriteString(sessionText)
-
-			if i == len(sessions)-1 && currentChunk.Len() > 0 {
-				chunkMsg := tgbotapi.NewMessage(admin.TelegramID, currentChunk.String())
-				bot.Send(chunkMsg)
-			}
-		}
 		return ""
 	}
 
