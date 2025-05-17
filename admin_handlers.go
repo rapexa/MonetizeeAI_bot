@@ -542,7 +542,57 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		return
 
 	case "admin_logs":
-		handleAdminLogs(admin, []string{})
+		// Get logs directly
+		var actions []AdminAction
+		db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions)
+
+		if len(actions) == 0 {
+			sendMessage(admin.TelegramID, "📝 هیچ فعالیتی ثبت نشده است")
+			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+			bot.Request(callback)
+			return
+		}
+
+		response := "📝 آخرین فعالیت‌های ادمین:\n\n"
+		for _, action := range actions {
+			actionType := action.Action
+			switch action.Action {
+			case "add_session":
+				actionType = "➕ افزودن جلسه"
+			case "edit_session":
+				actionType = "✏️ ویرایش جلسه"
+			case "delete_session":
+				actionType = "🗑️ حذف جلسه"
+			case "add_video":
+				actionType = "➕ افزودن ویدیو"
+			case "edit_video":
+				actionType = "✏️ ویرایش ویدیو"
+			case "delete_video":
+				actionType = "🗑️ حذف ویدیو"
+			case "ban_user":
+				actionType = "🚫 مسدود کردن کاربر"
+			case "unban_user":
+				actionType = "✅ رفع مسدودیت کاربر"
+			}
+
+			response += fmt.Sprintf("👤 ادمین: %s\n📝 عملیات: %s\n📋 جزئیات: %s\n⏰ تاریخ: %s\n\n",
+				action.Admin.Username,
+				actionType,
+				action.Details,
+				action.CreatedAt.Format("2006-01-02 15:04:05"))
+		}
+
+		// Add refresh button
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🔄 بروزرسانی", "refresh_logs"),
+			),
+		)
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
+
 		// Answer callback query to remove loading state
 		callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
 		bot.Request(callback)
@@ -578,7 +628,7 @@ func handleBanUser(admin *Admin, userID string) {
 	}
 
 	// Send notification to the blocked user
-	blockMsg := tgbotapi.NewMessage(user.TelegramID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n\n�� "+SUPPORT_NUMBER)
+	blockMsg := tgbotapi.NewMessage(user.TelegramID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n\n"+SUPPORT_NUMBER)
 	blockMsg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 	bot.Send(blockMsg)
 
