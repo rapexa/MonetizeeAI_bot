@@ -1187,7 +1187,7 @@ func handleAddVideoResponse(admin *Admin, text string) {
 	state := adminStates[admin.TelegramID]
 
 	// If state is just "add_video", this is the first step (selecting session)
-	if state == "add_video" {
+	if state == StateAddVideo {
 		// Parse session number
 		sessionNumber, err := strconv.Atoi(strings.TrimSpace(text))
 		if err != nil {
@@ -1253,34 +1253,8 @@ func handleAddVideoResponse(admin *Admin, text string) {
 			title, link, sessionNumber)
 		sendMessage(admin.TelegramID, confirmationMsg)
 
-		// Show video management menu with inline keyboard
-		var videos []Video
-		db.Preload("Session").Order("created_at desc").Find(&videos)
-
-		videoListMsg := "🎥 لیست ویدیوها:\n\n"
-		for _, v := range videos {
-			videoListMsg += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d - %s\n🔗 لینک: %s\n\n",
-				v.ID,
-				v.Title,
-				v.Session.Number,
-				v.Session.Title,
-				v.VideoLink)
-		}
-
-		// Add inline keyboard for actions
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("➕ افزودن ویدیو", "add_video"),
-				tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش ویدیو", "edit_video"),
-			),
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف ویدیو", "delete_video"),
-				tgbotapi.NewInlineKeyboardButtonData("📊 آمار ویدیوها", "video_stats"),
-			),
-		)
-		msg := tgbotapi.NewMessage(admin.TelegramID, videoListMsg)
-		msg.ReplyMarkup = keyboard
-		bot.Send(msg)
+		// Show video management menu
+		handleAdminVideos(admin, []string{})
 
 		// Clear the admin state after successful video addition
 		delete(adminStates, admin.TelegramID)
@@ -1297,7 +1271,7 @@ func handleEditVideoResponse(admin *Admin, text string) {
 	state := adminStates[admin.TelegramID]
 
 	// If state is just "edit_video", this is the first step (selecting video)
-	if state == "edit_video" {
+	if state == StateEditVideo {
 		// Parse video ID
 		videoID, err := strconv.Atoi(strings.TrimSpace(text))
 		if err != nil {
@@ -1369,34 +1343,8 @@ func handleEditVideoResponse(admin *Admin, text string) {
 			title, link, video.Session.Number, video.Session.Title)
 		sendMessage(admin.TelegramID, confirmationMsg)
 
-		// Show video management menu with inline keyboard
-		var videos []Video
-		db.Preload("Session").Order("created_at desc").Find(&videos)
-
-		videoListMsg := "🎥 لیست ویدیوها:\n\n"
-		for _, v := range videos {
-			videoListMsg += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d - %s\n🔗 لینک: %s\n\n",
-				v.ID,
-				v.Title,
-				v.Session.Number,
-				v.Session.Title,
-				v.VideoLink)
-		}
-
-		// Add inline keyboard for actions
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("➕ افزودن ویدیو", "add_video"),
-				tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش ویدیو", "edit_video"),
-			),
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف ویدیو", "delete_video"),
-				tgbotapi.NewInlineKeyboardButtonData("📊 آمار ویدیوها", "video_stats"),
-			),
-		)
-		msg := tgbotapi.NewMessage(admin.TelegramID, videoListMsg)
-		msg.ReplyMarkup = keyboard
-		bot.Send(msg)
+		// Show video management menu
+		handleAdminVideos(admin, []string{})
 
 		// Clear the admin state after successful video edit
 		delete(adminStates, admin.TelegramID)
@@ -1408,8 +1356,8 @@ func handleEditVideoResponse(admin *Admin, text string) {
 	delete(adminStates, admin.TelegramID)
 }
 
-func handleDeleteVideoResponse(admin *Admin, response string) {
-	videoID, err := strconv.Atoi(strings.TrimSpace(response))
+func handleDeleteVideoResponse(admin *Admin, text string) {
+	videoID, err := strconv.Atoi(strings.TrimSpace(text))
 	if err != nil {
 		sendMessage(admin.TelegramID, "❌ آیدی ویدیو نامعتبر است")
 		return
@@ -1428,15 +1376,20 @@ func handleDeleteVideoResponse(admin *Admin, response string) {
 		video.Session.Number,
 		video.Session.Title)
 
+	// Delete the video
 	if err := db.Delete(&video).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ خطا در حذف ویدیو")
 		return
 	}
 
+	// Send confirmation message
 	confirmationMsg := fmt.Sprintf("✅ ویدیو با موفقیت حذف شد:\n\n%s", videoInfo)
 	sendMessage(admin.TelegramID, confirmationMsg)
 
-	logAdminAction(admin, "delete_video", fmt.Sprintf("ویدیو حذف شد: %s", video.Title), "video", video.ID)
+	// Show video management menu
+	handleAdminVideos(admin, []string{})
+
+	// Clear the admin state after successful video deletion
 	delete(adminStates, admin.TelegramID)
 }
 
