@@ -8,8 +8,6 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"gorm.io/gorm"
-	"github.com/your-project/logger"
-	"github.com/your-project/zap"
 )
 
 // Add these constants at the top of the file
@@ -336,20 +334,15 @@ func handleAdminExercises(admin *Admin, args []string) string {
 func handleAdminLogs(admin *Admin, args []string) string {
 	// Get logs directly
 	var actions []AdminAction
-	if err := db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions).Error; err != nil {
-		logger.Error("Failed to fetch admin logs", zap.Error(err))
-		return "❌ خطا در دریافت لاگ‌های سیستم"
-	}
+	db.Preload("Admin").Order("created_at desc").Limit(50).Find(&actions)
 
 	if len(actions) == 0 {
+		sendMessage(admin.TelegramID, "📝 هیچ فعالیتی ثبت نشده است")
 		return "📝 هیچ فعالیتی ثبت نشده است"
 	}
 
-	var response strings.Builder
-	response.WriteString("📝 آخرین فعالیت‌های ادمین:\n\n")
-
+	response := "📝 آخرین فعالیت‌های ادمین:\n\n"
 	for _, action := range actions {
-		// Format action type
 		actionType := action.Action
 		switch action.Action {
 		case "add_session":
@@ -370,18 +363,12 @@ func handleAdminLogs(admin *Admin, args []string) string {
 			actionType = "✅ رفع مسدودیت کاربر"
 		}
 
-		// Format timestamp
-		timestamp := action.CreatedAt.Format("2006-01-02 15:04:05")
-
-		// Build log entry
-		response.WriteString(fmt.Sprintf("👤 ادمین: %s\n", action.Admin.Username))
-		response.WriteString(fmt.Sprintf("📝 عملیات: %s\n", actionType))
-		response.WriteString(fmt.Sprintf("📋 جزئیات: %s\n", action.Details))
-		response.WriteString(fmt.Sprintf("⏰ تاریخ: %s\n\n", timestamp))
+		response += fmt.Sprintf("👤 ادمین: %s\n📝 عملیات: %s\n📋 جزئیات: %s\n⏰ تاریخ: %s\n\n",
+			action.Admin.Username,
+			actionType,
+			action.Details,
+			action.CreatedAt.Format("2006-01-02 15:04:05"))
 	}
-
-	// Create message with logs
-	msg := tgbotapi.NewMessage(admin.TelegramID, response.String())
 
 	// Add refresh button
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
@@ -389,15 +376,11 @@ func handleAdminLogs(admin *Admin, args []string) string {
 			tgbotapi.NewInlineKeyboardButtonData("🔄 بروزرسانی", "refresh_logs"),
 		),
 	)
+
+	msg := tgbotapi.NewMessage(admin.TelegramID, response)
 	msg.ReplyMarkup = keyboard
-
-	// Send message
-	if _, err := bot.Send(msg); err != nil {
-		logger.Error("Failed to send logs message", zap.Error(err))
-		return "❌ خطا در ارسال لاگ‌ها"
-	}
-
-	return response.String()
+	bot.Send(msg)
+	return response
 }
 
 // getAdminByTelegramID returns admin by telegram ID
@@ -411,25 +394,25 @@ func getAdminByTelegramID(telegramID int64) *Admin {
 
 // handleCallbackQuery processes callback queries from inline keyboards
 func handleCallbackQuery(update tgbotapi.Update) {
-	callback := update.CallbackQuery
-	admin := getAdminByTelegramID(callback.From.ID)
+	admin := getAdminByTelegramID(update.CallbackQuery.From.ID)
 	if admin == nil {
-		bot.AnswerCallbackQuery(tgbotapi.NewCallback(callback.ID, "❌ دسترسی غیرمجاز"))
+		sendMessage(update.CallbackQuery.From.ID, "❌ شما دسترسی به این بخش را ندارید")
 		return
 	}
 
-	// Answer callback to remove loading state
-	bot.AnswerCallbackQuery(tgbotapi.NewCallback(callback.ID, ""))
-
-	switch callback.Data {
-	case "refresh_logs":
-		// Delete the old message
-		deleteMsg := tgbotapi.NewDeleteMessage(callback.Message.Chat.ID, callback.Message.MessageID)
-		bot.Send(deleteMsg)
-		
-		// Show new logs
-		handleAdminLogs(admin, []string{})
+	// Parse callback data
+	parts := strings.Split(update.CallbackQuery.Data, ":")
+	if len(parts) < 1 {
 		return
+	}
+
+	action := parts[0]
+	param := ""
+	if len(parts) > 1 {
+		param = parts[1]
+	}
+
+	switch action {
 	case "search_user":
 		msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی عددی یا نام کاربری را وارد کنید:")
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
@@ -486,10 +469,10 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		handleUserStats(admin, []string{})
 
 	case "ban":
-		handleBanUser(admin, callback.Data)
+		handleBanUser(admin, param)
 
 	case "unban":
-		handleUnbanUser(admin, callback.Data)
+		handleUnbanUser(admin, param)
 
 	case "add_video":
 		// Show list of sessions first
@@ -551,16 +534,27 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	case "video_stats":
 		handleVideoStats(admin, []string{})
 
+	case "refresh_logs":
+		handleAdminLogs(admin, []string{})
+		// Answer callback query to remove loading state
+		callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+		bot.Request(callback)
+		return
+
 	case "admin_logs":
 		handleAdminLogs(admin, []string{})
 		// Answer callback query to remove loading state
-		callback := tgbotapi.NewCallback(callback.ID, "")
+		callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
 		bot.Request(callback)
 		return
 
 	default:
 		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")
 	}
+
+	// Answer callback query to remove loading state
+	callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+	bot.Request(callback)
 }
 
 // handleBanUser bans a user
@@ -584,7 +578,7 @@ func handleBanUser(admin *Admin, userID string) {
 	}
 
 	// Send notification to the blocked user
-	blockMsg := tgbotapi.NewMessage(user.TelegramID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n\n"+SUPPORT_NUMBER)
+	blockMsg := tgbotapi.NewMessage(user.TelegramID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n\n�� "+SUPPORT_NUMBER)
 	blockMsg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 	bot.Send(blockMsg)
 
