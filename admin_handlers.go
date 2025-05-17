@@ -588,6 +588,12 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	}
 
 	switch action {
+	case "search_user":
+		msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی عددی یا نام کاربری را وارد کنید:")
+		msg.ReplyMarkup = tgbotapi.ForceReply{}
+		bot.Send(msg)
+		adminStates[admin.TelegramID] = StateWaitingForUserID
+
 	case "add_session":
 		msg := tgbotapi.NewMessage(admin.TelegramID, "➕ افزودن جلسه جدید:\n\nلطفا اطلاعات را به فرمت زیر وارد کنید:\nشماره جلسه|عنوان|توضیحات")
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
