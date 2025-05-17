@@ -568,20 +568,7 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		adminStates[admin.TelegramID] = StateWaitingForSessionInfo
 
 	case "edit_session":
-		// Show list of sessions first
-		var sessions []Session
-		db.Order("number desc").Find(&sessions)
-
-		response := "📚 لیست جلسات:\n\n"
-		for _, session := range sessions {
-			response += fmt.Sprintf("🆔 شماره: %d\n📝 عنوان: %s\n📄 توضیحات: %s\n\n",
-				session.Number,
-				session.Title,
-				session.Description)
-		}
-		response += "\nلطفا شماره جلسه مورد نظر برای ویرایش را ارسال کنید"
-
-		msg := tgbotapi.NewMessage(admin.TelegramID, response)
+		msg := tgbotapi.NewMessage(admin.TelegramID, "✏️ ویرایش جلسه:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|توضیحات|شماره جلسه جهت ادیت")
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateEditSession
@@ -1335,21 +1322,21 @@ func handleDeleteVideoResponse(admin *Admin, response string) {
 	delete(adminStates, admin.TelegramID)
 }
 
-// Add this function to handle edit session info
+// handleEditSessionInfo processes the response for editing session info
 func handleEditSessionInfo(admin *Admin, response string) {
 	parts := strings.Split(response, "|")
-	if len(parts) != 2 {
-		sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|توضیحات")
+	if len(parts) != 3 {
+		sendMessage(admin.TelegramID, "❌ فرمت نامعتبر. لطفا به فرمت زیر وارد کنید:\nعنوان|توضیحات|شماره جلسه جهت ادیت")
 		return
 	}
 
-	// Get session number from state
-	stateParts := strings.Split(adminStates[admin.TelegramID], ":")
-	if len(stateParts) != 2 {
-		sendMessage(admin.TelegramID, "❌ خطا در پردازش درخواست")
+	title := strings.TrimSpace(parts[0])
+	description := strings.TrimSpace(parts[1])
+	sessionNum, err := strconv.Atoi(strings.TrimSpace(parts[2]))
+	if err != nil {
+		sendMessage(admin.TelegramID, "❌ شماره جلسه نامعتبر است")
 		return
 	}
-	sessionNum, _ := strconv.Atoi(stateParts[1])
 
 	// Update session
 	var session Session
@@ -1358,8 +1345,8 @@ func handleEditSessionInfo(admin *Admin, response string) {
 		return
 	}
 
-	session.Title = strings.TrimSpace(parts[0])
-	session.Description = strings.TrimSpace(parts[1])
+	session.Title = title
+	session.Description = description
 
 	if err := db.Save(&session).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ خطا در ویرایش جلسه")
