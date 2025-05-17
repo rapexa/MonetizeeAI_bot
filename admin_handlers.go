@@ -442,7 +442,31 @@ func handleMessage(update *tgbotapi.Update) {
 			sendMessage(update.Message.Chat.ID, response)
 			return
 		case "📚 مدیریت جلسات":
-			handleAdminSessions(admin, []string{})
+			var sessions []Session
+			db.Order("number desc").Find(&sessions)
+
+			response := "📚 آخرین جلسات:\n\n"
+			for _, session := range sessions {
+				response += fmt.Sprintf("📖 جلسه %d: %s\n📝 %s\n\n",
+					session.Number,
+					session.Title,
+					session.Description)
+			}
+
+			// Add inline keyboard for actions
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("➕ افزودن جلسه", "add_session"),
+					tgbotapi.NewInlineKeyboardButtonData("✏️ ویرایش جلسه", "edit_session"),
+				),
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("🗑️ حذف جلسه", "delete_session"),
+					tgbotapi.NewInlineKeyboardButtonData("📊 آمار جلسات", "session_stats"),
+				),
+			)
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, response)
+			msg.ReplyMarkup = keyboard
+			bot.Send(msg)
 			return
 		case "🎥 مدیریت ویدیوها":
 			response := handleAdminVideos(admin, []string{})
