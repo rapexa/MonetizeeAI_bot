@@ -434,10 +434,11 @@ func handleCallbackQuery(update tgbotapi.Update) {
 
 		response := "📺 لیست ویدیوها:\n\n"
 		for _, video := range videos {
-			response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d\n🔗 لینک: %s\n\n",
+			response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d - %s\n🔗 لینک: %s\n\n",
 				video.ID,
 				video.Title,
 				video.Session.Number,
+				video.Session.Title,
 				video.VideoLink)
 		}
 		response += "\n✏️ لطفا آیدی ویدیو مورد نظر را وارد کنید:"
@@ -454,10 +455,11 @@ func handleCallbackQuery(update tgbotapi.Update) {
 
 		response := "📺 لیست ویدیوها:\n\n"
 		for _, video := range videos {
-			response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d\n\n",
+			response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d - %s\n\n",
 				video.ID,
 				video.Title,
-				video.Session.Number)
+				video.Session.Number,
+				video.Session.Title)
 		}
 		response += "\n🗑️ لطفا آیدی ویدیو مورد نظر را وارد کنید:"
 
@@ -962,7 +964,7 @@ func handleAddVideoResponse(admin *Admin, text string) {
 
 		// Store session number in state for next step
 		adminStates[admin.TelegramID] = fmt.Sprintf("add_video:%d", sessionNumber)
-		sendMessage(admin.TelegramID, "📝 لطفا عنوان و لینک ویدیو را به فرمت زیر وارد کنید:\nعنوان|لینک")
+		sendMessage(admin.TelegramID, fmt.Sprintf("📝 افزودن ویدیو به جلسه %d:\n\nلطفا اطلاعات را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", sessionNumber))
 		return
 	}
 
@@ -1071,8 +1073,8 @@ func handleEditVideoResponse(admin *Admin, text string) {
 
 		// Store video ID in state for next step
 		adminStates[admin.TelegramID] = fmt.Sprintf("edit_video:%d", videoID)
-		sendMessage(admin.TelegramID, fmt.Sprintf("📝 لطفا عنوان و لینک جدید ویدیو را به فرمت زیر وارد کنید:\nعنوان|لینک\n\nاطلاعات فعلی:\nعنوان: %s\nلینک: %s",
-			video.Title, video.VideoLink))
+		sendMessage(admin.TelegramID, fmt.Sprintf("📝 ویرایش ویدیو %d:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|لینک\n\nاطلاعات فعلی:\nعنوان: %s\nلینک: %s",
+			videoID, video.Title, video.VideoLink))
 		return
 	}
 
