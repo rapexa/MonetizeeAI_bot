@@ -449,6 +449,12 @@ func handleMessage(update *tgbotapi.Update) {
 				handleAddVideoResponse(admin, update.Message.Text)
 				return
 			}
+
+			// Check if this is an edit video response
+			if strings.HasPrefix(state, "edit_video:") {
+				handleEditVideoResponse(admin, update.Message.Text)
+				return
+			}
 		}
 
 		// Handle admin commands
@@ -1084,7 +1090,8 @@ func handleEditVideo(admin *Admin, params []string) string {
 	}
 
 	videoID := params[0]
-	msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش ویدیو %s:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|لینک ویدیو", videoID))
+	msg := tgbotapi.NewMessage(admin.TelegramID, fmt.Sprintf("✏️ ویرایش ویدیو %s:\n\nلطفا اطلاعات جدید را به فرمت زیر وارد کنید:\nعنوان|لینک\n\nاطلاعات فعلی:\nعنوان: %s\nلینک: %s",
+		videoID, video.VideoLink))
 	msg.ReplyMarkup = tgbotapi.ForceReply{}
 	bot.Send(msg)
 	return ""
@@ -1209,6 +1216,7 @@ func handleAddVideoResponse(admin *Admin, text string) {
 			VideoLink: link,
 		}
 
+		// Save video to database
 		if err := db.Create(&video).Error; err != nil {
 			sendMessage(admin.TelegramID, "❌ خطا در ثبت ویدیو")
 			delete(adminStates, admin.TelegramID)
@@ -1320,9 +1328,11 @@ func handleEditVideoResponse(admin *Admin, text string) {
 			return
 		}
 
+		// Update video fields
 		video.Title = title
 		video.VideoLink = link
 
+		// Save changes to database
 		if err := db.Save(&video).Error; err != nil {
 			sendMessage(admin.TelegramID, "❌ خطا در ویرایش ویدیو")
 			delete(adminStates, admin.TelegramID)
