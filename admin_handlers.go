@@ -520,13 +520,38 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		adminStates[admin.TelegramID] = StateWaitingForSessionInfo
 
 	case "edit_session":
-		msg := tgbotapi.NewMessage(admin.TelegramID, "✏️ ویرایش جلسه:\n\nلطفا شماره جلسه را وارد کنید:")
+		// Show list of sessions first
+		var sessions []Session
+		db.Order("number desc").Find(&sessions)
+
+		response := "📚 لیست جلسات:\n\n"
+		for _, session := range sessions {
+			response += fmt.Sprintf("🆔 شماره: %d\n📝 عنوان: %s\n📄 توضیحات: %s\n\n",
+				session.Number,
+				session.Title,
+				session.Description)
+		}
+		response += "\n✏️ لطفا شماره جلسه مورد نظر را وارد کنید:"
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateEditSession
 
 	case "delete_session":
-		msg := tgbotapi.NewMessage(admin.TelegramID, "🗑️ حذف جلسه:\n\nلطفا شماره جلسه را وارد کنید:")
+		// Show list of sessions first
+		var sessions []Session
+		db.Order("number desc").Find(&sessions)
+
+		response := "📚 لیست جلسات:\n\n"
+		for _, session := range sessions {
+			response += fmt.Sprintf("🆔 شماره: %d\n📝 عنوان: %s\n\n",
+				session.Number,
+				session.Title)
+		}
+		response += "\n🗑️ لطفا شماره جلسه مورد نظر را وارد کنید:"
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateDeleteSession
@@ -544,7 +569,19 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		handleUnbanUser(admin, param)
 
 	case "add_video":
-		msg := tgbotapi.NewMessage(admin.TelegramID, "➕ افزودن ویدیو:\n\nلطفا شماره جلسه را وارد کنید:")
+		// Show list of sessions first
+		var sessions []Session
+		db.Order("number desc").Find(&sessions)
+
+		response := "📚 لیست جلسات:\n\n"
+		for _, session := range sessions {
+			response += fmt.Sprintf("🆔 شماره: %d\n📝 عنوان: %s\n\n",
+				session.Number,
+				session.Title)
+		}
+		response += "\n➕ لطفا شماره جلسه مورد نظر را وارد کنید:"
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateAddVideo
@@ -570,7 +607,20 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		adminStates[admin.TelegramID] = StateEditVideo
 
 	case "delete_video":
-		msg := tgbotapi.NewMessage(admin.TelegramID, "🗑️ حذف ویدیو:\n\nلطفا آیدی ویدیو را وارد کنید:")
+		// Show list of videos first
+		var videos []Video
+		db.Preload("Session").Order("created_at desc").Find(&videos)
+
+		response := "📺 لیست ویدیوها:\n\n"
+		for _, video := range videos {
+			response += fmt.Sprintf("🆔 آیدی: %d\n📝 عنوان: %s\n📚 جلسه: %d\n\n",
+				video.ID,
+				video.Title,
+				video.Session.Number)
+		}
+		response += "\n🗑️ لطفا آیدی ویدیو مورد نظر را وارد کنید:"
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateDeleteVideo
@@ -581,6 +631,10 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	default:
 		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")
 	}
+
+	// Answer callback query to remove loading state
+	callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+	bot.Request(callback)
 }
 
 // handleBanUser bans a user
