@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -117,7 +118,7 @@ func init() {
 				zap.String("username", update.Message.From.UserName),
 				zap.String("text", update.Message.Text))
 
-			handleMessage(&update)
+			handleMessage(update)
 		} else if update.CallbackQuery != nil {
 			handleCallbackQuery(update)
 		}
@@ -127,4 +128,90 @@ func init() {
 func main() {
 	// The main function is now empty as initialization and update handling
 	// are done in the init function
+}
+
+// handleMessage processes incoming messages
+func handleMessage(update tgbotapi.Update) {
+	// Check if user is admin
+	admin := getAdminByTelegramID(update.Message.From.ID)
+	if admin != nil {
+		// Handle admin commands
+		if update.Message.IsCommand() {
+			command := update.Message.Command()
+			args := update.Message.CommandArguments()
+			response := handleAdminCommand(admin, "/"+command, strings.Fields(args))
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		}
+
+		// Handle admin menu buttons
+		switch update.Message.Text {
+		case "📊 آمار سیستم":
+			response := handleAdminStats(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "👥 مدیریت کاربران":
+			response := handleAdminUsers(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "📚 مدیریت جلسات":
+			response := handleAdminSessions(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "🎥 مدیریت ویدیوها":
+			response := handleAdminVideos(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "💾 پشتیبان‌گیری":
+			response := performBackup(admin)
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "📝 لاگ‌های سیستم":
+			response := handleAdminLogs(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		}
+
+		// Send admin keyboard if no command matched
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "منوی ادمین:")
+		msg.ReplyMarkup = getAdminKeyboard()
+		bot.Send(msg)
+		return
+	}
+
+	// If not admin, check if user is blocked
+	var user *User
+	if err := db.Where("telegram_id = ?", update.Message.From.ID).First(&user).Error; err == nil {
+		if !user.IsActive {
+			// User is blocked, send block message and remove keyboard
+			blockMsg := tgbotapi.NewMessage(update.Message.Chat.ID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n\n📞 "+SUPPORT_NUMBER)
+			blockMsg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+			bot.Send(blockMsg)
+			return
+		}
+	} else {
+		// User not found, create new user
+		user = getUserOrCreate(update.Message.From)
+	}
+
+	// Handle commands
+	if update.Message.IsCommand() {
+		switch update.Message.Command() {
+		case "start":
+			// Only send welcome message if user already exists
+			if !isNewUser(update.Message.From.ID) {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
+				msg.ReplyMarkup = getMainMenuKeyboard()
+				bot.Send(msg)
+			}
+			return
+		case "help":
+			sendMessage(update.Message.Chat.ID, "من اینجا هستم تا در سفر دوره مونیتایز به شما کمک کنم. از دکمه‌های منو برای پیمایش در دوره استفاده کنید.")
+			return
+		}
+	}
+
+	// Handle regular messages
+	response := processUserInput(update.Message.Text, user)
+	sendMessage(update.Message.Chat.ID, response)
 }

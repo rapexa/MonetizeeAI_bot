@@ -513,3 +513,23 @@ func handleChatGPTMessage(user *User, message string) string {
 
 	return content
 }
+
+// getAdminKeyboard returns the admin keyboard layout
+func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	keyboard := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("📊 آمار سیستم"),
+			tgbotapi.NewKeyboardButton("👥 مدیریت کاربران"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("📚 مدیریت جلسات"),
+			tgbotapi.NewKeyboardButton("🎥 مدیریت ویدیوها"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("💾 پشتیبان‌گیری"),
+			tgbotapi.NewKeyboardButton("📝 لاگ‌های سیستم"),
+		),
+	)
+	keyboard.ResizeKeyboard = true
+	return keyboard
+}
