@@ -144,6 +144,16 @@ func handleMessage(update tgbotapi.Update) {
 			return
 		}
 
+		// Handle admin state
+		state, exists := adminStates[admin.TelegramID]
+		if exists {
+			switch state {
+			case StateWaitingForUserID:
+				handleUserSearchResponse(admin, update.Message.Text)
+				return
+			}
+		}
+
 		// Handle admin menu buttons
 		switch update.Message.Text {
 		case "📊 آمار سیستم":

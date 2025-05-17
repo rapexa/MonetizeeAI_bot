@@ -117,7 +117,7 @@ func handleAdminUsers(admin *Admin, args []string) string {
 				user.CreatedAt.Format("2006-01-02 15:04:05"))
 		}
 
-		// Add inline keyboard for actions - Search button first
+		// Add inline keyboard for actions
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("🔍 جستجوی کاربر", "search_user:0"),
@@ -137,6 +137,11 @@ func handleAdminUsers(admin *Admin, args []string) string {
 
 	// Handle user actions
 	switch args[0] {
+	case "search":
+		if len(args) < 2 {
+			return "❌ لطفا نام کاربری یا آیدی را وارد کنید"
+		}
+		return searchUser(admin, args[1])
 	case "ban":
 		if len(args) < 2 {
 			return "❌ لطفا آیدی کاربر را وارد کنید"
@@ -347,7 +352,11 @@ func handleCallbackQuery(update tgbotapi.Update) {
 
 	switch action {
 	case "search_user":
-		msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی عددی یا نام کاربری را وارد کنید:")
+		msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی عددی یا نام کاربری را وارد کنید:\n\n"+
+			"📝 نکات:\n"+
+			"• برای جستجو با آیدی، عدد را وارد کنید\n"+
+			"• برای جستجو با نام کاربری، بخشی از نام را وارد کنید\n"+
+			"• جستجو با نام کاربری حساس به حروف کوچک و بزرگ نیست")
 		msg.ReplyMarkup = tgbotapi.ForceReply{}
 		bot.Send(msg)
 		adminStates[admin.TelegramID] = StateWaitingForUserID
@@ -545,7 +554,11 @@ func handleUnbanUser(admin *Admin, userID string) {
 
 // handleSearchUser handles user search
 func handleSearchUser(admin *Admin, params []string) {
-	msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی عددی یا نام کاربری را وارد کنید:")
+	msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی عددی یا نام کاربری را وارد کنید:\n\n"+
+		"📝 نکات:\n"+
+		"• برای جستجو با آیدی، عدد را وارد کنید\n"+
+		"• برای جستجو با نام کاربری، بخشی از نام را وارد کنید\n"+
+		"• جستجو با نام کاربری حساس به حروف کوچک و بزرگ نیست")
 	msg.ReplyMarkup = tgbotapi.ForceReply{}
 	bot.Send(msg)
 	adminStates[admin.TelegramID] = StateWaitingForUserID
@@ -555,69 +568,76 @@ func handleSearchUser(admin *Admin, params []string) {
 func handleUserSearchResponse(admin *Admin, searchText string) {
 	// First try to parse as user ID
 	userID, err := strconv.ParseInt(searchText, 10, 64)
-	var user User
+	var users []User
 	var searchErr error
 
 	if err == nil {
 		// If it's a valid number, search by Telegram ID
-		searchErr = db.Where("telegram_id = ?", userID).First(&user).Error
+		searchErr = db.Where("telegram_id = ?", userID).Find(&users).Error
 	} else {
 		// If not a number, search by username
-		searchErr = db.Where("username ILIKE ?", "%"+searchText+"%").First(&user).Error
+		searchErr = db.Where("username ILIKE ?", "%"+searchText+"%").Find(&users).Error
 	}
 
 	if searchErr != nil {
-		sendMessage(admin.TelegramID, "❌ کاربر یافت نشد. لطفا نام کاربری یا آیدی عددی را وارد کنید.")
+		sendMessage(admin.TelegramID, "❌ خطا در جستجوی کاربر")
 		return
 	}
 
-	// Get user's session progress
-	var completedSessions int64
-	db.Model(&UserProgress{}).Where("user_id = ? AND is_completed = ?", user.ID, true).Count(&completedSessions)
-
-	// Get user's exercise submissions
-	var exerciseCount int64
-	db.Model(&Exercise{}).Where("user_id = ?", user.ID).Count(&exerciseCount)
-
-	// Format the response
-	status := "✅ فعال"
-	if !user.IsActive {
-		status = "❌ مسدود"
+	if len(users) == 0 {
+		sendMessage(admin.TelegramID, "❌ کاربری یافت نشد")
+		return
 	}
 
-	response := fmt.Sprintf("👤 اطلاعات کاربر:\n\n"+
-		"📱 آیدی تلگرام: %d\n"+
-		"👤 نام کاربری: %s\n"+
-		"📊 وضعیت: %s\n"+
-		"⏰ تاریخ عضویت: %s\n"+
-		"📚 جلسات تکمیل شده: %d\n"+
-		"✍️ تعداد تمرین‌ها: %d",
-		user.TelegramID,
-		user.Username,
-		status,
-		user.CreatedAt.Format("2006-01-02 15:04:05"),
-		completedSessions,
-		exerciseCount)
+	response := "🔍 نتایج جستجو:\n\n"
+	for _, user := range users {
+		status := "✅ فعال"
+		if !user.IsActive {
+			status = "❌ مسدود"
+		}
 
-	// Create action buttons
-	var keyboard tgbotapi.InlineKeyboardMarkup
-	if user.IsActive {
-		keyboard = tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🚫 مسدود کردن کاربر", fmt.Sprintf("ban:%d", user.TelegramID)),
-			),
-		)
-	} else {
-		keyboard = tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("✅ رفع مسدودیت کاربر", fmt.Sprintf("unban:%d", user.TelegramID)),
-			),
-		)
+		// Get user's session progress
+		var completedSessions int64
+		db.Model(&UserProgress{}).Where("user_id = ? AND is_completed = ?", user.ID, true).Count(&completedSessions)
+
+		// Get user's exercise submissions
+		var exerciseCount int64
+		db.Model(&Exercise{}).Where("user_id = ?", user.ID).Count(&exerciseCount)
+
+		response += fmt.Sprintf("👤 اطلاعات کاربر:\n\n"+
+			"📱 آیدی تلگرام: %d\n"+
+			"👤 نام کاربری: %s\n"+
+			"📊 وضعیت: %s\n"+
+			"⏰ تاریخ عضویت: %s\n"+
+			"📚 جلسات تکمیل شده: %d\n"+
+			"✍️ تعداد تمرین‌ها: %d\n\n",
+			user.TelegramID,
+			user.Username,
+			status,
+			user.CreatedAt.Format("2006-01-02 15:04:05"),
+			completedSessions,
+			exerciseCount)
+
+		// Create action buttons for each user
+		var keyboard tgbotapi.InlineKeyboardMarkup
+		if user.IsActive {
+			keyboard = tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("🚫 مسدود کردن کاربر", fmt.Sprintf("ban:%d", user.TelegramID)),
+				),
+			)
+		} else {
+			keyboard = tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("✅ رفع مسدودیت کاربر", fmt.Sprintf("unban:%d", user.TelegramID)),
+				),
+			)
+		}
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
 	}
-
-	msg := tgbotapi.NewMessage(admin.TelegramID, response)
-	msg.ReplyMarkup = keyboard
-	bot.Send(msg)
 
 	// Clear the admin state after handling the search
 	delete(adminStates, admin.TelegramID)
@@ -1185,4 +1205,80 @@ func handleEditSessionInfo(admin *Admin, response string) {
 
 	logAdminAction(admin, "edit_session", fmt.Sprintf("جلسه %d ویرایش شد: %s", session.Number, session.Title), "session", session.ID)
 	delete(adminStates, admin.TelegramID)
+}
+
+// searchUser searches for a user by username or ID
+func searchUser(admin *Admin, query string) string {
+	var users []User
+	var searchErr error
+
+	// Try to parse as user ID first
+	userID, err := strconv.ParseInt(query, 10, 64)
+	if err == nil {
+		// Search by Telegram ID
+		searchErr = db.Where("telegram_id = ?", userID).Find(&users).Error
+	} else {
+		// Search by username
+		searchErr = db.Where("username ILIKE ?", "%"+query+"%").Find(&users).Error
+	}
+
+	if searchErr != nil {
+		return "❌ خطا در جستجوی کاربر"
+	}
+
+	if len(users) == 0 {
+		return "❌ کاربری یافت نشد"
+	}
+
+	response := "🔍 نتایج جستجو:\n\n"
+	for _, user := range users {
+		status := "✅ فعال"
+		if !user.IsActive {
+			status = "❌ مسدود"
+		}
+
+		// Get user's session progress
+		var completedSessions int64
+		db.Model(&UserProgress{}).Where("user_id = ? AND is_completed = ?", user.ID, true).Count(&completedSessions)
+
+		// Get user's exercise submissions
+		var exerciseCount int64
+		db.Model(&Exercise{}).Where("user_id = ?", user.ID).Count(&exerciseCount)
+
+		response += fmt.Sprintf("👤 اطلاعات کاربر:\n\n"+
+			"📱 آیدی تلگرام: %d\n"+
+			"👤 نام کاربری: %s\n"+
+			"📊 وضعیت: %s\n"+
+			"⏰ تاریخ عضویت: %s\n"+
+			"📚 جلسات تکمیل شده: %d\n"+
+			"✍️ تعداد تمرین‌ها: %d\n\n",
+			user.TelegramID,
+			user.Username,
+			status,
+			user.CreatedAt.Format("2006-01-02 15:04:05"),
+			completedSessions,
+			exerciseCount)
+
+		// Create action buttons for each user
+		var keyboard tgbotapi.InlineKeyboardMarkup
+		if user.IsActive {
+			keyboard = tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("🚫 مسدود کردن کاربر", fmt.Sprintf("ban:%d", user.TelegramID)),
+				),
+			)
+		} else {
+			keyboard = tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("✅ رفع مسدودیت کاربر", fmt.Sprintf("unban:%d", user.TelegramID)),
+				),
+			)
+		}
+
+		msg := tgbotapi.NewMessage(admin.TelegramID, response)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
+	}
+
+	return "✅ جستجو با موفقیت انجام شد"
 }
