@@ -1041,22 +1041,23 @@ func handleEditSessionInfo(admin *Admin, input string) {
 	delete(adminStates, admin.TelegramID)
 }
 
-// Helper to send long messages in 4096-char chunks
+// Helper to send long messages in 4096-char chunks (by runes, for UTF-8 safety)
 func sendLongMessage(chatID int64, text string, replyMarkup interface{}) {
 	const maxLen = 4096
-	for len(text) > 0 {
+	runes := []rune(text)
+	for len(runes) > 0 {
 		chunkLen := maxLen
-		if len(text) < maxLen {
-			chunkLen = len(text)
+		if len(runes) < maxLen {
+			chunkLen = len(runes)
 		}
-		chunk := text[:chunkLen]
+		chunk := string(runes[:chunkLen])
 		msg := tgbotapi.NewMessage(chatID, chunk)
-		if replyMarkup != nil && len(text) == chunkLen {
+		if replyMarkup != nil && len(runes) == chunkLen {
 			msg.ReplyMarkup = replyMarkup
 		}
 		if _, err := bot.Send(msg); err != nil {
 			fmt.Printf("[ERROR] bot.Send failed in sendLongMessage: %v\n", err)
 		}
-		text = text[chunkLen:]
+		runes = runes[chunkLen:]
 	}
 }
