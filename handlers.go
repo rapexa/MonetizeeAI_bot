@@ -69,7 +69,7 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 			db.Where("session_id = ?", session.ID).First(&video)
 
 			// Create session message
-			sessionMsg := fmt.Sprintf("📚 جلسه %d: %s\n\n%s\n\n📺 ویدیو: %s",
+			sessionMsg := fmt.Sprintf("📚 %d: %s\n\n%s\n\n📺 ویدیو: %s",
 				session.Number,
 				session.Title,
 				session.Description,
@@ -97,11 +97,11 @@ func processUserInput(input string, user *User) string {
 	}
 
 	switch input {
-	case "📚 جلسه فعلی":
+	case "📚 مرحله فعلی":
 		return getCurrentSessionInfo(user)
 	case "✅ ارسال تمرین":
 		userStates[user.TelegramID] = "submitting_exercise"
-		msg := tgbotapi.NewMessage(user.TelegramID, "لطفا تمرین خود را برای جلسه فعلی ارسال کنید. پاسخ خود را در پیام بعدی بنویسید.")
+		msg := tgbotapi.NewMessage(user.TelegramID, "لطفا تمرین خود را برای مرحله فعلی ارسال کنید. پاسخ خود را در پیام بعدی بنویسید.")
 		msg.ReplyMarkup = getExerciseSubmissionKeyboard()
 		bot.Send(msg)
 		return ""
@@ -153,14 +153,14 @@ func processUserInput(input string, user *User) string {
 func getCurrentSessionInfo(user *User) string {
 	var session Session
 	if err := db.First(&session, user.CurrentSession).Error; err != nil {
-		return "خطا در دریافت اطلاعات جلسه. لطفا دوباره تلاش کنید."
+		return "خطا در دریافت اطلاعات مرحله فعلی. لطفا دوباره تلاش کنید."
 	}
 
 	var video Video
 	db.Where("session_id = ?", session.ID).First(&video)
 
 	// Create a message with the session thumbnail
-	message := fmt.Sprintf("📚 جلسه %d: %s\n\n%s\n\n📺 ویدیو: %s",
+	message := fmt.Sprintf("📚 %d: %s\n\n%s\n\n📺 ویدیو: %s",
 		session.Number,
 		session.Title,
 		session.Description,
@@ -172,7 +172,7 @@ func getCurrentSessionInfo(user *User) string {
 	bot.Send(photo)
 
 	// Send instruction message
-	instructionMsg := "بعد از ارسال تکالیف این جلسه و ارسال تمرین و بررسی جواب شما به ویدیو بعدی منتقل خواهید شد"
+	instructionMsg := "بعد از ارسال تکالیف این مرحله و ارسال تمرین و بررسی جواب شما به ویدیو بعدی منتقل خواهید شد"
 	bot.Send(tgbotapi.NewMessage(user.TelegramID, instructionMsg))
 
 	return "" // Return empty string since we're sending the messages directly
@@ -223,7 +223,7 @@ func handleExerciseSubmission(user *User, content string) string {
 			zap.Int64("user_id", user.TelegramID),
 			zap.Int("session_number", user.CurrentSession),
 			zap.Error(err))
-		return "❌ خطا در دریافت اطلاعات جلسه. لطفا دوباره تلاش کنید."
+		return "❌ خطا در دریافت اطلاعات مرحله. لطفا دوباره تلاش کنید."
 	}
 
 	var video Video
@@ -288,8 +288,8 @@ FEEDBACK: [your detailed feedback]`,
 			feedback = "عالی! تمرین شما با موفقیت انجام شد و نشان می‌دهد که مفاهیم را به خوبی درک کرده‌اید."
 		} else {
 			feedback = "تمرین شما نیاز به بهبود دارد. لطفا موارد زیر را در نظر بگیرید:\n\n" +
-				"1. آیا تمام نکات مهم جلسه را در نظر گرفته‌اید؟\n" +
-				"2. آیا پاسخ شما با اهداف یادگیری جلسه همخوانی دارد؟\n" +
+				"1. آیا تمام نکات مهم مرحله را در نظر گرفته‌اید؟\n" +
+				"2. آیا پاسخ شما با اهداف یادگیری مرحله همخوانی دارد؟\n" +
 				"3. آیا می‌توانید جزئیات بیشتری به پاسخ خود اضافه کنید؟\n\n" +
 				"لطفا با توجه به این نکات، تمرین خود را اصلاح کنید."
 		}
@@ -326,7 +326,7 @@ FEEDBACK: [your detailed feedback]`,
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("new_session", user.CurrentSession),
 				zap.Error(err))
-			return "❌ خطا در به‌روزرسانی جلسه. لطفا دوباره تلاش کنید."
+			return "❌ خطا در به‌روزرسانی مرحله. لطفا دوباره تلاش کنید."
 		}
 
 		// Get next session info
@@ -336,7 +336,7 @@ FEEDBACK: [your detailed feedback]`,
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("session_number", user.CurrentSession),
 				zap.Error(err))
-			return fmt.Sprintf("🎉 %s\n\nبه جلسه بعدی منتقل شدید!", feedback)
+			return fmt.Sprintf("🎉 %s\n\nبه مرحله بعدی منتقل شدید!", feedback)
 		}
 
 		// Check if user leveled up
@@ -346,7 +346,7 @@ FEEDBACK: [your detailed feedback]`,
 		oldLevel := GetUserLevel(int(currentCompletedSessions))
 		newLevel := GetUserLevel(int(newCompletedSessions))
 
-		response := fmt.Sprintf("🎉 %s\n\n📚 جلسه بعدی شما:\n%s\n\n%s",
+		response := fmt.Sprintf("🎉 %s\n\n📚 مرحله بعدی شما:\n%s\n\n%s",
 			feedback,
 			nextSession.Title,
 			nextSession.Description)
@@ -382,7 +382,7 @@ func sendMessage(chatID int64, text string) {
 func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("📚 جلسه فعلی"),
+			tgbotapi.NewKeyboardButton("📚 مرحله فعلی"),
 			tgbotapi.NewKeyboardButton("✅ ارسال تمرین"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
