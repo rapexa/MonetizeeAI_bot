@@ -931,6 +931,11 @@ func handleEditVideoResponse(admin *Admin, input string) {
 	video.Title = parts[0]
 	video.VideoLink = videoLink
 
+	// Fix: Ensure CreatedAt is valid before saving
+	if video.CreatedAt.IsZero() {
+		video.CreatedAt = time.Now() // or fetch the original value if you want
+	}
+
 	if err := db.Save(&video).Error; err != nil {
 		sendMessage(admin.TelegramID, "❌ خطا در ویرایش ویدیو")
 		delete(adminStates, admin.TelegramID)
