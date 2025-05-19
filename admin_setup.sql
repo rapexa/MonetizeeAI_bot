@@ -41,7 +41,16 @@ CREATE INDEX idx_backups_created_at ON backups(created_at);
 
 -- Insert default admin user (replace with actual values)
 INSERT INTO admins (telegram_id, username, first_name, last_name, role)
-VALUES (123456789, 'admin', 'Admin', 'User', 'super_admin')
+VALUES (7403868937, '@mohammadGarehbagh', 'Mohammad', 'Gharehbagh', 'super_admin')
+ON DUPLICATE KEY UPDATE
+    username = VALUES(username),
+    first_name = VALUES(first_name),
+    last_name = VALUES(last_name),
+    role = VALUES(role); 
+
+    -- Insert default admin user (replace with actual values)
+INSERT INTO admins (telegram_id, username, first_name, last_name, role)
+VALUES (1038044314, 'admin', 'Admin', 'User', 'super_admin')
 ON DUPLICATE KEY UPDATE
     username = VALUES(username),
     first_name = VALUES(first_name),

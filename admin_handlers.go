@@ -159,9 +159,11 @@ func handleAdminUsers(admin *Admin, args []string) string {
 
 // handleAdminSessions manages sessions
 func handleAdminSessions(admin *Admin, args []string) string {
+	fmt.Printf("[DEBUG] handleAdminSessions called by admin %d with args: %v\n", admin.TelegramID, args)
 	if len(args) == 0 {
 		var sessions []Session
 		db.Order("number desc").Limit(12).Find(&sessions) // Get last 12 sessions
+		fmt.Printf("[DEBUG] handleAdminSessions: fetched %d sessions\n", len(sessions))
 
 		// Build the response with sessions list
 		var response strings.Builder
@@ -224,9 +226,11 @@ func handleAdminSessions(admin *Admin, args []string) string {
 
 // handleAdminVideos manages videos
 func handleAdminVideos(admin *Admin, args []string) string {
+	fmt.Printf("[DEBUG] handleAdminVideos called by admin %d with args: %v\n", admin.TelegramID, args)
 	if len(args) == 0 {
 		var videos []Video
 		db.Preload("Session").Order("created_at desc").Find(&videos)
+		fmt.Printf("[DEBUG] handleAdminVideos: fetched %d videos\n", len(videos))
 
 		response := "🎥 مدیریت ویدیوها:\n\n"
 		if len(videos) == 0 {
@@ -337,6 +341,7 @@ func handleAdminExercises(admin *Admin, args []string) string {
 
 // handleCallbackQuery processes callback queries from inline keyboards
 func handleCallbackQuery(update tgbotapi.Update) {
+	fmt.Printf("[DEBUG] handleCallbackQuery called by admin %v, data: %s\n", getAdminByTelegramID(update.CallbackQuery.From.ID), update.CallbackQuery.Data)
 	admin := getAdminByTelegramID(update.CallbackQuery.From.ID)
 	if admin == nil {
 		sendMessage(update.CallbackQuery.From.ID, "❌ شما دسترسی به این بخش را ندارید")
