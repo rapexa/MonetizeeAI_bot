@@ -320,7 +320,7 @@ FEEDBACK: [your detailed feedback]`,
 
 		// Move user to next session
 		user.CurrentSession++
-		if err := db.Save(user).Error {
+		if err := db.Save(user).Error; err != nil {
 			logger.Error("Failed to update user session",
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("new_session", user.CurrentSession),
