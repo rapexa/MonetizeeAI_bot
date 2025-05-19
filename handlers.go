@@ -218,9 +218,36 @@ func getCurrentSessionInfo(user *User) string {
 	photo.Caption = message
 	bot.Send(photo)
 
-	// Send instruction message
-	instructionMsg := "بعد از ارسال تکالیف این مرحله و ارسال تمرین و بررسی جواب شما به ویدیو بعدی منتقل خواهید شد"
-	bot.Send(tgbotapi.NewMessage(user.TelegramID, instructionMsg))
+	// Check if this is the last video (session 29)
+	if session.Number == 29 {
+		// Send congratulatory message
+		congratsMsg := "🎉 تبریک! شما به پایان دوره رسیده‌اید!\n\n" +
+			"شما تمام ۲۹ ویدیوی دوره را با موفقیت مشاهده کرده‌اید. این یک دستاورد بزرگ است!\n\n" +
+			"TODO: در آینده نزدیک، جایزه‌ای ویژه برای شما در نظر گرفته خواهد شد. منتظر خبرهای خوب باشید! 🎁"
+
+		// Create a modified keyboard without exercise buttons
+		keyboard := tgbotapi.NewReplyKeyboard(
+			tgbotapi.NewKeyboardButtonRow(
+				tgbotapi.NewKeyboardButton("📊 پیشرفت"),
+				tgbotapi.NewKeyboardButton("❇️ دیدن همه مسیر"),
+			),
+			tgbotapi.NewKeyboardButtonRow(
+				tgbotapi.NewKeyboardButton("❓ راهنما"),
+			),
+			tgbotapi.NewKeyboardButtonRow(
+				tgbotapi.NewKeyboardButton("💬 چت با هدایتگر"),
+			),
+		)
+		keyboard.ResizeKeyboard = true
+
+		msg := tgbotapi.NewMessage(user.TelegramID, congratsMsg)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
+	} else {
+		// Send normal instruction message for other sessions
+		instructionMsg := "بعد از ارسال تکالیف این مرحله و ارسال تمرین و بررسی جواب شما به ویدیو بعدی منتقل خواهید شد"
+		bot.Send(tgbotapi.NewMessage(user.TelegramID, instructionMsg))
+	}
 
 	return "" // Return empty string since we're sending the messages directly
 }
