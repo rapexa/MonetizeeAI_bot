@@ -128,9 +128,18 @@ func processUserInput(input string, user *User) string {
 
 		// Send PDF file if available
 		if exercise.PDFFile != "" {
-			file := tgbotapi.NewDocument(user.TelegramID, tgbotapi.FileID(exercise.PDFFile))
-			file.Caption = fmt.Sprintf("📄 تمرین مرحله %d: %s", session.Number, session.Title)
-			bot.Send(file)
+			// Check if the PDFFile is a URL
+			if strings.HasPrefix(exercise.PDFFile, "http://") || strings.HasPrefix(exercise.PDFFile, "https://") {
+				// Send PDF file using URL
+				file := tgbotapi.NewDocument(user.TelegramID, tgbotapi.FileURL(exercise.PDFFile))
+				file.Caption = fmt.Sprintf("📄 تمرین مرحله %d: %s", session.Number, session.Title)
+				bot.Send(file)
+			} else {
+				// Try sending as FileID (for backward compatibility)
+				file := tgbotapi.NewDocument(user.TelegramID, tgbotapi.FileID(exercise.PDFFile))
+				file.Caption = fmt.Sprintf("📄 تمرین مرحله %d: %s", session.Number, session.Title)
+				bot.Send(file)
+			}
 		}
 
 		// Send exercise text
