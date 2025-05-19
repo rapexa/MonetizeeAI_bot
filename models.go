@@ -112,12 +112,26 @@ var UserLevels = []UserLevel{
 
 // GetUserLevel returns the user's current level based on completed sessions
 func GetUserLevel(completedSessions int) UserLevel {
-	// Each level requires 4 sessions to complete
-	level := (completedSessions / 4) + 1
-	if level > 9 {
-		level = 9
+	switch {
+	case completedSessions > 24:
+		return UserLevels[8] // Level 9
+	case completedSessions > 21:
+		return UserLevels[7] // Level 8
+	case completedSessions > 19:
+		return UserLevels[6] // Level 7
+	case completedSessions > 17:
+		return UserLevels[5] // Level 6
+	case completedSessions > 14:
+		return UserLevels[4] // Level 5
+	case completedSessions > 11:
+		return UserLevels[3] // Level 4
+	case completedSessions > 8:
+		return UserLevels[2] // Level 3
+	case completedSessions > 5:
+		return UserLevels[1] // Level 2
+	default:
+		return UserLevels[0] // Level 1
 	}
-	return UserLevels[level-1]
 }
 
 // GetUserProgress returns the user's progress percentage
