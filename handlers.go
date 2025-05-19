@@ -188,10 +188,11 @@ func getProgressInfo(user *User) string {
 	progress := GetUserProgress(int(completedSessions))
 	progressBar := GetProgressBar(progress)
 
-	// Format the response exactly as requested
-	return fmt.Sprintf("👤 پروفایل من – مانیتایز AI\n\n🔢 نام: %s\n🎮 سطح: %s (سازنده نسخه اولیه) %s\n📈 جلسات کامل‌شده: %d از x\n📊 پیشرفت شما: %s %d%%",
+	// Format the response
+	return fmt.Sprintf("👤 پروفایل من – مانیتایز AI\n\n🔢 نام: %s\n🎮 سطح: %s (%s) %s\n📈 جلسات کامل‌شده: %d از 36\n📊 پیشرفت شما: %s %d%%",
 		user.Username,
 		level.Name,
+		level.Description,
 		level.Emoji,
 		completedSessions,
 		progressBar,
@@ -343,17 +344,15 @@ FEEDBACK: [your detailed feedback]`,
 		oldLevel := GetUserLevel(int(currentCompletedSessions))
 		newLevel := GetUserLevel(int(newCompletedSessions))
 
-		// First send the level up message if user leveled up
-		if newLevel.Level > oldLevel.Level {
-			levelUpMsg := tgbotapi.NewMessage(user.TelegramID, GetLevelUpMessage(newLevel))
-			bot.Send(levelUpMsg)
-		}
-
-		// Then send the next session info
 		response := fmt.Sprintf("🎉 %s\n\n📚 جلسه بعدی شما:\n%s\n\n%s",
 			feedback,
 			nextSession.Title,
 			nextSession.Description)
+
+		// If user leveled up, add the level up message
+		if newLevel.Level > oldLevel.Level {
+			response = GetLevelUpMessage(newLevel) + "\n\n⸻\n\n" + response
+		}
 
 		logger.Info("User moved to next session",
 			zap.Int64("user_id", user.TelegramID),
