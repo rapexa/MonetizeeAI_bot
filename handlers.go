@@ -315,13 +315,12 @@ FEEDBACK: [your detailed feedback]`,
 	}
 
 	if approved {
-		// Get current completed sessions count
-		var currentCompletedSessions int64
-		db.Model(&Exercise{}).Where("user_id = ? AND status = ?", user.ID, "approved").Count(&currentCompletedSessions)
+		// Use the same completedSessions logic as profile
+		currentCompletedSessions := user.CurrentSession - 1 // before increment
 
 		// Move user to next session
 		user.CurrentSession++
-		if err := db.Save(user).Error; err != nil {
+		if err := db.Save(user).Error {
 			logger.Error("Failed to update user session",
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("new_session", user.CurrentSession),
@@ -339,12 +338,11 @@ FEEDBACK: [your detailed feedback]`,
 			return fmt.Sprintf("🎉 %s\n\nبه مرحله بعدی منتقل شدید!", feedback)
 		}
 
-		// Check if user leveled up
-		var newCompletedSessions int64
-		db.Model(&Exercise{}).Where("user_id = ? AND status = ?", user.ID, "approved").Count(&newCompletedSessions)
+		// After incrementing session
+		newCompletedSessions := user.CurrentSession - 1
 
-		oldLevel := GetUserLevel(int(currentCompletedSessions))
-		newLevel := GetUserLevel(int(newCompletedSessions))
+		oldLevel := GetUserLevel(currentCompletedSessions)
+		newLevel := GetUserLevel(newCompletedSessions)
 
 		response := fmt.Sprintf("🎉 %s\n\n📚 مرحله بعدی شما:\n%s\n\n%s",
 			feedback,
