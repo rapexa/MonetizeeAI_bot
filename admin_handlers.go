@@ -175,7 +175,6 @@ func handleAdminSessions(admin *Admin, args []string) string {
 		}
 
 		// Create message with sessions list and buttons
-		msg := tgbotapi.NewMessage(admin.TelegramID, response.String())
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("➕ افزودن جلسه", "add_session"),
@@ -186,12 +185,8 @@ func handleAdminSessions(admin *Admin, args []string) string {
 				tgbotapi.NewInlineKeyboardButtonData("📊 آمار جلسات", "session_stats"),
 			),
 		)
-		msg.ReplyMarkup = keyboard
 		fmt.Printf("[DEBUG] handleAdminSessions: response length = %d\n", len(response.String()))
-		if _, err := bot.Send(msg); err != nil {
-			fmt.Printf("[ERROR] bot.Send failed in handleAdminSessions: %v\n", err)
-		}
-
+		sendLongMessage(admin.TelegramID, response.String(), keyboard)
 		return "از دکمه‌های زیر برای مدیریت جلسات استفاده کنید"
 	}
 
@@ -261,13 +256,8 @@ func handleAdminVideos(admin *Admin, args []string) string {
 				tgbotapi.NewInlineKeyboardButtonData("📊 آمار ویدیوها", "video_stats"),
 			),
 		)
-		msg := tgbotapi.NewMessage(admin.TelegramID, response)
-		msg.ReplyMarkup = keyboard
 		fmt.Printf("[DEBUG] handleAdminVideos: response length = %d\n", len(response))
-		if _, err := bot.Send(msg); err != nil {
-			fmt.Printf("[ERROR] bot.Send failed in handleAdminVideos: %v\n", err)
-		}
-
+		sendLongMessage(admin.TelegramID, response, keyboard)
 		return "از دکمه‌های زیر برای مدیریت ویدیوها استفاده کنید"
 	}
 
@@ -1049,4 +1039,24 @@ func handleEditSessionInfo(admin *Admin, input string) {
 	bot.Send(msg)
 
 	delete(adminStates, admin.TelegramID)
+}
+
+// Helper to send long messages in 4096-char chunks
+func sendLongMessage(chatID int64, text string, replyMarkup interface{}) {
+	const maxLen = 4096
+	for len(text) > 0 {
+		chunkLen := maxLen
+		if len(text) < maxLen {
+			chunkLen = len(text)
+		}
+		chunk := text[:chunkLen]
+		msg := tgbotapi.NewMessage(chatID, chunk)
+		if replyMarkup != nil && len(text) == chunkLen {
+			msg.ReplyMarkup = replyMarkup
+		}
+		if _, err := bot.Send(msg); err != nil {
+			fmt.Printf("[ERROR] bot.Send failed in sendLongMessage: %v\n", err)
+		}
+		text = text[chunkLen:]
+	}
 }
