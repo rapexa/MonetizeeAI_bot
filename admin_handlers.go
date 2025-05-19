@@ -187,7 +187,10 @@ func handleAdminSessions(admin *Admin, args []string) string {
 			),
 		)
 		msg.ReplyMarkup = keyboard
-		bot.Send(msg)
+		fmt.Printf("[DEBUG] handleAdminSessions: response length = %d\n", len(response.String()))
+		if _, err := bot.Send(msg); err != nil {
+			fmt.Printf("[ERROR] bot.Send failed in handleAdminSessions: %v\n", err)
+		}
 
 		return "از دکمه‌های زیر برای مدیریت جلسات استفاده کنید"
 	}
@@ -260,7 +263,10 @@ func handleAdminVideos(admin *Admin, args []string) string {
 		)
 		msg := tgbotapi.NewMessage(admin.TelegramID, response)
 		msg.ReplyMarkup = keyboard
-		bot.Send(msg)
+		fmt.Printf("[DEBUG] handleAdminVideos: response length = %d\n", len(response))
+		if _, err := bot.Send(msg); err != nil {
+			fmt.Printf("[ERROR] bot.Send failed in handleAdminVideos: %v\n", err)
+		}
 
 		return "از دکمه‌های زیر برای مدیریت ویدیوها استفاده کنید"
 	}
