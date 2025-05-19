@@ -97,7 +97,7 @@ func processUserInput(input string, user *User) string {
 	}
 
 	switch input {
-	case "📚 مرحله فعلی":
+	case "📚 ادامه مسیر من":
 		return getCurrentSessionInfo(user)
 	case "✅ ارسال تمرین":
 		userStates[user.TelegramID] = "submitting_exercise"
@@ -108,7 +108,7 @@ func processUserInput(input string, user *User) string {
 	case "📊 پیشرفت":
 		userStates[user.TelegramID] = ""
 		return getProgressInfo(user)
-	case "دیدن همه مسیر":
+	case "❇️ دیدن همه مسیر":
 		userStates[user.TelegramID] = ""
 		return getFullRoadmap(user)
 	case "❓ راهنما":
@@ -384,12 +384,14 @@ func sendMessage(chatID int64, text string) {
 func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("📚 مرحله فعلی"),
+			tgbotapi.NewKeyboardButton("📚 ادامه مسیر من"),
 			tgbotapi.NewKeyboardButton("✅ ارسال تمرین"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("❇️ دیدن همه مسیر"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("📊 پیشرفت"),
-			tgbotapi.NewKeyboardButton("دیدن همه مسیر"),
 			tgbotapi.NewKeyboardButton("❓ راهنما"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
