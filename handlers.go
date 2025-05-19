@@ -179,13 +179,24 @@ func getCurrentSessionInfo(user *User) string {
 }
 
 func getProgressInfo(user *User) string {
-	var completedExercises int64
-	db.Model(&Exercise{}).Where("user_id = ? AND status = ?", user.ID, "approved").Count(&completedExercises)
+	// Get completed sessions count
+	var completedSessions int64
+	db.Model(&Exercise{}).Where("user_id = ? AND status = ?", user.ID, "approved").Count(&completedSessions)
 
-	return fmt.Sprintf("📊 پیشرفت شما:\n\n• جلسه فعلی: %d\n• تمرین‌های تکمیل شده: %d\n• وضعیت فعال: %v",
-		user.CurrentSession,
-		completedExercises,
-		user.IsActive)
+	// Get user's current level
+	level := GetUserLevel(int(completedSessions))
+	progress := GetUserProgress(int(completedSessions))
+	progressBar := GetProgressBar(progress)
+
+	// Format the response
+	return fmt.Sprintf("👤 پروفایل من – مانیتایز AI\n\n🔢 نام: %s\n🎮 سطح: %s (%s) %s\n📈 جلسات کامل‌شده: %d از 36\n📊 پیشرفت شما: %s %d%%",
+		user.Username,
+		level.Name,
+		level.Description,
+		level.Emoji,
+		completedSessions,
+		progressBar,
+		progress)
 }
 
 func getHelpMessage() string {
@@ -302,6 +313,10 @@ FEEDBACK: [your detailed feedback]`,
 	}
 
 	if approved {
+		// Get current completed sessions count
+		var currentCompletedSessions int64
+		db.Model(&Exercise{}).Where("user_id = ? AND status = ?", user.ID, "approved").Count(&currentCompletedSessions)
+
 		// Move user to next session
 		user.CurrentSession++
 		if err := db.Save(user).Error; err != nil {
@@ -322,15 +337,29 @@ FEEDBACK: [your detailed feedback]`,
 			return fmt.Sprintf("🎉 %s\n\nبه جلسه بعدی منتقل شدید!", feedback)
 		}
 
+		// Check if user leveled up
+		var newCompletedSessions int64
+		db.Model(&Exercise{}).Where("user_id = ? AND status = ?", user.ID, "approved").Count(&newCompletedSessions)
+
+		oldLevel := GetUserLevel(int(currentCompletedSessions))
+		newLevel := GetUserLevel(int(newCompletedSessions))
+
+		response := fmt.Sprintf("🎉 %s\n\n📚 جلسه بعدی شما:\n%s\n\n%s",
+			feedback,
+			nextSession.Title,
+			nextSession.Description)
+
+		// If user leveled up, add the level up message
+		if newLevel.Level > oldLevel.Level {
+			response = GetLevelUpMessage(newLevel) + "\n\n⸻\n\n" + response
+		}
+
 		logger.Info("User moved to next session",
 			zap.Int64("user_id", user.TelegramID),
 			zap.Int("old_session", user.CurrentSession-1),
 			zap.Int("new_session", user.CurrentSession))
 
-		return fmt.Sprintf("🎉 %s\n\n📚 جلسه بعدی شما:\n%s\n\n%s",
-			feedback,
-			nextSession.Title,
-			nextSession.Description)
+		return response
 	}
 
 	// If not approved, return feedback for improvement
