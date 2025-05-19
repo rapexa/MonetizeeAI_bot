@@ -97,7 +97,7 @@ func processUserInput(input string, user *User) string {
 	}
 
 	switch input {
-	case "📚 مرحله فعلی":
+	case "📚 ادامه مسیر من":
 		return getCurrentSessionInfo(user)
 	case "✅ ارسال تمرین":
 		userStates[user.TelegramID] = "submitting_exercise"
@@ -380,7 +380,7 @@ func sendMessage(chatID int64, text string) {
 func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("📚 مرحله فعلی"),
+			tgbotapi.NewKeyboardButton("📚 ادامه مسیر من"),
 			tgbotapi.NewKeyboardButton("✅ ارسال تمرین"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
