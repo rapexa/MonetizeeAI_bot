@@ -179,13 +179,15 @@ func getCurrentSessionInfo(user *User) string {
 }
 
 func getProgressInfo(user *User) string {
-	// Get completed sessions count
-	var completedSessions int64
-	db.Model(&Exercise{}).Where("user_id = ? AND status = ?", user.ID, "approved").Count(&completedSessions)
+	// Calculate completed sessions based on current session
+	completedSessions := user.CurrentSession - 1
+	if completedSessions < 0 {
+		completedSessions = 0
+	}
 
 	// Get user's current level
-	level := GetUserLevel(int(completedSessions))
-	progress := GetUserProgress(int(completedSessions))
+	level := GetUserLevel(completedSessions)
+	progress := GetUserProgress(completedSessions)
 	progressBar := GetProgressBar(progress)
 
 	// Format the response
