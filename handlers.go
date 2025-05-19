@@ -97,7 +97,7 @@ func processUserInput(input string, user *User) string {
 	}
 
 	switch input {
-	case "📚 ادامه مسیر من":
+	case "📚 مرحله فعلی":
 		return getCurrentSessionInfo(user)
 	case "✅ ارسال تمرین":
 		userStates[user.TelegramID] = "submitting_exercise"
@@ -108,6 +108,9 @@ func processUserInput(input string, user *User) string {
 	case "📊 پیشرفت":
 		userStates[user.TelegramID] = ""
 		return getProgressInfo(user)
+	case "دیدن همه مسیر":
+		userStates[user.TelegramID] = ""
+		return getFullRoadmap(user)
 	case "❓ راهنما":
 		userStates[user.TelegramID] = ""
 		return getHelpMessage()
@@ -381,15 +384,16 @@ func sendMessage(chatID int64, text string) {
 func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("📚 ادامه مسیر من"),
+			tgbotapi.NewKeyboardButton("📚 مرحله فعلی"),
 			tgbotapi.NewKeyboardButton("✅ ارسال تمرین"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("📊 پیشرفت"),
+			tgbotapi.NewKeyboardButton("دیدن همه مسیر"),
 			tgbotapi.NewKeyboardButton("❓ راهنما"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("💬 چت با هدایتگر"),
+			tgbotapi.NewKeyboardButton("چت با هدایتگر"),
 		),
 	)
 	keyboard.ResizeKeyboard = true
@@ -561,4 +565,125 @@ func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	)
 	keyboard.ResizeKeyboard = true
 	return keyboard
+}
+
+func getFullRoadmap(user *User) string {
+	completedSessions := user.CurrentSession - 1
+	if completedSessions < 0 {
+		completedSessions = 0
+	}
+	level := GetUserLevel(completedSessions)
+	progress := GetUserProgress(completedSessions)
+
+	// Level roadmap
+	levels := []struct {
+		Title  string
+		Status string
+	}{
+		{"سطح ۱ – انتخاب ایده", "✅"},
+		{"سطح ۲ – ساخت سرویس اولیه", "✅"},
+		{"سطح ۳ – برند شخصی", "⏳"},
+		{"سطح ۴ – جذب مشتری", "🔒"},
+		{"سطح ۵ – اجرای اتوماسیون", "🔒"},
+		{"سطح ۶ – تیم‌سازی و رشد", "🔒"},
+		{"سطح ۷ – اجرای سیستم", "🔒"},
+		{"سطح ۸ – فروش خودکار با AI", "🔒"},
+		{"سطح ۹ – جهش درآمد دلاری", "🔒"},
+	}
+	// Mark completed and current levels
+	for i := range levels {
+		if level.Level > i+1 {
+			levels[i].Status = "✅"
+		} else if level.Level == i+1 {
+			levels[i].Status = "⏳"
+		} else {
+			levels[i].Status = "🔒"
+		}
+	}
+
+	// Current stage in level (for demo, assume 4 stages per level)
+	// You can adjust this logic based on your real session-to-level mapping
+	// For now, let's use the completedSessions to estimate
+	// Find the start session for this level
+	levelStartSessions := []int{0, 6, 9, 12, 15, 18, 20, 22, 25}
+	levelEndSessions := []int{5, 8, 11, 14, 17, 19, 21, 24, 27}
+	currentLevelIndex := level.Level - 1
+	stageInLevel := completedSessions - levelStartSessions[currentLevelIndex] + 1
+	stagesInLevel := levelEndSessions[currentLevelIndex] - levelStartSessions[currentLevelIndex] + 1
+	if stageInLevel < 1 {
+		stageInLevel = 1
+	}
+	if stageInLevel > stagesInLevel {
+		stageInLevel = stagesInLevel
+	}
+
+	// Current and next stage titles (for demo, use placeholders)
+	currentStageTitle := "ساخت پیام برند"
+	nextStageTitle := "ساخت پیام برند"
+
+	// Compose the roadmap message
+	msg := fmt.Sprintf(`🏁 نقشه راه درآمد دلاری تو در MonetizeAI
+
+👤 %sعزیز، تو الان یک مانتیازر سطح %d هستی
+یعنی %d لول واقعی از مسیر پول‌سازی با AI رو پشت سر گذاشتی 💥
+
+🔹 مرحله فعلیت: %d از %d
+🔹عنوان مرحله فعلی: «%s»
+🔜 مرحله بعد: «%s» 🔓
+
+⸻
+
+🧭 ساختار ربات چطوریه؟
+
+سیستم MonetizeAI از ۹ سطح اصلی تشکیل شده.
+هر سطح یعنی یه قدم واقعی برای ساخت بیزینس یا استخدام دلاری با AI.
+
+📦 هر سطح، شامل چند مرحله‌ست.
+تو هر مرحله فقط یه تمرین داری — همراه با چک‌لیست، ویدیو، راهنما و پشتیبانی.
+
+✨ وقتی هر مرحله رو انجام بدی، لِول می‌گیری و مرحله بعد برات باز می‌شه!
+
+⸻
+
+🎮 نقشه کلی مسیر تو:
+
+%s %s
+%s %s
+%s %s
+%s %s
+%s %s
+%s %s
+%s %s
+%s %s
+%s %s
+
+⸻
+
+📊 پیشرفت تو: %d%%
+🔥 فقط %d سطح دیگه تا پایان مسیر و ساخت درآمد دلاری واقعی باقی مونده!
+
+⸻
+
+🚀 برای رفتن به مرحله بعد، بزن:
+👉 [ادامه مسیر من]`,
+		user.Username,
+		level.Level,
+		level.Level,
+		stageInLevel,
+		stagesInLevel,
+		currentStageTitle,
+		nextStageTitle,
+		levels[0].Status, levels[0].Title,
+		levels[1].Status, levels[1].Title,
+		levels[2].Status, levels[2].Title,
+		levels[3].Status, levels[3].Title,
+		levels[4].Status, levels[4].Title,
+		levels[5].Status, levels[5].Title,
+		levels[6].Status, levels[6].Title,
+		levels[7].Status, levels[7].Title,
+		levels[8].Status, levels[8].Title,
+		progress,
+		9-level.Level,
+	)
+	return msg
 }
