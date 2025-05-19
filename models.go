@@ -77,6 +77,7 @@ type Exercise struct {
 	SessionID   uint
 	Session     Session `gorm:"foreignKey:SessionID"`
 	Content     string
+	PDFFile     string // File ID or path to the PDF file
 	Status      string `gorm:"default:'pending'"` // pending, approved, needs_revision
 	Feedback    string
 	SubmittedAt time.Time

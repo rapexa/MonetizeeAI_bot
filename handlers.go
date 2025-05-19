@@ -105,6 +105,41 @@ func processUserInput(input string, user *User) string {
 		msg.ReplyMarkup = getExerciseSubmissionKeyboard()
 		bot.Send(msg)
 		return ""
+	case "📥 دریافت تمرین":
+		// Get current session info
+		var session Session
+		if err := db.Where("number = ?", user.CurrentSession).First(&session).Error; err != nil {
+			logger.Error("Failed to get session",
+				zap.Int64("user_id", user.TelegramID),
+				zap.Int("session_number", user.CurrentSession),
+				zap.Error(err))
+			return "❌ خطا در دریافت اطلاعات مرحله. لطفا دوباره تلاش کنید."
+		}
+
+		// Get exercise files for the current session
+		var exercise Exercise
+		if err := db.Where("session_id = ?", session.ID).First(&exercise).Error; err != nil {
+			logger.Error("Failed to get exercise",
+				zap.Int64("user_id", user.TelegramID),
+				zap.Uint("session_id", session.ID),
+				zap.Error(err))
+			return "❌ خطا در دریافت تمرین. لطفا دوباره تلاش کنید."
+		}
+
+		// Send PDF file if available
+		if exercise.PDFFile != "" {
+			file := tgbotapi.NewDocument(user.TelegramID, tgbotapi.FileID(exercise.PDFFile))
+			file.Caption = fmt.Sprintf("📄 تمرین مرحله %d: %s", session.Number, session.Title)
+			bot.Send(file)
+		}
+
+		// Send exercise text
+		exerciseMsg := fmt.Sprintf("📝 تمرین مرحله %d: %s\n\n%s",
+			session.Number,
+			session.Title,
+			exercise.Content)
+		bot.Send(tgbotapi.NewMessage(user.TelegramID, exerciseMsg))
+		return ""
 	case "📊 پیشرفت":
 		userStates[user.TelegramID] = ""
 		return getProgressInfo(user)
@@ -388,6 +423,7 @@ func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 			tgbotapi.NewKeyboardButton("✅ ارسال تمرین"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("📥 دریافت تمرین"),
 			tgbotapi.NewKeyboardButton("❇️ دیدن همه مسیر"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
@@ -395,7 +431,7 @@ func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 			tgbotapi.NewKeyboardButton("❓ راهنما"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("چت با هدایتگر"),
+			tgbotapi.NewKeyboardButton("💬 چت با هدایتگر"),
 		),
 	)
 	keyboard.ResizeKeyboard = true

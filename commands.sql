@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS exercises (
     user_id BIGINT UNSIGNED,
     session_id BIGINT UNSIGNED,
     content TEXT,
+    pdf_file VARCHAR(512),
     status VARCHAR(50) DEFAULT 'pending',
     feedback TEXT,
     submitted_at TIMESTAMP,
