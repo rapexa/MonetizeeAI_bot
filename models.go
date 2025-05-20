@@ -9,6 +9,7 @@ import (
 
 const SUPPORT_NUMBER = "+989129121212"
 const BUY_GPT_LINK = "https://sianacademy.com/"
+const START_REFFER = "https://t.me/sianacademy"
 
 // User represents a Telegram user in our system
 type User struct {
