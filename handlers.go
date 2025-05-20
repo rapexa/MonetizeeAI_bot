@@ -176,6 +176,20 @@ func processUserInput(input string, user *User) string {
 		msg.ReplyMarkup = getMainMenuKeyboard()
 		bot.Send(msg)
 		return ""
+	case "🛍️ فروش اکانت GPT":
+		msg := tgbotapi.NewMessage(user.TelegramID, "برای خرید اکانت GPT با پشتیبانی تماس بگیرید:\n\n📞 "+SUPPORT_NUMBER)
+		bot.Send(msg)
+		return ""
+	case "🎯 استخدام":
+		// Check if user has completed all sessions
+		if user.CurrentSession >= 29 {
+			msg := tgbotapi.NewMessage(user.TelegramID, "🎉 تبریک! شما به پایان دوره رسیده‌اید!\n\nشما تمام ۲۹ ویدیوی دوره را با موفقیت مشاهده کرده‌اید. این یک دستاورد بزرگ است!\n\nدر آینده نزدیک، جایزه‌ای ویژه برای شما در نظر گرفته خواهد شد. منتظر خبرهای خوب باشید! 🎁")
+			bot.Send(msg)
+		} else {
+			msg := tgbotapi.NewMessage(user.TelegramID, "🔒 این گزینه پس از اتمام تمام جلسات دوره برای شما فعال خواهد شد.\n\nبرای دسترسی به این بخش، لطفا تمام جلسات را با موفقیت پشت سر بگذارید.")
+			bot.Send(msg)
+		}
+		return ""
 	default:
 		if state == "submitting_exercise" {
 			userStates[user.TelegramID] = ""
@@ -223,7 +237,7 @@ func getCurrentSessionInfo(user *User) string {
 		// Send congratulatory message
 		congratsMsg := "🎉 تبریک! شما به پایان دوره رسیده‌اید!\n\n" +
 			"شما تمام ۲۹ ویدیوی دوره را با موفقیت مشاهده کرده‌اید. این یک دستاورد بزرگ است!\n\n" +
-			"TODO: در آینده نزدیک، جایزه‌ای ویژه برای شما در نظر گرفته خواهد شد. منتظر خبرهای خوب باشید! 🎁"
+			"برای انتهای کار میتونی روی دکمه استخدام کلیک کنی و اقدام به شروع مسیر خودت کنی ! 🎁"
 
 		// Create a modified keyboard without exercise buttons
 		keyboard := tgbotapi.NewReplyKeyboard(
@@ -465,6 +479,10 @@ func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("📊 پیشرفت"),
 			tgbotapi.NewKeyboardButton("❓ راهنما"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("🛍️ فروش اکانت GPT"),
+			tgbotapi.NewKeyboardButton("🎯 استخدام"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("💬 چت با هدایتگر"),
