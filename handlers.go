@@ -177,7 +177,7 @@ func processUserInput(input string, user *User) string {
 		bot.Send(msg)
 		return ""
 	case "🛍️ فروش اکانت GPT":
-		msg := tgbotapi.NewMessage(user.TelegramID, "برای خرید اکانت GPT با پشتیبانی تماس بگیرید:\n\n📞 "+SUPPORT_NUMBER)
+		msg := tgbotapi.NewMessage(user.TelegramID, "برای خرید اکانت GPT با پشتیبانی تماس بگیرید:\n\n💻 "+BUY_GPT_LINK)
 		bot.Send(msg)
 		return ""
 	case "🎯 استخدام":
