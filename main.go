@@ -237,6 +237,13 @@ func handleMessage(update tgbotapi.Update) {
 		user = getUserOrCreate(update.Message.From)
 	}
 
+	// Block access until user is verified
+	if !user.IsVerified {
+		// Only allow license/name input, do not show main menu or process other commands
+		processUserInput(update.Message.Text, user)
+		return
+	}
+
 	// Handle commands
 	if update.Message.IsCommand() {
 		switch update.Message.Command() {

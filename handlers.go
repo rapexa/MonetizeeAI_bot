@@ -96,6 +96,13 @@ func processUserInput(input string, user *User) string {
 		userStates[user.TelegramID] = state
 	}
 
+	// Block all access if not verified and not in the process of verification
+	if !user.IsVerified && state == "" {
+		msg := tgbotapi.NewMessage(user.TelegramID, "⛔️ دسترسی شما هنوز تایید نشده است. لطفا لایسنس خود را وارد کنید یا منتظر تایید ادمین باشید.")
+		bot.Send(msg)
+		return ""
+	}
+
 	switch state {
 	case StateWaitingForLicense:
 		// Verify license
@@ -143,7 +150,6 @@ func processUserInput(input string, user *User) string {
 		// Notify admins
 		var admins []Admin
 		db.Find(&admins)
-
 		for _, admin := range admins {
 			adminMsg := fmt.Sprintf("🔔 درخواست تایید لایسنس جدید:\n\n👤 کاربر: %s\n📱 آیدی: %d\n📝 نام: %s %s\n🔑 لایسنس: %s",
 				user.Username,
@@ -167,6 +173,13 @@ func processUserInput(input string, user *User) string {
 		// Clear state and send waiting message
 		delete(userStates, user.TelegramID)
 		msg := tgbotapi.NewMessage(user.TelegramID, "✅ اطلاعات شما با موفقیت ثبت شد.\n\n⏳ لطفا منتظر تایید ادمین باشید.")
+		bot.Send(msg)
+		return ""
+	}
+
+	// If not verified, block all other actions
+	if !user.IsVerified {
+		msg := tgbotapi.NewMessage(user.TelegramID, "⏳ لطفا منتظر تایید ادمین باشید. دسترسی شما هنوز فعال نشده است.")
 		bot.Send(msg)
 		return ""
 	}
