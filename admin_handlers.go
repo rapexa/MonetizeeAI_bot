@@ -496,8 +496,8 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	}
 
 	// Answer callback query to remove loading state
-	callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
-	bot.Request(callback)
+	callbackConfig := tgbotapi.NewCallback(callback.ID, "")
+	bot.Request(callbackConfig)
 }
 
 // getAdminByTelegramID returns admin by telegram ID
