@@ -21,6 +21,8 @@ type User struct {
 	CurrentSession int  `gorm:"default:1"`
 	IsActive       bool `gorm:"default:true"`
 	IsAdmin        bool `gorm:"default:false"`
+	License        string
+	IsVerified     bool `gorm:"default:false"`
 	Exercises      []Exercise
 }
 
@@ -170,4 +172,18 @@ func GetLevelUpMessage(level UserLevel) string {
 		9: "👑 افتخار بزرگیه!\nتو به سطح 9 – مانیتایزر (Moneytizer) 👑 رسیدی\n✅ یعنی با هوش مصنوعی به درآمد پایدار رسیدی\n🚀 الان وقت رشد، همکاری، فروش جدی و ساخت امپراتوریته!",
 	}
 	return messages[level.Level]
+}
+
+// LicenseVerification represents a pending license verification request
+type LicenseVerification struct {
+	gorm.Model
+	UserID     uint
+	User       User `gorm:"foreignKey:UserID"`
+	License    string
+	FirstName  string
+	LastName   string
+	IsApproved bool `gorm:"default:false"`
+	ApprovedBy uint
+	ApprovedAt *time.Time
+	Admin      Admin `gorm:"foreignKey:ApprovedBy"`
 }

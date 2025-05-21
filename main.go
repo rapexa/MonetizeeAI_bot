@@ -226,7 +226,7 @@ func handleMessage(update tgbotapi.Update) {
 	if err := db.Where("telegram_id = ?", update.Message.From.ID).First(&user).Error; err == nil {
 		if !user.IsActive {
 			// User is blocked, send block message and remove keyboard
-			blockMsg := tgbotapi.NewMessage(update.Message.Chat.ID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n\n�� "+SUPPORT_NUMBER)
+			blockMsg := tgbotapi.NewMessage(update.Message.Chat.ID, "⚠️ دسترسی شما به ربات مسدود شده است.\n\n📞 برای رفع مسدودیت با پشتیبانی تماس بگیرید:\n\n"+SUPPORT_NUMBER)
 			blockMsg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 			bot.Send(blockMsg)
 			return
@@ -242,7 +242,7 @@ func handleMessage(update tgbotapi.Update) {
 		case "start":
 			// Only send welcome message if user already exists
 			if !isNewUser(update.Message.From.ID) {
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "�� به ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "به ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
 				msg.ReplyMarkup = getMainMenuKeyboard()
 				bot.Send(msg)
 			}
@@ -263,4 +263,26 @@ func handleMessage(update tgbotapi.Update) {
 	// Handle regular messages
 	response := processUserInput(update.Message.Text, user)
 	sendMessage(update.Message.Chat.ID, response)
+}
+
+func handleCallbackQuery(update tgbotapi.Update) {
+	callback := update.CallbackQuery
+	data := callback.Data
+
+	// Get admin
+	admin := getAdminByTelegramID(callback.From.ID)
+	if admin == nil {
+		bot.Send(tgbotapi.NewCallback(callback.ID, "❌ دسترسی غیرمجاز"))
+		return
+	}
+
+	// Handle different callback types
+	if strings.HasPrefix(data, "verify:") || strings.HasPrefix(data, "reject:") {
+		handleLicenseVerification(admin, data)
+		bot.Send(tgbotapi.NewCallback(callback.ID, "✅ عملیات با موفقیت انجام شد"))
+		return
+	}
+
+	// Handle other callback types
+	// ... existing code ...
 }

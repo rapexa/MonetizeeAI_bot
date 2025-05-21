@@ -1066,3 +1066,76 @@ func sendLongMessage(chatID int64, text string, replyMarkup interface{}) {
 		runes = runes[chunkLen:]
 	}
 }
+
+// handleLicenseVerification handles license verification approval/rejection
+func handleLicenseVerification(admin *Admin, data string) {
+	parts := strings.Split(data, ":")
+	if len(parts) != 2 {
+		return
+	}
+
+	action := parts[0]
+	verificationID, err := strconv.ParseUint(parts[1], 10, 32)
+	if err != nil {
+		return
+	}
+
+	var verification LicenseVerification
+	if err := db.Preload("User").First(&verification, verificationID).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ درخواست تایید یافت نشد")
+		return
+	}
+
+	if verification.IsApproved {
+		sendMessage(admin.TelegramID, "❌ این درخواست قبلا تایید شده است")
+		return
+	}
+
+	now := time.Now()
+	if action == "verify" {
+		// Approve verification
+		verification.IsApproved = true
+		verification.ApprovedBy = admin.ID
+		verification.ApprovedAt = &now
+
+		if err := db.Save(&verification).Error; err != nil {
+			sendMessage(admin.TelegramID, "❌ خطا در تایید درخواست")
+			return
+		}
+
+		// Update user
+		verification.User.IsVerified = true
+		if err := db.Save(&verification.User).Error; err != nil {
+			sendMessage(admin.TelegramID, "❌ خطا در به‌روزرسانی کاربر")
+			return
+		}
+
+		// Send success message to admin
+		sendMessage(admin.TelegramID, "✅ درخواست با موفقیت تایید شد")
+
+		// Send success message to user
+		msg := tgbotapi.NewMessage(verification.User.TelegramID, "✅ درخواست شما تایید شد!\n\nبه ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
+		msg.ReplyMarkup = getMainMenuKeyboard()
+		bot.Send(msg)
+
+		// Log admin action
+		logAdminAction(admin, "verify_license", fmt.Sprintf("تایید لایسنس کاربر %s", verification.User.Username), "user", verification.User.ID)
+
+	} else if action == "reject" {
+		// Reject verification
+		if err := db.Delete(&verification).Error; err != nil {
+			sendMessage(admin.TelegramID, "❌ خطا در رد درخواست")
+			return
+		}
+
+		// Send rejection message to user
+		msg := tgbotapi.NewMessage(verification.User.TelegramID, "❌ درخواست شما رد شد.\n\nلطفا با پشتیبانی تماس بگیرید:\n\n📞 "+SUPPORT_NUMBER)
+		bot.Send(msg)
+
+		// Send success message to admin
+		sendMessage(admin.TelegramID, "✅ درخواست با موفقیت رد شد")
+
+		// Log admin action
+		logAdminAction(admin, "reject_license", fmt.Sprintf("رد لایسنس کاربر %s", verification.User.Username), "user", verification.User.ID)
+	}
+}

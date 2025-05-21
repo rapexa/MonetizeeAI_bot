@@ -19,6 +19,11 @@ import (
 
 var userStates = make(map[int64]string)
 
+const (
+	StateWaitingForLicense = "waiting_for_license"
+	StateWaitingForName    = "waiting_for_name"
+)
+
 type UserState struct {
 	IsSubmittingExercise bool
 }
@@ -42,6 +47,7 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 				FirstName:      from.FirstName,
 				LastName:       from.LastName,
 				CurrentSession: 1,
+				IsVerified:     true, // Admins are automatically verified
 			}
 			db.Create(&user)
 		}
@@ -58,34 +64,28 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 			Username:       from.UserName,
 			FirstName:      from.FirstName,
 			LastName:       from.LastName,
-			CurrentSession: 1, // Set initial session to 1
+			CurrentSession: 1,
+			IsVerified:     false,
 		}
 		db.Create(&user)
 
-		// Send session 1 info for new users
-		var session Session
-		if err := db.Where("number = ?", 1).First(&session).Error; err == nil {
-			var video Video
-			db.Where("session_id = ?", session.ID).First(&video)
+		// Set state to wait for license
+		userStates[user.TelegramID] = StateWaitingForLicense
 
-			// Create session message
-			sessionMsg := fmt.Sprintf("📚 %d: %s\n\n%s\n\n📺 ویدیو: %s",
-				session.Number,
-				session.Title,
-				session.Description,
-				video.VideoLink)
-
-			// Send session thumbnail with message
-			if session.ThumbnailURL != "" {
-				photo := tgbotapi.NewPhoto(from.ID, tgbotapi.FileURL(session.ThumbnailURL))
-				photo.Caption = sessionMsg
-				bot.Send(photo)
-			} else {
-				// If no thumbnail, just send the message
-				bot.Send(tgbotapi.NewMessage(from.ID, sessionMsg))
-			}
-		}
+		// Send license request message
+		msg := tgbotapi.NewMessage(user.TelegramID, "👋 به ربات مونیتایز خوش آمدید!\n\nلطفا لایسنس خود را وارد کنید:")
+		bot.Send(msg)
+		return &user
 	}
+
+	// If user exists but not verified, ask for license
+	if !user.IsVerified {
+		userStates[user.TelegramID] = StateWaitingForLicense
+		msg := tgbotapi.NewMessage(user.TelegramID, "لطفا لایسنس خود را وارد کنید:")
+		bot.Send(msg)
+		return &user
+	}
+
 	return &user
 }
 
@@ -96,6 +96,82 @@ func processUserInput(input string, user *User) string {
 		userStates[user.TelegramID] = state
 	}
 
+	switch state {
+	case StateWaitingForLicense:
+		// Verify license
+		if input == "5a7474e6746067c57382ac1727a400fa65b7398a3774c3b19272916549c93a8d" {
+			user.License = input
+			userStates[user.TelegramID] = StateWaitingForName
+			msg := tgbotapi.NewMessage(user.TelegramID, "✅ لایسنس معتبر است.\n\nلطفا نام و نام خانوادگی خود را وارد کنید:")
+			bot.Send(msg)
+			return ""
+		} else {
+			msg := tgbotapi.NewMessage(user.TelegramID, "❌ لایسنس نامعتبر است. لطفا دوباره تلاش کنید:")
+			bot.Send(msg)
+			return ""
+		}
+
+	case StateWaitingForName:
+		// Save name and create verification request
+		names := strings.Split(input, " ")
+		if len(names) < 2 {
+			msg := tgbotapi.NewMessage(user.TelegramID, "❌ لطفا نام و نام خانوادگی را با فاصله وارد کنید:")
+			bot.Send(msg)
+			return ""
+		}
+
+		firstName := names[0]
+		lastName := strings.Join(names[1:], " ")
+
+		// Create verification request
+		verification := LicenseVerification{
+			UserID:    user.ID,
+			License:   user.License,
+			FirstName: firstName,
+			LastName:  lastName,
+		}
+
+		if err := db.Create(&verification).Error; err != nil {
+			logger.Error("Failed to create license verification",
+				zap.Int64("user_id", user.TelegramID),
+				zap.Error(err))
+			msg := tgbotapi.NewMessage(user.TelegramID, "❌ خطا در ثبت اطلاعات. لطفا دوباره تلاش کنید.")
+			bot.Send(msg)
+			return ""
+		}
+
+		// Notify admins
+		var admins []Admin
+		db.Find(&admins)
+
+		for _, admin := range admins {
+			adminMsg := fmt.Sprintf("🔔 درخواست تایید لایسنس جدید:\n\n👤 کاربر: %s\n📱 آیدی: %d\n📝 نام: %s %s\n🔑 لایسنس: %s",
+				user.Username,
+				user.TelegramID,
+				firstName,
+				lastName,
+				user.License)
+
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("✅ تایید", fmt.Sprintf("verify:%d", verification.ID)),
+					tgbotapi.NewInlineKeyboardButtonData("❌ رد", fmt.Sprintf("reject:%d", verification.ID)),
+				),
+			)
+
+			msg := tgbotapi.NewMessage(admin.TelegramID, adminMsg)
+			msg.ReplyMarkup = keyboard
+			bot.Send(msg)
+		}
+
+		// Clear state and send waiting message
+		delete(userStates, user.TelegramID)
+		msg := tgbotapi.NewMessage(user.TelegramID, "✅ اطلاعات شما با موفقیت ثبت شد.\n\n⏳ لطفا منتظر تایید ادمین باشید.")
+		bot.Send(msg)
+		return ""
+	}
+
+	// Handle other states and commands
 	switch input {
 	case "📚 ادامه مسیر من":
 		return getCurrentSessionInfo(user)
