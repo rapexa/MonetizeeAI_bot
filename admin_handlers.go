@@ -337,15 +337,25 @@ func handleAdminExercises(admin *Admin, args []string) string {
 
 // handleCallbackQuery processes callback queries from inline keyboards
 func handleCallbackQuery(update tgbotapi.Update) {
-	fmt.Printf("[DEBUG] handleCallbackQuery called by admin %v, data: %s\n", getAdminByTelegramID(update.CallbackQuery.From.ID), update.CallbackQuery.Data)
-	admin := getAdminByTelegramID(update.CallbackQuery.From.ID)
+	callback := update.CallbackQuery
+	data := callback.Data
+
+	// Get admin
+	admin := getAdminByTelegramID(callback.From.ID)
 	if admin == nil {
-		sendMessage(update.CallbackQuery.From.ID, "❌ شما دسترسی به این بخش را ندارید")
+		bot.Send(tgbotapi.NewCallback(callback.ID, "❌ دسترسی غیرمجاز"))
 		return
 	}
 
-	// Parse callback data
-	parts := strings.Split(update.CallbackQuery.Data, ":")
+	// Handle license verification callbacks first
+	if strings.HasPrefix(data, "verify:") || strings.HasPrefix(data, "reject:") {
+		handleLicenseVerification(admin, data)
+		bot.Send(tgbotapi.NewCallback(callback.ID, "✅ عملیات با موفقیت انجام شد"))
+		return
+	}
+
+	// Parse callback data for other admin actions
+	parts := strings.Split(data, ":")
 	if len(parts) < 1 {
 		return
 	}

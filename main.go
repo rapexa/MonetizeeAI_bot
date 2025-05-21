@@ -120,25 +120,7 @@ func init() {
 
 			handleMessage(update)
 		} else if update.CallbackQuery != nil {
-			// Handle callback queries
-			callback := update.CallbackQuery
-			data := callback.Data
-
-			// Get admin
-			admin := getAdminByTelegramID(callback.From.ID)
-			if admin == nil {
-				bot.Send(tgbotapi.NewCallback(callback.ID, "❌ دسترسی غیرمجاز"))
-				return
-			}
-
-			// Handle license verification callbacks
-			if strings.HasPrefix(data, "verify:") || strings.HasPrefix(data, "reject:") {
-				handleLicenseVerification(admin, data)
-				bot.Send(tgbotapi.NewCallback(callback.ID, "✅ عملیات با موفقیت انجام شد"))
-				return
-			}
-
-			// Handle all other admin callbacks
+			// Route all callbacks to admin_handlers.go
 			handleCallbackQuery(update)
 		}
 	}
