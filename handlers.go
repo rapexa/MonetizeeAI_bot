@@ -96,9 +96,27 @@ func processUserInput(input string, user *User) string {
 		userStates[user.TelegramID] = state
 	}
 
+	// Handle retry buttons for unverified users
+	if !user.IsVerified && (input == "🔄 ارسال مجدد لایسنس" || input == "🔄 ارسال مجدد نام و نام خانوادگی") {
+		if input == "🔄 ارسال مجدد لایسنس" {
+			userStates[user.TelegramID] = StateWaitingForLicense
+			msg := tgbotapi.NewMessage(user.TelegramID, "لطفا لایسنس خود را وارد کنید:")
+			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+			bot.Send(msg)
+			return ""
+		} else if input == "🔄 ارسال مجدد نام و نام خانوادگی" {
+			userStates[user.TelegramID] = StateWaitingForName
+			msg := tgbotapi.NewMessage(user.TelegramID, "لطفا نام و نام خانوادگی خود را وارد کنید:")
+			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+			bot.Send(msg)
+			return ""
+		}
+	}
+
 	// Block all access if not verified and not in the process of verification
 	if !user.IsVerified && state == "" {
 		msg := tgbotapi.NewMessage(user.TelegramID, "⛔️ دسترسی شما هنوز تایید نشده است. لطفا لایسنس خود را وارد کنید یا منتظر تایید ادمین باشید.")
+		msg.ReplyMarkup = getUnverifiedRetryKeyboard()
 		bot.Send(msg)
 		return ""
 	}
@@ -867,4 +885,16 @@ func getFullRoadmap(user *User) string {
 		9-level.Level,
 	)
 	return msg
+}
+
+// Add this function for the retry keyboard
+func getUnverifiedRetryKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	keyboard := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("🔄 ارسال مجدد لایسنس"),
+			tgbotapi.NewKeyboardButton("🔄 ارسال مجدد نام و نام خانوادگی"),
+		),
+	)
+	keyboard.ResizeKeyboard = true
+	return keyboard
 }
