@@ -183,7 +183,7 @@ type LicenseVerification struct {
 	FirstName  string
 	LastName   string
 	IsApproved bool `gorm:"default:false"`
-	ApprovedBy uint
+	ApprovedBy *uint
 	ApprovedAt *time.Time
 	Admin      Admin `gorm:"foreignKey:ApprovedBy"`
 }
