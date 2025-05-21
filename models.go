@@ -23,6 +23,7 @@ type User struct {
 	IsAdmin        bool `gorm:"default:false"`
 	License        string
 	IsVerified     bool `gorm:"default:false"`
+	Phone          string
 	Exercises      []Exercise
 }
 

@@ -1127,6 +1127,8 @@ func handleLicenseVerification(admin *Admin, data string) {
 		msg := tgbotapi.NewMessage(verification.User.TelegramID, "✅ درخواست شما تایید شد!\n\nبه ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
 		msg.ReplyMarkup = getMainMenuKeyboard()
 		bot.Send(msg)
+		// Send session 1 info
+		getCurrentSessionInfo(&verification.User)
 
 		// Log admin action
 		logAdminAction(admin, "verify_license", fmt.Sprintf("تایید لایسنس کاربر %s", verification.User.Username), "user", verification.User.ID)

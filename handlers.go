@@ -22,6 +22,7 @@ var userStates = make(map[int64]string)
 const (
 	StateWaitingForLicense = "waiting_for_license"
 	StateWaitingForName    = "waiting_for_name"
+	StateWaitingForPhone   = "waiting_for_phone"
 )
 
 type UserState struct {
@@ -96,21 +97,13 @@ func processUserInput(input string, user *User) string {
 		userStates[user.TelegramID] = state
 	}
 
-	// Handle retry buttons for unverified users
-	if !user.IsVerified && (input == "🔄 ارسال مجدد لایسنس" || input == "🔄 ارسال مجدد نام و نام خانوادگی") {
-		if input == "🔄 ارسال مجدد لایسنس" {
-			userStates[user.TelegramID] = StateWaitingForLicense
-			msg := tgbotapi.NewMessage(user.TelegramID, "لطفا لایسنس خود را وارد کنید:")
-			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
-			bot.Send(msg)
-			return ""
-		} else if input == "🔄 ارسال مجدد نام و نام خانوادگی" {
-			userStates[user.TelegramID] = StateWaitingForName
-			msg := tgbotapi.NewMessage(user.TelegramID, "لطفا نام و نام خانوادگی خود را وارد کنید:")
-			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
-			bot.Send(msg)
-			return ""
-		}
+	// Handle retry button for unverified users
+	if !user.IsVerified && input == "🔄 ارسال مجدد لایسنس" {
+		userStates[user.TelegramID] = StateWaitingForLicense
+		msg := tgbotapi.NewMessage(user.TelegramID, "لطفا لایسنس خود را وارد کنید:")
+		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+		bot.Send(msg)
+		return ""
 	}
 
 	// Block all access if not verified and not in the process of verification
@@ -137,25 +130,34 @@ func processUserInput(input string, user *User) string {
 		}
 
 	case StateWaitingForName:
-		// Save name and create verification request
 		names := strings.Split(input, " ")
 		if len(names) < 2 {
 			msg := tgbotapi.NewMessage(user.TelegramID, "❌ لطفا نام و نام خانوادگی را با فاصله وارد کنید:")
 			bot.Send(msg)
 			return ""
 		}
-
 		firstName := names[0]
 		lastName := strings.Join(names[1:], " ")
-
+		user.FirstName = firstName
+		user.LastName = lastName
+		db.Save(user)
+		userStates[user.TelegramID] = StateWaitingForPhone
+		msg := tgbotapi.NewMessage(user.TelegramID, "لطفا شماره موبایل خود را وارد کنید:")
+		bot.Send(msg)
+		return ""
+	case StateWaitingForPhone:
+		// Save phone number
+		user.License = user.License // keep license
+		userStates[user.TelegramID] = ""
+		user.Phone = input
+		db.Save(user)
 		// Create verification request
 		verification := LicenseVerification{
 			UserID:    user.ID,
 			License:   user.License,
-			FirstName: firstName,
-			LastName:  lastName,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
 		}
-
 		if err := db.Create(&verification).Error; err != nil {
 			logger.Error("Failed to create license verification",
 				zap.Int64("user_id", user.TelegramID),
@@ -164,32 +166,27 @@ func processUserInput(input string, user *User) string {
 			bot.Send(msg)
 			return ""
 		}
-
 		// Notify admins
 		var admins []Admin
 		db.Find(&admins)
 		for _, admin := range admins {
-			adminMsg := fmt.Sprintf("🔔 درخواست تایید لایسنس جدید:\n\n👤 کاربر: %s\n📱 آیدی: %d\n📝 نام: %s %s\n🔑 لایسنس: %s",
+			adminMsg := fmt.Sprintf("🔔 درخواست تایید لایسنس جدید:\n\n👤 کاربر: %s\n📱 آیدی: %d\n📝 نام: %s %s\n📞 موبایل: %s\n🔑 لایسنس: %s",
 				user.Username,
 				user.TelegramID,
-				firstName,
-				lastName,
+				user.FirstName,
+				user.LastName,
+				user.Phone,
 				user.License)
-
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
 				tgbotapi.NewInlineKeyboardRow(
 					tgbotapi.NewInlineKeyboardButtonData("✅ تایید", fmt.Sprintf("verify:%d", verification.ID)),
 					tgbotapi.NewInlineKeyboardButtonData("❌ رد", fmt.Sprintf("reject:%d", verification.ID)),
 				),
 			)
-
 			msg := tgbotapi.NewMessage(admin.TelegramID, adminMsg)
 			msg.ReplyMarkup = keyboard
 			bot.Send(msg)
 		}
-
-		// Clear state and send waiting message
-		delete(userStates, user.TelegramID)
 		msg := tgbotapi.NewMessage(user.TelegramID, "✅ اطلاعات شما با موفقیت ثبت شد.\n\n⏳ لطفا منتظر تایید ادمین باشید.")
 		bot.Send(msg)
 		return ""
@@ -887,12 +884,11 @@ func getFullRoadmap(user *User) string {
 	return msg
 }
 
-// Add this function for the retry keyboard
+// Update the retry keyboard to only include resend license
 func getUnverifiedRetryKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("🔄 ارسال مجدد لایسنس"),
-			tgbotapi.NewKeyboardButton("🔄 ارسال مجدد نام و نام خانوادگی"),
 		),
 	)
 	keyboard.ResizeKeyboard = true
