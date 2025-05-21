@@ -265,26 +265,3 @@ func handleMessage(update tgbotapi.Update) {
 	response := processUserInput(update.Message.Text, user)
 	sendMessage(update.Message.Chat.ID, response)
 }
-
-func handleCallbackQuery(update tgbotapi.Update) {
-	// Handle callback queries
-	callback := update.CallbackQuery
-	data := callback.Data
-
-	// Get admin
-	admin := getAdminByTelegramID(callback.From.ID)
-	if admin == nil {
-		bot.Send(tgbotapi.NewCallback(callback.ID, "❌ دسترسی غیرمجاز"))
-		return
-	}
-
-	// Handle different callback types
-	if strings.HasPrefix(data, "verify:") || strings.HasPrefix(data, "reject:") {
-		handleLicenseVerification(admin, data)
-		bot.Send(tgbotapi.NewCallback(callback.ID, "✅ عملیات با موفقیت انجام شد"))
-		return
-	}
-
-	// Handle other callback types
-	// ... existing code ...
-}
