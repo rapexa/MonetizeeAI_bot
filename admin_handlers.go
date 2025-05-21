@@ -1105,7 +1105,7 @@ func handleLicenseVerification(admin *Admin, data string) {
 	if action == "verify" {
 		// Approve verification
 		verification.IsApproved = true
-		verification.ApprovedBy = admin.ID
+		verification.ApprovedBy = &admin.ID
 		verification.ApprovedAt = &now
 
 		if err := db.Save(&verification).Error; err != nil {
