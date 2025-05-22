@@ -98,7 +98,7 @@ func processUserInput(input string, user *User) string {
 	}
 
 	// Handle retry button for unverified users
-	if !user.IsVerified && input == "🔄 ارسال مجدد لایسنس" {
+	if !user.IsVerified && input == "🔄 ارسال لایسنس" {
 		userStates[user.TelegramID] = StateWaitingForLicense
 		msg := tgbotapi.NewMessage(user.TelegramID, "لطفا لایسنس خود را وارد کنید:")
 		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
@@ -132,7 +132,7 @@ func processUserInput(input string, user *User) string {
 			bot.Send(msg)
 			return ""
 		} else {
-			msg := tgbotapi.NewMessage(user.TelegramID, "❌ لایسنس نامعتبر است. لطفا دوباره تلاش کنید:")
+			msg := tgbotapi.NewMessage(user.TelegramID, "✅ از منو پایین: لطفا روی گزینه ارسال لایسنس کلیک کنید.")
 			bot.Send(msg)
 			return ""
 		}
@@ -896,7 +896,7 @@ func getFullRoadmap(user *User) string {
 func getUnverifiedRetryKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("🔄 ارسال مجدد لایسنس"),
+			tgbotapi.NewKeyboardButton("🔄 ارسال لایسنس"),
 		),
 	)
 	keyboard.ResizeKeyboard = true
