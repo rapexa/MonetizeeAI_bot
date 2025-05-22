@@ -116,8 +116,13 @@ func processUserInput(input string, user *User) string {
 
 	switch state {
 	case StateWaitingForLicense:
-		// Only check if input is not empty
 		if strings.TrimSpace(input) == "" {
+			return ""
+		}
+		// License must be 64 characters (adjust if needed)
+		if len(input) != 64 {
+			msg := tgbotapi.NewMessage(user.TelegramID, "لطفا فقط کد لایسنس معتبر را وارد کنید.")
+			bot.Send(msg)
 			return ""
 		}
 		if input == "5a7474e6746067c57382ac1727a400fa65b7398a3774c3b19272916549c93a8d" {
