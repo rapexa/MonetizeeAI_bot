@@ -280,7 +280,7 @@ func processUserInput(input string, user *User) string {
 		msg.ReplyMarkup = getMainMenuKeyboard()
 		bot.Send(msg)
 		return ""
-	case "🛍️ فروش اکانت GPT":
+	case "🛍️ خرید اشتراک هوش مصنوعی":
 		msg := tgbotapi.NewMessage(user.TelegramID, "برای خرید اکانت GPT به لینک پایین مراجعه کنید:\n\n💻 "+BUY_GPT_LINK)
 		bot.Send(msg)
 		return ""
@@ -585,7 +585,7 @@ func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 			tgbotapi.NewKeyboardButton("❓ راهنما"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("🛍️ فروش اکانت GPT"),
+			tgbotapi.NewKeyboardButton("🛍️ خرید اشتراک هوش مصنوعی"),
 			tgbotapi.NewKeyboardButton("🎯 استخدام"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
