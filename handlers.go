@@ -116,7 +116,10 @@ func processUserInput(input string, user *User) string {
 
 	switch state {
 	case StateWaitingForLicense:
-		// Verify license
+		// Only check if input is not empty
+		if strings.TrimSpace(input) == "" {
+			return ""
+		}
 		if input == "5a7474e6746067c57382ac1727a400fa65b7398a3774c3b19272916549c93a8d" {
 			user.License = input
 			userStates[user.TelegramID] = StateWaitingForName
