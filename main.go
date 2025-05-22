@@ -254,6 +254,14 @@ func handleMessage(update tgbotapi.Update) {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "به ربات MONETIZE AI🥇 خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
 				msg.ReplyMarkup = getMainMenuKeyboard()
 				bot.Send(msg)
+
+				// Send voice message
+				voice := tgbotapi.NewVoice(update.Message.Chat.ID, tgbotapi.FileURL("http://quantnano.ir/wp-content/uploads/2025/05/جلسه-صفر.mp3"))
+				bot.Send(voice)
+
+				// Send follow-up text
+				followUpMsg := tgbotapi.NewMessage(update.Message.Chat.ID, "🧠 این ویس رو با دقت گوش بده؛ اینجا نقطه شروع یه مسیر جدیه…\n\n👇 بعد از گوش دادن، برو سراغ مرحله ۱\nجایی که اولین قدم مسیر درآمد دلاری با هوش مصنوعی رو برمی‌داری 🚀")
+				bot.Send(followUpMsg)
 			}
 			return
 		case "help":
