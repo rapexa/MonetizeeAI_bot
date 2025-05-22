@@ -74,7 +74,7 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 		userStates[user.TelegramID] = StateWaitingForLicense
 
 		// Send voice message with caption
-		voice := tgbotapi.NewVoice(update.Message.Chat.ID, tgbotapi.FileURL("http://quantnano.ir/wp-content/uploads/2025/05/جلسه-صفر.mp3"))
+		voice := tgbotapi.NewVoice(user.TelegramID, tgbotapi.FileURL("http://quantnano.ir/wp-content/uploads/2025/05/جلسه-صفر.mp3"))
 		voice.Caption = "🧠 این ویس رو با دقت گوش بده؛ اینجا نقطه شروع یه مسیر جدیه…\n\n👇 بعد از گوش دادن، برو سراغ مرحله ۱\nجایی که اولین قدم مسیر درآمد دلاری با هوش مصنوعی رو برمی‌داری 🚀"
 		bot.Send(voice)
 
