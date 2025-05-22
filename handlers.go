@@ -73,8 +73,13 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 		// Set state to wait for license
 		userStates[user.TelegramID] = StateWaitingForLicense
 
+		// Send voice message with caption
+		voice := tgbotapi.NewVoice(update.Message.Chat.ID, tgbotapi.FileURL("http://quantnano.ir/wp-content/uploads/2025/05/جلسه-صفر.mp3"))
+		voice.Caption = "🧠 این ویس رو با دقت گوش بده؛ اینجا نقطه شروع یه مسیر جدیه…\n\n👇 بعد از گوش دادن، برو سراغ مرحله ۱\nجایی که اولین قدم مسیر درآمد دلاری با هوش مصنوعی رو برمی‌داری 🚀"
+		bot.Send(voice)
+
 		// Send license request message
-		msg := tgbotapi.NewMessage(user.TelegramID, "👋 به ربات مونیتایز خوش آمدید!\n\nلطفا لایسنس خود را وارد کنید:")
+		msg := tgbotapi.NewMessage(user.TelegramID, "👋 به ربات MONETIZE AI🥇 خوش آمدید!\n\nلطفا لایسنس خود را وارد کنید:")
 		bot.Send(msg)
 		return &user
 	}
@@ -121,7 +126,7 @@ func processUserInput(input string, user *User) string {
 		}
 		// License must be 64 characters (adjust if needed)
 		if len(input) != 64 {
-			msg := tgbotapi.NewMessage(user.TelegramID, "لطفا فقط کد لایسنس معتبر را وارد کنید.")
+			msg := tgbotapi.NewMessage(user.TelegramID, "لطفا فقط کد لایسنس معتبر را کپی کنید و  وارد کنید.")
 			bot.Send(msg)
 			return ""
 		}
