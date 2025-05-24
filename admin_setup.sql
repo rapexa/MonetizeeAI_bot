@@ -74,3 +74,12 @@ ON DUPLICATE KEY UPDATE
     first_name = VALUES(first_name),
     last_name = VALUES(last_name),
     role = VALUES(role); 
+
+    -- Insert default admin user (replace with actual values)
+INSERT INTO admins (telegram_id, username, first_name, last_name, role)
+VALUES (404882844, '@Selin_S4s', 'Selin', 'َSadati', 'super_admin')
+ON DUPLICATE KEY UPDATE
+    username = VALUES(username),
+    first_name = VALUES(first_name),
+    last_name = VALUES(last_name),
+    role = VALUES(role); 

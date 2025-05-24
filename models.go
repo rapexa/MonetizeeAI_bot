@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const SUPPORT_NUMBER = "+98 901 754 3381"
+const SUPPORT_NUMBER = "@sian_academy_support"
 const BUY_GPT_LINK = "https://sianacademy.com/"
 const START_REFFER = "https://t.me/sianacademy"
 
