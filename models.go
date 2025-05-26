@@ -143,7 +143,7 @@ func GetUserLevel(completedSessions int) UserLevel {
 // GetUserProgress returns the user's progress percentage
 func GetUserProgress(completedSessions int) int {
 	// Each level requires 4 sessions
-	totalSessions := 36 // 9 levels * 4 sessions
+	totalSessions := 29 // 9 levels * 4 sessions
 	progress := (completedSessions * 100) / totalSessions
 	if progress > 100 {
 		progress = 100

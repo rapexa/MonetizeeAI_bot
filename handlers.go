@@ -396,7 +396,7 @@ func getProgressInfo(user *User) string {
 	progressBar := GetProgressBar(progress)
 
 	// Format the response with level number
-	return fmt.Sprintf("👤 پروفایل من – مانیتایز AI\n\n🔢 نام: %s\n🎮 سطح: %d. %s (%s) %s\n📈 جلسات کامل‌شده: %d از 36\n📊 پیشرفت شما: %s %d%%",
+	return fmt.Sprintf("👤 پروفایل من – مانیتایز AI\n\n🔢 نام: %s\n🎮 سطح: %d. %s (%s) %s\n📈 جلسات کامل‌شده: %d از 29\n📊 پیشرفت شما: %s %d%%",
 		user.Username,
 		level.Level,
 		level.Name,
