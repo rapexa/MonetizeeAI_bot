@@ -552,14 +552,16 @@ FEEDBACK: [your detailed feedback]`,
 
 		// Get current and next session titles from database
 		var currentSessionInfo, nextSessionInfo2 Session
+		var currentStageTitle, nextStageTitle string
+
 		if err := db.Where("number = ?", user.CurrentSession).First(&currentSessionInfo).Error; err != nil {
 			logger.Error("Failed to get current session",
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("session_number", user.CurrentSession),
 				zap.Error(err))
-			currentStageTitle := "ساخت پیام برند" // Fallback title
+			currentStageTitle = "ساخت پیام برند" // Fallback title
 		} else {
-			currentStageTitle := currentSessionInfo.Title
+			currentStageTitle = currentSessionInfo.Title
 		}
 
 		if err := db.Where("number = ?", user.CurrentSession+1).First(&nextSessionInfo2).Error; err != nil {
@@ -567,14 +569,15 @@ FEEDBACK: [your detailed feedback]`,
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("session_number", user.CurrentSession+1),
 				zap.Error(err))
-			nextStageTitle := "ساخت پیام برند" // Fallback title
+			nextStageTitle = "ساخت پیام برند" // Fallback title
 		} else {
-			nextStageTitle := nextSessionInfo2.Title
+			nextStageTitle = nextSessionInfo2.Title
 		}
 
-		response := fmt.Sprintf("🎉 %s\n\n📚 مرحله بعدی شما:\n%s\n\n%s",
+		response := fmt.Sprintf("🎉 %s\n\n📚 مرحله فعلی شما:\n%s\n\n📚 مرحله بعدی شما:\n%s\n\n%s",
 			feedback,
-			nextSessionInfo.Title,
+			currentStageTitle,
+			nextStageTitle,
 			nextSessionInfo.Description)
 
 		// If user leveled up, add the level up message
