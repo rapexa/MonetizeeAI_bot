@@ -550,6 +550,28 @@ FEEDBACK: [your detailed feedback]`,
 		oldLevel := GetUserLevel(currentCompletedSessions)
 		newLevel := GetUserLevel(newCompletedSessions)
 
+		// Get current and next session titles from database
+		var currentSession, nextSession Session
+		if err := db.Where("number = ?", user.CurrentSession).First(&currentSession).Error; err != nil {
+			logger.Error("Failed to get current session",
+				zap.Int64("user_id", user.TelegramID),
+				zap.Int("session_number", user.CurrentSession),
+				zap.Error(err))
+			currentStageTitle = "ساخت پیام برند" // Fallback title
+		} else {
+			currentStageTitle = currentSession.Title
+		}
+
+		if err := db.Where("number = ?", user.CurrentSession+1).First(&nextSession).Error; err != nil {
+			logger.Error("Failed to get next session",
+				zap.Int64("user_id", user.TelegramID),
+				zap.Int("session_number", user.CurrentSession+1),
+				zap.Error(err))
+			nextStageTitle = "ساخت پیام برند" // Fallback title
+		} else {
+			nextStageTitle = nextSession.Title
+		}
+
 		response := fmt.Sprintf("🎉 %s\n\n📚 مرحله بعدی شما:\n%s\n\n%s",
 			feedback,
 			nextSession.Title,
@@ -826,9 +848,27 @@ func getFullRoadmap(user *User) string {
 		stageInLevel = stagesInLevel
 	}
 
-	// Current and next stage titles (for demo, use placeholders)
-	currentStageTitle := "ساخت پیام برند"
-	nextStageTitle := "ساخت پیام برند"
+	// Get current and next session titles from database
+	var currentSession, nextSession Session
+	if err := db.Where("number = ?", user.CurrentSession).First(&currentSession).Error; err != nil {
+		logger.Error("Failed to get current session",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Int("session_number", user.CurrentSession),
+			zap.Error(err))
+		currentStageTitle = "ساخت پیام برند" // Fallback title
+	} else {
+		currentStageTitle = currentSession.Title
+	}
+
+	if err := db.Where("number = ?", user.CurrentSession+1).First(&nextSession).Error; err != nil {
+		logger.Error("Failed to get next session",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Int("session_number", user.CurrentSession+1),
+			zap.Error(err))
+		nextStageTitle = "ساخت پیام برند" // Fallback title
+	} else {
+		nextStageTitle = nextSession.Title
+	}
 
 	// Compose the roadmap message
 	msg := fmt.Sprintf(`🏁 نقشه راه درآمد دلاری تو در MonetizeAI
