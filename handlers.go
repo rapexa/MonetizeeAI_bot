@@ -802,6 +802,7 @@ func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
 		),
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("💾 پشتیبان‌گیری"),
+			tgbotapi.NewKeyboardButton("📢 ارسال پیام همگانی"),
 		),
 	)
 	keyboard.ResizeKeyboard = true

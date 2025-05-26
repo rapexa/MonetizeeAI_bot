@@ -141,6 +141,17 @@ func handleMessage(update tgbotapi.Update) {
 		if update.Message.IsCommand() {
 			command := update.Message.Command()
 			args := update.Message.CommandArguments()
+
+			// Handle cancel command
+			if command == "cancel" {
+				state, exists := adminStates[admin.TelegramID]
+				if exists && (state == StateWaitingForBroadcast || strings.HasPrefix(state, StateConfirmBroadcast)) {
+					delete(adminStates, admin.TelegramID)
+					sendMessage(update.Message.Chat.ID, "❌ ارسال پیام همگانی لغو شد")
+					return
+				}
+			}
+
 			response := handleAdminCommand(admin, "/"+command, strings.Fields(args))
 			sendMessage(update.Message.Chat.ID, response)
 			return
@@ -176,6 +187,11 @@ func handleMessage(update tgbotapi.Update) {
 
 			case StateDeleteVideo:
 				handleDeleteVideoResponse(admin, update.Message.Text)
+				return
+
+			case StateWaitingForBroadcast:
+				response := handleBroadcastMessage(admin, update.Message.Text)
+				sendMessage(admin.TelegramID, response)
 				return
 			}
 

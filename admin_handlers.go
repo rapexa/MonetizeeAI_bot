@@ -21,6 +21,8 @@ const (
 	StateAddVideo              = "add_video"
 	StateEditVideo             = "edit_video"
 	StateDeleteVideo           = "delete_video"
+	StateWaitingForBroadcast   = "waiting_for_broadcast"
+	StateConfirmBroadcast      = "confirm_broadcast"
 )
 
 // Add this with other model definitions at the top of the file
@@ -68,6 +70,11 @@ var adminCommands = []AdminCommand{
 		Command:     "/admin_exercises",
 		Description: "✍️ مدیریت تمرین‌ها",
 		Handler:     handleAdminExercises,
+	},
+	{
+		Command:     "/admin_broadcast",
+		Description: "📢 ارسال پیام به همه کاربران",
+		Handler:     handleAdminBroadcast,
 	},
 }
 
@@ -350,6 +357,15 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	// Handle license verification callbacks first
 	if strings.HasPrefix(data, "verify:") || strings.HasPrefix(data, "reject:") {
 		handleLicenseVerification(admin, data)
+		bot.Send(tgbotapi.NewCallback(callback.ID, "✅ عملیات با موفقیت انجام شد"))
+		return
+	}
+
+	// Handle broadcast confirmation
+	if data == "confirm_broadcast" || data == "cancel_broadcast" {
+		confirm := data == "confirm_broadcast"
+		response := handleBroadcastConfirmation(admin, confirm)
+		sendMessage(admin.TelegramID, response)
 		bot.Send(tgbotapi.NewCallback(callback.ID, "✅ عملیات با موفقیت انجام شد"))
 		return
 	}
@@ -1150,4 +1166,75 @@ func handleLicenseVerification(admin *Admin, data string) {
 		// Log admin action
 		logAdminAction(admin, "reject_license", fmt.Sprintf("رد لایسنس کاربر %s", verification.User.Username), "user", verification.User.ID)
 	}
+}
+
+// handleAdminBroadcast handles broadcasting messages to all users
+func handleAdminBroadcast(admin *Admin, args []string) string {
+	// Set state to wait for broadcast message
+	adminStates[admin.TelegramID] = StateWaitingForBroadcast
+
+	msg := tgbotapi.NewMessage(admin.TelegramID, "📢 لطفا پیام مورد نظر برای ارسال به همه کاربران را وارد کنید:\n\nبرای لغو عملیات، دستور /cancel را ارسال کنید.")
+	msg.ReplyMarkup = tgbotapi.ForceReply{}
+	bot.Send(msg)
+
+	return "در انتظار پیام..."
+}
+
+// handleBroadcastMessage processes the broadcast message and sends it to all users
+func handleBroadcastMessage(admin *Admin, message string) string {
+	// First, show confirmation message with preview
+	previewMsg := fmt.Sprintf("📢 پیش‌نمایش پیام همگانی:\n\n%s\n\nآیا می‌خواهید این پیام را به همه کاربران ارسال کنید؟", message)
+
+	// Create inline keyboard for confirmation
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("✅ بله، ارسال کن", "confirm_broadcast"),
+			tgbotapi.NewInlineKeyboardButtonData("❌ خیر، لغو کن", "cancel_broadcast"),
+		),
+	)
+
+	msg := tgbotapi.NewMessage(admin.TelegramID, previewMsg)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+
+	// Store the message in admin state for later use
+	adminStates[admin.TelegramID] = StateConfirmBroadcast + ":" + message
+
+	return "لطفا تایید یا لغو را انتخاب کنید"
+}
+
+// handleBroadcastConfirmation handles the broadcast confirmation
+func handleBroadcastConfirmation(admin *Admin, confirm bool) string {
+	// Get the stored message from state
+	state := adminStates[admin.TelegramID]
+	message := strings.TrimPrefix(state, StateConfirmBroadcast+":")
+
+	if !confirm {
+		delete(adminStates, admin.TelegramID)
+		return "❌ ارسال پیام همگانی لغو شد"
+	}
+
+	var users []User
+	if err := db.Where("is_active = ?", true).Find(&users).Error; err != nil {
+		delete(adminStates, admin.TelegramID)
+		return "❌ خطا در دریافت لیست کاربران"
+	}
+
+	successCount := 0
+	failCount := 0
+
+	for _, user := range users {
+		msg := tgbotapi.NewMessage(user.TelegramID, fmt.Sprintf("📢 پیام از ادمین:\n\n%s", message))
+		if _, err := bot.Send(msg); err != nil {
+			failCount++
+			continue
+		}
+		successCount++
+	}
+
+	// Log the broadcast action
+	logAdminAction(admin, "broadcast_message", fmt.Sprintf("Broadcast message to %d users (%d failed)", successCount, failCount), "system", 0)
+
+	delete(adminStates, admin.TelegramID)
+	return fmt.Sprintf("✅ پیام با موفقیت ارسال شد:\n\n📊 آمار ارسال:\n• موفق: %d\n• ناموفق: %d", successCount, failCount)
 }
