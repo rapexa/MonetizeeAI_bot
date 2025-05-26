@@ -133,7 +133,7 @@ func GetUserLevel(completedSessions int) UserLevel {
 		return UserLevels[3] // Level 4
 	case completedSessions > 8:
 		return UserLevels[2] // Level 3
-	case completedSessions > 5:
+	case completedSessions >= 6:
 		return UserLevels[1] // Level 2
 	default:
 		return UserLevels[0] // Level 1
