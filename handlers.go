@@ -294,13 +294,13 @@ func processUserInput(input string, user *User) string {
 		bot.Send(msg)
 		return ""
 	case "🛍️ خرید اشتراک هوش مصنوعی":
-		msg := tgbotapi.NewMessage(user.TelegramID, "برای خرید اکانت GPT به لینک پایین مراجعه کنید:\n\n💻 "+BUY_GPT_LINK)
+		msg := tgbotapi.NewMessage(user.TelegramID, "برای خرید اکانت GPT به پشتیبانی مراجعه کنید:\n\n💻 "+BUY_GPT_LINK)
 		bot.Send(msg)
 		return ""
 	case "🎯 استخدام":
 		// Check if user has completed all sessions
 		if user.CurrentSession >= 29 {
-			msg := tgbotapi.NewMessage(user.TelegramID, "🎉 تبریک! شما به یک مانیتایزر تبدیل شدید!\n\nبرای استخدام به لینک زیر مراجعه کنید :\n\n🎁 "+START_REFFER)
+			msg := tgbotapi.NewMessage(user.TelegramID, "🎉 تبریک! شما به یک مانیتایزر تبدیل شدید!\n\nبرای استخدام به پشتبانی مراجعه کنید :\n\n🎁 "+START_REFFER)
 			bot.Send(msg)
 		} else {
 			msg := tgbotapi.NewMessage(user.TelegramID, "🔒 این گزینه پس از گذروندن تمام مراحل برای شما فعال خواهد شد.\n\nبرای دسترسی به این بخش، لطفا تمام مراحل را با موفقیت پشت سر بگذارید.")
