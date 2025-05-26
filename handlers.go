@@ -337,16 +337,23 @@ func getCurrentSessionInfo(user *User) string {
 	var video Video
 	db.Where("session_id = ?", session.ID).First(&video)
 
-	// Create a message with the session thumbnail
-	message := fmt.Sprintf("📚 %d: %s\n\n%s\n\n📺 ویدیو: %s",
+	// Create a message without the video link
+	message := fmt.Sprintf("📚 %d: %s\n\n%s",
 		session.Number,
 		session.Title,
-		session.Description,
-		video.VideoLink)
+		session.Description)
 
-	// Send the thumbnail photo with the message
+	// Create inline keyboard with video button
+	inlineKeyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonURL("📺 مشاهده ویدیو", video.VideoLink),
+		),
+	)
+
+	// Send the thumbnail photo with the message and inline keyboard
 	photo := tgbotapi.NewPhoto(user.TelegramID, tgbotapi.FileURL(session.ThumbnailURL))
 	photo.Caption = message
+	photo.ReplyMarkup = inlineKeyboard
 	bot.Send(photo)
 
 	// Check if this is the last video (session 29)
