@@ -1124,7 +1124,7 @@ func handleLicenseVerification(admin *Admin, data string) {
 		sendMessage(admin.TelegramID, "✅ درخواست با موفقیت تایید شد")
 
 		// Send success message to user
-		msg := tgbotapi.NewMessage(verification.User.TelegramID, "✅ درخواست شما تایید شد!\n\nبه ربات مونیتایز خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
+		msg := tgbotapi.NewMessage(verification.User.TelegramID, "✅ درخواست شما تایید شد!\n\nبه ربات MONETIZE AI🥇 خوش آمدید! من دستیار هوشمند شما هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
 		msg.ReplyMarkup = getMainMenuKeyboard()
 		bot.Send(msg)
 		// Send session 1 info

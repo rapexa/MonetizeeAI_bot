@@ -281,15 +281,15 @@ func processUserInput(input string, user *User) string {
 		msg.ReplyMarkup = getMainMenuKeyboard()
 		bot.Send(msg)
 		return ""
-	case "💬 چت با هدایتگر":
+	case "💬 چت با دستیار هوشمند":
 		userStates[user.TelegramID] = "chat_mode"
-		msg := tgbotapi.NewMessage(user.TelegramID, "👋 سلام! من هدایتگر هوشمند دوره هستم. سوال خود را بپرسید تا کمکتان کنم.")
+		msg := tgbotapi.NewMessage(user.TelegramID, "👋 سلام! من دستیار هوشمند شما هستم. سوال خود را بپرسید تا کمکتان کنم.")
 		msg.ReplyMarkup = getChatKeyboard()
 		bot.Send(msg)
 		return ""
-	case "🔚 اتمام مکالمه با هدایتگر":
+	case "🔚 اتمام مکالمه با دستیار هوشمند":
 		userStates[user.TelegramID] = ""
-		msg := tgbotapi.NewMessage(user.TelegramID, "مکالمه با هدایتگر به پایان رسید. به منوی اصلی بازگشتید.")
+		msg := tgbotapi.NewMessage(user.TelegramID, "مکالمه با دستیار هوشمند به پایان رسید. به منوی اصلی بازگشتید.")
 		msg.ReplyMarkup = getMainMenuKeyboard()
 		bot.Send(msg)
 		return ""
@@ -300,10 +300,10 @@ func processUserInput(input string, user *User) string {
 	case "🎯 استخدام":
 		// Check if user has completed all sessions
 		if user.CurrentSession >= 29 {
-			msg := tgbotapi.NewMessage(user.TelegramID, "🎉 تبریک! شما به پایان دوره رسیده‌اید!\n\nبرای استخدام به لینک زیر مراجعه کنید :\n\n🎁 "+START_REFFER)
+			msg := tgbotapi.NewMessage(user.TelegramID, "🎉 تبریک! شما به یک مانیتایزر تبدیل شدید!\n\nبرای استخدام به لینک زیر مراجعه کنید :\n\n🎁 "+START_REFFER)
 			bot.Send(msg)
 		} else {
-			msg := tgbotapi.NewMessage(user.TelegramID, "🔒 این گزینه پس از گذروندن تمام مراحل دوره برای شما فعال خواهد شد.\n\nبرای دسترسی به این بخش، لطفا تمام مراحل را با موفقیت پشت سر بگذارید.")
+			msg := tgbotapi.NewMessage(user.TelegramID, "🔒 این گزینه پس از گذروندن تمام مراحل برای شما فعال خواهد شد.\n\nبرای دسترسی به این بخش، لطفا تمام مراحل را با موفقیت پشت سر بگذارید.")
 			bot.Send(msg)
 		}
 		return ""
@@ -352,8 +352,8 @@ func getCurrentSessionInfo(user *User) string {
 	// Check if this is the last video (session 29)
 	if session.Number == 29 {
 		// Send congratulatory message
-		congratsMsg := "🎉 تبریک! شما به پایان دوره رسیده‌اید!\n\n" +
-			"شما تمام ۲۹ ویدیوی دوره را با موفقیت مشاهده کرده‌اید. این یک دستاورد بزرگ است!\n\n" +
+		congratsMsg := "🎉 تبریک! شما به پایان مسیر خود رسیده‌اید!\n\n" +
+			"شما تمام ۲۹ مرحله را با موفقیت گذارنده اید. این یک دستاورد بزرگ است!\n\n" +
 			"برای انتهای کار میتونی روی دکمه استخدام کلیک کنی و اقدام به شروع مسیر خودت کنی ! 🎁"
 
 		// Create a modified keyboard without exercise buttons
@@ -366,7 +366,7 @@ func getCurrentSessionInfo(user *User) string {
 				tgbotapi.NewKeyboardButton("❓ راهنما"),
 			),
 			tgbotapi.NewKeyboardButtonRow(
-				tgbotapi.NewKeyboardButton("💬 چت با هدایتگر"),
+				tgbotapi.NewKeyboardButton("💬 چت با دستیار هوشمند"),
 			),
 		)
 		keyboard.ResizeKeyboard = true
@@ -413,9 +413,9 @@ func getHelpMessage() string {
 1. از دکمه‌های منو برای پیمایش استفاده کنید
 2. تمرین‌های خود را برای بررسی ارسال کنید
 3. بازخورد دریافت کنید و کار خود را بهبود دهید
-4. در جلسات دوره پیشرفت کنید
+4. در مراحل ربات پیشرفت کنید
 
-نیاز به کمک بیشتر دارید؟ با پشتیبانی تماس بگیرید.
+نیاز به کمک بیشتر دارید؟ به پشتیبانی پیام دهید.
 
 📞 ` + SUPPORT_NUMBER + `
 `
@@ -602,7 +602,7 @@ func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 			tgbotapi.NewKeyboardButton("🎯 استخدام"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("💬 چت با هدایتگر"),
+			tgbotapi.NewKeyboardButton("💬 چت با دستیار هوشمند"),
 		),
 	)
 	keyboard.ResizeKeyboard = true
@@ -622,7 +622,7 @@ func getExerciseSubmissionKeyboard() tgbotapi.ReplyKeyboardMarkup {
 func getChatKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("🔚 اتمام مکالمه با هدایتگر"),
+			tgbotapi.NewKeyboardButton("🔚 اتمام مکالمه با دستیار هوشمند"),
 		),
 	)
 	keyboard.ResizeKeyboard = true

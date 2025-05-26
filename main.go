@@ -251,7 +251,7 @@ func handleMessage(update tgbotapi.Update) {
 		case "start":
 			// Only send welcome message if user already exists
 			if !isNewUser(update.Message.From.ID) {
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "به ربات MONETIZE AI🥇 خوش آمدید! من دستیار هوشمند شما برای دوره هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "به ربات MONETIZE AI🥇 خوش آمدید! من دستیار هوشمند شما هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
 				msg.ReplyMarkup = getMainMenuKeyboard()
 				bot.Send(msg)
 
@@ -262,7 +262,7 @@ func handleMessage(update tgbotapi.Update) {
 			}
 			return
 		case "help":
-			sendMessage(update.Message.Chat.ID, "من اینجا هستم تا در سفر دوره مونیتایز به شما کمک کنم. از دکمه‌های منو برای پیمایش در دوره استفاده کنید.")
+			sendMessage(update.Message.Chat.ID, "من اینجا هستم تا در سفر مونیتایز به شما کمک کنم. از دکمه‌های منو برای پیمایش در ربات استفاده کنید.")
 			return
 		case "admin_exercises":
 			if admin != nil {
