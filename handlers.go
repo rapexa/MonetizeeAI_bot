@@ -535,8 +535,8 @@ FEEDBACK: [your detailed feedback]`,
 		}
 
 		// Get next session info
-		var nextSession Session
-		if err := db.Where("number = ?", user.CurrentSession).First(&nextSession).Error; err != nil {
+		var nextSessionInfo Session
+		if err := db.Where("number = ?", user.CurrentSession).First(&nextSessionInfo).Error; err != nil {
 			logger.Error("Failed to get next session",
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("session_number", user.CurrentSession),
@@ -551,31 +551,31 @@ FEEDBACK: [your detailed feedback]`,
 		newLevel := GetUserLevel(newCompletedSessions)
 
 		// Get current and next session titles from database
-		var currentSession, nextSession Session
-		if err := db.Where("number = ?", user.CurrentSession).First(&currentSession).Error; err != nil {
+		var currentSessionInfo, nextSessionInfo2 Session
+		if err := db.Where("number = ?", user.CurrentSession).First(&currentSessionInfo).Error; err != nil {
 			logger.Error("Failed to get current session",
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("session_number", user.CurrentSession),
 				zap.Error(err))
-			currentStageTitle = "ساخت پیام برند" // Fallback title
+			currentStageTitle := "ساخت پیام برند" // Fallback title
 		} else {
-			currentStageTitle = currentSession.Title
+			currentStageTitle := currentSessionInfo.Title
 		}
 
-		if err := db.Where("number = ?", user.CurrentSession+1).First(&nextSession).Error; err != nil {
+		if err := db.Where("number = ?", user.CurrentSession+1).First(&nextSessionInfo2).Error; err != nil {
 			logger.Error("Failed to get next session",
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("session_number", user.CurrentSession+1),
 				zap.Error(err))
-			nextStageTitle = "ساخت پیام برند" // Fallback title
+			nextStageTitle := "ساخت پیام برند" // Fallback title
 		} else {
-			nextStageTitle = nextSession.Title
+			nextStageTitle := nextSessionInfo2.Title
 		}
 
 		response := fmt.Sprintf("🎉 %s\n\n📚 مرحله بعدی شما:\n%s\n\n%s",
 			feedback,
-			nextSession.Title,
-			nextSession.Description)
+			nextSessionInfo.Title,
+			nextSessionInfo.Description)
 
 		// If user leveled up, add the level up message
 		if newLevel.Level > oldLevel.Level {
@@ -832,10 +832,7 @@ func getFullRoadmap(user *User) string {
 		}
 	}
 
-	// Current stage in level (for demo, assume 4 stages per level)
-	// You can adjust this logic based on your real session-to-level mapping
-	// For now, let's use the completedSessions to estimate
-	// Find the start session for this level
+	// Current stage in level
 	levelStartSessions := []int{0, 6, 9, 12, 15, 18, 20, 22, 25}
 	levelEndSessions := []int{5, 8, 11, 14, 17, 19, 21, 24, 27}
 	currentLevelIndex := level.Level - 1
@@ -849,25 +846,27 @@ func getFullRoadmap(user *User) string {
 	}
 
 	// Get current and next session titles from database
-	var currentSession, nextSession Session
-	if err := db.Where("number = ?", user.CurrentSession).First(&currentSession).Error; err != nil {
+	var currentSessionInfo, nextSessionInfo Session
+	var currentStageTitle, nextStageTitle string
+
+	if err := db.Where("number = ?", user.CurrentSession).First(&currentSessionInfo).Error; err != nil {
 		logger.Error("Failed to get current session",
 			zap.Int64("user_id", user.TelegramID),
 			zap.Int("session_number", user.CurrentSession),
 			zap.Error(err))
 		currentStageTitle = "ساخت پیام برند" // Fallback title
 	} else {
-		currentStageTitle = currentSession.Title
+		currentStageTitle = currentSessionInfo.Title
 	}
 
-	if err := db.Where("number = ?", user.CurrentSession+1).First(&nextSession).Error; err != nil {
+	if err := db.Where("number = ?", user.CurrentSession+1).First(&nextSessionInfo).Error; err != nil {
 		logger.Error("Failed to get next session",
 			zap.Int64("user_id", user.TelegramID),
 			zap.Int("session_number", user.CurrentSession+1),
 			zap.Error(err))
 		nextStageTitle = "ساخت پیام برند" // Fallback title
 	} else {
-		nextStageTitle = nextSession.Title
+		nextStageTitle = nextSessionInfo.Title
 	}
 
 	// Compose the roadmap message
