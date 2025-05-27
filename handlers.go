@@ -29,6 +29,36 @@ type UserState struct {
 	IsSubmittingExercise bool
 }
 
+type SMSResponse struct {
+	RecID  int64  `json:"recId"`
+	Status string `json:"status"`
+}
+
+func sendSMS(to, text string) error {
+	data := map[string]string{
+		"to":   to,
+		"text": text,
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	url := "https://console.melipayamak.com/api/send/simple/d1a5f9699ef4420e91caf89eeec51046"
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	var apiResponse SMSResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+		return err
+	}
+	if apiResponse.Status != "ارسال موفق بود" {
+		return fmt.Errorf("SMS failed: %s", apiResponse.Status)
+	}
+	return nil
+}
+
 func getUserOrCreate(from *tgbotapi.User) *User {
 	// First check if user is admin
 	var admin Admin
@@ -580,6 +610,17 @@ FEEDBACK: [your detailed feedback]`,
 		} else {
 			nextStageTitle = nextSessionInfo2.Title
 		}
+
+		// --- SMS sending logic ---
+		if user.Phone != "" {
+			smsText := fmt.Sprintf("تبریک %s! شما وارد مرحله جدید (%s) شدید. ادامه بده!", user.FirstName, currentStageTitle)
+			go sendSMS(user.Phone, smsText)
+			if newLevel.Level > oldLevel.Level {
+				smsText := fmt.Sprintf("🎉 %s عزیز! شما به سطح %d (%s) رسیدید. عالیه!", user.FirstName, newLevel.Level, newLevel.Name)
+				go sendSMS(user.Phone, smsText)
+			}
+		}
+		// --- END SMS sending logic ---
 
 		response := fmt.Sprintf("🎉 %s\n\n📚 مرحله فعلی شما:\n%s\n\n📚 مرحله بعدی شما:\n%s\n\n%s",
 			feedback,
