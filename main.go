@@ -230,6 +230,10 @@ func handleMessage(update tgbotapi.Update) {
 			response := performBackup(admin)
 			sendMessage(update.Message.Chat.ID, response)
 			return
+		case "📢 ارسال پیام همگانی":
+			response := handleAdminBroadcast(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
 		}
 
 		// Send admin keyboard if no command matched
