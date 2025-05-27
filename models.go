@@ -8,8 +8,8 @@ import (
 )
 
 const SUPPORT_NUMBER = "@sian_academy_support"
-const BUY_GPT_LINK = "https://sianacademy.com/"
-const START_REFFER = "https://t.me/sianacademy"
+const BUY_GPT_LINK = "@sian_academy_support"
+const START_REFFER = "@sian_academy_support"
 
 // User represents a Telegram user in our system
 type User struct {
