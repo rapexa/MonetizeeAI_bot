@@ -1299,7 +1299,7 @@ func handleSMSBroadcastConfirmation(admin *Admin, confirm bool) string {
 		}
 	}
 	// Send SMS and report status to admin
-	status := ""
+	// status := ""
 	if len(phones) == 0 {
 		delete(adminStates, admin.TelegramID)
 		return "❌ هیچ شماره معتبری برای ارسال پیامک پیدا نشد."
