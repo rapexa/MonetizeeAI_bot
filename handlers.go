@@ -72,19 +72,34 @@ func sendBulkSMS(to []string, text string) error {
 	}
 	jsonData, err := json.Marshal(data)
 	if err != nil {
+		logger.Error("sendBulkSMS: Error marshaling JSON", zap.Error(err), zap.Any("to", to), zap.String("text", text))
 		return err
 	}
 	url := "https://console.melipayamak.com/api/send/advanced/d1a5f9699ef4420e91caf89eeec51046"
+	logger.Info("sendBulkSMS: Sending bulk SMS", zap.String("url", url), zap.Any("to", to), zap.String("text", text))
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
+		logger.Error("sendBulkSMS: Error making request", zap.Error(err), zap.String("url", url))
 		return err
 	}
 	defer resp.Body.Close()
-	var apiResponse SMSMultiResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error("sendBulkSMS: Error reading response", zap.Error(err))
 		return err
 	}
+	logger.Info("sendBulkSMS: Raw response", zap.String("response", string(body)))
+
+	var apiResponse SMSMultiResponse
+	if err := json.Unmarshal(body, &apiResponse); err != nil {
+		logger.Error("sendBulkSMS: Error parsing response", zap.Error(err), zap.String("body", string(body)))
+		return err
+	}
+	logger.Info("sendBulkSMS: Parsed response", zap.String("status", apiResponse.Status), zap.Any("recIds", apiResponse.RecIds))
+
 	if apiResponse.Status != "ارسال موفق بود" {
+		logger.Error("sendBulkSMS: Bulk SMS failed", zap.String("status", apiResponse.Status), zap.Any("recIds", apiResponse.RecIds))
 		return fmt.Errorf("Bulk SMS failed: %s", apiResponse.Status)
 	}
 	return nil
