@@ -706,11 +706,14 @@ FEEDBACK: [your detailed feedback]`,
 
 		// --- SMS sending logic ---
 		if user.Phone != "" {
-			smsText := fmt.Sprintf("تبریک %s! شما وارد مرحله جدید (%s) شدید. ادامه بده!", user.FirstName, currentStageTitle)
-			go sendSMS(user.Phone, smsText)
-			if newLevel.Level > oldLevel.Level {
-				smsText := fmt.Sprintf("🎉 %s عزیز! شما به سطح %d (%s) رسیدید. عالیه!", user.FirstName, newLevel.Level, newLevel.Name)
-				go sendSMS(user.Phone, smsText)
+			normalized := normalizePhoneNumber(user.Phone)
+			if normalized != "" {
+				smsText := fmt.Sprintf("تبریک %s! شما وارد مرحله جدید (%s) شدید. ادامه بده!", user.FirstName, currentStageTitle)
+				go sendSMS(normalized, smsText)
+				if newLevel.Level > oldLevel.Level {
+					smsText := fmt.Sprintf("🎉 %s عزیز! شما به سطح %d (%s) رسیدید. عالیه!", user.FirstName, newLevel.Level, newLevel.Name)
+					go sendSMS(normalized, smsText)
+				}
 			}
 		}
 		// --- END SMS sending logic ---
