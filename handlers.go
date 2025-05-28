@@ -68,7 +68,6 @@ func sendBulkSMS(to []string, text string) error {
 	data := map[string]interface{}{
 		"to":   to,
 		"text": text,
-		"udh":  "",
 	}
 	jsonData, err := json.Marshal(data)
 	if err != nil {
