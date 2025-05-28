@@ -1298,8 +1298,16 @@ func handleSMSBroadcastConfirmation(admin *Admin, confirm bool) string {
 			phones = append(phones, normalized)
 		}
 	}
-	// Send SMS in background
-	go sendBulkSMS(phones, message)
+	// Send SMS and report status to admin
+	status := ""
+	if len(phones) == 0 {
+		delete(adminStates, admin.TelegramID)
+		return "❌ هیچ شماره معتبری برای ارسال پیامک پیدا نشد."
+	}
+	apiStatus, err := sendBulkSMSWithStatus(phones, message)
 	delete(adminStates, admin.TelegramID)
-	return fmt.Sprintf("✅ پیامک به %d کاربر ارسال شد (در حال ارسال...)", len(phones))
+	if err != nil {
+		return fmt.Sprintf("❌ خطا در ارسال پیامک همگانی:\n%s", err.Error())
+	}
+	return fmt.Sprintf("وضعیت ارسال پیامک: %s\nتعداد شماره معتبر: %d", apiStatus, len(phones))
 }

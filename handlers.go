@@ -152,6 +152,47 @@ func sendBulkSMS(to []string, text string) error {
 	return nil
 }
 
+// Like sendBulkSMS, but returns the API status string for admin feedback
+func sendBulkSMSWithStatus(to []string, text string) (string, error) {
+	data := map[string]interface{}{
+		"to":   to,
+		"text": text,
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		logger.Error("sendBulkSMSWithStatus: Error marshaling JSON", zap.Error(err), zap.Any("to", to), zap.String("text", text))
+		return "", err
+	}
+	url := "https://console.melipayamak.com/api/send/advanced/d1a5f9699ef4420e91caf89eeec51046"
+	logger.Info("sendBulkSMSWithStatus: Sending bulk SMS", zap.String("url", url), zap.Any("to", to), zap.String("text", text))
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		logger.Error("sendBulkSMSWithStatus: Error making request", zap.Error(err), zap.String("url", url))
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error("sendBulkSMSWithStatus: Error reading response", zap.Error(err))
+		return "", err
+	}
+	logger.Info("sendBulkSMSWithStatus: Raw response", zap.String("response", string(body)))
+
+	var apiResponse SMSMultiResponse
+	if err := json.Unmarshal(body, &apiResponse); err != nil {
+		logger.Error("sendBulkSMSWithStatus: Error parsing response", zap.Error(err), zap.String("body", string(body)))
+		return "", err
+	}
+	logger.Info("sendBulkSMSWithStatus: Parsed response", zap.String("status", apiResponse.Status), zap.Any("recIds", apiResponse.RecIds))
+
+	if apiResponse.Status != "ارسال موفق بود" {
+		logger.Error("sendBulkSMSWithStatus: Bulk SMS failed", zap.String("status", apiResponse.Status), zap.Any("recIds", apiResponse.RecIds))
+		return apiResponse.Status, fmt.Errorf("Bulk SMS failed: %s", apiResponse.Status)
+	}
+	return apiResponse.Status, nil
+}
+
 func getUserOrCreate(from *tgbotapi.User) *User {
 	// First check if user is admin
 	var admin Admin
