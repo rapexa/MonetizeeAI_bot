@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -37,6 +38,53 @@ type SMSResponse struct {
 type SMSMultiResponse struct {
 	RecIds []int64 `json:"recIds"`
 	Status string  `json:"status"`
+}
+
+// Converts Persian/Arabic digits to English and strips non-digit characters
+func normalizePhoneNumber(phone string) string {
+	phone = strings.TrimSpace(phone)
+	// Remove any text before the number (e.g., names)
+	re := regexp.MustCompile(`(\+98|98|0)?[0-9۰-۹٠-٩]{10,}`)
+	match := re.FindString(phone)
+	if match == "" {
+		return ""
+	}
+	// Convert Persian/Arabic digits to English
+	var normalized strings.Builder
+	for _, r := range match {
+		switch r {
+		case '۰', '٠':
+			normalized.WriteRune('0')
+		case '۱', '١':
+			normalized.WriteRune('1')
+		case '۲', '٢':
+			normalized.WriteRune('2')
+		case '۳', '٣':
+			normalized.WriteRune('3')
+		case '۴', '٤':
+			normalized.WriteRune('4')
+		case '۵', '٥':
+			normalized.WriteRune('5')
+		case '۶', '٦':
+			normalized.WriteRune('6')
+		case '۷', '٧':
+			normalized.WriteRune('7')
+		case '۸', '٨':
+			normalized.WriteRune('8')
+		case '۹', '٩':
+			normalized.WriteRune('9')
+		default:
+			normalized.WriteRune(r)
+		}
+	}
+	result := normalized.String()
+	if strings.HasPrefix(result, "9") && len(result) == 10 {
+		result = "0" + result
+	}
+	if strings.HasPrefix(result, "09") && len(result) == 11 {
+		return result
+	}
+	return ""
 }
 
 func sendSMS(to, text string) error {

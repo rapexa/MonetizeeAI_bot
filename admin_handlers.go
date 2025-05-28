@@ -1293,7 +1293,10 @@ func handleSMSBroadcastConfirmation(admin *Admin, confirm bool) string {
 	}
 	var phones []string
 	for _, user := range users {
-		phones = append(phones, user.Phone)
+		normalized := normalizePhoneNumber(user.Phone)
+		if normalized != "" {
+			phones = append(phones, normalized)
+		}
 	}
 	// Send SMS in background
 	go sendBulkSMS(phones, message)
