@@ -114,6 +114,7 @@ func sendSMS(to, text string) error {
 
 func sendBulkSMS(to []string, text string) error {
 	data := map[string]interface{}{
+		"from": "50002710046748",
 		"to":   to,
 		"text": text,
 	}
@@ -155,6 +156,7 @@ func sendBulkSMS(to []string, text string) error {
 // Like sendBulkSMS, but returns the API status string for admin feedback
 func sendBulkSMSWithStatus(to []string, text string) (string, error) {
 	data := map[string]interface{}{
+		"from": "50002710046748",
 		"to":   to,
 		"text": text,
 	}
