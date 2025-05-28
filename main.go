@@ -145,9 +145,12 @@ func handleMessage(update tgbotapi.Update) {
 			// Handle cancel command
 			if command == "cancel" {
 				state, exists := adminStates[admin.TelegramID]
-				if exists && (state == StateWaitingForBroadcast || strings.HasPrefix(state, StateConfirmBroadcast)) {
+				if exists && (state == StateWaitingForBroadcast ||
+					strings.HasPrefix(state, StateConfirmBroadcast) ||
+					state == StateWaitingForSMSBroadcast ||
+					strings.HasPrefix(state, StateConfirmSMSBroadcast)) {
 					delete(adminStates, admin.TelegramID)
-					sendMessage(update.Message.Chat.ID, "❌ ارسال پیام همگانی لغو شد")
+					sendMessage(update.Message.Chat.ID, "❌ ارسال پیام یا پیامک همگانی لغو شد")
 					return
 				}
 			}
