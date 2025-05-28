@@ -193,6 +193,11 @@ func handleMessage(update tgbotapi.Update) {
 				response := handleBroadcastMessage(admin, update.Message.Text)
 				sendMessage(admin.TelegramID, response)
 				return
+
+			case StateWaitingForSMSBroadcast:
+				response := handleSMSBroadcastMessage(admin, update.Message.Text)
+				sendMessage(admin.TelegramID, response)
+				return
 			}
 
 			// Handle states with parameters
@@ -232,6 +237,10 @@ func handleMessage(update tgbotapi.Update) {
 			return
 		case "📢 ارسال پیام همگانی":
 			response := handleAdminBroadcast(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "📲 ارسال پیامک همگانی":
+			response := handleAdminSMSBroadcast(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
 			return
 		}

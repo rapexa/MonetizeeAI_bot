@@ -34,6 +34,11 @@ type SMSResponse struct {
 	Status string `json:"status"`
 }
 
+type SMSMultiResponse struct {
+	RecIds []int64 `json:"recIds"`
+	Status string  `json:"status"`
+}
+
 func sendSMS(to, text string) error {
 	data := map[string]string{
 		"to":   to,
@@ -55,6 +60,32 @@ func sendSMS(to, text string) error {
 	}
 	if apiResponse.Status != "ارسال موفق بود" {
 		return fmt.Errorf("SMS failed: %s", apiResponse.Status)
+	}
+	return nil
+}
+
+func sendBulkSMS(to []string, text string) error {
+	data := map[string]interface{}{
+		"to":   to,
+		"text": text,
+		"udh":  "",
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	url := "https://console.melipayamak.com/api/send/advanced/d1a5f9699ef4420e91caf89eeec51046"
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	var apiResponse SMSMultiResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+		return err
+	}
+	if apiResponse.Status != "ارسال موفق بود" {
+		return fmt.Errorf("Bulk SMS failed: %s", apiResponse.Status)
 	}
 	return nil
 }
@@ -844,6 +875,9 @@ func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("💾 پشتیبان‌گیری"),
 			tgbotapi.NewKeyboardButton("📢 ارسال پیام همگانی"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("📲 ارسال پیامک همگانی"),
 		),
 	)
 	keyboard.ResizeKeyboard = true

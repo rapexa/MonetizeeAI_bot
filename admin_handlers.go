@@ -12,17 +12,19 @@ import (
 
 // Add these constants at the top of the file
 const (
-	StateWaitingForUserID      = "waiting_for_user_id"
-	StateWaitingForSessionNum  = "waiting_for_session_num"
-	StateWaitingForSessionInfo = "waiting_for_session_info"
-	StateWaitingForVideoInfo   = "waiting_for_video_info"
-	StateEditSession           = "edit_session"
-	StateDeleteSession         = "delete_session"
-	StateAddVideo              = "add_video"
-	StateEditVideo             = "edit_video"
-	StateDeleteVideo           = "delete_video"
-	StateWaitingForBroadcast   = "waiting_for_broadcast"
-	StateConfirmBroadcast      = "confirm_broadcast"
+	StateWaitingForUserID       = "waiting_for_user_id"
+	StateWaitingForSessionNum   = "waiting_for_session_num"
+	StateWaitingForSessionInfo  = "waiting_for_session_info"
+	StateWaitingForVideoInfo    = "waiting_for_video_info"
+	StateEditSession            = "edit_session"
+	StateDeleteSession          = "delete_session"
+	StateAddVideo               = "add_video"
+	StateEditVideo              = "edit_video"
+	StateDeleteVideo            = "delete_video"
+	StateWaitingForBroadcast    = "waiting_for_broadcast"
+	StateConfirmBroadcast       = "confirm_broadcast"
+	StateWaitingForSMSBroadcast = "waiting_for_sms_broadcast"
+	StateConfirmSMSBroadcast    = "confirm_sms_broadcast"
 )
 
 // Add this with other model definitions at the top of the file
@@ -75,6 +77,11 @@ var adminCommands = []AdminCommand{
 		Command:     "/admin_broadcast",
 		Description: "📢 ارسال پیام به همه کاربران",
 		Handler:     handleAdminBroadcast,
+	},
+	{
+		Command:     "/admin_sms_broadcast",
+		Description: "📲 ارسال پیامک به همه کاربران",
+		Handler:     handleAdminSMSBroadcast,
 	},
 }
 
@@ -365,6 +372,15 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	if data == "confirm_broadcast" || data == "cancel_broadcast" {
 		confirm := data == "confirm_broadcast"
 		response := handleBroadcastConfirmation(admin, confirm)
+		sendMessage(admin.TelegramID, response)
+		bot.Send(tgbotapi.NewCallback(callback.ID, "✅ عملیات با موفقیت انجام شد"))
+		return
+	}
+
+	// Handle SMS broadcast confirmation
+	if data == "confirm_sms_broadcast" || data == "cancel_sms_broadcast" {
+		confirm := data == "confirm_sms_broadcast"
+		response := handleSMSBroadcastConfirmation(admin, confirm)
 		sendMessage(admin.TelegramID, response)
 		bot.Send(tgbotapi.NewCallback(callback.ID, "✅ عملیات با موفقیت انجام شد"))
 		return
@@ -1237,4 +1253,50 @@ func handleBroadcastConfirmation(admin *Admin, confirm bool) string {
 
 	delete(adminStates, admin.TelegramID)
 	return fmt.Sprintf("✅ پیام با موفقیت ارسال شد:\n\n📊 آمار ارسال:\n• موفق: %d\n• ناموفق: %d", successCount, failCount)
+}
+
+func handleAdminSMSBroadcast(admin *Admin, args []string) string {
+	adminStates[admin.TelegramID] = StateWaitingForSMSBroadcast
+	msg := tgbotapi.NewMessage(admin.TelegramID, "📲 لطفا متن پیامک را وارد کنید:\n\nبرای لغو عملیات، دستور /cancel را ارسال کنید.")
+	msg.ReplyMarkup = tgbotapi.ForceReply{}
+	bot.Send(msg)
+	return "در انتظار پیامک..."
+}
+
+func handleSMSBroadcastMessage(admin *Admin, message string) string {
+	previewMsg := fmt.Sprintf("📲 پیش‌نمایش پیامک همگانی:\n\n%s\n\nآیا می‌خواهید این پیامک را به همه کاربران ارسال کنید؟", message)
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("✅ بله، ارسال کن", "confirm_sms_broadcast"),
+			tgbotapi.NewInlineKeyboardButtonData("❌ خیر، لغو کن", "cancel_sms_broadcast"),
+		),
+	)
+	msg := tgbotapi.NewMessage(admin.TelegramID, previewMsg)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+	adminStates[admin.TelegramID] = StateConfirmSMSBroadcast + ":" + message
+	return "لطفا تایید یا لغو را انتخاب کنید"
+}
+
+func handleSMSBroadcastConfirmation(admin *Admin, confirm bool) string {
+	state := adminStates[admin.TelegramID]
+	message := strings.TrimPrefix(state, StateConfirmSMSBroadcast+":")
+	if !confirm {
+		delete(adminStates, admin.TelegramID)
+		return "❌ ارسال پیامک همگانی لغو شد"
+	}
+	// Get all user phone numbers
+	var users []User
+	if err := db.Where("is_active = ? AND phone != ''", true).Find(&users).Error; err != nil {
+		delete(adminStates, admin.TelegramID)
+		return "❌ خطا در دریافت لیست کاربران"
+	}
+	var phones []string
+	for _, user := range users {
+		phones = append(phones, user.Phone)
+	}
+	// Send SMS in background
+	go sendBulkSMS(phones, message)
+	delete(adminStates, admin.TelegramID)
+	return fmt.Sprintf("✅ پیامک به %d کاربر ارسال شد (در حال ارسال...)", len(phones))
 }
