@@ -193,7 +193,7 @@ func handleMessage(update tgbotapi.Update) {
 				return
 
 			case StateWaitingForBroadcast:
-				response := handleBroadcastMessage(admin, update.Message.Text)
+				response := handleBroadcastMessage(admin, update.Message)
 				sendMessage(admin.TelegramID, response)
 				return
 

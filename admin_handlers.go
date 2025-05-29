@@ -1189,7 +1189,9 @@ func handleAdminBroadcast(admin *Admin, args []string) string {
 	// Set state to wait for broadcast message
 	adminStates[admin.TelegramID] = StateWaitingForBroadcast
 
-	msg := tgbotapi.NewMessage(admin.TelegramID, "📢 لطفا پیام مورد نظر برای ارسال به همه کاربران را وارد کنید:\n\nبرای لغو عملیات، دستور /cancel را ارسال کنید.")
+	msg := tgbotapi.NewMessage(admin.TelegramID, "📢 لطفا پیام مورد نظر برای ارسال به همه کاربران را وارد کنید:\n\n"+
+		"شما می‌توانید متن، تصویر، ویدیو یا پیام صوتی ارسال کنید.\n"+
+		"برای لغو عملیات، دستور /cancel را ارسال کنید.")
 	msg.ReplyMarkup = tgbotapi.ForceReply{}
 	bot.Send(msg)
 
@@ -1197,9 +1199,24 @@ func handleAdminBroadcast(admin *Admin, args []string) string {
 }
 
 // handleBroadcastMessage processes the broadcast message and sends it to all users
-func handleBroadcastMessage(admin *Admin, message string) string {
-	// First, show confirmation message with preview
-	previewMsg := fmt.Sprintf("📢 پیش‌نمایش پیام همگانی:\n\n%s\n\nآیا می‌خواهید این پیام را به همه کاربران ارسال کنید؟", message)
+func handleBroadcastMessage(admin *Admin, message *tgbotapi.Message) string {
+	var previewMsg string
+	var mediaType string
+
+	// Determine media type and create appropriate preview message
+	if message.Photo != nil {
+		mediaType = "photo"
+		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (تصویر):\n\n%s", message.Caption)
+	} else if message.Video != nil {
+		mediaType = "video"
+		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (ویدیو):\n\n%s", message.Caption)
+	} else if message.Voice != nil {
+		mediaType = "voice"
+		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (پیام صوتی):\n\n%s", message.Caption)
+	} else {
+		mediaType = "text"
+		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی:\n\n%s", message.Text)
+	}
 
 	// Create inline keyboard for confirmation
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
@@ -1213,17 +1230,28 @@ func handleBroadcastMessage(admin *Admin, message string) string {
 	msg.ReplyMarkup = keyboard
 	bot.Send(msg)
 
-	// Store the message in admin state for later use
-	adminStates[admin.TelegramID] = StateConfirmBroadcast + ":" + message
+	// Store the message and media type in admin state for later use
+	adminStates[admin.TelegramID] = fmt.Sprintf("%s:%s:%d", StateConfirmBroadcast, mediaType, message.MessageID)
 
 	return "لطفا تایید یا لغو را انتخاب کنید"
 }
 
 // handleBroadcastConfirmation handles the broadcast confirmation
 func handleBroadcastConfirmation(admin *Admin, confirm bool) string {
-	// Get the stored message from state
+	// Get the stored message info from state
 	state := adminStates[admin.TelegramID]
-	message := strings.TrimPrefix(state, StateConfirmBroadcast+":")
+	parts := strings.Split(state, ":")
+	if len(parts) != 3 {
+		delete(adminStates, admin.TelegramID)
+		return "❌ خطا در پردازش پیام"
+	}
+
+	mediaType := parts[1]
+	messageID, err := strconv.ParseInt(parts[2], 10, 64)
+	if err != nil {
+		delete(adminStates, admin.TelegramID)
+		return "❌ خطا در پردازش پیام"
+	}
 
 	if !confirm {
 		delete(adminStates, admin.TelegramID)
@@ -1239,9 +1267,43 @@ func handleBroadcastConfirmation(admin *Admin, confirm bool) string {
 	successCount := 0
 	failCount := 0
 
+	// Get the original message
+	originalMsg, err := bot.GetMessage(tgbotapi.GetMessageConfig{
+		ChatID:    admin.TelegramID,
+		MessageID: messageID,
+	})
+	if err != nil {
+		delete(adminStates, admin.TelegramID)
+		return "❌ خطا در دریافت پیام اصلی"
+	}
+
 	for _, user := range users {
-		msg := tgbotapi.NewMessage(user.TelegramID, fmt.Sprintf("📢 پیام از ادمین:\n\n%s", message))
-		if _, err := bot.Send(msg); err != nil {
+		var err error
+		switch mediaType {
+		case "photo":
+			if len(originalMsg.Photo) > 0 {
+				photo := tgbotapi.NewPhoto(user.TelegramID, tgbotapi.FileID(originalMsg.Photo[len(originalMsg.Photo)-1].FileID))
+				photo.Caption = originalMsg.Caption
+				_, err = bot.Send(photo)
+			}
+		case "video":
+			if originalMsg.Video != nil {
+				video := tgbotapi.NewVideo(user.TelegramID, tgbotapi.FileID(originalMsg.Video.FileID))
+				video.Caption = originalMsg.Caption
+				_, err = bot.Send(video)
+			}
+		case "voice":
+			if originalMsg.Voice != nil {
+				voice := tgbotapi.NewVoice(user.TelegramID, tgbotapi.FileID(originalMsg.Voice.FileID))
+				voice.Caption = originalMsg.Caption
+				_, err = bot.Send(voice)
+			}
+		default: // text
+			msg := tgbotapi.NewMessage(user.TelegramID, fmt.Sprintf("📢 پیام از ادمین:\n\n%s", originalMsg.Text))
+			_, err = bot.Send(msg)
+		}
+
+		if err != nil {
 			failCount++
 			continue
 		}
@@ -1249,7 +1311,7 @@ func handleBroadcastConfirmation(admin *Admin, confirm bool) string {
 	}
 
 	// Log the broadcast action
-	logAdminAction(admin, "broadcast_message", fmt.Sprintf("Broadcast message to %d users (%d failed)", successCount, failCount), "system", 0)
+	logAdminAction(admin, "broadcast_message", fmt.Sprintf("Broadcast %s to %d users (%d failed)", mediaType, successCount, failCount), "system", 0)
 
 	delete(adminStates, admin.TelegramID)
 	return fmt.Sprintf("✅ پیام با موفقیت ارسال شد:\n\n📊 آمار ارسال:\n• موفق: %d\n• ناموفق: %d", successCount, failCount)
