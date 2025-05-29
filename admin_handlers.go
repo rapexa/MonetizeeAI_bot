@@ -1202,17 +1202,25 @@ func handleAdminBroadcast(admin *Admin, args []string) string {
 func handleBroadcastMessage(admin *Admin, message *tgbotapi.Message) string {
 	var previewMsg string
 	var mediaType string
+	var fileID string
+	var caption string
 
 	// Determine media type and create appropriate preview message
 	if message.Photo != nil {
 		mediaType = "photo"
-		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (تصویر):\n\n%s", message.Caption)
+		fileID = message.Photo[len(message.Photo)-1].FileID
+		caption = message.Caption
+		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (تصویر):\n\n%s", caption)
 	} else if message.Video != nil {
 		mediaType = "video"
-		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (ویدیو):\n\n%s", message.Caption)
+		fileID = message.Video.FileID
+		caption = message.Caption
+		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (ویدیو):\n\n%s", caption)
 	} else if message.Voice != nil {
 		mediaType = "voice"
-		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (پیام صوتی):\n\n%s", message.Caption)
+		fileID = message.Voice.FileID
+		caption = message.Caption
+		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (پیام صوتی):\n\n%s", caption)
 	} else {
 		mediaType = "text"
 		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی:\n\n%s", message.Text)
@@ -1230,8 +1238,12 @@ func handleBroadcastMessage(admin *Admin, message *tgbotapi.Message) string {
 	msg.ReplyMarkup = keyboard
 	bot.Send(msg)
 
-	// Store the message and media type in admin state for later use
-	adminStates[admin.TelegramID] = fmt.Sprintf("%s:%s:%d", StateConfirmBroadcast, mediaType, message.MessageID)
+	// Store the message content in admin state for later use
+	stateData := fmt.Sprintf("%s:%s:%s:%s", StateConfirmBroadcast, mediaType, fileID, caption)
+	if mediaType == "text" {
+		stateData = fmt.Sprintf("%s:%s:%s:%s", StateConfirmBroadcast, mediaType, "", message.Text)
+	}
+	adminStates[admin.TelegramID] = stateData
 
 	return "لطفا تایید یا لغو را انتخاب کنید"
 }
@@ -1241,17 +1253,14 @@ func handleBroadcastConfirmation(admin *Admin, confirm bool) string {
 	// Get the stored message info from state
 	state := adminStates[admin.TelegramID]
 	parts := strings.Split(state, ":")
-	if len(parts) != 3 {
+	if len(parts) != 4 {
 		delete(adminStates, admin.TelegramID)
 		return "❌ خطا در پردازش پیام"
 	}
 
 	mediaType := parts[1]
-	messageID, err := strconv.ParseInt(parts[2], 10, 64)
-	if err != nil {
-		delete(adminStates, admin.TelegramID)
-		return "❌ خطا در پردازش پیام"
-	}
+	fileID := parts[2]
+	content := parts[3]
 
 	if !confirm {
 		delete(adminStates, admin.TelegramID)
@@ -1267,39 +1276,23 @@ func handleBroadcastConfirmation(admin *Admin, confirm bool) string {
 	successCount := 0
 	failCount := 0
 
-	// Get the original message
-	originalMsg, err := bot.GetMessage(tgbotapi.GetMessageConfig{
-		ChatID:    admin.TelegramID,
-		MessageID: messageID,
-	})
-	if err != nil {
-		delete(adminStates, admin.TelegramID)
-		return "❌ خطا در دریافت پیام اصلی"
-	}
-
 	for _, user := range users {
 		var err error
 		switch mediaType {
 		case "photo":
-			if len(originalMsg.Photo) > 0 {
-				photo := tgbotapi.NewPhoto(user.TelegramID, tgbotapi.FileID(originalMsg.Photo[len(originalMsg.Photo)-1].FileID))
-				photo.Caption = originalMsg.Caption
-				_, err = bot.Send(photo)
-			}
+			photo := tgbotapi.NewPhoto(user.TelegramID, tgbotapi.FileID(fileID))
+			photo.Caption = content
+			_, err = bot.Send(photo)
 		case "video":
-			if originalMsg.Video != nil {
-				video := tgbotapi.NewVideo(user.TelegramID, tgbotapi.FileID(originalMsg.Video.FileID))
-				video.Caption = originalMsg.Caption
-				_, err = bot.Send(video)
-			}
+			video := tgbotapi.NewVideo(user.TelegramID, tgbotapi.FileID(fileID))
+			video.Caption = content
+			_, err = bot.Send(video)
 		case "voice":
-			if originalMsg.Voice != nil {
-				voice := tgbotapi.NewVoice(user.TelegramID, tgbotapi.FileID(originalMsg.Voice.FileID))
-				voice.Caption = originalMsg.Caption
-				_, err = bot.Send(voice)
-			}
+			voice := tgbotapi.NewVoice(user.TelegramID, tgbotapi.FileID(fileID))
+			voice.Caption = content
+			_, err = bot.Send(voice)
 		default: // text
-			msg := tgbotapi.NewMessage(user.TelegramID, fmt.Sprintf("📢 پیام از ادمین:\n\n%s", originalMsg.Text))
+			msg := tgbotapi.NewMessage(user.TelegramID, fmt.Sprintf("📢 پیام از ادمین:\n\n%s", content))
 			_, err = bot.Send(msg)
 		}
 
