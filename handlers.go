@@ -460,7 +460,7 @@ func processUserInput(input string, user *User) string {
 		bot.Send(msg)
 		return ""
 	case "🛍️ خرید اشتراک هوش مصنوعی":
-		msg := tgbotapi.NewMessage(user.TelegramID, "برای خرید اکانت GPT به پشتیبانی مراجعه کنید:\n\n💻 "+BUY_GPT_LINK)
+		msg := tgbotapi.NewMessage(user.TelegramID, "برای خرید اکانت هوش مصنوعی به پشتیبانی مراجعه کنید:\n\n💻 "+BUY_GPT_LINK)
 		bot.Send(msg)
 		return ""
 	case "🎯 استخدام":
