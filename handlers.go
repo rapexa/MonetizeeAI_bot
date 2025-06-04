@@ -582,7 +582,7 @@ func getProgressInfo(user *User) string {
 
 func getHelpMessage(user *User) string {
 	// Send video message with caption using the Telegram file_id
-	video := tgbotapi.NewVideo(user.TelegramID, tgbotapi.FileID("AAMCBAADGQECB-yhaECcISmxFxhQnFi4rzwMT_61_gQAApAYAAJ5OwlSQcZshoFy5r4BAAdtAAM2BA"))
+	video := tgbotapi.NewVideo(user.TelegramID, tgbotapi.FileID("BAACAgUAAxkBAgftYWhAnCEpsRcYUJxYuK88DE_-9f4EAAKQGAACeTsJUkHGbIaBcua-"))
 	video.Caption = "🎥 راهنمای استفاده از ربات MonetizeAI\n\nاین ویدیو به شما کمک می‌کند تا با امکانات ربات آشنا شوید و از آن به بهترین شکل استفاده کنید."
 
 	// Send video with error handling
