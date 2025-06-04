@@ -440,7 +440,7 @@ func processUserInput(input string, user *User) string {
 		return getFullRoadmap(user)
 	case "❓ راهنما":
 		userStates[user.TelegramID] = ""
-		return getHelpMessage()
+		return getHelpMessage(user)
 	case "🔙 بازگشت":
 		userStates[user.TelegramID] = ""
 		msg := tgbotapi.NewMessage(user.TelegramID, "به منوی اصلی بازگشتید.")
@@ -580,7 +580,12 @@ func getProgressInfo(user *User) string {
 		progress)
 }
 
-func getHelpMessage() string {
+func getHelpMessage(user *User) string {
+	// Send video message with caption
+	video := tgbotapi.NewVideo(user.TelegramID, tgbotapi.FileURL("https://sianacademy.com/wp-content/uploads/2025/06/آموزش-کار-با-ربات_1-2.mp4"))
+	video.Caption = "🎥 راهنمای استفاده از ربات MonetizeAI\n\nاین ویدیو به شما کمک می‌کند تا با امکانات ربات آشنا شوید و از آن به بهترین شکل استفاده کنید."
+	bot.Send(video)
+
 	return `❓ راهنمای استفاده از ربات MonetizeAI:
 
 1. از دکمه‌های منو برای پیمایش استفاده کنید
