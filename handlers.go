@@ -584,7 +584,14 @@ func getHelpMessage(user *User) string {
 	// Send video message with caption
 	video := tgbotapi.NewVideo(user.TelegramID, tgbotapi.FileURL("https://sianacademy.com/wp-content/uploads/2025/06/آموزش-کار-با-ربات_1-2.mp4"))
 	video.Caption = "🎥 راهنمای استفاده از ربات MonetizeAI\n\nاین ویدیو به شما کمک می‌کند تا با امکانات ربات آشنا شوید و از آن به بهترین شکل استفاده کنید."
-	bot.Send(video)
+
+	// Send video with error handling
+	if _, err := bot.Send(video); err != nil {
+		logger.Error("Failed to send help video",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
+		// Continue with text message even if video fails
+	}
 
 	return `❓ راهنمای استفاده از ربات MonetizeAI:
 
