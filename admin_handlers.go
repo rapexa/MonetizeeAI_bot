@@ -1203,27 +1203,28 @@ func handleBroadcastMessage(admin *Admin, message *tgbotapi.Message) string {
 	var previewMsg string
 	var mediaType string
 	var fileID string
-	var caption string
+	var content string
 
 	// Determine media type and create appropriate preview message
-	if message.Photo != nil {
+	if message.Photo != nil && len(message.Photo) > 0 {
 		mediaType = "photo"
 		fileID = message.Photo[len(message.Photo)-1].FileID
-		caption = message.Caption
-		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (تصویر):\n\n%s", caption)
+		content = message.Caption
+		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (تصویر):\n\n%s", content)
 	} else if message.Video != nil {
 		mediaType = "video"
 		fileID = message.Video.FileID
-		caption = message.Caption
-		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (ویدیو):\n\n%s", caption)
+		content = message.Caption
+		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (ویدیو):\n\n%s", content)
 	} else if message.Voice != nil {
 		mediaType = "voice"
 		fileID = message.Voice.FileID
-		caption = message.Caption
-		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (پیام صوتی):\n\n%s", caption)
+		content = message.Caption
+		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی (پیام صوتی):\n\n%s", content)
 	} else {
 		mediaType = "text"
-		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی:\n\n%s", message.Text)
+		content = message.Text
+		previewMsg = fmt.Sprintf("📢 پیش‌نمایش پیام همگانی:\n\n%s", content)
 	}
 
 	// Create inline keyboard for confirmation
@@ -1234,12 +1235,13 @@ func handleBroadcastMessage(admin *Admin, message *tgbotapi.Message) string {
 		),
 	)
 
+	// Send preview message with confirmation buttons
 	msg := tgbotapi.NewMessage(admin.TelegramID, previewMsg)
 	msg.ReplyMarkup = keyboard
 	bot.Send(msg)
 
 	// Store the message content in admin state for later use
-	stateData := fmt.Sprintf("%s:%s:%s:%s", StateConfirmBroadcast, mediaType, fileID, caption)
+	stateData := fmt.Sprintf("%s:%s:%s:%s", StateConfirmBroadcast, mediaType, fileID, content)
 	if mediaType == "text" {
 		stateData = fmt.Sprintf("%s:%s:%s:%s", StateConfirmBroadcast, mediaType, "", message.Text)
 	}
@@ -1252,7 +1254,7 @@ func handleBroadcastMessage(admin *Admin, message *tgbotapi.Message) string {
 func handleBroadcastConfirmation(admin *Admin, confirm bool) string {
 	// Get the stored message info from state
 	state := adminStates[admin.TelegramID]
-	parts := strings.Split(state, ":")
+	parts := strings.SplitN(state, ":", 4) // Use SplitN to handle colons in the message content
 	if len(parts) != 4 {
 		delete(adminStates, admin.TelegramID)
 		return "❌ خطا در پردازش پیام"
@@ -1291,7 +1293,7 @@ func handleBroadcastConfirmation(admin *Admin, confirm bool) string {
 			voice := tgbotapi.NewVoice(user.TelegramID, tgbotapi.FileID(fileID))
 			voice.Caption = content
 			_, err = bot.Send(voice)
-		default: // text
+		case "text":
 			msg := tgbotapi.NewMessage(user.TelegramID, fmt.Sprintf("📢 پیام از ادمین:\n\n%s", content))
 			_, err = bot.Send(msg)
 		}
