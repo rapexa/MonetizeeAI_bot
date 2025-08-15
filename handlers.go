@@ -326,7 +326,6 @@ func processUserInput(input string, user *User) string {
 		return ""
 	case StateWaitingForPhone:
 		// Save phone number
-		user.License = user.License // keep license
 		userStates[user.TelegramID] = ""
 		user.Phone = input
 		db.Save(user)
@@ -453,6 +452,25 @@ func processUserInput(input string, user *User) string {
 		msg.ReplyMarkup = getChatKeyboard()
 		bot.Send(msg)
 		return ""
+	case "🌐 مینی اپ":
+		// Show Mini App if enabled
+		if strings.ToLower(os.Getenv("MINI_APP_ENABLED")) == "true" {
+			miniAppURL := os.Getenv("MINI_APP_URL")
+			if miniAppURL != "" {
+				msg := tgbotapi.NewMessage(user.TelegramID, "🚀 به مینی اپ MonetizeeAI خوش آمدید!\n\n✨ رابط گرافیکی پیشرفته\n🔧 ابزارهای AI هوشمند\n📊 پیشرفت بصری\n\n👆 روی دکمه زیر کلیک کنید:")
+
+				// Create inline keyboard with WebApp button
+				keyboard := tgbotapi.NewInlineKeyboardMarkup(
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonURL("🌐 باز کردن مینی اپ", miniAppURL),
+					),
+				)
+				msg.ReplyMarkup = keyboard
+				bot.Send(msg)
+				return ""
+			}
+		}
+		return "مینی اپ در حال حاضر در دسترس نیست."
 	case "🔚 اتمام مکالمه با دستیار هوشمند":
 		userStates[user.TelegramID] = ""
 		msg := tgbotapi.NewMessage(user.TelegramID, "مکالمه با دستیار هوشمند به پایان رسید. به منوی اصلی بازگشتید.")
@@ -814,28 +832,43 @@ func sendMessage(chatID int64, text string) {
 }
 
 func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
-	keyboard := tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(
+	rows := [][]tgbotapi.KeyboardButton{
+		{
 			tgbotapi.NewKeyboardButton("📚 ادامه مسیر من"),
 			tgbotapi.NewKeyboardButton("✅ ارسال تمرین"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
+		},
+		{
 			tgbotapi.NewKeyboardButton("📥 دریافت تمرین"),
 			tgbotapi.NewKeyboardButton("❇️ دیدن همه مسیر"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
+		},
+		{
 			tgbotapi.NewKeyboardButton("📊 پیشرفت"),
 			tgbotapi.NewKeyboardButton("❓ راهنما"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
+		},
+		{
 			tgbotapi.NewKeyboardButton("🛍️ خرید اشتراک هوش مصنوعی"),
 			tgbotapi.NewKeyboardButton("🎯 استخدام"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
+		},
+		{
 			tgbotapi.NewKeyboardButton("💬 چت با دستیار هوشمند"),
-		),
-	)
-	keyboard.ResizeKeyboard = true
+		},
+	}
+
+	// Add Mini App button if enabled
+	if strings.ToLower(os.Getenv("MINI_APP_ENABLED")) == "true" {
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL != "" {
+			rows = append(rows, []tgbotapi.KeyboardButton{
+				tgbotapi.NewKeyboardButton("🌐 مینی اپ"),
+			})
+		}
+	}
+
+	keyboard := tgbotapi.ReplyKeyboardMarkup{
+		Keyboard:        rows,
+		ResizeKeyboard:  true,
+		OneTimeKeyboard: false,
+	}
 	return keyboard
 }
 

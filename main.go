@@ -82,6 +82,9 @@ func init() {
 	// Initialize database
 	initDB()
 
+	// Start Web API server (optional, controlled by environment variable)
+	StartWebAPI()
+
 	// Initialize bot
 	var err error
 	bot, err = tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_TOKEN"))
@@ -297,8 +300,10 @@ func handleMessage(update tgbotapi.Update) {
 			sendMessage(update.Message.Chat.ID, "من اینجا هستم تا در سفر مونیتایز به شما کمک کنم. از دکمه‌های منو برای پیمایش در ربات استفاده کنید.")
 			return
 		case "admin_exercises":
-			if admin != nil {
-				handleAdminExercises(admin, []string{})
+			// Check if user is admin for this specific command
+			currentAdmin := getAdminByTelegramID(update.Message.From.ID)
+			if currentAdmin != nil {
+				handleAdminExercises(currentAdmin, []string{})
 			} else {
 				sendMessage(update.Message.Chat.ID, "❌ شما دسترسی به این بخش را ندارید")
 			}

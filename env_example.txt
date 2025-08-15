@@ -1,0 +1,18 @@
+# MonetizeeAI Bot Configuration
+
+# Telegram Bot Token
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+
+# Database Configuration
+MYSQL_DSN=user:password@tcp(localhost:3306)/database_name?charset=utf8mb4&parseTime=True&loc=Local
+
+# OpenAI Configuration (for ChatGPT integration)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Web API Configuration (for Mini App integration)
+WEB_API_ENABLED=false
+WEB_API_PORT=8080
+
+# Mini App Configuration
+MINI_APP_ENABLED=false
+MINI_APP_URL=https://yourdomain.com/miniapp
