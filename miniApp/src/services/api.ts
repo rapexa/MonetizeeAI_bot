@@ -86,8 +86,8 @@ class APIService {
   private telegramData: any = null;
 
   constructor() {
-    // Default to localhost for development, but allow override via environment
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+    // Hardcoded API URL for production
+    this.baseURL = 'https://sianmarketing.com/api/api/v1';
     this.initTelegramWebApp();
   }
 
@@ -244,9 +244,19 @@ class APIService {
 
   // Health check
   async healthCheck(): Promise<APIResponse<{ status: string; service: string }>> {
-    return this.makeRequest<{ status: string; service: string }>('/health', {
-      method: 'GET',
-    });
+    // Use direct health endpoint that's confirmed working
+    try {
+      const response = await fetch('https://sianmarketing.com/api/health');
+      const data = await response.json();
+      
+      if (response.ok) {
+        return { success: true, data };
+      } else {
+        return { success: false, error: `HTTP ${response.status}` };
+      }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Network error' };
+    }
   }
 
   // Check if running in Telegram
