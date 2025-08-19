@@ -349,8 +349,10 @@ const Dashboard: React.FC = () => {
         }`}>
           <div className={`w-2 h-2 rounded-full ${isAPIConnected ? 'bg-green-400' : 'bg-orange-400'} animate-pulse`}></div>
           {isAPIConnected ? 'متصل به ربات' : 'حالت آفلاین'}
-          {isInTelegram && (
+          {isInTelegram ? (
             <span className="text-blue-400">• تلگرام</span>
+          ) : (
+            <span className="text-yellow-400">• تست (ID: 76599340)</span>
           )}
         </div>
       )}

@@ -88,21 +88,67 @@ class APIService {
   constructor() {
     // Hardcoded API URL for production
     this.baseURL = 'https://sianmarketing.com/api/api/v1';
+    
+    // Try to initialize immediately
     this.initTelegramWebApp();
+    
+    // Also try after DOM is loaded
+    if (typeof window !== 'undefined') {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          console.log('📄 DOM loaded, retrying Telegram init...');
+          this.initTelegramWebApp();
+        });
+      }
+      
+      // And try after a delay for good measure
+      setTimeout(() => {
+        console.log('⏰ Timeout reached, retrying Telegram init...');
+        this.initTelegramWebApp();
+      }, 2000);
+    }
   }
 
   private initTelegramWebApp() {
     // Initialize Telegram WebApp if available
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-      this.telegramData = tg.initDataUnsafe;
+    if (typeof window !== 'undefined') {
+      console.log('🔍 Window object available');
+      console.log('🔍 window.Telegram:', window.Telegram);
       
-      // Expand to full height
-      tg.expand();
-      
-      // Set theme
-      document.documentElement.style.setProperty('--tg-color-scheme', tg.colorScheme);
+      if (window.Telegram?.WebApp) {
+        console.log('✅ Telegram WebApp found');
+        const tg = window.Telegram.WebApp;
+        
+        // Wait for WebApp to be ready
+        tg.ready();
+        
+        console.log('📱 Telegram WebApp ready');
+        console.log('📊 initData:', tg.initData);
+        console.log('📊 initDataUnsafe:', tg.initDataUnsafe);
+        
+        this.telegramData = tg.initDataUnsafe;
+        
+        // Expand to full height
+        tg.expand();
+        
+        // Set theme
+        document.documentElement.style.setProperty('--tg-color-scheme', tg.colorScheme);
+        
+        console.log('🎨 Theme set:', tg.colorScheme);
+      } else {
+        console.log('❌ Telegram WebApp not found');
+        console.log('🔍 Available on window:', Object.keys(window));
+        
+        // Try to wait for Telegram to load
+        setTimeout(() => {
+          if (window.Telegram?.WebApp) {
+            console.log('⏰ Telegram WebApp found after delay');
+            this.initTelegramWebApp();
+          }
+        }, 1000);
+      }
+    } else {
+      console.log('❌ Window object not available');
     }
   }
 
@@ -156,22 +202,58 @@ class APIService {
 
   // Get current user's Telegram ID
   getTelegramId(): number | null {
+    console.log('🔍 Getting Telegram ID...');
+    console.log('📊 telegramData:', this.telegramData);
+    
     if (this.telegramData?.user?.id) {
+      console.log('✅ Found Telegram ID:', this.telegramData.user.id);
       return this.telegramData.user.id;
+    }
+    
+    // Try direct access to Telegram WebApp
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+      console.log('✅ Found Telegram ID via direct access:', window.Telegram.WebApp.initDataUnsafe.user.id);
+      this.telegramData = window.Telegram.WebApp.initDataUnsafe; // Update cached data
+      return window.Telegram.WebApp.initDataUnsafe.user.id;
     }
     
     // Fallback for development/testing
     const devUserId = import.meta.env.VITE_DEV_TELEGRAM_ID;
     if (devUserId) {
+      console.log('🔧 Using dev Telegram ID from env:', devUserId);
       return parseInt(devUserId, 10);
     }
     
+    // Default test user ID for development outside Telegram
+    if (!this.isInTelegram()) {
+      console.log('🔧 Using default test Telegram ID: 76599340');
+      return 76599340;
+    }
+    
+    console.log('❌ No Telegram ID found');
     return null;
   }
 
   // Get current user info
   getCurrentUser(): any {
-    return this.telegramData?.user || null;
+    // If we have real Telegram data, use it
+    if (this.telegramData?.user) {
+      return this.telegramData.user;
+    }
+    
+    // If not in Telegram, return mock user data for testing
+    if (!this.isInTelegram()) {
+      console.log('🔧 Using mock user data for testing');
+      return {
+        id: 76599340,
+        first_name: 'Test',
+        last_name: 'User',
+        username: 'testuser',
+        language_code: 'fa'
+      };
+    }
+    
+    return null;
   }
 
   // Authenticate with Telegram user data
