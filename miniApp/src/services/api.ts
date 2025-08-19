@@ -217,6 +217,16 @@ class APIService {
       return window.Telegram.WebApp.initDataUnsafe.user.id;
     }
     
+    // Check if we have empty initDataUnsafe (browser testing)
+    const hasEmptyTelegramData = typeof window !== 'undefined' && 
+      window.Telegram?.WebApp?.initDataUnsafe && 
+      Object.keys(window.Telegram.WebApp.initDataUnsafe).length === 0;
+    
+    if (hasEmptyTelegramData) {
+      console.log('🔧 Empty Telegram data detected (browser testing), using default ID: 76599340');
+      return 76599340;
+    }
+    
     // Fallback for development/testing
     const devUserId = import.meta.env.VITE_DEV_TELEGRAM_ID;
     if (devUserId) {
@@ -241,8 +251,12 @@ class APIService {
       return this.telegramData.user;
     }
     
-    // If not in Telegram, return mock user data for testing
-    if (!this.isInTelegram()) {
+    // Check if we have empty initDataUnsafe (browser testing) or not in Telegram
+    const hasEmptyTelegramData = typeof window !== 'undefined' && 
+      window.Telegram?.WebApp?.initDataUnsafe && 
+      Object.keys(window.Telegram.WebApp.initDataUnsafe).length === 0;
+    
+    if (hasEmptyTelegramData || !this.isInTelegram()) {
       console.log('🔧 Using mock user data for testing');
       return {
         id: 76599340,
