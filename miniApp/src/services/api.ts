@@ -26,15 +26,13 @@ declare global {
 }
 
 // Vite env types
-interface ImportMetaEnv {
-  readonly VITE_API_BASE_URL?: string;
-  readonly VITE_DEV_TELEGRAM_ID?: string;
-  readonly VITE_ENVIRONMENT?: string;
-  readonly VITE_DEBUG?: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
+declare global {
+  interface ImportMetaEnv {
+    readonly VITE_API_BASE_URL?: string;
+    readonly VITE_DEV_TELEGRAM_ID?: string;
+    readonly VITE_ENVIRONMENT?: string;
+    readonly VITE_DEBUG?: string;
+  }
 }
 
 export interface APIResponse<T = any> {
@@ -129,117 +127,62 @@ class APIService {
   }
 
   private initTelegramWebApp() {
-    // Initialize Telegram WebApp if available
-    if (typeof window !== 'undefined') {
-      console.log('🔍 Window object available');
-      console.log('🔍 window.Telegram:', window.Telegram);
-      
-      // First try to parse URL parameters
-      this.parseURLParameters();
-      
-      if (window.Telegram?.WebApp) {
-        console.log('✅ Telegram WebApp found');
-        const tg = window.Telegram.WebApp;
-        
-        // Wait for WebApp to be ready
-        tg.ready();
-        
-        console.log('📱 Telegram WebApp ready');
-        console.log('📊 initData:', tg.initData);
-        console.log('📊 initDataUnsafe:', tg.initDataUnsafe);
-        
-        // Use WebApp data if available and not empty, otherwise keep URL data
-        if (tg.initDataUnsafe && Object.keys(tg.initDataUnsafe).length > 0) {
-          this.telegramData = tg.initDataUnsafe;
-          console.log('✅ Using Telegram WebApp initDataUnsafe');
-        } else if (tg.initData) {
-          // Try to parse initData string
-          this.parseInitDataString(tg.initData);
-        } else {
-          console.log('🔄 Using URL parameters or default data');
-        }
-        
-        // Expand to full height
-        tg.expand();
-        
-        // Set theme
-        document.documentElement.style.setProperty('--tg-color-scheme', tg.colorScheme);
-        
-        console.log('🎨 Theme set:', tg.colorScheme);
-      } else {
-        console.log('❌ Telegram WebApp not found');
-        console.log('🔍 Available on window:', Object.keys(window));
-        
-        // Try to wait for Telegram to load
-        setTimeout(() => {
-          if (window.Telegram?.WebApp) {
-            console.log('⏰ Telegram WebApp found after delay');
-            this.initTelegramWebApp();
-          }
-        }, 1000);
-      }
-    } else {
+    if (typeof window === 'undefined') {
       console.log('❌ Window object not available');
+      return;
+    }
+
+    console.log('🔍 Initializing Telegram WebApp...');
+    console.log('🔍 window.Telegram:', window.Telegram);
+    
+    if (window.Telegram?.WebApp) {
+      console.log('✅ Telegram WebApp found');
+      const tg = window.Telegram.WebApp;
+      
+      // Initialize WebApp
+      tg.ready();
+      console.log('📱 Telegram WebApp ready');
+      
+      // Log all available data for debugging
+      console.log('📊 === TELEGRAM WEBAPP DATA ===');
+      console.log('📊 initData (raw):', tg.initData);
+      console.log('📊 initDataUnsafe:', tg.initDataUnsafe);
+      console.log('📊 colorScheme:', tg.colorScheme);
+      console.log('📊 Available properties:', Object.keys(tg));
+      console.log('================================');
+      
+      // Try to get user data from any available source
+      if (tg.initDataUnsafe && Object.keys(tg.initDataUnsafe).length > 0 && tg.initDataUnsafe.user) {
+        this.telegramData = tg.initDataUnsafe;
+        console.log('✅ Using initDataUnsafe:', this.telegramData);
+      } else if (tg.initData) {
+        console.log('🔍 Parsing initData string...');
+        this.parseInitDataString(tg.initData);
+      } else {
+        console.log('⚠️ No user data found in Telegram WebApp');
+      }
+      
+      // Setup WebApp
+      tg.expand();
+      document.documentElement.style.setProperty('--tg-color-scheme', tg.colorScheme);
+      console.log('🎨 Theme and layout configured');
+      
+    } else {
+      console.log('❌ Telegram WebApp not found, retrying in 1 second...');
+      console.log('🔍 Available on window:', Object.keys(window));
+      
+      setTimeout(() => {
+        if (window.Telegram?.WebApp) {
+          console.log('⏰ Telegram WebApp found after delay');
+          this.initTelegramWebApp();
+        } else {
+          console.log('❌ Telegram WebApp still not available after delay');
+        }
+      }, 1000);
     }
   }
 
-  // Parse user data from URL parameters
-  private parseURLParameters() {
-    if (typeof window === 'undefined') return;
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    const fragment = new URLSearchParams(window.location.hash.substring(1));
-    
-    console.log('🔍 Checking URL parameters...');
-    console.log('📊 Current URL:', window.location.href);
-    console.log('📊 Search params:', window.location.search);
-    console.log('📊 Hash fragment:', window.location.hash);
-    
-    // Check for tgWebAppData parameter (Telegram Mini App format)
-    const tgWebAppData = urlParams.get('tgWebAppData') || fragment.get('tgWebAppData');
-    if (tgWebAppData) {
-      console.log('🔍 Found tgWebAppData:', tgWebAppData);
-      try {
-        const decodedData = decodeURIComponent(tgWebAppData);
-        const parsedData = new URLSearchParams(decodedData);
-        const userStr = parsedData.get('user');
-        if (userStr) {
-          const userData = JSON.parse(userStr);
-          this.telegramData = { user: userData };
-          console.log('✅ Parsed user data from tgWebAppData:', userData);
-          return;
-        }
-      } catch (error) {
-        console.log('❌ Error parsing tgWebAppData:', error);
-      }
-    }
-    
-    // Try to get user data from various possible parameter names
-    const possibleUserData = {
-      id: urlParams.get('user_id') || fragment.get('user_id') || 
-          urlParams.get('telegram_id') || fragment.get('telegram_id'),
-      first_name: urlParams.get('first_name') || fragment.get('first_name'),
-      last_name: urlParams.get('last_name') || fragment.get('last_name'),
-      username: urlParams.get('username') || fragment.get('username'),
-      language_code: urlParams.get('language_code') || fragment.get('language_code') || 'fa'
-    };
-    
-    // If we found user ID from URL parameters
-    if (possibleUserData.id) {
-      this.telegramData = {
-        user: {
-          id: parseInt(possibleUserData.id, 10),
-          first_name: possibleUserData.first_name || '',
-          last_name: possibleUserData.last_name || '',
-          username: possibleUserData.username || '',
-          language_code: possibleUserData.language_code
-        }
-      };
-      console.log('✅ Parsed user data from URL parameters:', this.telegramData.user);
-    } else {
-      console.log('❌ No user data found in URL parameters');
-    }
-  }
+  // This method was removed as it's now integrated into getTelegramId()
 
   // Parse initData string format
   private parseInitDataString(initData: string) {
@@ -312,68 +255,125 @@ class APIService {
     console.log('🔍 Getting Telegram ID...');
     console.log('📊 telegramData:', this.telegramData);
     
+    // Try multiple ways to get Telegram user ID
+    let userId = null;
+    
+    // Method 1: From cached telegramData
     if (this.telegramData?.user?.id) {
-      console.log('✅ Found Telegram ID:', this.telegramData.user.id);
-      return this.telegramData.user.id;
+      userId = this.telegramData.user.id;
+      console.log('✅ Method 1 - Found Telegram ID from cached data:', userId);
+      return userId;
     }
     
-    // Try direct access to Telegram WebApp
+    // Method 2: Direct access to initDataUnsafe
     if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-      console.log('✅ Found Telegram ID via direct access:', window.Telegram.WebApp.initDataUnsafe.user.id);
-      this.telegramData = window.Telegram.WebApp.initDataUnsafe; // Update cached data
-      return window.Telegram.WebApp.initDataUnsafe.user.id;
+      userId = window.Telegram.WebApp.initDataUnsafe.user.id;
+      console.log('✅ Method 2 - Found Telegram ID via initDataUnsafe:', userId);
+      this.telegramData = window.Telegram.WebApp.initDataUnsafe;
+      return userId;
     }
     
-    // Check if we have empty initDataUnsafe (browser testing)
-    const hasEmptyTelegramData = typeof window !== 'undefined' && 
-      window.Telegram?.WebApp?.initDataUnsafe && 
-      Object.keys(window.Telegram.WebApp.initDataUnsafe).length === 0;
-    
-    if (hasEmptyTelegramData) {
-      console.log('🔧 Empty Telegram data detected (browser testing), using default ID: 76599340');
-      return 76599340;
+    // Method 3: Parse initData string if available
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) {
+      const initData = window.Telegram.WebApp.initData;
+      console.log('🔍 Method 3 - Trying to parse initData string:', initData);
+      
+      try {
+        const params = new URLSearchParams(initData);
+        const userStr = params.get('user');
+        if (userStr) {
+          const userData = JSON.parse(decodeURIComponent(userStr));
+          if (userData.id) {
+            userId = userData.id;
+            this.telegramData = { user: userData };
+            console.log('✅ Method 3 - Parsed user from initData:', userData);
+            return userId;
+          }
+        }
+      } catch (error) {
+        console.log('❌ Method 3 - Error parsing initData:', error);
+      }
     }
     
-    // Fallback for development/testing
-    const devUserId = import.meta.env.VITE_DEV_TELEGRAM_ID;
-    if (devUserId) {
-      console.log('🔧 Using dev Telegram ID from env:', devUserId);
-      return parseInt(devUserId, 10);
+    // Method 4: Check URL parameters (for direct Mini App links)
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      
+      // Check various parameter names
+      const possibleIds = [
+        urlParams.get('user_id'),
+        hashParams.get('user_id'),
+        urlParams.get('telegram_id'),
+        hashParams.get('telegram_id')
+      ].filter(Boolean);
+      
+      if (possibleIds.length > 0 && possibleIds[0] !== null) {
+        userId = parseInt(possibleIds[0], 10);
+        console.log('✅ Method 4 - Found user ID in URL parameters:', userId);
+        return userId;
+      }
     }
     
-    // Default test user ID for development outside Telegram
-    if (!this.isInTelegram()) {
-      console.log('🔧 Using default test Telegram ID: 76599340');
-      return 76599340;
-    }
-    
-    console.log('❌ No Telegram ID found');
-    return null;
+    // Fallback: Default test ID for development
+    console.log('❌ No Telegram ID found, using default test ID');
+    return 76599340;
   }
 
   // Get current user info
   getCurrentUser(): any {
-    // If we have real Telegram data, use it
+    console.log('🔍 Getting current user...');
+    
+    // Method 1: Use cached data
     if (this.telegramData?.user) {
+      console.log('✅ Found user from cached data:', this.telegramData.user);
       return this.telegramData.user;
     }
     
-    // Check if we have empty initDataUnsafe (browser testing) or not in Telegram
-    const hasEmptyTelegramData = typeof window !== 'undefined' && 
-      window.Telegram?.WebApp?.initDataUnsafe && 
-      Object.keys(window.Telegram.WebApp.initDataUnsafe).length === 0;
-    
-    if (hasEmptyTelegramData || !this.isInTelegram()) {
-      console.log('🔧 Using mock user data for testing');
-      return {
-        id: 76599340,
-        first_name: 'Test',
-        last_name: 'User',
-        username: 'testuser',
-        language_code: 'fa'
-      };
+    // Method 2: Try to get fresh data from Telegram WebApp
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp;
+      
+      // Try initDataUnsafe first
+      if (tg.initDataUnsafe?.user) {
+        console.log('✅ Found user from initDataUnsafe:', tg.initDataUnsafe.user);
+        this.telegramData = tg.initDataUnsafe;
+        return tg.initDataUnsafe.user;
+      }
+      
+      // Try parsing initData string
+      if (tg.initData) {
+        console.log('🔍 Trying to parse initData for user info...');
+        try {
+          const params = new URLSearchParams(tg.initData);
+          const userStr = params.get('user');
+          if (userStr) {
+            const userData = JSON.parse(decodeURIComponent(userStr));
+            console.log('✅ Parsed user from initData:', userData);
+            this.telegramData = { user: userData };
+            return userData;
+          }
+        } catch (error) {
+          console.log('❌ Error parsing user from initData:', error);
+        }
+      }
     }
     
+    // Method 3: Create default user with the ID we found
+    const telegramId = this.getTelegramId();
+    if (telegramId) {
+      const defaultUser = {
+        id: telegramId,
+        first_name: 'Telegram',
+        last_name: 'User',
+        username: `user_${telegramId}`,
+        language_code: 'fa'
+      };
+      console.log('🔧 Created default user with Telegram ID:', defaultUser);
+      return defaultUser;
+    }
+    
+    console.log('❌ No user data available');
     return null;
   }
 
