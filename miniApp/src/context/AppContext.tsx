@@ -64,19 +64,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sync user data with API
   const syncWithAPI = async () => {
     try {
+      console.log('🚀 Starting API sync...');
       setLoadingUser(true);
       
       // Check if API is available
+      console.log('🔍 Checking API availability...');
       const apiAvailable = await apiService.isAPIAvailable();
+      console.log('📡 API Available:', apiAvailable);
       setIsAPIConnected(apiAvailable);
       
       if (!apiAvailable) {
-        console.log('API not available, using default data');
+        console.log('❌ API not available, using default data');
         setLoadingUser(false);
         return;
       }
 
       // Try to authenticate user
+      console.log('🔐 Attempting user authentication...');
       const authResponse = await apiService.authenticateTelegramUser();
       
       if (authResponse.success && authResponse.data) {

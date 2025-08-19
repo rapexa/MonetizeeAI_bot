@@ -119,14 +119,25 @@ class APIService {
         headers['X-Telegram-Init-Data'] = window.Telegram.WebApp.initData;
       }
 
+      console.log('🌐 API Request:', {
+        url,
+        method: options.method || 'GET',
+        headers,
+        body: options.body
+      });
+
       const response = await fetch(url, {
         ...options,
         headers,
       });
 
+      console.log('📡 API Response Status:', response.status, response.statusText);
+
       const data = await response.json();
+      console.log('📦 API Response Data:', data);
 
       if (!response.ok) {
+        console.log('❌ API Error Response:', data);
         return {
           success: false,
           error: data.error || `HTTP ${response.status}: ${response.statusText}`,
@@ -135,7 +146,7 @@ class APIService {
 
       return data;
     } catch (error) {
-      console.error('API Request failed:', error);
+      console.error('❌ API Request failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
@@ -168,22 +179,36 @@ class APIService {
     const telegramId = this.getTelegramId();
     const user = this.getCurrentUser();
 
+    // Debug logging
+    console.log('🔍 Debug - Telegram ID:', telegramId);
+    console.log('🔍 Debug - User data:', user);
+    console.log('🔍 Debug - Full telegram data:', this.telegramData);
+    console.log('🔍 Debug - Is in Telegram:', this.isInTelegram());
+
     if (!telegramId) {
+      console.log('❌ No Telegram ID found');
       return {
         success: false,
         error: 'Telegram user ID not available. Please open this app from Telegram.',
       };
     }
 
-    return this.makeRequest<UserInfo>('/auth/telegram', {
+    const requestData = {
+      telegram_id: telegramId,
+      username: user?.username || '',
+      first_name: user?.first_name || '',
+      last_name: user?.last_name || '',
+    };
+
+    console.log('📤 Sending auth request:', requestData);
+
+    const result = await this.makeRequest<UserInfo>('/auth/telegram', {
       method: 'POST',
-      body: JSON.stringify({
-        telegram_id: telegramId,
-        username: user?.username || '',
-        first_name: user?.first_name || '',
-        last_name: user?.last_name || '',
-      }),
+      body: JSON.stringify(requestData),
     });
+
+    console.log('📥 Auth response:', result);
+    return result;
   }
 
   // Get user information
