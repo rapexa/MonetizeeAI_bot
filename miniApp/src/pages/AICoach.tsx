@@ -1,20 +1,95 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, Send, Brain, Sparkles, MessageSquare, Target, TrendingUp, Lightbulb, Copy, ChevronRight, Zap, BookOpen, Users, DollarSign, Rocket, BarChart3 } from 'lucide-react';
+import { useApp } from '../context/AppContext';
+import apiService from '../services/api';
 
 const AICoach: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAPIConnected } = useApp();
   const [message, setMessage] = useState('');
   const [isEditingPrompt, setIsEditingPrompt] = useState<boolean>(false);
-  const [chatMessages, setChatMessages] = useState([
-    {
-      id: 1,
-      text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
-      sender: 'ai',
-      timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{
+    id: number;
+    text: string;
+    sender: 'user' | 'ai';
+    timestamp: string;
+  }>>([]);
+
+  // Load chat history on component mount
+  React.useEffect(() => {
+    const loadChatHistory = async () => {
+      if (isAPIConnected) {
+        try {
+          const response = await apiService.getChatHistory();
+          if (response.success && response.data) {
+            const historyMessages = response.data.flatMap((item, index) => [
+              {
+                id: index * 2 + 1,
+                text: item.message,
+                sender: 'user' as const,
+                timestamp: new Date(item.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+              },
+              {
+                id: index * 2 + 2,
+                text: item.response,
+                sender: 'ai' as const,
+                timestamp: new Date(item.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+              }
+            ]);
+
+            if (historyMessages.length === 0) {
+              // Add welcome message if no history
+              setChatMessages([{
+                id: 1,
+                text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
+                sender: 'ai',
+                timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+              }]);
+            } else {
+              // Add welcome message at the beginning if it's not already there
+              const hasWelcomeMessage = historyMessages.some(msg => 
+                msg.sender === 'ai' && msg.text.includes('سلام! من AI کوچ شخصی شما هستم')
+              );
+              
+              if (!hasWelcomeMessage) {
+                const welcomeMessage = {
+                  id: 0,
+                  text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
+                  sender: 'ai' as const,
+                  timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+                };
+                setChatMessages([welcomeMessage, ...historyMessages]);
+              } else {
+                setChatMessages(historyMessages);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error loading chat history:', error);
+          // Add welcome message on error
+          setChatMessages([{
+            id: 1,
+            text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
+            sender: 'ai',
+            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+          }]);
+        }
+      } else {
+        // Add welcome message if API not connected
+        setChatMessages([{
+          id: 1,
+          text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
+          sender: 'ai',
+          timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+        }]);
+      }
+    };
+
+    loadChatHistory();
+  }, [isAPIConnected]);
 
   // Check if we have a prompt from ReadyPrompts page
   React.useEffect(() => {
@@ -31,7 +106,7 @@ const AICoach: React.FC = () => {
     setMessage('');
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!message.trim()) return;
 
     const newMessage = {
@@ -42,6 +117,7 @@ const AICoach: React.FC = () => {
     };
 
     setChatMessages(prev => [...prev, newMessage]);
+    const currentMessage = message;
     setMessage('');
 
     // If we were editing a prompt, exit editing mode
@@ -49,16 +125,41 @@ const AICoach: React.FC = () => {
       setIsEditingPrompt(false);
     }
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = {
+    // Get AI response
+    setIsLoading(true);
+    
+    try {
+      if (isAPIConnected) {
+        // Use real ChatGPT API
+        const response = await apiService.sendChatMessage(currentMessage);
+        
+        if (response.success && response.data) {
+          const aiResponse = {
+            id: chatMessages.length + 2,
+            text: response.data.response,
+            sender: 'ai' as const,
+            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+          };
+          setChatMessages(prev => [...prev, aiResponse]);
+        } else {
+          throw new Error(response.error || 'Failed to get response');
+        }
+      } else {
+        // Fallback to simulated response
+        throw new Error('API not connected');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      const errorResponse = {
         id: chatMessages.length + 2,
-        text: 'ممنون از پیام شما! من در حال پردازش سوال شما هستم و به زودی پاسخ کاملی ارائه خواهم داد.',
+        text: '❌ متأسفانه در حال حاضر نمی‌توانم پاسخ دهم. لطفا دوباره تلاش کنید.',
         sender: 'ai' as const,
         timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
       };
-      setChatMessages(prev => [...prev, aiResponse]);
-    }, 1000);
+      setChatMessages(prev => [...prev, errorResponse]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
       return (
@@ -173,10 +274,14 @@ const AICoach: React.FC = () => {
                 />
                 <button
                   onClick={handleSendMessage}
-                  disabled={!message.trim()}
+                  disabled={!message.trim() || isLoading}
                   className="p-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all duration-300 hover:scale-105 shadow-lg"
                 >
-                  <Send size={18} className="text-white drop-shadow-lg font-bold" style={{ color: 'white', stroke: 'white' }} />
+                  {isLoading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <Send size={18} className="text-white drop-shadow-lg font-bold" style={{ color: 'white', stroke: 'white' }} />
+                  )}
                 </button>
               </div>
               

@@ -483,6 +483,46 @@ class APIService {
     });
   }
 
+  // Send chat message to AI Coach
+  async sendChatMessage(message: string): Promise<APIResponse<{ response: string }>> {
+    const telegramId = this.getTelegramId();
+    if (!telegramId) {
+      return { success: false, error: 'No user ID available' };
+    }
+
+    return this.makeRequest<{ response: string }>('/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        telegram_id: telegramId,
+        message: message
+      }),
+    });
+  }
+
+  // Get chat history
+  async getChatHistory(): Promise<APIResponse<Array<{
+    id: number;
+    telegram_id: number;
+    message: string;
+    response: string;
+    created_at: string;
+    updated_at: string;
+  }>>> {
+    const telegramId = this.getTelegramId();
+    if (!telegramId) {
+      return { success: false, error: 'No user ID available' };
+    }
+
+    return this.makeRequest<Array<{
+      id: number;
+      telegram_id: number;
+      message: string;
+      response: string;
+      created_at: string;
+      updated_at: string;
+    }>>(`/user/${telegramId}/chat-history`);
+  }
+
   // Health check
   async healthCheck(): Promise<APIResponse<{ status: string; service: string }>> {
     // Use direct health endpoint that's confirmed working

@@ -104,6 +104,16 @@ type UserLevel struct {
 	Emoji       string
 }
 
+// ChatMessage represents a chat message between user and AI
+type ChatMessage struct {
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	TelegramID int64     `gorm:"index" json:"telegram_id"`
+	Message    string    `gorm:"type:text" json:"message"`
+	Response   string    `gorm:"type:text" json:"response"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
 var UserLevels = []UserLevel{
 	{1, "کاوش‌گر فرصت‌ها", "تو ایده‌ای قابل اجرا و پول‌ساز برای خودت انتخاب کردی.", "💡"},
 	{2, "سازنده نسخه اولیه", "ایده‌ات رو با ابزارهای AI به یه محصول ساده تبدیل کردی.", "🛠"},

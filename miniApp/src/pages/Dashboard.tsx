@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import apiService from '../services/api';
 import Card from '../components/Card';
 import RadialGauge from '../components/RadialGauge';
 import { 
@@ -66,14 +67,80 @@ const Dashboard: React.FC = () => {
   const [profileImage, setProfileImage] = React.useState<string | null>(null);
   const [chatMessage, setChatMessage] = React.useState<string>('');
   const [isEditingPrompt, setIsEditingPrompt] = React.useState<boolean>(false);
-  const [chatMessages, setChatMessages] = React.useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string}>>([
-    {
-      id: 1,
-      text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
-      sender: 'ai',
-      timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
+  const [chatMessages, setChatMessages] = React.useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string}>>([]);
+
+  // Load chat history on component mount
+  React.useEffect(() => {
+    const loadChatHistory = async () => {
+      if (isAPIConnected) {
+        try {
+          const response = await apiService.getChatHistory();
+          if (response.success && response.data) {
+            const historyMessages = response.data.flatMap((item, index) => [
+              {
+                id: index * 2 + 1,
+                text: item.message,
+                sender: 'user' as const,
+                timestamp: new Date(item.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+              },
+              {
+                id: index * 2 + 2,
+                text: item.response,
+                sender: 'ai' as const,
+                timestamp: new Date(item.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+              }
+            ]);
+
+            if (historyMessages.length === 0) {
+              // Add welcome message if no history
+              setChatMessages([{
+                id: 1,
+                text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
+                sender: 'ai',
+                timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+              }]);
+            } else {
+              // Add welcome message at the beginning if it's not already there
+              const hasWelcomeMessage = historyMessages.some(msg => 
+                msg.sender === 'ai' && msg.text.includes('سلام! من AI کوچ شخصی شما هستم')
+              );
+              
+              if (!hasWelcomeMessage) {
+                const welcomeMessage = {
+                  id: 0,
+                  text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
+                  sender: 'ai' as const,
+                  timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+                };
+                setChatMessages([welcomeMessage, ...historyMessages]);
+              } else {
+                setChatMessages(historyMessages);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error loading chat history:', error);
+          // Add welcome message on error
+          setChatMessages([{
+            id: 1,
+            text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
+            sender: 'ai',
+            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+          }]);
+        }
+      } else {
+        // Add welcome message if API not connected
+        setChatMessages([{
+          id: 1,
+          text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
+          sender: 'ai',
+          timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+        }]);
+      }
+    };
+
+    loadChatHistory();
+  }, [isAPIConnected]);
 
   // Handle incoming prompt from ReadyPrompts page
   React.useEffect(() => {
@@ -265,26 +332,43 @@ const Dashboard: React.FC = () => {
     navigate('/levels');
   };
 
-  const handleSendMessage = () => {
-    if (chatMessage.trim()) {
-      const userMessage = {
-        id: chatMessages.length + 1,
-        text: chatMessage,
-        sender: 'user' as const,
-        timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
-      };
-      
-      setChatMessages(prev => [...prev, userMessage]);
-      const messageToProcess = chatMessage;
-      setChatMessage('');
-      
-      // Exit editing mode if we were editing a prompt
-      if (isEditingPrompt) {
-        setIsEditingPrompt(false);
-      }
-      
-      // Simulate AI response after a short delay
-      setTimeout(() => {
+  const handleSendMessage = async () => {
+    if (!chatMessage.trim()) return;
+
+    const userMessage = {
+      id: chatMessages.length + 1,
+      text: chatMessage,
+      sender: 'user' as const,
+      timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    setChatMessages(prev => [...prev, userMessage]);
+    const messageToProcess = chatMessage;
+    setChatMessage('');
+    
+    // Exit editing mode if we were editing a prompt
+    if (isEditingPrompt) {
+      setIsEditingPrompt(false);
+    }
+    
+    try {
+      if (isAPIConnected) {
+        // Use real ChatGPT API
+        const response = await apiService.sendChatMessage(messageToProcess);
+        
+        if (response.success && response.data) {
+          const aiResponse = {
+            id: chatMessages.length + 2,
+            text: response.data.response,
+            sender: 'ai' as const,
+            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+          };
+          setChatMessages(prev => [...prev, aiResponse]);
+        } else {
+          throw new Error(response.error || 'Failed to get response');
+        }
+      } else {
+        // Fallback to simulated response
         const aiResponse = {
           id: chatMessages.length + 2,
           text: generateAIResponse(messageToProcess),
@@ -292,7 +376,16 @@ const Dashboard: React.FC = () => {
           timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
         };
         setChatMessages(prev => [...prev, aiResponse]);
-      }, 1000);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      const errorResponse = {
+        id: chatMessages.length + 2,
+        text: '❌ متأسفانه در حال حاضر نمی‌توانم پاسخ دهم. لطفا دوباره تلاش کنید.',
+        sender: 'ai' as const,
+        timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+      };
+      setChatMessages(prev => [...prev, errorResponse]);
     }
   };
 

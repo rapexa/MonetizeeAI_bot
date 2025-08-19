@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -101,6 +104,11 @@ func StartWebAPI() {
 		// Session endpoints
 		v1.GET("/sessions", getAllSessions)
 		v1.GET("/sessions/:number", getSessionByNumber)
+
+		// Chat endpoints
+		v1.POST("/chat", handleChatRequest)
+		v1.GET("/user/:telegram_id/chat-history", getChatHistory)
+		v1.POST("/user/:telegram_id/chat-history", saveChatMessage)
 
 		// Progress tracking
 		v1.POST("/user/:telegram_id/progress", updateUserProgress)
@@ -386,6 +394,254 @@ func updateUserProgress(c *gin.Context) {
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
 		Data:    map[string]string{"message": "Progress update received (not implemented yet)"},
+	})
+}
+
+// ChatRequest represents the chat request payload
+type ChatRequest struct {
+	TelegramID int64  `json:"telegram_id" binding:"required"`
+	Message    string `json:"message" binding:"required"`
+}
+
+// ChatResponse represents the chat response
+type ChatResponse struct {
+	Response string `json:"response"`
+}
+
+// handleChatRequest handles chat requests to ChatGPT
+func handleChatRequest(c *gin.Context) {
+	var requestData ChatRequest
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid request data",
+		})
+		return
+	}
+
+	// Verify user exists
+	var user User
+	result := db.Where("telegram_id = ?", requestData.TelegramID).First(&user)
+	if result.Error == gorm.ErrRecordNotFound {
+		c.JSON(http.StatusNotFound, APIResponse{
+			Success: false,
+			Error:   "User not found",
+		})
+		return
+	}
+
+	if result.Error != nil {
+		logger.Error("Database error in chat request", zap.Error(result.Error))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Database error",
+		})
+		return
+	}
+
+	// Get response from ChatGPT
+	response := handleChatGPTMessageAPI(&user, requestData.Message)
+
+	// Save chat message to database
+	chatMessage := ChatMessage{
+		TelegramID: requestData.TelegramID,
+		Message:    requestData.Message,
+		Response:   response,
+	}
+
+	if err := db.Create(&chatMessage).Error; err != nil {
+		logger.Error("Failed to save chat message", zap.Error(err))
+		// Continue anyway - don't fail the request just because we couldn't save
+	}
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data: ChatResponse{
+			Response: response,
+		},
+	})
+}
+
+// handleChatGPTMessageAPI handles ChatGPT requests for API (similar to handlers.go function)
+func handleChatGPTMessageAPI(user *User, message string) string {
+	// Create the API request
+	url := "https://api.openai.com/v1/chat/completions"
+
+	// Prepare the request body
+	requestBody := map[string]interface{}{
+		"model": "gpt-4-turbo-preview",
+		"messages": []map[string]string{
+			{
+				"role":    "system",
+				"content": "You are a helpful course assistant for MonetizeeAI. Provide clear, concise, and relevant answers to help students with their questions about the course content. Always respond in Persian.",
+			},
+			{
+				"role":    "user",
+				"content": message,
+			},
+		},
+		"temperature": 0.7,
+		"max_tokens":  1000,
+	}
+
+	// Convert request body to JSON
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		logger.Error("Failed to marshal request",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
+		return "❌ خطا در پردازش درخواست. لطفا دوباره تلاش کنید."
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		logger.Error("Failed to create request",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
+		return "❌ خطا در ایجاد درخواست. لطفا دوباره تلاش کنید."
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+os.Getenv("OPENAI_API_KEY"))
+
+	// Send request
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Error("Failed to send request",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
+		return "❌ خطا در ارسال درخواست. لطفا دوباره تلاش کنید."
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error("Failed to read response",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
+		return "❌ خطا در دریافت پاسخ. لطفا دوباره تلاش کنید."
+	}
+
+	// Parse response
+	var openAIResponse struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+		Error struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+
+	if err := json.Unmarshal(body, &openAIResponse); err != nil {
+		logger.Error("Failed to parse response",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
+		return "❌ خطا در تجزیه پاسخ. لطفا دوباره تلاش کنید."
+	}
+
+	// Check for API errors
+	if openAIResponse.Error.Message != "" {
+		logger.Error("OpenAI API error",
+			zap.Int64("user_id", user.TelegramID),
+			zap.String("error", openAIResponse.Error.Message))
+		return "❌ خطا در سرویس هوش مصنوعی. لطفا دوباره تلاش کنید."
+	}
+
+	// Check if we have a response
+	if len(openAIResponse.Choices) == 0 {
+		logger.Error("No response from OpenAI",
+			zap.Int64("user_id", user.TelegramID))
+		return "❌ پاسخی دریافت نشد. لطفا دوباره تلاش کنید."
+	}
+
+	response := openAIResponse.Choices[0].Message.Content
+	logger.Info("ChatGPT response received",
+		zap.Int64("user_id", user.TelegramID),
+		zap.Int("response_length", len(response)))
+
+	return response
+}
+
+// getChatHistory returns chat history for a user
+func getChatHistory(c *gin.Context) {
+	telegramIDStr := c.Param("telegram_id")
+	telegramID, err := strconv.ParseInt(telegramIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid telegram_id",
+		})
+		return
+	}
+
+	var chatMessages []ChatMessage
+	result := db.Where("telegram_id = ?", telegramID).Order("created_at ASC").Find(&chatMessages)
+	if result.Error != nil {
+		logger.Error("Database error in getting chat history", zap.Error(result.Error))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Database error",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    chatMessages,
+	})
+}
+
+// saveChatMessage saves a chat message to database
+func saveChatMessage(c *gin.Context) {
+	telegramIDStr := c.Param("telegram_id")
+	telegramID, err := strconv.ParseInt(telegramIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid telegram_id",
+		})
+		return
+	}
+
+	var requestData struct {
+		Message  string `json:"message" binding:"required"`
+		Response string `json:"response" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid request data",
+		})
+		return
+	}
+
+	chatMessage := ChatMessage{
+		TelegramID: telegramID,
+		Message:    requestData.Message,
+		Response:   requestData.Response,
+	}
+
+	if err := db.Create(&chatMessage).Error; err != nil {
+		logger.Error("Database error in saving chat message", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Database error",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    chatMessage,
 	})
 }
 
