@@ -89,6 +89,9 @@ class APIService {
     // Hardcoded API URL for production
     this.baseURL = 'https://sianmarketing.com/api/api/v1';
     
+    // Debug URL information first
+    this.debugURL();
+    
     // Try to initialize immediately
     this.initTelegramWebApp();
     
@@ -109,11 +112,30 @@ class APIService {
     }
   }
 
+  // Debug URL and environment information
+  private debugURL() {
+    if (typeof window !== 'undefined') {
+      console.log('🌐 === URL DEBUG INFORMATION ===');
+      console.log('📍 Full URL:', window.location.href);
+      console.log('🏠 Origin:', window.location.origin);
+      console.log('📄 Pathname:', window.location.pathname);
+      console.log('🔍 Search:', window.location.search);
+      console.log('🔗 Hash:', window.location.hash);
+      console.log('🌍 Referrer:', document.referrer);
+      console.log('📱 User Agent:', navigator.userAgent);
+      console.log('🔧 Is Telegram:', navigator.userAgent.includes('Telegram'));
+      console.log('================================');
+    }
+  }
+
   private initTelegramWebApp() {
     // Initialize Telegram WebApp if available
     if (typeof window !== 'undefined') {
       console.log('🔍 Window object available');
       console.log('🔍 window.Telegram:', window.Telegram);
+      
+      // First try to parse URL parameters
+      this.parseURLParameters();
       
       if (window.Telegram?.WebApp) {
         console.log('✅ Telegram WebApp found');
@@ -126,7 +148,16 @@ class APIService {
         console.log('📊 initData:', tg.initData);
         console.log('📊 initDataUnsafe:', tg.initDataUnsafe);
         
-        this.telegramData = tg.initDataUnsafe;
+        // Use WebApp data if available and not empty, otherwise keep URL data
+        if (tg.initDataUnsafe && Object.keys(tg.initDataUnsafe).length > 0) {
+          this.telegramData = tg.initDataUnsafe;
+          console.log('✅ Using Telegram WebApp initDataUnsafe');
+        } else if (tg.initData) {
+          // Try to parse initData string
+          this.parseInitDataString(tg.initData);
+        } else {
+          console.log('🔄 Using URL parameters or default data');
+        }
         
         // Expand to full height
         tg.expand();
@@ -149,6 +180,82 @@ class APIService {
       }
     } else {
       console.log('❌ Window object not available');
+    }
+  }
+
+  // Parse user data from URL parameters
+  private parseURLParameters() {
+    if (typeof window === 'undefined') return;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const fragment = new URLSearchParams(window.location.hash.substring(1));
+    
+    console.log('🔍 Checking URL parameters...');
+    console.log('📊 Current URL:', window.location.href);
+    console.log('📊 Search params:', window.location.search);
+    console.log('📊 Hash fragment:', window.location.hash);
+    
+    // Check for tgWebAppData parameter (Telegram Mini App format)
+    const tgWebAppData = urlParams.get('tgWebAppData') || fragment.get('tgWebAppData');
+    if (tgWebAppData) {
+      console.log('🔍 Found tgWebAppData:', tgWebAppData);
+      try {
+        const decodedData = decodeURIComponent(tgWebAppData);
+        const parsedData = new URLSearchParams(decodedData);
+        const userStr = parsedData.get('user');
+        if (userStr) {
+          const userData = JSON.parse(userStr);
+          this.telegramData = { user: userData };
+          console.log('✅ Parsed user data from tgWebAppData:', userData);
+          return;
+        }
+      } catch (error) {
+        console.log('❌ Error parsing tgWebAppData:', error);
+      }
+    }
+    
+    // Try to get user data from various possible parameter names
+    const possibleUserData = {
+      id: urlParams.get('user_id') || fragment.get('user_id') || 
+          urlParams.get('telegram_id') || fragment.get('telegram_id'),
+      first_name: urlParams.get('first_name') || fragment.get('first_name'),
+      last_name: urlParams.get('last_name') || fragment.get('last_name'),
+      username: urlParams.get('username') || fragment.get('username'),
+      language_code: urlParams.get('language_code') || fragment.get('language_code') || 'fa'
+    };
+    
+    // If we found user ID from URL parameters
+    if (possibleUserData.id) {
+      this.telegramData = {
+        user: {
+          id: parseInt(possibleUserData.id, 10),
+          first_name: possibleUserData.first_name || '',
+          last_name: possibleUserData.last_name || '',
+          username: possibleUserData.username || '',
+          language_code: possibleUserData.language_code
+        }
+      };
+      console.log('✅ Parsed user data from URL parameters:', this.telegramData.user);
+    } else {
+      console.log('❌ No user data found in URL parameters');
+    }
+  }
+
+  // Parse initData string format
+  private parseInitDataString(initData: string) {
+    if (!initData) return;
+    
+    console.log('🔍 Parsing initData string:', initData);
+    try {
+      const params = new URLSearchParams(initData);
+      const userStr = params.get('user');
+      if (userStr) {
+        const userData = JSON.parse(userStr);
+        this.telegramData = { user: userData };
+        console.log('✅ Parsed user data from initData string:', userData);
+      }
+    } catch (error) {
+      console.log('❌ Error parsing initData string:', error);
     }
   }
 
