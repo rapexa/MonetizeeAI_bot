@@ -112,6 +112,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }));
         
         console.log('✅ Successfully synced with API');
+        console.log('📊 Final User Data:', {
+          currentLevel: progressResponse.success && progressResponse.data ? progressResponse.data.current_level : userInfo.level,
+          progressOverall: progressResponse.success && progressResponse.data ? progressResponse.data.progress_percent : userInfo.progress,
+          completedTasks: progressResponse.success && progressResponse.data ? progressResponse.data.completed_sessions : userInfo.completed_tasks
+        });
       } else {
         console.log('❌ Authentication failed:', authResponse.error);
         // Keep using default data

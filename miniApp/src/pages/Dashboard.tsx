@@ -471,8 +471,8 @@ const Dashboard: React.FC = () => {
                   
                   {/* Labels */}
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-white font-bold drop-shadow">سطح ۳ از ۹</span>
-                    <span className="text-xs text-white font-bold drop-shadow">۳۵٪ تکمیل شده</span>
+                    <span className="text-xs text-white font-bold drop-shadow">سطح {userData.currentLevel} از ۹</span>
+                    <span className="text-xs text-white font-bold drop-shadow">{userData.progressOverall}٪ تکمیل شده</span>
                   </div>
                 </div>
               </div>

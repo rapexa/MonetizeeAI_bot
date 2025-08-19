@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -458,14 +457,10 @@ func processUserInput(input string, user *User) string {
 		if strings.ToLower(os.Getenv("MINI_APP_ENABLED")) == "true" {
 			miniAppURL := os.Getenv("MINI_APP_URL")
 			if miniAppURL != "" {
-				// Create Mini App URL with user parameters
-				miniAppWithParams := fmt.Sprintf("https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=user_%d__name_%s_%s__username_%s",
-					user.TelegramID,
-					url.QueryEscape(user.FirstName),
-					url.QueryEscape(user.LastName),
-					url.QueryEscape(user.Username))
+				// Create Mini App URL with only user ID
+				miniAppWithParams := fmt.Sprintf("https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=%d", user.TelegramID)
 
-				msg := tgbotapi.NewMessage(user.TelegramID, "🚀 به مینی اپ MonetizeeAI خوش آمدید!\n\n✨ رابط گرافیکی پیشرفته\n🔧 ابزارهای AI هوشمند\n📊 پیشرفت بصری\n\n👆 روی دکمه زیر کلیک کنید:")
+				msg := tgbotapi.NewMessage(user.TelegramID, "🚀 به مینی اپ MonetizeeAI خوش آمدید!\n\n✨ رابط گرافیکی پیشرفته\n🔧 ابزارهای AI هوشمند\n📊 پیشرفت بصری\n\n👆 روی دکمه زیر کلیک کنید تا وارد مینی اپ شوید:")
 
 				// Create inline keyboard with WebApp button
 				keyboard := tgbotapi.NewInlineKeyboardMarkup(
