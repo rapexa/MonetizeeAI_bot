@@ -300,7 +300,37 @@ class APIService {
       const urlParams = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       
-      // Check various parameter names
+      // Check for Telegram startapp parameter
+      const startApp = urlParams.get('startapp') || hashParams.get('startapp');
+      if (startApp) {
+        console.log('🔍 Found startapp parameter:', startApp);
+        const userMatch = startApp.match(/user_(\d+)/);
+        if (userMatch) {
+          userId = parseInt(userMatch[1], 10);
+          console.log('✅ Method 4 - Extracted user ID from startapp:', userId);
+          
+          // Also extract other user info from startapp
+          const nameMatch = startApp.match(/name_([^_]+)_([^_]+)/);
+          const usernameMatch = startApp.match(/username_([^_]+)/);
+          
+          if (nameMatch || usernameMatch) {
+            this.telegramData = {
+              user: {
+                id: userId,
+                first_name: nameMatch ? decodeURIComponent(nameMatch[1]) : '',
+                last_name: nameMatch ? decodeURIComponent(nameMatch[2]) : '',
+                username: usernameMatch ? decodeURIComponent(usernameMatch[1]) : '',
+                language_code: 'fa'
+              }
+            };
+            console.log('✅ Parsed user data from startapp:', this.telegramData.user);
+          }
+          
+          return userId;
+        }
+      }
+      
+      // Check other parameter names
       const possibleIds = [
         urlParams.get('user_id'),
         hashParams.get('user_id'),

@@ -6,7 +6,7 @@ require (
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-echarts/go-echarts/v2 v2.5.4
-	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
+	github.com/go-telegram-bot-api/telegram-bot-api/v5 latest
 	github.com/joho/godotenv v1.5.1
 	go.uber.org/zap v1.27.0
 	gorm.io/driver/mysql v1.5.4
