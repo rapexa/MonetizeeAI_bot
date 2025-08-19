@@ -277,7 +277,11 @@ const Profile: React.FC = () => {
           </div>
           
         {/* Team Message Card */}
-        <div className="backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg mb-8" style={{ backgroundColor: '#10091c' }}>
+        <div 
+          className="backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg mb-8 cursor-pointer hover:border-purple-500/30 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]" 
+          style={{ backgroundColor: '#10091c' }}
+          onClick={() => window.open('https://t.me/sian_academy_support', '_blank')}
+        >
           <div className="flex items-center gap-4 mb-5">
             <div className="p-4 rounded-2xl bg-gradient-to-r from-[#2c189a] to-[#5a189a] shadow-xl border border-white/20">
               <div className="scale-125 text-white">
