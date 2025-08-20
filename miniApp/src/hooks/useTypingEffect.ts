@@ -4,14 +4,22 @@ interface UseTypingEffectProps {
   text: string;
   speed?: number;
   onComplete?: () => void;
+  shouldAnimate?: boolean; // New prop to control animation
 }
 
-export const useTypingEffect = ({ text, speed = 30, onComplete }: UseTypingEffectProps) => {
+export const useTypingEffect = ({ text, speed = 30, onComplete, shouldAnimate = true }: UseTypingEffectProps) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
   useEffect(() => {
     if (!text) return;
+    
+    // If shouldAnimate is false, show text immediately
+    if (!shouldAnimate) {
+      setDisplayedText(text);
+      setIsTyping(false);
+      return;
+    }
     
     setIsTyping(true);
     setDisplayedText('');
@@ -32,7 +40,7 @@ export const useTypingEffect = ({ text, speed = 30, onComplete }: UseTypingEffec
       clearInterval(timer);
       setIsTyping(false);
     };
-  }, [text, speed, onComplete]);
+  }, [text, speed, onComplete, shouldAnimate]);
 
   return { displayedText, isTyping };
 };

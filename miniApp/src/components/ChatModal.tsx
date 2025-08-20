@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, Maximize2 } from 'lucide-react';
+import { X, Send, Brain } from 'lucide-react';
 import AIMessage from './AIMessage';
 import { useAutoScroll } from '../hooks/useAutoScroll';
 import apiService from '../services/api';
@@ -10,28 +10,38 @@ interface ChatMessage {
   text: string;
   sender: 'user' | 'ai';
   timestamp: string;
+  isNew?: boolean;
 }
 
 interface ChatModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  chatMessages?: ChatMessage[];
+  setChatMessages?: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 }
 
 const ChatModal: React.FC<ChatModalProps> = ({ 
   isOpen, 
   onClose, 
-  title = "چت با AI Coach" 
+  title = "چت با AI Coach",
+  chatMessages: externalChatMessages,
+  setChatMessages: externalSetChatMessages
 }) => {
   const { isAPIConnected } = useApp();
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [internalChatMessages, setInternalChatMessages] = useState<ChatMessage[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Use external messages if provided, otherwise use internal state
+  const chatMessages = externalChatMessages || internalChatMessages;
+  const setChatMessages = externalSetChatMessages || setInternalChatMessages;
+  
   const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
 
-  // Welcome message
+  // Welcome message only for internal chat (when no external messages provided)
   useEffect(() => {
-    if (isOpen && chatMessages.length === 0) {
+    if (isOpen && !externalChatMessages && chatMessages.length === 0) {
       const welcomeMessage = {
         id: 1,
         text: "سلام! من AI Coach هستم 👋\n\nآماده‌ام تا در مسیر یادگیری و کسب‌وکارتان راهنمایی‌تان کنم. چه سوالی دارید؟",
@@ -40,7 +50,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
       };
       setChatMessages([welcomeMessage]);
     }
-  }, [isOpen]);
+  }, [isOpen, externalChatMessages, chatMessages.length, setChatMessages]);
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
@@ -66,7 +76,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
             id: chatMessages.length + 2,
             text: response.data.response,
             sender: 'ai' as const,
-            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+            isNew: true
           };
           setChatMessages(prev => [...prev, aiResponse]);
         } else {
@@ -81,7 +92,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
         id: chatMessages.length + 2,
         text: '❌ متأسفانه در حال حاضر نمی‌توانم پاسخ دهم. لطفا دوباره تلاش کنید.',
         sender: 'ai' as const,
-        timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+        isNew: true
       };
       setChatMessages(prev => [...prev, errorResponse]);
     } finally {
@@ -99,45 +111,44 @@ const ChatModal: React.FC<ChatModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-4xl h-[90vh] mx-4 bg-gradient-to-br from-gray-900 to-black rounded-3xl border border-gray-700/50 overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
+      <div className="w-full max-w-4xl h-[95vh] md:h-[90vh] bg-gradient-to-br from-gray-900 to-black rounded-3xl border border-gray-700/50 overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700/50 bg-gray-800/30">
+        <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700/50 bg-gray-800/30">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-monetize-primary-600 to-monetize-secondary-600 rounded-xl flex items-center justify-center">
-              <Maximize2 size={20} className="text-white" />
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-xl flex items-center justify-center">
+              <Brain size={16} className="text-white md:w-5 md:h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">{title}</h3>
-              <p className="text-sm text-gray-400">دستیار هوشمند شما</p>
+              <h3 className="text-base md:text-lg font-semibold text-white">{title}</h3>
+              <p className="text-xs md:text-sm text-gray-400">مربی هوشمند شما</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl flex items-center justify-center transition-colors"
+            className="w-8 h-8 md:w-10 md:h-10 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl flex items-center justify-center transition-colors"
           >
-            <X size={20} className="text-gray-300" />
+            <X size={16} className="text-gray-300 md:w-5 md:h-5" />
           </button>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4">
           {chatMessages.map((msg, index) => (
-            <div key={msg.id}>
+            <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.sender === 'user' ? (
-                <div className="flex justify-end">
-                  <div className="flex flex-col max-w-[85%]">
-                    <div className="bg-gradient-to-r from-monetize-primary-600 to-monetize-secondary-600 rounded-2xl rounded-br-md px-4 py-3">
-                      <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                    </div>
-                    <span className="text-xs text-gray-500 mt-1 px-1 text-right">{msg.timestamp}</span>
+                <div className="max-w-xs lg:max-w-md">
+                  <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white p-3 md:p-4 rounded-2xl">
+                    <p className="text-sm leading-relaxed">{msg.text}</p>
                   </div>
+                  <p className="text-xs opacity-70 mt-2 text-right px-2">{msg.timestamp}</p>
                 </div>
               ) : (
                 <AIMessage
                   message={msg.text}
                   timestamp={msg.timestamp}
                   isLatest={index === chatMessages.length - 1}
+                  isNew={msg.isNew || false}
                   onTypingComplete={scrollToBottom}
                 />
               )}
@@ -145,15 +156,15 @@ const ChatModal: React.FC<ChatModalProps> = ({
           ))}
           
           {isLoading && (
-            <div className="flex gap-3 max-w-[85%]">
-              <div className="w-8 h-8 bg-gradient-to-r from-monetize-primary-600 to-monetize-secondary-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-sm font-semibold">AI</span>
-              </div>
-              <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700/50">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-monetize-primary-500 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-monetize-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-monetize-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="flex justify-start">
+              <div className="flex items-center gap-2 max-w-[80%] flex-row animate-fade-in">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-[#2c189a] to-[#5a189a]">
+                  <Brain size={12} className="text-white" />
+                </div>
+                <div className="bg-purple-100/70 dark:bg-purple-900/30 text-gray-800 dark:text-gray-200 backdrop-blur-sm rounded-lg px-3 py-2 text-xs">
+                  <p className="leading-relaxed">
+                    <span className="inline-block ml-1 text-gray-500 animate-bounce-dots">...</span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -163,22 +174,26 @@ const ChatModal: React.FC<ChatModalProps> = ({
         </div>
 
         {/* Input */}
-        <div className="p-6 border-t border-gray-700/50 bg-gray-800/30">
-          <div className="flex gap-3">
+        <div className="p-3 md:p-6 border-t border-gray-700/50 bg-gray-800/30 pb-safe">
+          <div className="flex gap-2 md:gap-3">
             <input
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="پیام خود را بنویسید..."
-              className="flex-1 p-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:border-monetize-primary-500 focus:ring-1 focus:ring-monetize-primary-500 transition-colors"
+              placeholder="سوال خود را بپرسید..."
+              className="flex-1 p-2 md:p-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:border-[#2c189a] focus:ring-1 focus:ring-[#2c189a] transition-colors text-sm md:text-base"
             />
             <button
               onClick={handleSendMessage}
               disabled={!message.trim() || isLoading}
-              className="px-4 py-3 bg-gradient-to-r from-monetize-primary-600 to-monetize-secondary-600 hover:from-monetize-primary-700 hover:to-monetize-secondary-700 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-xl transition-all duration-200 flex items-center justify-center min-w-[50px]"
+              className="px-3 py-2 md:px-4 md:py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-xl transition-all duration-200 flex items-center justify-center min-w-[44px] md:min-w-[50px]"
             >
-              <Send size={18} />
+              {isLoading ? (
+                <span className="animate-bounce-dots">...</span>
+              ) : (
+                <Send size={16} className="md:w-[18px] md:h-[18px]" />
+              )}
             </button>
           </div>
         </div>

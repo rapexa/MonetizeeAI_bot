@@ -5,19 +5,22 @@ interface AIMessageProps {
   message: string;
   timestamp: string;
   isLatest?: boolean;
+  isNew?: boolean; // New prop to indicate if this is a newly added message
   onTypingComplete?: () => void;
 }
 
 const AIMessage: React.FC<AIMessageProps> = ({ 
   message, 
   timestamp, 
-  isLatest = false, 
+  isLatest = false,
+  isNew = false, // Default to false for existing messages
   onTypingComplete 
 }) => {
   const { displayedText, isTyping } = useTypingEffect({
-    text: isLatest ? message : message, // Only animate the latest message
+    text: message,
     speed: 25,
-    onComplete: onTypingComplete
+    onComplete: onTypingComplete,
+    shouldAnimate: isLatest && isNew // Only animate if it's the latest AND new message
   });
 
   return (

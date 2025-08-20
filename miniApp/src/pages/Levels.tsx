@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import apiService from '../services/api';
-import StageCard from '../components/StageCard';
 import ChatModal from '../components/ChatModal';
 import AIMessage from '../components/AIMessage';
 import { useAutoScroll } from '../hooks/useAutoScroll';
@@ -27,13 +26,11 @@ import {
   FileText,
   Video,
   ArrowRight,
-  Send,
   Sparkles,
   Brain,
   ClipboardCheck,
   ChevronLeft,
   Award,
-  Copy,
   Maximize2
 } from 'lucide-react';
 
@@ -73,7 +70,9 @@ const Levels: React.FC = () => {
   // Chat and edit mode states
   const [chatMessage, setChatMessage] = useState<string>('');
   const [isEditingPrompt, setIsEditingPrompt] = useState<boolean>(false);
-  const [chatMessages, setChatMessages] = useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string}>>([]);
+  const [chatMessages, setChatMessages] = useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string, isNew?: boolean}>>([]);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
 
   const [showQuiz, setShowQuiz] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -1395,9 +1394,11 @@ const Levels: React.FC = () => {
             id: chatMessages.length + 2,
             text: response.data.response,
             sender: 'ai' as const,
-            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+            isNew: true
           };
           setChatMessages(prev => [...prev, aiResponse]);
+          setTimeout(scrollToBottom, 100);
         } else {
           throw new Error(response.error || 'Failed to get response');
         }
@@ -1407,9 +1408,11 @@ const Levels: React.FC = () => {
           id: chatMessages.length + 2,
           text: generateAIResponse(messageToProcess),
           sender: 'ai' as const,
-          timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+          timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+          isNew: true
         };
         setChatMessages(prev => [...prev, aiResponse]);
+        setTimeout(scrollToBottom, 100);
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -1417,9 +1420,11 @@ const Levels: React.FC = () => {
         id: chatMessages.length + 2,
         text: '❌ متأسفانه در حال حاضر نمی‌توانم پاسخ دهم. لطفا دوباره تلاش کنید.',
         sender: 'ai' as const,
-        timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+        isNew: true
       };
       setChatMessages(prev => [...prev, errorResponse]);
+      setTimeout(scrollToBottom, 100);
     }
   };
 
@@ -2576,6 +2581,13 @@ const Levels: React.FC = () => {
                   <span className="truncate">۲۴/۷ آنلاین - آماده کمک</span>
                 </p>
                   </div>
+              <button
+                onClick={() => setIsChatModalOpen(true)}
+                className="p-2 hover:bg-gray-100/20 dark:hover:bg-gray-700/20 rounded-lg transition-colors duration-200"
+                title="بزرگ کردن چت"
+              >
+                <Maximize2 size={18} className="text-gray-600 dark:text-gray-300" />
+              </button>
               <div className="text-xs bg-[#8B5CF6]/20 dark:bg-[#8B5CF6]/20 text-[#8B5CF6] dark:text-[#8B5CF6] px-2 md:px-3 py-1 rounded-full border border-[#8B5CF6]/30 dark:border-[#8B5CF6]/30 flex-shrink-0">
                 AI
                         </div>
@@ -2584,44 +2596,27 @@ const Levels: React.FC = () => {
                         {/* Chat Messages */}
             <div className="bg-gray-800/80 dark:bg-gray-800/80 rounded-xl p-2 md:p-3 mb-4 flex-1 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800 border border-gray-700/60 shadow-inner">
                           {/* Chat Messages */}
-                          {chatMessages.map((message) => (
-                            <div key={message.id} className={`flex items-end gap-2 ${message.sender === 'user' ? 'flex-row-reverse' : ''}`}>
-                              <div className="flex-shrink-0 mb-1">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#2c189a] to-[#5a189a] flex items-center justify-center text-white text-sm shadow-lg">
-                                  {message.sender === 'ai' ? '🤖' : '👤'}
-                                </div>
-                              </div>
-                              <div className={`flex flex-col max-w-[75%] ${message.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                                <div className={`px-3 py-2 md:px-4 md:py-2.5 rounded-2xl shadow-lg border ${
-                                  message.sender === 'user' 
-                                    ? 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-bl-md border-[#2c189a]/30' 
-                                    : 'bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 rounded-br-md border-gray-200/50 dark:border-gray-600/50'
-                                }`}>
-                                  <p className="text-sm leading-relaxed break-words">
-                                    {message.text}
-                                  </p>
-                                </div>
-                                <div className={`flex items-center gap-2 mt-1 px-1 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                  <div className={`text-xs text-gray-500 dark:text-gray-400 ${message.sender === 'user' ? 'text-right' : 'text-left'}`}>
-                                    {message.timestamp}
+                          {chatMessages.map((message, index) => (
+                            <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                              {message.sender === 'user' ? (
+                                <div className="max-w-xs lg:max-w-md">
+                                  <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white p-4 rounded-2xl">
+                                    <p className="text-sm leading-relaxed">{message.text}</p>
                                   </div>
-                                  {message.sender === 'ai' && (
-                                    <button
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(message.text);
-                                        // Optional: Show a toast notification
-                                        console.log('پیام کپی شد');
-                                      }}
-                                      className="text-xs text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors duration-200 p-1 rounded hover:bg-gray-100/50 dark:hover:bg-gray-700/50"
-                                      title="کپی پیام"
-                                    >
-                                      <Copy size={12} />
-                                    </button>
-                                  )}
+                                  <p className="text-xs opacity-70 mt-2 text-right px-2">{message.timestamp}</p>
                                 </div>
-                              </div>
+                              ) : (
+                                <AIMessage
+                                  message={message.text}
+                                  timestamp={message.timestamp}
+                                  isLatest={index === chatMessages.length - 1}
+                                  isNew={message.isNew || false}
+                                  onTypingComplete={scrollToBottom}
+                                />
+                              )}
                             </div>
                           ))}
+                          <div ref={messagesEndRef} />
             </div>
 
                         {/* Input Area */}
@@ -3251,8 +3246,14 @@ const Levels: React.FC = () => {
 
       </div>
       
-      {/* Chat Modal for AI Coach - placeholder for now */}
-      {/* Will add complete chat functionality once the main component structure is clear */}
+      {/* Chat Modal for AI Coach */}
+      <ChatModal
+        isOpen={isChatModalOpen}
+        onClose={() => setIsChatModalOpen(false)}
+        title="MonetizeAI Coach"
+        chatMessages={chatMessages}
+        setChatMessages={setChatMessages}
+      />
     </div>
   );
 };

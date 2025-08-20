@@ -10,54 +10,25 @@ import { useAutoScroll } from '../hooks/useAutoScroll';
 import { 
   TrendingUp, 
   Users, 
-  MessageSquare, 
-  Target, 
   Sparkles, 
   Brain, 
-  ChevronLeft, 
   User, 
-  Bell, 
   Settings, 
   UserPlus, 
   MessageCircle, 
   Zap, 
-  Edit3, 
-  Edit, 
   DollarSign,
   X,
-  CheckCircle,
   Clock,
   Gift,
-  Star,
   Trophy,
-  Camera,
   Upload,
-  Award,
-  Coins,
-  Calendar,
-  TrendingDown,
   AlertCircle,
-  Heart,
-  Bookmark,
-  Share2,
-  Plus,
-  BarChart3,
-  PieChart,
-  Activity,
-  ArrowUp,
-  ArrowDown,
-  Play,
-  Wrench,
   Rocket,
   Package,
   Search,
   Map,
-  Copy,
-  Download,
-  RefreshCw,
-  ChevronRight,
-  Maximize2,
-  Send
+  Maximize2
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -72,7 +43,7 @@ const Dashboard: React.FC = () => {
   const [profileImage, setProfileImage] = React.useState<string | null>(null);
   const [chatMessage, setChatMessage] = React.useState<string>('');
   const [isEditingPrompt, setIsEditingPrompt] = React.useState<boolean>(false);
-  const [chatMessages, setChatMessages] = React.useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string}>>([]);
+  const [chatMessages, setChatMessages] = React.useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string, isNew?: boolean}>>([]);
   const [isChatModalOpen, setIsChatModalOpen] = React.useState(false);
   const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
 
@@ -387,7 +358,8 @@ const Dashboard: React.FC = () => {
             id: chatMessages.length + 2,
             text: response.data.response,
             sender: 'ai' as const,
-            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+            isNew: true // Mark as new message for typing effect
           };
           setChatMessages(prev => [...prev, aiResponse]);
           // Auto scroll after AI response
@@ -401,7 +373,8 @@ const Dashboard: React.FC = () => {
           id: chatMessages.length + 2,
           text: generateAIResponse(messageToProcess),
           sender: 'ai' as const,
-          timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+          timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+          isNew: true // Mark as new message for typing effect
         };
         setChatMessages(prev => [...prev, aiResponse]);
         // Auto scroll after AI response
@@ -413,7 +386,8 @@ const Dashboard: React.FC = () => {
         id: chatMessages.length + 2,
         text: '❌ متأسفانه در حال حاضر نمی‌توانم پاسخ دهم. لطفا دوباره تلاش کنید.',
         sender: 'ai' as const,
-        timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+        isNew: true // Mark as new message for typing effect
       };
       setChatMessages(prev => [...prev, errorResponse]);
       // Auto scroll after error response
@@ -768,6 +742,7 @@ const Dashboard: React.FC = () => {
                         message={message.text}
                         timestamp={message.timestamp}
                         isLatest={index === chatMessages.length - 1}
+                        isNew={message.isNew || false}
                         onTypingComplete={scrollToBottom}
                       />
                     )}
@@ -978,7 +953,9 @@ const Dashboard: React.FC = () => {
       <ChatModal
         isOpen={isChatModalOpen}
         onClose={() => setIsChatModalOpen(false)}
-        title="AI Coach - چت کامل"
+        title="MonetizeAI Coach"
+        chatMessages={chatMessages}
+        setChatMessages={setChatMessages}
       />
 
       </div>

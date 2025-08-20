@@ -18,6 +18,7 @@ const AICoach: React.FC = () => {
     text: string;
     sender: 'user' | 'ai';
     timestamp: string;
+    isNew?: boolean;
   }>>([]);
   const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
 
@@ -141,7 +142,8 @@ const AICoach: React.FC = () => {
             id: chatMessages.length + 2,
             text: response.data.response,
             sender: 'ai' as const,
-            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+            isNew: true
           };
           setChatMessages(prev => [...prev, aiResponse]);
           // Auto scroll after AI response
@@ -159,7 +161,8 @@ const AICoach: React.FC = () => {
         id: chatMessages.length + 2,
         text: '❌ متأسفانه در حال حاضر نمی‌توانم پاسخ دهم. لطفا دوباره تلاش کنید.',
         sender: 'ai' as const,
-        timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+        isNew: true
       };
       setChatMessages(prev => [...prev, errorResponse]);
       // Auto scroll after error response
@@ -212,6 +215,7 @@ const AICoach: React.FC = () => {
                     message={msg.text}
                     timestamp={msg.timestamp}
                     isLatest={index === chatMessages.length - 1}
+                    isNew={msg.isNew || false}
                     onTypingComplete={scrollToBottom}
                   />
                 )}
