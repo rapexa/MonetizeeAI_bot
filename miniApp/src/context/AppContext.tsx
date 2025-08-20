@@ -30,6 +30,7 @@ interface AppContextType {
   isAPIConnected: boolean;
   isInTelegram: boolean;
   loadingUser: boolean;
+  hasRealData: boolean;
   syncWithAPI: () => Promise<void>;
   refreshUserData: () => Promise<void>;
 }
@@ -45,23 +46,24 @@ export const useApp = () => {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Default data (fallback for when API is not available)
+  // Initialize with empty data - will be populated from API
   const [userData, setUserData] = useState<UserData>({
-    incomeMonth: 2450000, // تومان
-    incomeToday: 150000,
-    activeLeads: 12,
-    negotiatingCustomers: 3,
-    firstGoal: 5000000,
-    progressOverall: 35,
-    currentLevel: 3,
-    completedTasks: 28,
-    unlockedLevels: 4
+    incomeMonth: 0,
+    incomeToday: 0,
+    activeLeads: 0,
+    negotiatingCustomers: 0,
+    firstGoal: 0,
+    progressOverall: 0,
+    currentLevel: 0,
+    completedTasks: 0,
+    unlockedLevels: 0
   });
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isAPIConnected, setIsAPIConnected] = useState(false);
   const [isInTelegram, setIsInTelegram] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
+  const [hasRealData, setHasRealData] = useState(false);
 
   // Sync user data with API
   const syncWithAPI = async () => {
@@ -76,7 +78,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsAPIConnected(apiAvailable);
       
       if (!apiAvailable) {
-        console.log('❌ API not available, using default data');
+        console.log('❌ API not available, setting fallback data');
+        // Set some basic fallback data when API is not available
+        setUserData(prev => ({
+          ...prev,
+          incomeMonth: 2450000, // Default fallback
+          incomeToday: 150000,
+          activeLeads: 12,
+          negotiatingCustomers: 3,
+          firstGoal: 5000000,
+          progressOverall: 35,
+          currentLevel: 3,
+          completedTasks: 28,
+          unlockedLevels: 4
+        }));
+        setHasRealData(false); // This is fallback data, not real
         setLoadingUser(false);
         return;
       }
@@ -120,6 +136,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             incomeMonth: profileResponse.data.monthly_income || prev.incomeMonth,
           } : {})
         }));
+        
+        // Mark that we now have real data
+        setHasRealData(true);
         
         console.log('✅ Successfully synced with API');
         console.log('📊 Final User Data:', {
@@ -179,6 +198,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           } : {})
         }));
         
+        // Update hasRealData if we successfully get data
+        if (!hasRealData) {
+          setHasRealData(true);
+        }
+        
         console.log('✅ User data refreshed successfully');
       }
     } catch (error) {
@@ -214,6 +238,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isAPIConnected,
       isInTelegram,
       loadingUser,
+      hasRealData,
       syncWithAPI,
       refreshUserData
     }}>

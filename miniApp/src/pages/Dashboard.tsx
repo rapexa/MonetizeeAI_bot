@@ -56,7 +56,7 @@ import {
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { userData, setUserData, isAPIConnected, isInTelegram, loadingUser, refreshUserData } = useApp();
+  const { userData, setUserData, isAPIConnected, isInTelegram, loadingUser, hasRealData, refreshUserData } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const [editingField, setEditingField] = React.useState<string | null>(null);
@@ -446,11 +446,31 @@ const Dashboard: React.FC = () => {
               background: #0F0F0F !important;
             }
           }
+          .animation-delay-150 {
+            animation-delay: 150ms;
+          }
         `
       }} />
       
             <div className="p-4 space-y-6 max-w-md mx-auto" style={{ backgroundColor: '#0e0817' }}>
 
+      {/* Loading State - Show when we don't have real data yet */}
+      {(!hasRealData && loadingUser) && (
+        <div className="flex flex-col items-center justify-center min-h-[80vh] space-y-6">
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-[#5a189a]/30 border-t-[#5a189a] rounded-full animate-spin"></div>
+            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-t-[#2c189a] rounded-full animate-spin animation-delay-150"></div>
+          </div>
+          <div className="text-center space-y-2">
+            <h3 className="text-xl font-bold text-white">در حال بارگذاری...</h3>
+            <p className="text-gray-400">در حال دریافت اطلاعات از سرور</p>
+          </div>
+        </div>
+      )}
+
+      {/* Main Dashboard Content - Show when we have real data OR when API is not connected (fallback) */}
+      {(hasRealData || (!loadingUser && !isAPIConnected)) && (
+        <>
         
       {/* API Status Indicator */}
       {!loadingUser && (
@@ -953,8 +973,8 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-
-
+        </>
+      )}
 
       </div>
     </div>
