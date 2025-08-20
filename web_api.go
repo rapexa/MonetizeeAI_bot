@@ -524,14 +524,14 @@ func handleChatGPTMessageAPI(user *User, message string) string {
 
 	// Send request
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 60 * time.Second, // Increased timeout for AI tools
 	}
 	resp, err := client.Do(req)
 	if err != nil {
 		logger.Error("Failed to send request",
 			zap.Int64("user_id", user.TelegramID),
 			zap.Error(err))
-		return "❌ خطا در ارسال درخواست. لطفا دوباره تلاش کنید."
+		return "❌ خطا در ارتباط با ChatGPT. لطفا چند لحظه صبر کنید و دوباره تلاش کنید."
 	}
 	defer resp.Body.Close()
 
@@ -1242,6 +1242,48 @@ func handleSalesPathRequest(c *gin.Context) {
 
 	// Call ChatGPT API
 	response := handleChatGPTMessageAPI(&user, prompt)
+
+	// Check if response is an error message (timeout or other ChatGPT issues)
+	if strings.Contains(response, "❌") || strings.Contains(response, "خطا") {
+		// If ChatGPT failed, use fallback response directly
+		logger.Info("ChatGPT API failed, using fallback response for salespath",
+			zap.String("error_response", response))
+
+		salesPath := SalesPathResponse{
+			DailyPlan: []DailyPlan{
+				{Day: "روز ۱", Action: "آماده‌سازی محتوا", Content: "ایجاد پست معرفی محصول و آماده‌سازی پیام‌های فروش"},
+				{Day: "روز ۲", Action: "شروع تعامل", Content: "ارسال پیام به 20 مخاطب هدف و پاسخ به کامنت‌ها"},
+				{Day: "روز ۳", Action: "ارائه پیشنهاد", Content: "ارائه تخفیف ویژه و تماس با مشتریان علاقه‌مند"},
+				{Day: "روز ۴", Action: "پیگیری فروش", Content: "تماس با مشتریان و بستن اولین معاملات"},
+				{Day: "روز ۵", Action: "بهینه‌سازی", Content: "تحلیل نتایج و بهبود استراتژی فروش"},
+				{Day: "روز ۶", Action: "توسعه بازار", Content: "جستجوی مشتریان جدید و گسترش شبکه"},
+				{Day: "روز ۷", Action: "نتیجه‌گیری", Content: "ارزیابی نتایج و برنامه‌ریزی برای هفته بعد"},
+			},
+			SalesTips: []string{
+				"همیشه روی ارزش محصول تمرکز کنید نه قیمت",
+				"مشتریان را گوش دهید و نیازهایشان را درک کنید",
+				"از داستان‌سرایی برای جذب توجه استفاده کنید",
+				"پیگیری منظم و مداوم داشته باشید",
+			},
+			Engagement: []string{
+				"پرسش‌های تعاملی",
+				"محتوای آموزشی",
+				"تخفیف‌های محدود",
+				"گواهی‌نامه‌های کیفیت",
+			},
+		}
+
+		logger.Info("Sales path generated successfully with fallback",
+			zap.Int64("telegram_id", req.TelegramID),
+			zap.String("product_name", req.ProductName),
+			zap.String("sales_channel", req.SalesChannel))
+
+		c.JSON(http.StatusOK, APIResponse{
+			Success: true,
+			Data:    salesPath,
+		})
+		return
+	}
 
 	// Extract JSON from response (handle markdown code blocks)
 	cleanResponse := extractJSONFromResponse(response)
