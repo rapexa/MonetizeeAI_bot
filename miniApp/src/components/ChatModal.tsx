@@ -101,34 +101,36 @@ const ChatModal: React.FC<ChatModalProps> = ({
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      if (!isLoading && message.trim()) {
+        handleSendMessage();
+      }
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
-      <div className="w-full max-w-4xl h-[95vh] md:h-[90vh] bg-gradient-to-br from-gray-900 to-black rounded-3xl border border-gray-700/50 overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-[9999] flex items-start md:items-center justify-center bg-black/50 backdrop-blur-sm p-0 md:p-4">
+      <div className="w-full max-w-4xl h-screen md:h-[90vh] md:rounded-3xl bg-gradient-to-br from-gray-900 to-black border-0 md:border border-gray-700/50 overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700/50 bg-gray-800/30">
+        <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700/50 bg-gray-800/30 pt-safe">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-xl flex items-center justify-center">
-              <Brain size={16} className="text-white md:w-5 md:h-5" />
+            <div className="w-10 h-10 bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-xl flex items-center justify-center">
+              <Brain size={20} className="text-white" />
             </div>
             <div>
-              <h3 className="text-base md:text-lg font-semibold text-white">{title}</h3>
-              <p className="text-xs md:text-sm text-gray-400">مربی هوشمند شما</p>
+              <h3 className="text-lg font-semibold text-white">{title}</h3>
+              <p className="text-sm text-gray-400">مربی هوشمند شما</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 md:w-10 md:h-10 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl flex items-center justify-center transition-colors"
+            className="w-10 h-10 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl flex items-center justify-center transition-colors"
           >
-            <X size={16} className="text-gray-300 md:w-5 md:h-5" />
+            <X size={20} className="text-gray-300" />
           </button>
         </div>
 
@@ -174,25 +176,26 @@ const ChatModal: React.FC<ChatModalProps> = ({
         </div>
 
         {/* Input */}
-        <div className="p-3 md:p-6 border-t border-gray-700/50 bg-gray-800/30 pb-safe">
-          <div className="flex gap-2 md:gap-3">
+        <div className="p-4 md:p-6 border-t border-gray-700/50 bg-gray-800/30 pb-safe-area-inset-bottom">
+          <div className="flex gap-3 items-end">
             <input
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="سوال خود را بپرسید..."
-              className="flex-1 p-2 md:p-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:border-[#2c189a] focus:ring-1 focus:ring-[#2c189a] transition-colors text-sm md:text-base"
+              className="flex-1 p-3 md:p-4 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:border-[#2c189a] focus:ring-1 focus:ring-[#2c189a] transition-colors text-base"
+              style={{ fontSize: '16px' }} // Prevents zoom on iOS
             />
             <button
               onClick={handleSendMessage}
               disabled={!message.trim() || isLoading}
-              className="px-3 py-2 md:px-4 md:py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-xl transition-all duration-200 flex items-center justify-center min-w-[44px] md:min-w-[50px]"
+              className="px-4 py-3 md:px-5 md:py-4 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-xl transition-all duration-200 flex items-center justify-center min-w-[52px]"
             >
               {isLoading ? (
                 <span className="animate-bounce-dots">...</span>
               ) : (
-                <Send size={16} className="md:w-[18px] md:h-[18px]" />
+                <Send size={18} />
               )}
             </button>
           </div>
