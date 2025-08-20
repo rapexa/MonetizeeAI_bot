@@ -176,7 +176,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
         </div>
 
         {/* Input */}
-        <div className="p-4 md:p-6 border-t border-gray-700/50 bg-gray-800/30 pb-safe-area-inset-bottom">
+        <div className="sticky bottom-0 p-4 md:p-6 border-t border-gray-700/50 bg-gray-800/95 backdrop-blur-xl pb-safe-area-inset-bottom">
           <div className="flex gap-3 items-end">
             <input
               type="text"
@@ -190,7 +190,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
             <button
               onClick={handleSendMessage}
               disabled={!message.trim() || isLoading}
-              className="px-4 py-3 md:px-5 md:py-4 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-xl transition-all duration-200 flex items-center justify-center min-w-[52px]"
+              className="px-4 py-3 md:px-5 md:py-4 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-xl transition-all duration-200 flex items-center justify-center min-w-[52px] flex-shrink-0"
             >
               {isLoading ? (
                 <span className="animate-bounce-dots">...</span>

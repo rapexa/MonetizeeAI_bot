@@ -95,6 +95,32 @@ html, body {
   padding-top: max(1rem, env(safe-area-inset-top));
 }
 
+/* Better mobile keyboard handling */
+@supports (-webkit-touch-callout: none) {
+  .mobile-input-fix {
+    padding-bottom: max(1rem, calc(env(safe-area-inset-bottom) + env(keyboard-inset-height, 0px)));
+  }
+}
+
+/* Ensure proper viewport handling for mobile keyboards */
+@media (max-width: 768px) {
+  .chat-container {
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height */
+  }
+  
+  .mobile-chat-input {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    background: rgba(17, 9, 28, 0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
 /* Prevent zoom on iOS when focusing input */
 @supports (-webkit-touch-callout: none) {
   input[type="text"]:focus,

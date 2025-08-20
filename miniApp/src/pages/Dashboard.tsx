@@ -797,13 +797,14 @@ const Dashboard: React.FC = () => {
                       placeholder="سوال خود را بپرسید..."
                       value={chatMessage}
                       onChange={(e) => setChatMessage(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-white/70 dark:bg-gray-700/60 backdrop-blur-md rounded-xl border border-purple-200/30 dark:border-purple-700/30 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      className="flex-1 px-3 py-2 bg-white/70 dark:bg-gray-700/60 backdrop-blur-md rounded-xl border border-purple-200/30 dark:border-purple-700/30 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      style={{ fontSize: '16px' }}
                     />
                     <button 
                       onClick={handleSendMessage}
                       disabled={!chatMessage.trim()}
-                      className="px-4 py-2 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-[#2c189a]/50 disabled:to-[#5a189a]/50 text-white rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/10"
+                      className="px-4 py-2 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-[#2c189a]/50 disabled:to-[#5a189a]/50 text-white rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/10 flex-shrink-0"
                     >
                       ارسال
                     </button>

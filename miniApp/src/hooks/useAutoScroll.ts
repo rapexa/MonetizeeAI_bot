@@ -5,18 +5,23 @@ export const useAutoScroll = (dependencies: any[]) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ 
-      behavior: 'smooth',
-      block: 'end'
-    });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    }
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      scrollToBottom();
-    }, 100);
+    // Use requestAnimationFrame for better timing with DOM updates
+    const timer = requestAnimationFrame(() => {
+      setTimeout(() => {
+        scrollToBottom();
+      }, 150); // Slightly longer delay to ensure DOM is updated
+    });
 
-    return () => clearTimeout(timer);
+    return () => cancelAnimationFrame(timer);
   }, dependencies);
 
   return { messagesEndRef, containerRef, scrollToBottom };

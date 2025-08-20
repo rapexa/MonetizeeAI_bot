@@ -226,7 +226,7 @@ const AICoach: React.FC = () => {
         </div>
 
         {/* Message Input - Fixed at Bottom */}
-        <div className={`fixed bottom-20 left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-4 backdrop-blur-xl rounded-3xl border border-gray-700/60 p-7 shadow-lg transition-all duration-500 ${isEditingPrompt ? 'ring-2 ring-[#7222F2]/50' : ''}`} style={{ backgroundColor: '#10091c' }}>
+        <div className={`fixed bottom-20 left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-4 backdrop-blur-xl rounded-3xl border border-gray-700/60 p-7 shadow-lg transition-all duration-500 ${isEditingPrompt ? 'ring-2 ring-[#7222F2]/50' : ''} pb-safe-area-inset-bottom`} style={{ backgroundColor: '#10091c' }}>
           {isEditingPrompt ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -273,12 +273,13 @@ const AICoach: React.FC = () => {
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                   placeholder="پیام خود را بنویسید..."
-                  className="flex-1 bg-gray-800/40 border border-gray-700/40 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20 transition-all duration-300 text-sm"
+                  className="flex-1 bg-gray-800/40 border border-gray-700/40 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20 transition-all duration-300 text-base"
+                  style={{ fontSize: '16px' }}
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!message.trim() || isLoading}
-                  className="p-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all duration-300 hover:scale-105 shadow-lg"
+                  className="p-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all duration-300 hover:scale-105 shadow-lg flex-shrink-0 min-w-[48px]"
                 >
                   {isLoading ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
