@@ -377,6 +377,39 @@ class APIService {
       ...sellKitData
     });
   }
+
+  // ClientFinder AI - Generate client finding strategy with ChatGPT
+  async generateClientFinder(clientFinderData: {
+    product: string;
+    target_client: string;
+    platforms: string[];
+  }): Promise<APIResponse<{
+    channels: Array<{
+      name: string;
+      reason: string;
+    }>;
+    outreachMessage: string;
+    hashtags: string[];
+    actionPlan: string[];
+  }>> {
+    const telegramId = this.getTelegramId();
+    if (!telegramId) {
+      return { success: false, error: 'No user ID available' };
+    }
+
+    return this.makeRequest<{
+      channels: Array<{
+        name: string;
+        reason: string;
+      }>;
+      outreachMessage: string;
+      hashtags: string[];
+      actionPlan: string[];
+    }>('POST', '/clientfinder', {
+      telegram_id: telegramId,
+      ...clientFinderData
+    });
+  }
 }
 
 const apiService = new APIService();

@@ -1,5 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import apiService from '../services/api';
+import { useApp } from '../context/AppContext';
 import { 
   Search, 
   Copy, 
@@ -20,6 +22,7 @@ import {
 
 const ClientFinderAI: React.FC = () => {
   const navigate = useNavigate();
+  const { isAPIConnected } = useApp();
   const [formData, setFormData] = React.useState({
     product: '',
     targetClient: '',
@@ -97,35 +100,39 @@ const ClientFinderAI: React.FC = () => {
   };
 
   const generateClientFinder = async () => {
+    // Validate required fields
+    if (!formData.product.trim() || !formData.targetClient.trim()) {
+      alert('لطفاً محصول و مخاطب هدف را وارد کنید');
+      return;
+    }
+
+    if (!isAPIConnected) {
+      alert('اتصال به سرور برقرار نیست. لطفاً دوباره تلاش کنید.');
+      return;
+    }
+
     setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 1800));
-    
-    const clientResult = {
-      channels: [
-        {
-          name: 'اینستاگرام',
-          reason: 'بیشترین مخاطب و تعامل بالا'
-        },
-        {
-          name: 'تلگرام',
-          reason: 'گروه‌های تخصصی و ارتباط مستقیم'
-        },
-        {
-          name: 'لینکدین',
-          reason: 'مخاطبان حرفه‌ای و B2B'
-        }
-      ],
-      outreachMessage: `سلام! من ${formData.product} ارائه می‌دهم و فکر می‌کنم می‌توانم به شما کمک کنم. آیا مایلید بیشتر صحبت کنیم؟`,
-      hashtags: ['#کسب‌وکار', '#فروش', '#مشتری', '#بازاریابی'],
-      actionPlan: [
-        'روز ۱: ایجاد پروفایل حرفه‌ای و انتشار محتوای ارزشمند',
-        'روز ۲: تعامل با مخاطبان و پاسخ به کامنت‌ها',
-        'روز ۳: ارسال پیام‌های شخصی‌سازی شده'
-      ]
-    };
-    
-    setResult(clientResult);
-    setIsGenerating(false);
+    try {
+      console.log('🚀 Generating client finder with ChatGPT...');
+      const response = await apiService.generateClientFinder({
+        product: formData.product,
+        target_client: formData.targetClient,
+        platforms: formData.platforms
+      });
+
+      if (response.success && response.data) {
+        console.log('✅ Client finder generated successfully:', response.data);
+        setResult(response.data);
+      } else {
+        console.error('❌ Failed to generate client finder:', response.error);
+        alert('خطا در تولید راهنمای یافتن مشتری: ' + (response.error || 'خطای نامشخص'));
+      }
+    } catch (error) {
+      console.error('❌ Error generating client finder:', error);
+      alert('خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -167,6 +174,16 @@ const ClientFinderAI: React.FC = () => {
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:32px_32px]"></div>
       
       <div className="relative z-10 container mx-auto px-4 py-8">
+        {/* API Status Indicator */}
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+          isAPIConnected 
+            ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+            : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+        }`}>
+          <div className={`w-2 h-2 rounded-full ${isAPIConnected ? 'bg-green-400' : 'bg-orange-400'} animate-pulse`}></div>
+          {isAPIConnected ? 'ChatGPT متصل' : 'حالت آفلاین'}
+        </div>
+
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button

@@ -116,6 +116,9 @@ func StartWebAPI() {
 		// SellKit AI endpoint
 		v1.POST("/sellkit", handleSellKitRequest)
 
+		// ClientFinder AI endpoint
+		v1.POST("/clientfinder", handleClientFinderRequest)
+
 		// Profile endpoints
 		v1.GET("/user/:telegram_id/profile", getUserProfile)
 		v1.PUT("/user/:telegram_id/profile", updateUserProfile)
@@ -986,6 +989,137 @@ func handleSellKitRequest(c *gin.Context) {
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
 		Data:    sellKit,
+	})
+}
+
+// ClientFinderRequest represents the input for client finding
+type ClientFinderRequest struct {
+	TelegramID   int64    `json:"telegram_id"`
+	Product      string   `json:"product"`
+	TargetClient string   `json:"target_client"`
+	Platforms    []string `json:"platforms"`
+}
+
+// ClientFinderResponse represents the structured client finder response
+type ClientFinderResponse struct {
+	Channels        []ClientChannel `json:"channels"`
+	OutreachMessage string          `json:"outreachMessage"`
+	Hashtags        []string        `json:"hashtags"`
+	ActionPlan      []string        `json:"actionPlan"`
+}
+
+// ClientChannel represents a recommended channel for finding clients
+type ClientChannel struct {
+	Name   string `json:"name"`
+	Reason string `json:"reason"`
+}
+
+// handleClientFinderRequest handles AI-powered client finding
+func handleClientFinderRequest(c *gin.Context) {
+	var req ClientFinderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid request format",
+		})
+		return
+	}
+
+	// Validate required fields
+	if req.Product == "" || req.TargetClient == "" {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "محصول و مخاطب هدف الزامی هستند",
+		})
+		return
+	}
+
+	// Convert platforms array to string
+	platformsStr := "همه پلتفرم‌ها"
+	if len(req.Platforms) > 0 {
+		platformsStr = strings.Join(req.Platforms, ", ")
+	}
+
+	// Create structured prompt for ChatGPT
+	prompt := fmt.Sprintf(`تو یک متخصص بازاریابی و یافتن مشتری هستی. بر اساس اطلاعات زیر، یک راهنمای کامل یافتن مشتری بساز:
+
+محصول/خدمات: %s
+مخاطب هدف: %s
+پلتفرم‌های مورد نظر: %s
+
+اهمیت:
+- کانال‌ها باید بهترین و موثرترین باشند برای مخاطب هدف
+- پیام ارتباط باید شخصی و جذاب باشد
+- هشتگ‌ها باید مرتبط و پر ترافیک باشند
+- برنامه عملی باید مشخص و عملی باشد
+
+پاسخ خود را دقیقاً به صورت JSON بده بدون هیچ متن اضافی:
+
+{
+  "channels": [
+    {
+      "name": "نام کانال موثر 1",
+      "reason": "دلیل انتخاب و مزیت این کانال"
+    },
+    {
+      "name": "نام کانال موثر 2",
+      "reason": "دلیل انتخاب و مزیت این کانال"
+    },
+    {
+      "name": "نام کانال موثر 3",
+      "reason": "دلیل انتخاب و مزیت این کانال"
+    }
+  ],
+  "outreachMessage": "پیام شخصی و جذاب برای ارتباط با مشتریان بالقوه",
+  "hashtags": ["هشتگ1", "هشتگ2", "هشتگ3", "هشتگ4"],
+  "actionPlan": ["قدم عملی 1", "قدم عملی 2", "قدم عملی 3"]
+}`,
+		req.Product, req.TargetClient, platformsStr)
+
+	// Find user for ChatGPT call
+	var user User
+	result := db.Where("telegram_id = ?", req.TelegramID).First(&user)
+	if result.Error != nil {
+		logger.Error("Database error in finding user for clientfinder", zap.Error(result.Error))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "کاربر یافت نشد",
+		})
+		return
+	}
+
+	// Call ChatGPT API
+	response := handleChatGPTMessageAPI(&user, prompt)
+
+	// Extract JSON from response (handle markdown code blocks)
+	cleanResponse := extractJSONFromResponse(response)
+	logger.Info("ChatGPT response for clientfinder",
+		zap.String("raw_response", response),
+		zap.String("clean_response", cleanResponse))
+
+	// Try to parse the JSON response
+	var clientFinder ClientFinderResponse
+	if err := json.Unmarshal([]byte(cleanResponse), &clientFinder); err != nil {
+		// If JSON parsing fails, log and return error
+		logger.Error("Failed to parse ChatGPT JSON response for clientfinder",
+			zap.Error(err),
+			zap.String("response", response),
+			zap.String("clean_response", cleanResponse))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "خطا در پردازش پاسخ ChatGPT. لطفاً دوباره تلاش کنید.",
+		})
+		return
+	}
+
+	logger.Info("Client finder generated successfully",
+		zap.Int64("telegram_id", req.TelegramID),
+		zap.String("product", req.Product),
+		zap.String("target_client", req.TargetClient))
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    clientFinder,
 	})
 }
 
