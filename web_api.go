@@ -110,6 +110,9 @@ func StartWebAPI() {
 		v1.GET("/user/:telegram_id/chat-history", getChatHistory)
 		v1.POST("/user/:telegram_id/chat-history", saveChatMessage)
 
+		// Business Builder AI endpoint
+		v1.POST("/business-builder", handleBusinessBuilderRequest)
+
 		// Profile endpoints
 		v1.GET("/user/:telegram_id/profile", getUserProfile)
 		v1.PUT("/user/:telegram_id/profile", updateUserProfile)
@@ -751,6 +754,115 @@ func updateUserProfile(c *gin.Context) {
 		Data: map[string]interface{}{
 			"message": "Profile updated successfully",
 		},
+	})
+}
+
+// BusinessBuilderRequest represents the input for business plan generation
+type BusinessBuilderRequest struct {
+	TelegramID int64  `json:"telegram_id"`
+	UserName   string `json:"user_name"`
+	Interests  string `json:"interests"`
+	Skills     string `json:"skills"`
+	Market     string `json:"market"`
+}
+
+// BusinessBuilderResponse represents the structured business plan response
+type BusinessBuilderResponse struct {
+	BusinessName   string   `json:"businessName"`
+	Tagline        string   `json:"tagline"`
+	Description    string   `json:"description"`
+	TargetAudience string   `json:"targetAudience"`
+	Products       []string `json:"products"`
+	Monetization   []string `json:"monetization"`
+	FirstAction    string   `json:"firstAction"`
+}
+
+// handleBusinessBuilderRequest handles AI-powered business plan generation
+func handleBusinessBuilderRequest(c *gin.Context) {
+	var req BusinessBuilderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid request format",
+		})
+		return
+	}
+
+	// Validate required fields
+	if req.UserName == "" || req.Interests == "" || req.Market == "" {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "نام، علاقه‌مندی‌ها و بازار هدف الزامی هستند",
+		})
+		return
+	}
+
+	// Create structured prompt for ChatGPT
+	prompt := fmt.Sprintf(`تو یک مشاور کسب‌وکار حرفه‌ای هستی. بر اساس اطلاعات زیر، یک طرح کسب‌وکار کامل بساز:
+
+نام کاربر: %s
+علاقه‌مندی‌ها: %s
+مهارت‌ها: %s
+بازار هدف: %s
+
+لطفاً پاسخت را دقیقاً در فرمت JSON زیر بده و هیچ متن اضافی ننویس:
+
+{
+  "businessName": "نام مناسب برای کسب‌وکار",
+  "tagline": "شعار جذاب و کوتاه",
+  "description": "توضیح کامل کسب‌وکار در 2-3 جمله",
+  "targetAudience": "مخاطب هدف دقیق",
+  "products": ["محصول 1", "محصول 2", "محصول 3"],
+  "monetization": ["روش درآمدزایی 1", "روش درآمدزایی 2", "روش درآمدزایی 3"],
+  "firstAction": "اولین اقدام عملی که باید امروز انجام دهد"
+}
+
+پاسخ تو باید فقط JSON باشد.`,
+		req.UserName, req.Interests, req.Skills, req.Market)
+
+	// Find user for ChatGPT call
+	var user User
+	result := db.Where("telegram_id = ?", req.TelegramID).First(&user)
+	if result.Error != nil {
+		logger.Error("Database error in finding user for business builder", zap.Error(result.Error))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "کاربر یافت نشد",
+		})
+		return
+	}
+
+	// Call ChatGPT API
+	response := handleChatGPTMessageAPI(&user, prompt)
+
+	// Try to parse the JSON response
+	var businessPlan BusinessBuilderResponse
+	if err := json.Unmarshal([]byte(response), &businessPlan); err != nil {
+		// If JSON parsing fails, return the raw response with fallback
+		logger.Error("Failed to parse ChatGPT JSON response", zap.Error(err), zap.String("response", response))
+		c.JSON(http.StatusOK, APIResponse{
+			Success: true,
+			Data: map[string]interface{}{
+				"raw_response":   response,
+				"businessName":   fmt.Sprintf("%s کسب‌وکار", req.UserName),
+				"tagline":        "راه‌حل نوآورانه برای مخاطبان شما",
+				"description":    "طرح کسب‌وکار تولید شده بر اساس اطلاعات شما",
+				"targetAudience": req.Market,
+				"products":       []string{"محصولات مبتنی بر " + req.Interests},
+				"monetization":   []string{"فروش مستقیم", "اشتراک ماهانه"},
+				"firstAction":    "شروع با بررسی بازار و رقبا",
+			},
+		})
+		return
+	}
+
+	logger.Info("Business plan generated successfully",
+		zap.Int64("telegram_id", req.TelegramID),
+		zap.String("business_name", businessPlan.BusinessName))
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    businessPlan,
 	})
 }
 

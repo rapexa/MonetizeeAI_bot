@@ -1,5 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import apiService from '../services/api';
+import { useApp } from '../context/AppContext';
 import { 
   Rocket, 
   Copy, 
@@ -22,6 +24,7 @@ import {
 
 const BusinessBuilderAI: React.FC = () => {
   const navigate = useNavigate();
+  const { isAPIConnected } = useApp();
   const [formData, setFormData] = React.useState({
     userName: '',
     interests: '',
@@ -105,31 +108,61 @@ const BusinessBuilderAI: React.FC = () => {
   };
 
   const generateBusinessPlan = async () => {
+    // Validate required fields
+    if (!formData.userName.trim() || !formData.interests.trim() || !formData.market.trim()) {
+      alert('لطفاً نام، علاقه‌مندی‌ها و بازار هدف را وارد کنید');
+      return;
+    }
+
+    if (!isAPIConnected) {
+      alert('اتصال به سرور برقرار نیست. لطفاً دوباره تلاش کنید.');
+      return;
+    }
+
     setIsGenerating(true);
-    // Simulate AI generation
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const interests = formData.interests.split(',').map(i => i.trim()).filter(i => i);
-    const businessResult = {
-      businessName: `${formData.userName} ${interests[0] || 'کسب‌وکار'}`,
-      tagline: `راه‌حل نوآورانه برای ${formData.market || 'مخاطبان شما'}`,
-      description: `کسب‌وکاری مبتنی بر ${formData.interests} که با تمرکز بر ${formData.market} فعالیت می‌کند.`,
-      targetAudience: formData.market || 'مخاطبان هدف شما',
-      products: [
-        'محصولات دیجیتال',
-        'خدمات مشاوره‌ای',
-        'محتوای آموزشی'
-      ],
-      monetization: [
-        'فروش مستقیم محصولات',
-        'اشتراک ماهانه',
-        'خدمات مشاوره‌ای'
-      ],
-      firstAction: 'شروع با ایجاد پروفایل حرفه‌ای و معرفی خدمات'
-    };
-    
-    setResult(businessResult);
-    setIsGenerating(false);
+    try {
+      console.log('🚀 Generating business plan with ChatGPT...');
+      const response = await apiService.generateBusinessPlan({
+        user_name: formData.userName,
+        interests: formData.interests,
+        skills: formData.skills || '',
+        market: formData.market
+      });
+
+      if (response.success && response.data) {
+        console.log('✅ Business plan generated successfully:', response.data);
+        setResult(response.data);
+      } else {
+        console.error('❌ Failed to generate business plan:', response.error);
+        alert('خطا در تولید طرح کسب‌وکار: ' + (response.error || 'خطای نامشخص'));
+        
+        // Fallback to simple generation if API fails
+        const interests = formData.interests.split(',').map(i => i.trim()).filter(i => i);
+        const fallbackResult = {
+          businessName: `${formData.userName} ${interests[0] || 'کسب‌وکار'}`,
+          tagline: `راه‌حل نوآورانه برای ${formData.market}`,
+          description: `کسب‌وکاری مبتنی بر ${formData.interests} که با تمرکز بر ${formData.market} فعالیت می‌کند.`,
+          targetAudience: formData.market,
+          products: [
+            'محصولات دیجیتال',
+            'خدمات مشاوره‌ای',
+            'محتوای آموزشی'
+          ],
+          monetization: [
+            'فروش مستقیم محصولات',
+            'اشتراک ماهانه',
+            'خدمات مشاوره‌ای'
+          ],
+          firstAction: 'شروع با ایجاد پروفایل حرفه‌ای و معرفی خدمات'
+        };
+        setResult(fallbackResult);
+      }
+    } catch (error) {
+      console.error('❌ Error generating business plan:', error);
+      alert('خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -157,6 +190,16 @@ const BusinessBuilderAI: React.FC = () => {
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:32px_32px]"></div>
       
       <div className="relative z-10 container mx-auto px-4 py-8">
+        {/* API Status Indicator */}
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+          isAPIConnected 
+            ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+            : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+        }`}>
+          <div className={`w-2 h-2 rounded-full ${isAPIConnected ? 'bg-green-400' : 'bg-orange-400'} animate-pulse`}></div>
+          {isAPIConnected ? 'ChatGPT متصل' : 'حالت آفلاین'}
+        </div>
+
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button

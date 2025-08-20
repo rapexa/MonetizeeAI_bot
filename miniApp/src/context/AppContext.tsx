@@ -83,14 +83,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUserData(prev => ({
           ...prev,
           incomeMonth: 2450000, // Default fallback
-          incomeToday: 150000,
-          activeLeads: 12,
-          negotiatingCustomers: 3,
-          firstGoal: 5000000,
-          progressOverall: 35,
-          currentLevel: 3,
-          completedTasks: 28,
-          unlockedLevels: 4
+    incomeToday: 150000,
+    activeLeads: 12,
+    negotiatingCustomers: 3,
+    firstGoal: 5000000,
+    progressOverall: 35,
+    currentLevel: 3,
+    completedTasks: 28,
+    unlockedLevels: 4
         }));
         setHasRealData(false); // This is fallback data, not real
         setLoadingUser(false);

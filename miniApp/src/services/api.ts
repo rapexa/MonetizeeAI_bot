@@ -309,6 +309,40 @@ class APIService {
 
     return this.makeRequest<{ message: string }>('PUT', `/user/${telegramId}/profile`, profileData);
   }
+
+  // Business Builder AI - Generate business plan with ChatGPT
+  async generateBusinessPlan(businessData: {
+    user_name: string;
+    interests: string;
+    skills: string;
+    market: string;
+  }): Promise<APIResponse<{
+    businessName: string;
+    tagline: string;
+    description: string;
+    targetAudience: string;
+    products: string[];
+    monetization: string[];
+    firstAction: string;
+  }>> {
+    const telegramId = this.getTelegramId();
+    if (!telegramId) {
+      return { success: false, error: 'No user ID available' };
+    }
+
+    return this.makeRequest<{
+      businessName: string;
+      tagline: string;
+      description: string;
+      targetAudience: string;
+      products: string[];
+      monetization: string[];
+      firstAction: string;
+    }>('POST', '/business-builder', {
+      telegram_id: telegramId,
+      ...businessData
+    });
+  }
 }
 
 const apiService = new APIService();
