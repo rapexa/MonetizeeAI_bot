@@ -145,8 +145,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!isAPIConnected) return;
     
     try {
+      console.log('🔄 Refreshing user data...');
       const userResponse = await apiService.getCurrentUser();
       const progressResponse = await apiService.getUserProgress();
+      const profileResponse = await apiService.getUserProfile();
       
       if (userResponse.success && userResponse.data) {
         const userInfo = userResponse.data as any;
@@ -169,8 +171,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             currentLevel: progressResponse.data.current_level,
             progressOverall: progressResponse.data.progress_percent,
             completedTasks: progressResponse.data.completed_sessions,
+          } : {}),
+          
+          // Update monthly income from profile data
+          ...(profileResponse.success && profileResponse.data ? {
+            incomeMonth: profileResponse.data.monthly_income || prev.incomeMonth,
           } : {})
         }));
+        
+        console.log('✅ User data refreshed successfully');
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);

@@ -69,6 +69,25 @@ const Dashboard: React.FC = () => {
   const [isEditingPrompt, setIsEditingPrompt] = React.useState<boolean>(false);
   const [chatMessages, setChatMessages] = React.useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string}>>([]);
 
+  // Auto refresh data periodically
+  React.useEffect(() => {
+    if (!isAPIConnected) return;
+    
+    // Refresh data every 30 seconds
+    const refreshInterval = setInterval(async () => {
+      console.log('🔄 Auto refreshing dashboard data...');
+      await refreshUserData();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, [isAPIConnected, refreshUserData]);
+  
+  // Manual refresh function for user action
+  const handleManualRefresh = async () => {
+    console.log('🔄 Manual refresh triggered...');
+    await refreshUserData();
+  };
+
   // Load chat history on component mount
   React.useEffect(() => {
     const loadChatHistory = async () => {

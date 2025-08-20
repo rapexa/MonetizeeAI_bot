@@ -14,7 +14,7 @@ import {
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { userData, isAPIConnected } = useApp();
+  const { userData, isAPIConnected, refreshUserData } = useApp();
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -102,6 +102,10 @@ const Profile: React.FC = () => {
       if (response.success) {
         setShowEditModal(false);
         alert('پروفایل با موفقیت بروزرسانی شد!');
+        
+        // Auto refresh user data to update dashboard
+        console.log('🔄 Auto refreshing user data after profile update...');
+        await refreshUserData();
       } else {
         alert('خطا در بروزرسانی پروفایل: ' + response.error);
       }
