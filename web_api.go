@@ -119,6 +119,9 @@ func StartWebAPI() {
 		// ClientFinder AI endpoint
 		v1.POST("/clientfinder", handleClientFinderRequest)
 
+		// SalesPath AI endpoint
+		v1.POST("/salespath", handleSalesPathRequest)
+
 		// Profile endpoints
 		v1.GET("/user/:telegram_id/profile", getUserProfile)
 		v1.PUT("/user/:telegram_id/profile", updateUserProfile)
@@ -1120,6 +1123,155 @@ func handleClientFinderRequest(c *gin.Context) {
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
 		Data:    clientFinder,
+	})
+}
+
+// SalesPathRequest represents the input for sales path generation
+type SalesPathRequest struct {
+	TelegramID     int64  `json:"telegram_id"`
+	ProductName    string `json:"product_name"`
+	TargetAudience string `json:"target_audience"`
+	SalesChannel   string `json:"sales_channel"`
+	Goal           string `json:"goal"`
+}
+
+// SalesPathResponse represents the structured sales path response
+type SalesPathResponse struct {
+	DailyPlan  []DailyPlan `json:"dailyPlan"`
+	SalesTips  []string    `json:"salesTips"`
+	Engagement []string    `json:"engagement"`
+}
+
+// DailyPlan represents a daily action in the sales path
+type DailyPlan struct {
+	Day     string `json:"day"`
+	Action  string `json:"action"`
+	Content string `json:"content"`
+}
+
+// handleSalesPathRequest handles AI-powered sales path generation
+func handleSalesPathRequest(c *gin.Context) {
+	var req SalesPathRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid request format",
+		})
+		return
+	}
+
+	// Validate required fields
+	if req.ProductName == "" || req.TargetAudience == "" || req.SalesChannel == "" {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "نام محصول، مخاطب هدف و کانال فروش الزامی هستند",
+		})
+		return
+	}
+
+	// Create structured prompt for ChatGPT
+	prompt := fmt.Sprintf(`تو یک متخصص فروش و بازاریابی حرفه‌ای هستی. بر اساس اطلاعات زیر، یک مسیر فروش سریع و عملی برای ۷ روز بساز:
+
+نام محصول/خدمات: %s
+مخاطب هدف: %s
+کانال فروش: %s
+هدف فروش: %s
+
+اهمیت:
+- برنامه ۷ روزه باید عملی و قابل اجرا باشد
+- نکات فروش باید عملی و موثر باشند
+- تاکتیک‌های تعامل باید متنوع و جذاب باشند
+- توجه ویژه به کانال فروش انتخابی
+
+پاسخ خود را دقیقاً به صورت JSON بده بدون هیچ متن اضافی:
+
+{
+  "dailyPlan": [
+    {
+      "day": "روز ۱",
+      "action": "عنوان اقدام روز اول",
+      "content": "توضیح کامل اقدامات عملی روز اول"
+    },
+    {
+      "day": "روز ۲",
+      "action": "عنوان اقدام روز دوم",
+      "content": "توضیح کامل اقدامات عملی روز دوم"
+    },
+    {
+      "day": "روز ۳",
+      "action": "عنوان اقدام روز سوم",
+      "content": "توضیح کامل اقدامات عملی روز سوم"
+    },
+    {
+      "day": "روز ۴",
+      "action": "عنوان اقدام روز چهارم",
+      "content": "توضیح کامل اقدامات عملی روز چهارم"
+    },
+    {
+      "day": "روز ۵",
+      "action": "عنوان اقدام روز پنجم",
+      "content": "توضیح کامل اقدامات عملی روز پنجم"
+    },
+    {
+      "day": "روز ۶",
+      "action": "عنوان اقدام روز ششم",
+      "content": "توضیح کامل اقدامات عملی روز ششم"
+    },
+    {
+      "day": "روز ۷",
+      "action": "عنوان اقدام روز هفتم",
+      "content": "توضیح کامل اقدامات عملی روز هفتم"
+    }
+  ],
+  "salesTips": ["نکته فروش 1", "نکته فروش 2", "نکته فروش 3", "نکته فروش 4"],
+  "engagement": ["تاکتیک تعامل 1", "تاکتیک تعامل 2", "تاکتیک تعامل 3", "تاکتیک تعامل 4"]
+}`,
+		req.ProductName, req.TargetAudience, req.SalesChannel, req.Goal)
+
+	// Find user for ChatGPT call
+	var user User
+	result := db.Where("telegram_id = ?", req.TelegramID).First(&user)
+	if result.Error != nil {
+		logger.Error("Database error in finding user for salespath", zap.Error(result.Error))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "کاربر یافت نشد",
+		})
+		return
+	}
+
+	// Call ChatGPT API
+	response := handleChatGPTMessageAPI(&user, prompt)
+
+	// Extract JSON from response (handle markdown code blocks)
+	cleanResponse := extractJSONFromResponse(response)
+	logger.Info("ChatGPT response for salespath",
+		zap.String("raw_response", response),
+		zap.String("clean_response", cleanResponse))
+
+	// Try to parse the JSON response
+	var salesPath SalesPathResponse
+	if err := json.Unmarshal([]byte(cleanResponse), &salesPath); err != nil {
+		// If JSON parsing fails, log and return error
+		logger.Error("Failed to parse ChatGPT JSON response for salespath",
+			zap.Error(err),
+			zap.String("response", response),
+			zap.String("clean_response", cleanResponse))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "خطا در پردازش پاسخ ChatGPT. لطفاً دوباره تلاش کنید.",
+		})
+		return
+	}
+
+	logger.Info("Sales path generated successfully",
+		zap.Int64("telegram_id", req.TelegramID),
+		zap.String("product_name", req.ProductName),
+		zap.String("sales_channel", req.SalesChannel))
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    salesPath,
 	})
 }
 

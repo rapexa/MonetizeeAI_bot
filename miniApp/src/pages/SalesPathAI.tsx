@@ -1,5 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import apiService from '../services/api';
+import { useApp } from '../context/AppContext';
 import { 
   Map, 
   Copy, 
@@ -20,6 +22,7 @@ import {
 
 const SalesPathAI: React.FC = () => {
   const navigate = useNavigate();
+  const { isAPIConnected } = useApp();
   const [formData, setFormData] = React.useState({
     productName: '',
     targetAudience: '',
@@ -115,63 +118,40 @@ const SalesPathAI: React.FC = () => {
   };
 
   const generateSalesPath = async () => {
+    // Validate required fields
+    if (!formData.productName.trim() || !formData.targetAudience.trim() || !formData.salesChannel.trim()) {
+      alert('لطفاً نام محصول، مخاطب هدف و کانال فروش را وارد کنید');
+      return;
+    }
+
+    if (!isAPIConnected) {
+      alert('اتصال به سرور برقرار نیست. لطفاً دوباره تلاش کنید.');
+      return;
+    }
+
     setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 2200));
-    
-    const salesResult = {
-      dailyPlan: [
-        {
-          day: 'روز ۱',
-          action: 'آماده‌سازی محتوا',
-          content: 'ایجاد پست معرفی محصول و آماده‌سازی پیام‌های فروش'
-        },
-        {
-          day: 'روز ۲',
-          action: 'شروع تعامل',
-          content: 'ارسال پیام به 20 مخاطب هدف و پاسخ به کامنت‌ها'
-        },
-        {
-          day: 'روز ۳',
-          action: 'ارائه پیشنهاد',
-          content: 'ارائه تخفیف ویژه و تماس با مشتریان علاقه‌مند'
-        },
-        {
-          day: 'روز ۴',
-          action: 'پیگیری فروش',
-          content: 'تماس با مشتریان و بستن اولین معاملات'
-        },
-        {
-          day: 'روز ۵',
-          action: 'بهینه‌سازی',
-          content: 'تحلیل نتایج و بهبود استراتژی فروش'
-        },
-        {
-          day: 'روز ۶',
-          action: 'توسعه بازار',
-          content: 'جستجوی مشتریان جدید و گسترش شبکه'
-        },
-        {
-          day: 'روز ۷',
-          action: 'نتیجه‌گیری',
-          content: 'ارزیابی نتایج و برنامه‌ریزی برای هفته بعد'
-        }
-      ],
-      salesTips: [
-        'همیشه روی ارزش محصول تمرکز کنید نه قیمت',
-        'مشتریان را گوش دهید و نیازهایشان را درک کنید',
-        'از داستان‌سرایی برای جذب توجه استفاده کنید',
-        'پیگیری منظم و مداوم داشته باشید'
-      ],
-      engagement: [
-        'پرسش‌های تعاملی',
-        'محتوای آموزشی',
-        'تخفیف‌های محدود',
-        'گواهی‌نامه‌های کیفیت'
-      ]
-    };
-    
-    setResult(salesResult);
-    setIsGenerating(false);
+    try {
+      console.log('🚀 Generating sales path with ChatGPT...');
+      const response = await apiService.generateSalesPath({
+        product_name: formData.productName,
+        target_audience: formData.targetAudience,
+        sales_channel: formData.salesChannel,
+        goal: formData.goal || ''
+      });
+
+      if (response.success && response.data) {
+        console.log('✅ Sales path generated successfully:', response.data);
+        setResult(response.data);
+      } else {
+        console.error('❌ Failed to generate sales path:', response.error);
+        alert('خطا در تولید مسیر فروش: ' + (response.error || 'خطای نامشخص'));
+      }
+    } catch (error) {
+      console.error('❌ Error generating sales path:', error);
+      alert('خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -199,6 +179,16 @@ const SalesPathAI: React.FC = () => {
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:32px_32px]"></div>
       
       <div className="relative z-10 container mx-auto px-4 py-8">
+        {/* API Status Indicator */}
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+          isAPIConnected 
+            ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+            : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+        }`}>
+          <div className={`w-2 h-2 rounded-full ${isAPIConnected ? 'bg-green-400' : 'bg-orange-400'} animate-pulse`}></div>
+          {isAPIConnected ? 'ChatGPT متصل' : 'حالت آفلاین'}
+        </div>
+
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button

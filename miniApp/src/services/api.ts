@@ -410,6 +410,40 @@ class APIService {
       ...clientFinderData
     });
   }
+
+  // SalesPath AI - Generate sales path strategy with ChatGPT
+  async generateSalesPath(salesPathData: {
+    product_name: string;
+    target_audience: string;
+    sales_channel: string;
+    goal: string;
+  }): Promise<APIResponse<{
+    dailyPlan: Array<{
+      day: string;
+      action: string;
+      content: string;
+    }>;
+    salesTips: string[];
+    engagement: string[];
+  }>> {
+    const telegramId = this.getTelegramId();
+    if (!telegramId) {
+      return { success: false, error: 'No user ID available' };
+    }
+
+    return this.makeRequest<{
+      dailyPlan: Array<{
+        day: string;
+        action: string;
+        content: string;
+      }>;
+      salesTips: string[];
+      engagement: string[];
+    }>('POST', '/salespath', {
+      telegram_id: telegramId,
+      ...salesPathData
+    });
+  }
 }
 
 const apiService = new APIService();
