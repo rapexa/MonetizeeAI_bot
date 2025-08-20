@@ -16,6 +16,7 @@ type User struct {
 	gorm.Model
 	TelegramID     int64 `gorm:"uniqueIndex"`
 	Username       string
+	Email          string
 	FirstName      string
 	LastName       string
 	CurrentSession int  `gorm:"default:1"`
@@ -25,6 +26,9 @@ type User struct {
 	IsVerified     bool `gorm:"default:false"`
 	Phone          string
 	Exercises      []Exercise
+
+	// Profile fields for miniApp
+	MonthlyIncome int64 `json:"monthly_income" gorm:"default:0"` // در تومان
 }
 
 // Admin represents a system administrator

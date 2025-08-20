@@ -110,6 +110,10 @@ func StartWebAPI() {
 		v1.GET("/user/:telegram_id/chat-history", getChatHistory)
 		v1.POST("/user/:telegram_id/chat-history", saveChatMessage)
 
+		// Profile endpoints
+		v1.GET("/user/:telegram_id/profile", getUserProfile)
+		v1.PUT("/user/:telegram_id/profile", updateUserProfile)
+
 		// Progress tracking
 		v1.POST("/user/:telegram_id/progress", updateUserProgress)
 	}
@@ -642,6 +646,111 @@ func saveChatMessage(c *gin.Context) {
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
 		Data:    chatMessage,
+	})
+}
+
+// getUserProfile returns user profile information
+func getUserProfile(c *gin.Context) {
+	telegramIDStr := c.Param("telegram_id")
+	telegramID, err := strconv.ParseInt(telegramIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid telegram_id",
+		})
+		return
+	}
+
+	var user User
+	result := db.Where("telegram_id = ?", telegramID).First(&user)
+	if result.Error != nil {
+		logger.Error("Database error in getting user profile", zap.Error(result.Error))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "User not found",
+		})
+		return
+	}
+
+	// Create profile response (only requested fields)
+	profileData := map[string]interface{}{
+		"username":       user.Username,
+		"phone":          user.Phone,
+		"email":          user.Email,
+		"monthly_income": user.MonthlyIncome,
+	}
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    profileData,
+	})
+}
+
+// updateUserProfile updates user profile information
+func updateUserProfile(c *gin.Context) {
+	telegramIDStr := c.Param("telegram_id")
+	telegramID, err := strconv.ParseInt(telegramIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid telegram_id",
+		})
+		return
+	}
+
+	var requestData struct {
+		Username      string `json:"username"`
+		Phone         string `json:"phone"`
+		Email         string `json:"email"`
+		MonthlyIncome int64  `json:"monthly_income"`
+	}
+
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid request data",
+		})
+		return
+	}
+
+	// Find user
+	var user User
+	result := db.Where("telegram_id = ?", telegramID).First(&user)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "User not found",
+		})
+		return
+	}
+
+	// Update profile fields (only requested fields)
+	if requestData.Username != "" {
+		user.Username = requestData.Username
+	}
+	user.Phone = requestData.Phone
+	user.Email = requestData.Email
+	user.MonthlyIncome = requestData.MonthlyIncome
+
+	// Save to database
+	if err := db.Save(&user).Error; err != nil {
+		logger.Error("Database error in updating user profile", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Database error",
+		})
+		return
+	}
+
+	logger.Info("User profile updated",
+		zap.Int64("telegram_id", telegramID),
+		zap.String("username", requestData.Username))
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"message": "Profile updated successfully",
+		},
 	})
 }
 

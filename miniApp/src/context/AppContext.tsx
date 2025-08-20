@@ -89,6 +89,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Get detailed progress
         const progressResponse = await apiService.getUserProgress();
         
+        // Get user profile (for monthly income)
+        const profileResponse = await apiService.getUserProfile();
+        
         // Update userData with real data from API
         setUserData(prev => ({
           ...prev,
@@ -108,6 +111,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             currentLevel: progressResponse.data.current_level,
             progressOverall: progressResponse.data.progress_percent,
             completedTasks: progressResponse.data.completed_sessions,
+          } : {}),
+          
+          // Update monthly income from profile data
+          ...(profileResponse.success && profileResponse.data ? {
+            incomeMonth: profileResponse.data.monthly_income || prev.incomeMonth,
           } : {})
         }));
         
@@ -115,7 +123,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.log('📊 Final User Data:', {
           currentLevel: progressResponse.success && progressResponse.data ? progressResponse.data.current_level : userInfo.level,
           progressOverall: progressResponse.success && progressResponse.data ? progressResponse.data.progress_percent : userInfo.progress,
-          completedTasks: progressResponse.success && progressResponse.data ? progressResponse.data.completed_sessions : userInfo.completed_tasks
+          completedTasks: progressResponse.success && progressResponse.data ? progressResponse.data.completed_sessions : userInfo.completed_tasks,
+          monthlyIncome: profileResponse.success && profileResponse.data ? profileResponse.data.monthly_income : 'default'
         });
       } else {
         console.log('❌ Authentication failed:', authResponse.error);
