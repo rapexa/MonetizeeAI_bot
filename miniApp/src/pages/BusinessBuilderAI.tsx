@@ -135,27 +135,6 @@ const BusinessBuilderAI: React.FC = () => {
       } else {
         console.error('❌ Failed to generate business plan:', response.error);
         alert('خطا در تولید طرح کسب‌وکار: ' + (response.error || 'خطای نامشخص'));
-        
-        // Fallback to simple generation if API fails
-        const interests = formData.interests.split(',').map(i => i.trim()).filter(i => i);
-        const fallbackResult = {
-          businessName: `${formData.userName} ${interests[0] || 'کسب‌وکار'}`,
-          tagline: `راه‌حل نوآورانه برای ${formData.market}`,
-          description: `کسب‌وکاری مبتنی بر ${formData.interests} که با تمرکز بر ${formData.market} فعالیت می‌کند.`,
-          targetAudience: formData.market,
-          products: [
-            'محصولات دیجیتال',
-            'خدمات مشاوره‌ای',
-            'محتوای آموزشی'
-          ],
-          monetization: [
-            'فروش مستقیم محصولات',
-            'اشتراک ماهانه',
-            'خدمات مشاوره‌ای'
-          ],
-          firstAction: 'شروع با ایجاد پروفایل حرفه‌ای و معرفی خدمات'
-        };
-        setResult(fallbackResult);
       }
     } catch (error) {
       console.error('❌ Error generating business plan:', error);

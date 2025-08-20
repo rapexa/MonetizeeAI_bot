@@ -798,26 +798,31 @@ func handleBusinessBuilderRequest(c *gin.Context) {
 	}
 
 	// Create structured prompt for ChatGPT
-	prompt := fmt.Sprintf(`تو یک مشاور کسب‌وکار حرفه‌ای هستی. بر اساس اطلاعات زیر، یک طرح کسب‌وکار کامل بساز:
+	prompt := fmt.Sprintf(`تو یک مشاور کسب‌وکار حرفه‌ای و خلاق هستی. بر اساس اطلاعات زیر، یک طرح کسب‌وکار جذاب و عملی بساز:
 
 نام کاربر: %s
 علاقه‌مندی‌ها: %s
 مهارت‌ها: %s
 بازار هدف: %s
 
-لطفاً پاسخت را دقیقاً در فرمت JSON زیر بده و هیچ متن اضافی ننویس:
+اهمیت:
+- نام کسب‌وکار باید خلاقانه و جذاب باشد (نه فقط نام + کسب‌وکار)
+- توضیحات باید مفصل و جذاب باشد
+- محصولات باید عملی و قابل اجرا باشند
+- روش‌های درآمدزایی مشخص و واقعی باشند
+- اولین قدم عملی و قابل انجام باشد
+
+پاسخ خود را دقیقاً به صورت JSON بده بدون هیچ متن اضافی:
 
 {
-  "businessName": "نام مناسب برای کسب‌وکار",
-  "tagline": "شعار جذاب و کوتاه",
-  "description": "توضیح کامل کسب‌وکار در 2-3 جمله",
-  "targetAudience": "مخاطب هدف دقیق",
-  "products": ["محصول 1", "محصول 2", "محصول 3"],
-  "monetization": ["روش درآمدزایی 1", "روش درآمدزایی 2", "روش درآمدزایی 3"],
-  "firstAction": "اولین اقدام عملی که باید امروز انجام دهد"
-}
-
-پاسخ تو باید فقط JSON باشد.`,
+  "businessName": "نام خلاقانه و جذاب برای کسب‌وکار",
+  "tagline": "شعار جذاب و کوتاه که ارزش برند را نشان دهد",
+  "description": "توضیح کامل و جذاب کسب‌وکار در 3-4 جمله که مشکل مخاطب و راه‌حل را نشان دهد",
+  "targetAudience": "مخاطب هدف دقیق و مشخص",
+  "products": ["محصول عملی 1", "محصول عملی 2", "محصول عملی 3"],
+  "monetization": ["روش درآمدزایی مشخص 1", "روش درآمدزایی مشخص 2", "روش درآمدزایی مشخص 3"],
+  "firstAction": "اولین قدم عملی و مشخص که امروز می‌توان انجام داد"
+}`,
 		req.UserName, req.Interests, req.Skills, req.Market)
 
 	// Find user for ChatGPT call
@@ -835,23 +840,23 @@ func handleBusinessBuilderRequest(c *gin.Context) {
 	// Call ChatGPT API
 	response := handleChatGPTMessageAPI(&user, prompt)
 
+	// Extract JSON from response (handle markdown code blocks)
+	cleanResponse := extractJSONFromResponse(response)
+	logger.Info("ChatGPT response for business builder",
+		zap.String("raw_response", response),
+		zap.String("clean_response", cleanResponse))
+
 	// Try to parse the JSON response
 	var businessPlan BusinessBuilderResponse
-	if err := json.Unmarshal([]byte(response), &businessPlan); err != nil {
-		// If JSON parsing fails, return the raw response with fallback
-		logger.Error("Failed to parse ChatGPT JSON response", zap.Error(err), zap.String("response", response))
-		c.JSON(http.StatusOK, APIResponse{
-			Success: true,
-			Data: map[string]interface{}{
-				"raw_response":   response,
-				"businessName":   fmt.Sprintf("%s کسب‌وکار", req.UserName),
-				"tagline":        "راه‌حل نوآورانه برای مخاطبان شما",
-				"description":    "طرح کسب‌وکار تولید شده بر اساس اطلاعات شما",
-				"targetAudience": req.Market,
-				"products":       []string{"محصولات مبتنی بر " + req.Interests},
-				"monetization":   []string{"فروش مستقیم", "اشتراک ماهانه"},
-				"firstAction":    "شروع با بررسی بازار و رقبا",
-			},
+	if err := json.Unmarshal([]byte(cleanResponse), &businessPlan); err != nil {
+		// If JSON parsing fails, log and return error
+		logger.Error("Failed to parse ChatGPT JSON response",
+			zap.Error(err),
+			zap.String("response", response),
+			zap.String("clean_response", cleanResponse))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "خطا در پردازش پاسخ ChatGPT. لطفاً دوباره تلاش کنید.",
 		})
 		return
 	}
@@ -864,6 +869,64 @@ func handleBusinessBuilderRequest(c *gin.Context) {
 		Success: true,
 		Data:    businessPlan,
 	})
+}
+
+// extractJSONFromResponse extracts JSON from ChatGPT response (handles markdown code blocks)
+func extractJSONFromResponse(response string) string {
+	// Remove leading/trailing whitespace
+	response = strings.TrimSpace(response)
+
+	// Look for JSON in markdown code blocks
+	if strings.Contains(response, "```json") {
+		// Find the start and end of the JSON block
+		startMarker := "```json"
+		endMarker := "```"
+
+		startIdx := strings.Index(response, startMarker)
+		if startIdx != -1 {
+			startIdx += len(startMarker)
+			endIdx := strings.Index(response[startIdx:], endMarker)
+			if endIdx != -1 {
+				jsonContent := strings.TrimSpace(response[startIdx : startIdx+endIdx])
+				return jsonContent
+			}
+		}
+	}
+
+	// Look for JSON in generic code blocks
+	if strings.Contains(response, "```") {
+		// Find the start and end of any code block
+		startMarker := "```"
+		startIdx := strings.Index(response, startMarker)
+		if startIdx != -1 {
+			startIdx += len(startMarker)
+			// Skip any language identifier on the same line
+			if newlineIdx := strings.Index(response[startIdx:], "\n"); newlineIdx != -1 {
+				startIdx += newlineIdx + 1
+			}
+			endIdx := strings.Index(response[startIdx:], startMarker)
+			if endIdx != -1 {
+				jsonContent := strings.TrimSpace(response[startIdx : startIdx+endIdx])
+				// Check if it looks like JSON
+				if strings.HasPrefix(jsonContent, "{") && strings.HasSuffix(jsonContent, "}") {
+					return jsonContent
+				}
+			}
+		}
+	}
+
+	// If no code blocks found, try to find JSON object directly
+	if strings.Contains(response, "{") && strings.Contains(response, "}") {
+		startIdx := strings.Index(response, "{")
+		lastIdx := strings.LastIndex(response, "}")
+		if startIdx != -1 && lastIdx != -1 && lastIdx > startIdx {
+			jsonContent := strings.TrimSpace(response[startIdx : lastIdx+1])
+			return jsonContent
+		}
+	}
+
+	// Return original response if no JSON structure found
+	return response
 }
 
 // Helper function to get environment variable with default
