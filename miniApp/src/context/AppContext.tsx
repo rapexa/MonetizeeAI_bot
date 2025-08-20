@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { apiService, UserInfo, UserProgress } from '../services/api';
+import apiService from '../services/api';
+
+
 
 interface UserData {
   incomeMonth: number;
@@ -81,10 +83,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // Try to authenticate user
       console.log('🔐 Attempting user authentication...');
-      const authResponse = await apiService.authenticateTelegramUser();
+      const authResponse = await apiService.getCurrentUser();
       
       if (authResponse.success && authResponse.data) {
-        const userInfo = authResponse.data;
+        const userInfo = authResponse.data as any;
         
         // Get detailed progress
         const progressResponse = await apiService.getUserProgress();
@@ -143,11 +145,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!isAPIConnected) return;
     
     try {
-      const userResponse = await apiService.getUserInfo();
+      const userResponse = await apiService.getCurrentUser();
       const progressResponse = await apiService.getUserProgress();
       
       if (userResponse.success && userResponse.data) {
-        const userInfo = userResponse.data;
+        const userInfo = userResponse.data as any;
         
         setUserData(prev => ({
           ...prev,
