@@ -3,6 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import apiService from '../services/api';
 import StageCard from '../components/StageCard';
+import ChatModal from '../components/ChatModal';
+import AIMessage from '../components/AIMessage';
+import { useAutoScroll } from '../hooks/useAutoScroll';
 import { 
   Trophy, 
   Star, 
@@ -30,7 +33,8 @@ import {
   ClipboardCheck,
   ChevronLeft,
   Award,
-  Copy
+  Copy,
+  Maximize2
 } from 'lucide-react';
 
 interface Stage {
@@ -3246,6 +3250,9 @@ const Levels: React.FC = () => {
 
 
       </div>
+      
+      {/* Chat Modal for AI Coach - placeholder for now */}
+      {/* Will add complete chat functionality once the main component structure is clear */}
     </div>
   );
 };

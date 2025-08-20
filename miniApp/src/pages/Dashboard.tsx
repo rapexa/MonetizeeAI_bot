@@ -2,8 +2,11 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import apiService from '../services/api';
-import Card from '../components/Card';
-import RadialGauge from '../components/RadialGauge';
+// import Card from '../components/Card';
+// import RadialGauge from '../components/RadialGauge';
+import ChatModal from '../components/ChatModal';
+import AIMessage from '../components/AIMessage';
+import { useAutoScroll } from '../hooks/useAutoScroll';
 import { 
   TrendingUp, 
   Users, 
@@ -52,7 +55,9 @@ import {
   Copy,
   Download,
   RefreshCw,
-  ChevronRight
+  ChevronRight,
+  Maximize2,
+  Send
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -68,6 +73,8 @@ const Dashboard: React.FC = () => {
   const [chatMessage, setChatMessage] = React.useState<string>('');
   const [isEditingPrompt, setIsEditingPrompt] = React.useState<boolean>(false);
   const [chatMessages, setChatMessages] = React.useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string}>>([]);
+  const [isChatModalOpen, setIsChatModalOpen] = React.useState(false);
+  const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
 
   // Auto refresh data periodically
   React.useEffect(() => {
@@ -383,6 +390,8 @@ const Dashboard: React.FC = () => {
             timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
           };
           setChatMessages(prev => [...prev, aiResponse]);
+          // Auto scroll after AI response
+          setTimeout(scrollToBottom, 100);
         } else {
           throw new Error(response.error || 'Failed to get response');
         }
@@ -395,6 +404,8 @@ const Dashboard: React.FC = () => {
           timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
         };
         setChatMessages(prev => [...prev, aiResponse]);
+        // Auto scroll after AI response
+        setTimeout(scrollToBottom, 100);
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -405,6 +416,8 @@ const Dashboard: React.FC = () => {
         timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
       };
       setChatMessages(prev => [...prev, errorResponse]);
+      // Auto scroll after error response
+      setTimeout(scrollToBottom, 100);
     }
   };
 
@@ -718,6 +731,13 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsChatModalOpen(true)}
+                  className="p-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl transition-colors duration-200 group"
+                  title="گسترش چت"
+                >
+                  <Maximize2 size={16} className="text-gray-400 group-hover:text-white transition-colors" />
+                </button>
                 <div className="flex items-center gap-1 text-green-600 dark:text-green-400 bg-green-100/70 dark:bg-green-900/40 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium border border-green-200/50 dark:border-green-700/50">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                   آنلاین
@@ -731,51 +751,29 @@ const Dashboard: React.FC = () => {
             <div className={`backdrop-blur-md rounded-xl p-4 border border-gray-700/60 shadow-lg transition-all duration-500 ${isEditingPrompt ? 'ring-2 ring-purple-400/50' : ''}`} style={{ backgroundColor: '#10091c' }}>
               {/* Chat Messages */}
               <div className={`overflow-y-auto space-y-3 mb-4 transition-all duration-500 ${isEditingPrompt ? 'h-20' : 'h-40'}`}>
-                {chatMessages.map((message) => (
+                {chatMessages.map((message, index) => (
                   <div
                     key={message.id}
                     className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
                   >
-                    <div className={`flex items-start gap-2 max-w-[80%] ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        message.sender === 'ai' 
-                          ? 'bg-gradient-to-br from-[#2c189a] to-[#5a189a]' 
-                          : 'bg-gradient-to-br from-gray-500 to-gray-600'
-                      }`}>
-                        {message.sender === 'ai' ? (
-                          <Brain size={12} className="text-white" />
-                        ) : (
-                          <div className="w-3 h-3 bg-white rounded-full"></div>
-                        )}
-                      </div>
-                      
-                      <div className={`${
-                        message.sender === 'ai' 
-                          ? 'bg-purple-100/70 dark:bg-purple-900/30 text-gray-800 dark:text-gray-200' 
-                          : 'bg-gray-100/70 dark:bg-gray-700/50 text-gray-800 dark:text-gray-200'
-                      } backdrop-blur-sm rounded-lg px-3 py-2 text-xs`}>
-                        <p>{message.text}</p>
-                        <div className="flex items-center justify-between mt-1">
-                          <div className="text-xs opacity-60">
-                            {message.timestamp}
-                          </div>
-                          {message.sender === 'ai' && (
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(message.text);
-                                console.log('پیام کپی شد');
-                              }}
-                              className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200 p-1 rounded hover:bg-gray-100/50 dark:hover:bg-gray-700/50"
-                              title="کپی پیام"
-                            >
-                              <Copy size={10} />
-                            </button>
-                          )}
+                    {message.sender === 'user' ? (
+                      <div className="flex flex-col max-w-[80%]">
+                        <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-lg rounded-br-md px-3 py-2">
+                          <p className="text-white text-xs leading-relaxed">{message.text}</p>
                         </div>
+                        <span className="text-xs text-gray-500 mt-1 px-1 text-right">{message.timestamp}</span>
                       </div>
-                    </div>
+                    ) : (
+                      <AIMessage
+                        message={message.text}
+                        timestamp={message.timestamp}
+                        isLatest={index === chatMessages.length - 1}
+                        onTypingComplete={scrollToBottom}
+                      />
+                    )}
                   </div>
                 ))}
+                <div ref={messagesEndRef} />
               </div>
               
               {/* Chat Input */}
@@ -975,6 +973,13 @@ const Dashboard: React.FC = () => {
 
         </>
       )}
+
+      {/* Chat Modal */}
+      <ChatModal
+        isOpen={isChatModalOpen}
+        onClose={() => setIsChatModalOpen(false)}
+        title="AI Coach - چت کامل"
+      />
 
       </div>
     </div>

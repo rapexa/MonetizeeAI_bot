@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, Send, Brain, Sparkles, MessageSquare, Target, TrendingUp, Lightbulb, Copy, ChevronRight, Zap, BookOpen, Users, DollarSign, Rocket, BarChart3 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import apiService from '../services/api';
+import AIMessage from '../components/AIMessage';
+import { useAutoScroll } from '../hooks/useAutoScroll';
 
 const AICoach: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ const AICoach: React.FC = () => {
     sender: 'user' | 'ai';
     timestamp: string;
   }>>([]);
+  const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
 
   // Load chat history on component mount
   React.useEffect(() => {
@@ -141,6 +144,8 @@ const AICoach: React.FC = () => {
             timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
           };
           setChatMessages(prev => [...prev, aiResponse]);
+          // Auto scroll after AI response
+          setTimeout(scrollToBottom, 100);
         } else {
           throw new Error(response.error || 'Failed to get response');
         }
@@ -157,6 +162,8 @@ const AICoach: React.FC = () => {
         timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
       };
       setChatMessages(prev => [...prev, errorResponse]);
+      // Auto scroll after error response
+      setTimeout(scrollToBottom, 100);
     } finally {
       setIsLoading(false);
     }
@@ -188,37 +195,29 @@ const AICoach: React.FC = () => {
         <div className="pt-24 max-w-4xl mx-auto p-6 pb-32">
           {/* Chat Messages */}
           <div className="h-[calc(100vh-200px)] overflow-y-auto space-y-6">
-            {chatMessages.map((msg) => (
+            {chatMessages.map((msg, index) => (
               <div
                 key={msg.id}
                 className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div
-                  className={`max-w-xs lg:max-w-md p-4 rounded-2xl ${
-                    msg.sender === 'user'
-                      ? 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white'
-                      : 'bg-gray-800/60 text-gray-200 border border-gray-700/60'
-                  }`}
-                >
-                  <p className="text-sm leading-relaxed">{msg.text}</p>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-xs opacity-70">{msg.timestamp}</p>
-                    {msg.sender === 'ai' && (
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(msg.text);
-                          console.log('پیام کپی شد');
-                        }}
-                        className="text-xs text-gray-400 hover:text-gray-200 transition-colors duration-200 p-1 rounded hover:bg-gray-700/50"
-                        title="کپی پیام"
-                      >
-                        <Copy size={10} />
-                      </button>
-                    )}
+                {msg.sender === 'user' ? (
+                  <div className="max-w-xs lg:max-w-md">
+                    <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white p-4 rounded-2xl">
+                      <p className="text-sm leading-relaxed">{msg.text}</p>
+                    </div>
+                    <p className="text-xs opacity-70 mt-2 text-right px-2">{msg.timestamp}</p>
                   </div>
-                </div>
+                ) : (
+                  <AIMessage
+                    message={msg.text}
+                    timestamp={msg.timestamp}
+                    isLatest={index === chatMessages.length - 1}
+                    onTypingComplete={scrollToBottom}
+                  />
+                )}
               </div>
             ))}
+            <div ref={messagesEndRef} />
           </div>
         </div>
 
