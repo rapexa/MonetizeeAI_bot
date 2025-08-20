@@ -1,5 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import apiService from '../services/api';
+import { useApp } from '../context/AppContext';
 import { 
   Package, 
   Copy, 
@@ -19,6 +21,7 @@ import {
 
 const SellKitAI: React.FC = () => {
   const navigate = useNavigate();
+  const { isAPIConnected } = useApp();
   const [formData, setFormData] = React.useState({
     productName: '',
     description: '',
@@ -90,25 +93,40 @@ const SellKitAI: React.FC = () => {
   };
 
   const generateSellKit = async () => {
+    // Validate required fields
+    if (!formData.productName.trim() || !formData.description.trim() || !formData.targetAudience.trim()) {
+      alert('لطفاً نام محصول، توضیحات و مخاطب هدف را وارد کنید');
+      return;
+    }
+
+    if (!isAPIConnected) {
+      alert('اتصال به سرور برقرار نیست. لطفاً دوباره تلاش کنید.');
+      return;
+    }
+
     setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const sellKitResult = {
-      title: `${formData.productName} - راه‌حل نهایی شما`,
-      headline: `تجربه‌ای فراتر از انتظار با ${formData.productName}`,
-      description: `${formData.description} - طراحی شده خصوصاً برای ${formData.targetAudience}`,
-      benefits: [
-        'صرفه‌جویی زمان و انرژی قابل توجه',
-        'نتایج تضمین شده و قابل اندازه‌گیری', 
-        'پشتیبانی کامل و مشاوره رایگان'
-      ],
-      priceRange: '299,000 - 899,000 تومان',
-      offer: 'تخفیف 30% برای 50 خریدار اول + ضمانت بازگشت وجه',
-      visualSuggestion: 'تصویر محصول با بک‌گراند مینیمال و رنگ‌های گرم'
-    };
-    
-    setResult(sellKitResult);
-    setIsGenerating(false);
+    try {
+      console.log('🚀 Generating sell kit with ChatGPT...');
+      const response = await apiService.generateSellKit({
+        product_name: formData.productName,
+        description: formData.description,
+        target_audience: formData.targetAudience,
+        benefits: formData.benefits || ''
+      });
+
+      if (response.success && response.data) {
+        console.log('✅ Sell kit generated successfully:', response.data);
+        setResult(response.data);
+      } else {
+        console.error('❌ Failed to generate sell kit:', response.error);
+        alert('خطا در تولید کیت فروش: ' + (response.error || 'خطای نامشخص'));
+      }
+    } catch (error) {
+      console.error('❌ Error generating sell kit:', error);
+      alert('خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -136,6 +154,16 @@ const SellKitAI: React.FC = () => {
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:32px_32px]"></div>
       
       <div className="relative z-10 container mx-auto px-4 py-8">
+        {/* API Status Indicator */}
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+          isAPIConnected 
+            ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+            : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+        }`}>
+          <div className={`w-2 h-2 rounded-full ${isAPIConnected ? 'bg-green-400' : 'bg-orange-400'} animate-pulse`}></div>
+          {isAPIConnected ? 'ChatGPT متصل' : 'حالت آفلاین'}
+        </div>
+
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button

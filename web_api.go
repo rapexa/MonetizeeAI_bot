@@ -113,6 +113,9 @@ func StartWebAPI() {
 		// Business Builder AI endpoint
 		v1.POST("/business-builder", handleBusinessBuilderRequest)
 
+		// SellKit AI endpoint
+		v1.POST("/sellkit", handleSellKitRequest)
+
 		// Profile endpoints
 		v1.GET("/user/:telegram_id/profile", getUserProfile)
 		v1.PUT("/user/:telegram_id/profile", updateUserProfile)
@@ -868,6 +871,121 @@ func handleBusinessBuilderRequest(c *gin.Context) {
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
 		Data:    businessPlan,
+	})
+}
+
+// SellKitRequest represents the input for sales kit generation
+type SellKitRequest struct {
+	TelegramID     int64  `json:"telegram_id"`
+	ProductName    string `json:"product_name"`
+	Description    string `json:"description"`
+	TargetAudience string `json:"target_audience"`
+	Benefits       string `json:"benefits"`
+}
+
+// SellKitResponse represents the structured sales kit response
+type SellKitResponse struct {
+	Title            string   `json:"title"`
+	Headline         string   `json:"headline"`
+	Description      string   `json:"description"`
+	Benefits         []string `json:"benefits"`
+	PriceRange       string   `json:"priceRange"`
+	Offer            string   `json:"offer"`
+	VisualSuggestion string   `json:"visualSuggestion"`
+}
+
+// handleSellKitRequest handles AI-powered sales kit generation
+func handleSellKitRequest(c *gin.Context) {
+	var req SellKitRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid request format",
+		})
+		return
+	}
+
+	// Validate required fields
+	if req.ProductName == "" || req.Description == "" || req.TargetAudience == "" {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "نام محصول، توضیحات و مخاطب هدف الزامی هستند",
+		})
+		return
+	}
+
+	// Create structured prompt for ChatGPT
+	prompt := fmt.Sprintf(`تو یک متخصص بازاریابی و فروش حرفه‌ای هستی. بر اساس اطلاعات زیر، یک کیت فروش حرفه‌ای و جذاب بساز:
+
+نام محصول: %s
+توضیحات: %s
+مخاطب هدف: %s
+مزایای اصلی: %s
+
+اهمیت:
+- عنوان باید جذاب و قانع‌کننده باشد
+- تیتر باید عاطفی و تأثیرگذار باشد
+- توضیحات باید مشکل مخاطب و راه‌حل را نشان دهد
+- مزایا باید عملی و قابل اندازه‌گیری باشند
+- قیمت بر اساس بازار ایران باشد
+- پیشنهاد ویژه جذاب و عملی باشد
+
+پاسخ خود را دقیقاً به صورت JSON بده بدون هیچ متن اضافی:
+
+{
+  "title": "عنوان جذاب و قانع‌کننده برای محصول",
+  "headline": "تیتر عاطفی و تأثیرگذار که توجه را جلب کند",
+  "description": "توضیح کامل و متقاعدکننده که مشکل و راه‌حل را بیان کند",
+  "benefits": ["مزیت عملی 1", "مزیت عملی 2", "مزیت عملی 3"],
+  "priceRange": "محدوده قیمت به تومان بر اساس بازار ایران",
+  "offer": "پیشنهاد ویژه جذاب با تخفیف یا بونوس",
+  "visualSuggestion": "پیشنهاد مشخص برای تصاویر بازاریابی"
+}`,
+		req.ProductName, req.Description, req.TargetAudience, req.Benefits)
+
+	// Find user for ChatGPT call
+	var user User
+	result := db.Where("telegram_id = ?", req.TelegramID).First(&user)
+	if result.Error != nil {
+		logger.Error("Database error in finding user for sellkit", zap.Error(result.Error))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "کاربر یافت نشد",
+		})
+		return
+	}
+
+	// Call ChatGPT API
+	response := handleChatGPTMessageAPI(&user, prompt)
+
+	// Extract JSON from response (handle markdown code blocks)
+	cleanResponse := extractJSONFromResponse(response)
+	logger.Info("ChatGPT response for sellkit",
+		zap.String("raw_response", response),
+		zap.String("clean_response", cleanResponse))
+
+	// Try to parse the JSON response
+	var sellKit SellKitResponse
+	if err := json.Unmarshal([]byte(cleanResponse), &sellKit); err != nil {
+		// If JSON parsing fails, log and return error
+		logger.Error("Failed to parse ChatGPT JSON response for sellkit",
+			zap.Error(err),
+			zap.String("response", response),
+			zap.String("clean_response", cleanResponse))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "خطا در پردازش پاسخ ChatGPT. لطفاً دوباره تلاش کنید.",
+		})
+		return
+	}
+
+	logger.Info("Sell kit generated successfully",
+		zap.Int64("telegram_id", req.TelegramID),
+		zap.String("product_name", req.ProductName))
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    sellKit,
 	})
 }
 

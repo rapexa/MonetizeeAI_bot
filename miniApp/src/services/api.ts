@@ -343,6 +343,40 @@ class APIService {
       ...businessData
     });
   }
+
+  // SellKit AI - Generate sales kit with ChatGPT
+  async generateSellKit(sellKitData: {
+    product_name: string;
+    description: string;
+    target_audience: string;
+    benefits: string;
+  }): Promise<APIResponse<{
+    title: string;
+    headline: string;
+    description: string;
+    benefits: string[];
+    priceRange: string;
+    offer: string;
+    visualSuggestion: string;
+  }>> {
+    const telegramId = this.getTelegramId();
+    if (!telegramId) {
+      return { success: false, error: 'No user ID available' };
+    }
+
+    return this.makeRequest<{
+      title: string;
+      headline: string;
+      description: string;
+      benefits: string[];
+      priceRange: string;
+      offer: string;
+      visualSuggestion: string;
+    }>('POST', '/sellkit', {
+      telegram_id: telegramId,
+      ...sellKitData
+    });
+  }
 }
 
 const apiService = new APIService();
