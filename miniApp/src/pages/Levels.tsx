@@ -3483,19 +3483,72 @@ const Levels: React.FC = () => {
       </div>
       
       {/* Chat Modal for AI Coach */}
-      {(() => {
-        console.log('🔥 Rendering ChatModal with isOpen:', isChatModalOpen);
-        return (
-          <ChatModal
-            key={`modal-${isChatModalOpen}`} // Force re-render
-            isOpen={isChatModalOpen}
-            onClose={handleCloseModal}
-            title="MonetizeAI Coach"
-            chatMessages={chatMessages}
-            setChatMessages={setChatMessages}
-          />
-        );
-      })()}
+      {isChatModalOpen && (
+        <div className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm">
+          <div className="h-full w-full flex flex-col bg-gradient-to-br from-gray-900 to-black">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-700/50 bg-gray-800/30 safe-area-top">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-10 h-10 bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Brain size={20} className="text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold text-white truncate">MonetizeAI Coach</h3>
+                  <p className="text-sm text-gray-400 truncate">مربی هوشمند شما</p>
+                </div>
+              </div>
+              <button
+                onClick={handleCloseModal}
+                className="w-10 h-10 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 ml-2"
+              >
+                <X size={20} className="text-gray-300" />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+              {chatMessages.map((msg, index) => (
+                <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  {msg.sender === 'user' ? (
+                    <div className="max-w-[75%]">
+                      <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white p-3 rounded-2xl">
+                        <p className="text-sm leading-relaxed break-words">{msg.text}</p>
+                      </div>
+                      <p className="text-xs opacity-70 mt-1 text-right px-2">{msg.timestamp}</p>
+                    </div>
+                  ) : (
+                    <div className="max-w-[75%]">
+                      <div className="bg-gray-700/50 text-white p-3 rounded-2xl">
+                        <p className="text-sm leading-relaxed break-words">{msg.text}</p>
+                      </div>
+                      <p className="text-xs opacity-70 mt-1 px-2">{msg.timestamp}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="p-4 border-t border-gray-700/50 bg-gray-800/95 safe-area-bottom">
+              <div className="flex gap-3 items-center max-w-full">
+                <input
+                  type="text"
+                  placeholder="سوال خود را بپرسید..."
+                  className="flex-1 p-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:border-[#2c189a] focus:ring-1 focus:ring-[#2c189a] transition-colors outline-none min-w-0"
+                  style={{ 
+                    fontSize: '16px',
+                    height: '48px'
+                  }}
+                />
+                <button className="w-12 h-12 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl flex items-center justify-center flex-shrink-0">
+                  <span className="text-lg">➤</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
