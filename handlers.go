@@ -569,7 +569,24 @@ func getCurrentSessionInfo(user *User) string {
 	photo := tgbotapi.NewPhoto(user.TelegramID, tgbotapi.FileURL(session.ThumbnailURL))
 	photo.Caption = message
 	photo.ReplyMarkup = inlineKeyboard
-	bot.Send(photo)
+
+	// Debug: Check if photo is being sent
+	logger.Info("Sending photo for session",
+		zap.Int("session_number", session.Number),
+		zap.String("thumbnail_url", session.ThumbnailURL),
+		zap.String("video_link", video.VideoLink))
+
+	if _, err := bot.Send(photo); err != nil {
+		logger.Error("Failed to send photo",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Int("session_number", session.Number),
+			zap.Error(err))
+
+		// Fallback: send text message instead
+		fallbackMsg := tgbotapi.NewMessage(user.TelegramID, message)
+		fallbackMsg.ReplyMarkup = inlineKeyboard
+		bot.Send(fallbackMsg)
+	}
 
 	// Check if this is the last video (session 29)
 	if session.Number == 29 {
