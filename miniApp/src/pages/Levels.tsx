@@ -130,10 +130,16 @@ const Levels: React.FC = () => {
   // Define levels state - will be initialized after generateLevels function definition
   const [levels, setLevels] = useState<Level[]>([]);
   
-  // Initialize levels on component mount
+  // Initialize levels only when userData is ready
   useEffect(() => {
-    console.log('📱 Component mounted, initializing levels...');
-    setLevels(generateLevels());
+    // Only initialize if we have real user data (not defaults)
+    if (userData.currentSession && userData.currentSession > 1) {
+      console.log('📱 Initializing levels with real user data...');
+      setLevels(generateLevels());
+    } else if (!userData.currentSession || userData.currentSession === 1) {
+      console.log('📱 Initializing levels with default data...');
+      setLevels(generateLevels());
+    }
   }, []);
 
   // Auto-select current level based on user progress
@@ -1569,13 +1575,15 @@ const Levels: React.FC = () => {
     const completedStages = levelStages.filter(stage => stage.id < currentSession).length;
     const progress = Math.round((completedStages / levelStages.length) * 100);
     
-    console.log('🔢 Calculating level progress:', {
-      currentSession,
-      levelStages: levelStages.map(s => ({ id: s.id, status: getStageStatus(s.id) })),
-      completedStages,
-      progress,
-      levelStagesLength: levelStages.length
-    });
+    // Only log for first level to avoid spam
+    if (levelStages[0]?.id === 1) {
+      console.log('🔢 Level progress calculation:', {
+        currentSession,
+        level1_stages: levelStages.map(s => s.id),
+        completedStages,
+        progress: `${progress}%`
+      });
+    }
     
     return progress;
   };
@@ -2139,10 +2147,10 @@ const Levels: React.FC = () => {
       completedTasks: userData.completedTasks
     });
     
-    if (userData.currentSession) {
-      setLevels(generateLevels());
-    }
-  }, [userData.currentSession, userData.progressOverall]);
+    const newLevels = generateLevels();
+    setLevels([...newLevels]); // Force array update
+    console.log('✅ Levels updated, progress sample:', newLevels.slice(0, 5).map(l => `Level ${l.id}: ${l.progress}%`));
+  }, [userData.currentSession, userData.progressOverall, userData.completedTasks]);
 
   // Load chat history on component mount
   useEffect(() => {
