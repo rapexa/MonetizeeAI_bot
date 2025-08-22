@@ -2790,14 +2790,17 @@ const Levels: React.FC = () => {
                 </p>
                   </div>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   console.log('Expand button clicked');
                   setIsChatModalOpen(true);
                 }}
-                className="p-2 hover:bg-gray-100/20 dark:hover:bg-gray-700/20 rounded-lg transition-colors duration-200 cursor-pointer"
+                className="p-2 hover:bg-gray-100/20 dark:hover:bg-gray-700/20 rounded-lg transition-colors duration-200 cursor-pointer z-50 relative"
                 title="بزرگ کردن چت"
+                type="button"
               >
-                <Maximize2 size={18} className="text-gray-600 dark:text-gray-300" />
+                <Maximize2 size={18} className="text-gray-600 dark:text-gray-300 pointer-events-none" />
               </button>
               <div className="text-xs bg-[#8B5CF6]/20 dark:bg-[#8B5CF6]/20 text-[#8B5CF6] dark:text-[#8B5CF6] px-2 md:px-3 py-1 rounded-full border border-[#8B5CF6]/30 dark:border-[#8B5CF6]/30 flex-shrink-0">
                 AI

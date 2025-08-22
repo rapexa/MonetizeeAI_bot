@@ -114,7 +114,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-start md:items-center justify-center bg-black/50 backdrop-blur-sm p-0 md:p-4">
-      <div className="w-full max-w-4xl h-screen md:h-[90vh] md:rounded-3xl bg-gradient-to-br from-gray-900 to-black border-0 md:border border-gray-700/50 overflow-hidden flex flex-col">
+      <div className="w-full max-w-4xl h-screen md:h-[90vh] md:rounded-3xl bg-gradient-to-br from-gray-900 to-black border-0 md:border border-gray-700/50 overflow-hidden flex flex-col" style={{ height: '100vh', maxHeight: '100vh' }}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700/50 bg-gray-800/30 pt-safe">
           <div className="flex items-center gap-3">
@@ -176,24 +176,31 @@ const ChatModal: React.FC<ChatModalProps> = ({
         </div>
 
         {/* Input */}
-        <div className="sticky bottom-0 p-4 md:p-6 border-t border-gray-700/50 bg-gray-800/95 backdrop-blur-xl" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-          <div className="flex gap-3 items-end">
+        <div className="flex-shrink-0 p-4 md:p-6 border-t border-gray-700/50 bg-gray-800/95 backdrop-blur-xl" 
+             style={{ 
+               paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))',
+               position: 'sticky',
+               bottom: 0,
+               zIndex: 10
+             }}>
+          <div className="flex gap-3 items-center">
             <input
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="سوال خود را بپرسید..."
-              className="flex-1 p-3 md:p-4 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:border-[#2c189a] focus:ring-1 focus:ring-[#2c189a] transition-colors resize-none"
+              className="flex-1 p-3 md:p-4 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:border-[#2c189a] focus:ring-1 focus:ring-[#2c189a] transition-colors resize-none outline-none"
               style={{ 
                 fontSize: '16px', // Prevents zoom on iOS
-                minHeight: '52px' // Ensures consistent height
+                height: '52px', // Fixed height instead of min-height
+                WebkitAppearance: 'none' // Remove iOS styling
               }}
             />
             <button
               onClick={handleSendMessage}
               disabled={!message.trim() || isLoading}
-              className="px-4 py-3 md:px-5 md:py-4 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-xl transition-all duration-200 flex items-center justify-center min-w-[52px] flex-shrink-0"
+              className="w-[52px] h-[52px] bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-xl transition-all duration-200 flex items-center justify-center flex-shrink-0"
             >
               {isLoading ? (
                 <span className="animate-bounce-dots">...</span>
