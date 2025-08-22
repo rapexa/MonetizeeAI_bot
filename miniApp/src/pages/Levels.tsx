@@ -43,6 +43,7 @@ interface Stage {
   checklist: string[];
   videoTitle: string;
   videoDuration: string;
+  videoUrl?: string;
 }
 
 interface Level {
@@ -1469,7 +1470,8 @@ const Levels: React.FC = () => {
             "بررسی چگونگی استفاده از AI در این کسب‌وکارها"
           ],
           videoTitle: "اصول انتخاب ایده پول‌ساز",
-          videoDuration: "12:30"
+          videoDuration: "12:30",
+          videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az1sth1.mp4"
         },
         {
           id: 2,
@@ -1483,7 +1485,8 @@ const Levels: React.FC = () => {
             "ارزیابی بازار هدف و تقاضا"
           ],
           videoTitle: "معیارهای ایده موفق",
-          videoDuration: "15:45"
+          videoDuration: "15:45",
+          videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az2sth1.mp4"
         },
         {
           id: 3,
@@ -1497,7 +1500,8 @@ const Levels: React.FC = () => {
             "دسته‌بندی ایده‌ها بر اساس حوزه کاری"
           ],
           videoTitle: "تکنیک‌های Prompting برای ایده‌پردازی",
-          videoDuration: "18:20"
+          videoDuration: "18:20",
+          videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az3sth1.mp4"
         },
         {
           id: 4,
@@ -1511,7 +1515,8 @@ const Levels: React.FC = () => {
             "انتخاب ایده نهایی با دلیل"
           ],
           videoTitle: "تکنیک‌های تصمیم‌گیری",
-          videoDuration: "14:15"
+          videoDuration: "14:15",
+          videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az4ath1.mp4"
         },
         {
           id: 5,
@@ -1525,7 +1530,8 @@ const Levels: React.FC = () => {
             "مشخص کردن مزیت رقابتی"
           ],
           videoTitle: "طراحی پیش‌نمایش محصول",
-          videoDuration: "16:40"
+          videoDuration: "16:40",
+          videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az5sth1.mp4"
         }
       ]
     },
@@ -2446,14 +2452,27 @@ const Levels: React.FC = () => {
                     </div>
 
                     <div className="p-6">
-                                            {/* Minimal Video Player */}
-                      <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg cursor-pointer group mb-6">
+                                            {/* Video Player */}
+                      <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-6">
                         <div className="aspect-video relative">
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-purple-900/20 flex items-center justify-center">
-                            <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:scale-105 transition-all duration-300 cursor-pointer">
-                              <Play className="w-8 h-8 text-white" fill="currentColor" />
+                          {selectedStage.videoUrl ? (
+                            <video 
+                              controls 
+                              controlsList="nodownload"
+                              className="w-full h-full object-cover"
+                              poster="/video-thumbnail.jpg"
+                            >
+                              <source src={selectedStage.videoUrl} type="video/mp4" />
+                              مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
+                            </video>
+                          ) : (
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-purple-900/20 flex items-center justify-center">
+                              <div className="text-center text-white">
+                                <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                                <p className="text-sm opacity-75">ویدیو در دسترس نیست</p>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </div>
 
