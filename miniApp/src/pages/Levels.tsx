@@ -23,7 +23,7 @@ import {
   Cog,
   TrendingUp,
   X,
-  FileText,
+
   Video,
   ArrowRight,
   Sparkles,
@@ -91,7 +91,8 @@ const Levels: React.FC = () => {
 
   // Helper function to get stage status based on user progress
   const getStageStatus = (stageId: number): 'locked' | 'available' | 'in_progress' | 'completed' => {
-    const completedStages = userData.currentSession - 1;
+    const currentSession = userData.currentSession || 1;
+    const completedStages = currentSession - 1;
     
     if (stageId <= completedStages) {
       return 'completed';
@@ -124,6 +125,11 @@ const Levels: React.FC = () => {
     }
   }, [userData.currentSession]);
 
+
+
+  // Define levels state - will be initialized after generateLevels function definition
+  const [levels, setLevels] = useState<Level[]>([]);
+
   // Auto-select current level based on user progress
   useEffect(() => {
     if (levels.length > 0 && !selectedLevel && userData.currentSession) {
@@ -144,7 +150,7 @@ const Levels: React.FC = () => {
       setSelectedLevel(targetLevel);
       console.log('🎯 Auto-selected level based on current session:', {
         currentSession: userData.currentSession,
-        selectedLevel: targetLevel.name
+        selectedLevel: targetLevel.title
       });
     }
   }, [levels, selectedLevel, userData.currentSession]);
@@ -2086,8 +2092,10 @@ const Levels: React.FC = () => {
     }
   ];
 
-  // Generate levels with current user progress
-  const levels = generateLevels();
+  // Initialize levels after generateLevels function is defined
+  useEffect(() => {
+    setLevels(generateLevels());
+  }, [userData.currentSession]);
 
   // Load chat history on component mount
   useEffect(() => {
