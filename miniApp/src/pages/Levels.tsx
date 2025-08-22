@@ -129,6 +129,12 @@ const Levels: React.FC = () => {
 
   // Define levels state - will be initialized after generateLevels function definition
   const [levels, setLevels] = useState<Level[]>([]);
+  
+  // Initialize levels on component mount
+  useEffect(() => {
+    console.log('📱 Component mounted, initializing levels...');
+    setLevels(generateLevels());
+  }, []);
 
   // Auto-select current level based on user progress
   useEffect(() => {
@@ -1559,8 +1565,19 @@ const Levels: React.FC = () => {
 
   // Helper function to calculate level progress
   const calculateLevelProgress = (levelStages: Stage[]): number => {
-    const completedStages = levelStages.filter(stage => getStageStatus(stage.id) === 'completed').length;
-    return Math.round((completedStages / levelStages.length) * 100);
+    const currentSession = userData.currentSession || 1;
+    const completedStages = levelStages.filter(stage => stage.id < currentSession).length;
+    const progress = Math.round((completedStages / levelStages.length) * 100);
+    
+    console.log('🔢 Calculating level progress:', {
+      currentSession,
+      levelStages: levelStages.map(s => ({ id: s.id, status: getStageStatus(s.id) })),
+      completedStages,
+      progress,
+      levelStagesLength: levelStages.length
+    });
+    
+    return progress;
   };
 
   // Generate levels data with dynamic status based on user progress
@@ -2115,8 +2132,17 @@ const Levels: React.FC = () => {
 
   // Initialize levels after generateLevels function is defined
   useEffect(() => {
-    setLevels(generateLevels());
-  }, [userData.currentSession]);
+    console.log('🔄 Re-generating levels due to userData change:', {
+      currentSession: userData.currentSession,
+      currentLevel: userData.currentLevel,
+      progressOverall: userData.progressOverall,
+      completedTasks: userData.completedTasks
+    });
+    
+    if (userData.currentSession) {
+      setLevels(generateLevels());
+    }
+  }, [userData.currentSession, userData.progressOverall]);
 
   // Load chat history on component mount
   useEffect(() => {
