@@ -2399,9 +2399,8 @@ const Levels: React.FC = () => {
                     <div className="flex items-center justify-center gap-4">
                       {[
                         { id: 1, title: 'ویدئو', icon: Video, completed: false, color: 'blue' },
-                        { id: 2, title: 'فایل‌ها', icon: FileText, completed: false, color: 'emerald' },
-                        { id: 3, title: 'ساخت', icon: Rocket, completed: false, color: 'orange' },
-                        { id: 4, title: 'آزمون', icon: Award, completed: stageQuizResults[selectedStage.id]?.passed, color: 'purple' }
+                        { id: 2, title: 'AI Coach', icon: Brain, completed: false, color: 'orange' },
+                        { id: 3, title: 'آزمون', icon: Award, completed: stageQuizResults[selectedStage.id]?.passed, color: 'purple' }
                       ].map((step, index) => (
                         <div key={step.id} className="flex flex-col items-center">
                           <div className={`relative flex items-center justify-center w-12 h-12 rounded-xl border-2 transition-all duration-300 mb-2 ${
