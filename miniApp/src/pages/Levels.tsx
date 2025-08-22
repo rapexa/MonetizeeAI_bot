@@ -1736,8 +1736,23 @@ const Levels: React.FC = () => {
             "پیاده‌سازی ویژگی‌های اصلی",
             "تست عملکرد با گروه هدف کوچک"
           ],
-          videoTitle: "ساخت MVP با No-Code",
-          videoDuration: "25:40"
+          videos: [
+            {
+              title: "ساخت MVP با No-Code - قسمت اول: انتخاب ابزار",
+              duration: "18:30",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video1az7sth2.mp4"
+            },
+            {
+              title: "ساخت MVP با No-Code - قسمت دوم: پیاده‌سازی",
+              duration: "22:15",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video2az7sth2.mp4"
+            },
+            {
+              title: "ساخت MVP با No-Code - قسمت سوم: تست و بهینه‌سازی",
+              duration: "20:45",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video3az7sth2.mp4"
+            }
+          ]
         },
         {
           id: 8,
@@ -1750,8 +1765,18 @@ const Levels: React.FC = () => {
             "طراحی پیشنهاد قیمت‌گذاری",
             "آماده‌سازی پکیج فروش اولیه"
           ],
-          videoTitle: "هنر Storytelling و قیمت‌گذاری",
-          videoDuration: "18:50"
+          videos: [
+            {
+              title: "هنر Storytelling و قیمت‌گذاری - قسمت اول: داستان‌گویی",
+              duration: "16:25",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video1az8sth2.mp4"
+            },
+            {
+              title: "هنر Storytelling و قیمت‌گذاری - قسمت دوم: استراتژی قیمت‌گذاری",
+              duration: "14:30",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video2az8sth2.mp4"
+            }
+          ]
         }
       ]
     },
