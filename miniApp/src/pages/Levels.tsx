@@ -2474,75 +2474,7 @@ const Levels: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Step 2: Supplementary Files */}
-                  <div className="backdrop-blur-xl rounded-2xl border border-gray-800/60 shadow-xl overflow-hidden" style={{ backgroundColor: '#11091C' }}>
-                    {/* Header */}
-                    <div className="backdrop-blur-xl border-b border-gray-800/60 p-4" style={{ backgroundColor: '#11091C' }}>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-[#2c189a] to-[#5a189a] rounded-xl">
-                          <FileText className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-bold text-white">قدم دوم: فایل‌های تکمیلی</h3>
-                          <p className="text-gray-300 text-sm mt-1">منابع جانبی برای تقویت یادگیری</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-6">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* PDF File */}
-                        <div className="bg-gradient-to-br from-purple-50/80 to-indigo-50/80 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-2xl p-4 border border-purple-200/50 dark:border-purple-800/50 hover:scale-105 transition-all duration-300 cursor-pointer group">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2 bg-purple-500/20 rounded-lg">
-                              <FileText className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 dark:text-white">راهنمای PDF</h4>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">12 صفحه</p>
-                            </div>
-                          </div>
-                          <button className="w-full bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white py-2 rounded-xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 border border-white/10">
-                            دانلود PDF
-              </button>
-                    </div>
-
-                        {/* Mindmap */}
-                        <div className="bg-gradient-to-br from-purple-50/80 to-indigo-50/80 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-2xl p-4 border border-purple-200/50 dark:border-purple-800/50 hover:scale-105 transition-all duration-300 cursor-pointer group">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2 bg-purple-500/20 rounded-lg">
-                              <Brain className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 dark:text-white">مایندمپ</h4>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">تصویری</p>
-                            </div>
-                          </div>
-                          <button className="w-full bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white py-2 rounded-xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 border border-white/10">
-                            مشاهده نقشه
-                          </button>
-                    </div>
-                    
-                        {/* AI Prompts */}
-                        <div className="bg-gradient-to-br from-purple-50/80 to-indigo-50/80 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-2xl p-4 border border-purple-200/50 dark:border-purple-800/50 hover:scale-105 transition-all duration-300 cursor-pointer group">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2 bg-purple-500/20 rounded-lg">
-                              <Sparkles className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 dark:text-white">پرامپت‌های AI</h4>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">15 پرامپت</p>
-                            </div>
-                          </div>
-                          <button className="w-full bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white py-2 rounded-xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 border border-white/10">
-                            دریافت پرامپت‌ها
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Step 3: Build & Business with AI Coach + Tools */}
+                  {/* Step 2: AI Coach */}
                   <div className="backdrop-blur-xl rounded-2xl border border-gray-800/60 shadow-xl overflow-hidden" style={{ backgroundColor: '#11091C' }}>
                     {/* Header */}
                     <div className="backdrop-blur-xl border-b border-gray-800/60 p-4" style={{ backgroundColor: '#11091C' }}>
@@ -2551,7 +2483,7 @@ const Levels: React.FC = () => {
                           <Rocket className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-white">قدم سوم: ساخت و کسب‌وکار</h3>
+                          <h3 className="text-lg font-bold text-white">قدم دوم: AI Coach</h3>
                           <p className="text-gray-300 text-sm mt-1">با کمک AI کوچ و ابزارهای حرفه‌ای</p>
                         </div>
                       </div>
@@ -2696,7 +2628,7 @@ const Levels: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Step 4: Quiz Section */}
+                  {/* Step 3: Quiz Section */}
                   <div className="backdrop-blur-xl rounded-2xl border border-gray-800/60 shadow-xl overflow-hidden" style={{ backgroundColor: '#11091C' }}>
                     {/* Header */}
                     <div className="backdrop-blur-xl border-b border-gray-800/60 p-4" style={{ backgroundColor: '#11091C' }}>
@@ -2705,7 +2637,7 @@ const Levels: React.FC = () => {
                           <Award className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-white">قدم چهارم: آزمون نهایی</h3>
+                          <h3 className="text-lg font-bold text-white">قدم سوم: آزمون نهایی</h3>
                           <p className="text-gray-300 text-sm mt-1">تست میزان یادگیری شما</p>
                         </div>
                       </div>
