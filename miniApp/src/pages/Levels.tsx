@@ -1393,53 +1393,53 @@ const Levels: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 2000));
         
         const questions = getQuizQuestions(selectedStage);
-        let score = 0;
-        let correctAnswers = 0;
-        
-        // Calculate score based on answers
-        questions.forEach(question => {
-          const userAnswer = userAnswers[question.id];
-          if (question.type === 'multiple' && userAnswer === question.correct) {
-            correctAnswers++;
-            score += 25;
-          } else if ((question.type === 'short' || question.type === 'long') && userAnswer && userAnswer.trim().length > 10) {
-            // Simple validation for text answers
-            correctAnswers++;
-            score += 25;
-          }
-        });
+    let score = 0;
+    let correctAnswers = 0;
+    
+    // Calculate score based on answers
+    questions.forEach(question => {
+      const userAnswer = userAnswers[question.id];
+      if (question.type === 'multiple' && userAnswer === question.correct) {
+        correctAnswers++;
+        score += 25;
+      } else if ((question.type === 'short' || question.type === 'long') && userAnswer && userAnswer.trim().length > 10) {
+        // Simple validation for text answers
+        correctAnswers++;
+        score += 25;
+      }
+    });
 
-        const passed = score >= 70; // 70% to pass
-        
-        const feedbacks = {
-          excellent: "🎉 عالی! شما درک کاملی از این مرحله دارید. پاسخ‌هایتان نشان می‌دهد که آماده پیشرفت به مرحله بعد هستید. ادامه دهید!",
-          good: "👍 خوب! شما اساس این مرحله را درک کرده‌اید. با کمی مرور بیشتر، می‌تونید به راحتی به مرحله بعد بروید.",
-          needsWork: "📚 نیاز به مطالعه بیشتر! پیشنهاد می‌کنم ویدئو آموزشی را دوباره مشاهده کنید و با AI Coach بیشتر صحبت کنید.",
-          failed: "🔄 تلاش مجدد! این بار زمان بیشتری برای یادگیری صرف کنید. من آماده کمک به شما هستم!"
-        };
+    const passed = score >= 70; // 70% to pass
+    
+    const feedbacks = {
+      excellent: "🎉 عالی! شما درک کاملی از این مرحله دارید. پاسخ‌هایتان نشان می‌دهد که آماده پیشرفت به مرحله بعد هستید. ادامه دهید!",
+      good: "👍 خوب! شما اساس این مرحله را درک کرده‌اید. با کمی مرور بیشتر، می‌تونید به راحتی به مرحله بعد بروید.",
+      needsWork: "📚 نیاز به مطالعه بیشتر! پیشنهاد می‌کنم ویدئو آموزشی را دوباره مشاهده کنید و با AI Coach بیشتر صحبت کنید.",
+      failed: "🔄 تلاش مجدد! این بار زمان بیشتری برای یادگیری صرف کنید. من آماده کمک به شما هستم!"
+    };
 
-        let feedback = feedbacks.failed;
-        if (score >= 90) feedback = feedbacks.excellent;
-        else if (score >= 80) feedback = feedbacks.good;
-        else if (score >= 70) feedback = feedbacks.needsWork;
+    let feedback = feedbacks.failed;
+    if (score >= 90) feedback = feedbacks.excellent;
+    else if (score >= 80) feedback = feedbacks.good;
+    else if (score >= 70) feedback = feedbacks.needsWork;
 
-        setQuizResult({ passed, score, feedback });
-        setIsAnalyzing(false);
-        setQuizCompleted(true);
-        
-        // Save quiz result for this stage
-        setStageQuizResults(prev => ({
-          ...prev,
-          [selectedStage.id]: {
-            passed,
-            score,
-            attempts: (prev[selectedStage.id]?.attempts || 0) + 1
-          }
-        }));
-        
-        // If passed, unlock next stage
-        if (passed) {
-          setPassedStages(prev => new Set([...prev, selectedStage.id + 1]));
+    setQuizResult({ passed, score, feedback });
+    setIsAnalyzing(false);
+    setQuizCompleted(true);
+    
+    // Save quiz result for this stage
+      setStageQuizResults(prev => ({
+        ...prev,
+        [selectedStage.id]: {
+          passed,
+          score,
+          attempts: (prev[selectedStage.id]?.attempts || 0) + 1
+        }
+      }));
+      
+      // If passed, unlock next stage
+      if (passed) {
+        setPassedStages(prev => new Set([...prev, selectedStage.id + 1]));
           // Re-generate levels to reflect the updated status
           setTimeout(() => {
             setLevels(generateLevels());
@@ -1601,7 +1601,7 @@ const Levels: React.FC = () => {
       color: "text-green-600",
       gradient: "from-[#2c189a] to-[#5a189a]",
       isUnlocked: true,
-      progress: 0, // Will be calculated after stages are defined
+      progress: 0,
       stages: [
         {
           id: 1,
@@ -2130,12 +2130,13 @@ const Levels: React.FC = () => {
     }
   ];
 
-  // Calculate progress for each level based on completed stages
-  levelsArray.forEach(level => {
-    level.progress = calculateLevelProgress(level.stages);
-  });
+  // Calculate progress for each level based on completed stages and return new objects
+  const levelsWithProgress = levelsArray.map(level => ({
+    ...level,
+    progress: calculateLevelProgress(level.stages)
+  }));
 
-  return levelsArray;
+  return levelsWithProgress;
 };
 
   // Initialize levels after generateLevels function is defined
@@ -2150,6 +2151,11 @@ const Levels: React.FC = () => {
     const newLevels = generateLevels();
     setLevels([...newLevels]); // Force array update
     console.log('✅ Levels updated, progress sample:', newLevels.slice(0, 5).map(l => `Level ${l.id}: ${l.progress}%`));
+    
+    // Debug: Check if levels state actually updated
+    setTimeout(() => {
+      console.log('🔍 Levels state after update:', levels.slice(0, 3).map(l => `Level ${l.id}: ${l.progress}%`));
+    }, 100);
   }, [userData.currentSession, userData.progressOverall, userData.completedTasks]);
 
   // Load chat history on component mount
@@ -2633,12 +2639,12 @@ const Levels: React.FC = () => {
                               مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
                             </video>
                           ) : (
-                            <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-purple-900/20 flex items-center justify-center">
+                          <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-purple-900/20 flex items-center justify-center">
                               <div className="text-center text-white">
                                 <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
                                 <p className="text-sm opacity-75">ویدیو در دسترس نیست</p>
-                              </div>
                             </div>
+                          </div>
                           )}
                         </div>
                       </div>
