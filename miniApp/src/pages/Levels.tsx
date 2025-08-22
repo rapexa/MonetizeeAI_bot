@@ -2800,7 +2800,10 @@ const Levels: React.FC = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    console.log('🔥 Button clicked, setting modal to true');
+                    console.log('Current modal state:', isChatModalOpen);
                     setIsChatModalOpen(true);
+                    console.log('State should be true now');
                   }}
                   className="p-2 hover:bg-gray-100/20 dark:hover:bg-gray-700/20 rounded-lg transition-colors duration-200 cursor-pointer"
                   title="بزرگ کردن چت"
@@ -3466,9 +3469,13 @@ const Levels: React.FC = () => {
       </div>
       
       {/* Chat Modal for AI Coach */}
+      {console.log('🔥 Rendering ChatModal with isOpen:', isChatModalOpen)}
       <ChatModal
         isOpen={isChatModalOpen}
-        onClose={() => setIsChatModalOpen(false)}
+        onClose={() => {
+          console.log('🔥 Modal close called');
+          setIsChatModalOpen(false);
+        }}
         title="MonetizeAI Coach"
         chatMessages={chatMessages}
         setChatMessages={setChatMessages}
