@@ -738,7 +738,7 @@ const Dashboard: React.FC = () => {
                         <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-lg rounded-br-md px-3 py-2">
                           <p className="text-white text-xs leading-relaxed">{message.text}</p>
                         </div>
-                        <span className="text-xs text-gray-500 mt-1 px-1 text-right">{message.timestamp}</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-400 mt-1 px-1 text-right">{message.timestamp}</span>
                       </div>
                     ) : (
                       <AIMessage

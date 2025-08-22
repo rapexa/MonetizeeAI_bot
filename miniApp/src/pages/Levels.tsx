@@ -2690,7 +2690,7 @@ const Levels: React.FC = () => {
                         selectedStage.videos.map((video, index) => (
                           <div key={index} className="mb-6">
                             <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4">
-                              <div className="aspect-video relative">
+                        <div className="aspect-video relative">
                                 <video 
                                   controls 
                                   controlsList="nodownload"
@@ -2700,24 +2700,24 @@ const Levels: React.FC = () => {
                                   <source src={video.url} type="video/mp4" />
                                   مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
                                 </video>
-                              </div>
-                            </div>
+                        </div>
+                      </div>
 
-                            {/* Video Info */}
+                      {/* Video Info */}
                             <div className="bg-gradient-to-r from-purple-50/80 to-purple-100/80 dark:from-purple-900/20 dark:to-purple-800/20 rounded-2xl p-6 border border-purple-200/50 dark:border-purple-800/50 mb-4">
                               <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{video.title}</h4>
-                              <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
-                                <div className="flex items-center gap-2">
-                                  <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                                   <span className="font-medium">{video.duration}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
-                                  <span className="font-medium">1,234 مشاهده</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                      </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            <span className="font-medium">1,234 مشاهده</span>
+                    </div>
+                        </div>
+                      </div>
+                    </div>
                         ))
                       ) : selectedStage.videoUrl ? (
                         // Legacy single video support
@@ -2733,8 +2733,8 @@ const Levels: React.FC = () => {
                                 <source src={selectedStage.videoUrl} type="video/mp4" />
                                 مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
                               </video>
-                            </div>
-                          </div>
+                      </div>
+                    </div>
 
                           {/* Video Info */}
                           <div className="bg-gradient-to-r from-purple-50/80 to-purple-100/80 dark:from-purple-900/20 dark:to-purple-800/20 rounded-2xl p-6 border border-purple-200/50 dark:border-purple-800/50 mb-4">
@@ -2743,14 +2743,14 @@ const Levels: React.FC = () => {
                               <div className="flex items-center gap-2">
                                 <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                                 <span className="font-medium">{selectedStage.videoDuration}</span>
-                              </div>
+                            </div>
                               <div className="flex items-center gap-2">
                                 <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
                                 <span className="font-medium">1,234 مشاهده</span>
-                              </div>
                             </div>
                           </div>
-                        </div>
+                    </div>
+                            </div>
                       ) : (
                         // No video available
                         <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-6">
@@ -2759,10 +2759,10 @@ const Levels: React.FC = () => {
                               <div className="text-center text-white">
                                 <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
                                 <p className="text-sm opacity-75">ویدیو در دسترس نیست</p>
-                              </div>
                             </div>
                           </div>
-                        </div>
+                    </div>
+                            </div>
                       )}
                     </div>
                   </div>
@@ -2790,29 +2790,29 @@ const Levels: React.FC = () => {
                         {/* Header */}
             <div className="flex items-center justify-between gap-2 md:gap-3 mb-4 md:mb-6">
               <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-                <div className="relative">
-                  <div className="p-2 md:p-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-xl shadow-lg">
-                    <Brain size={20} className="text-white md:w-6 md:h-6" />
+              <div className="relative">
+                <div className="p-2 md:p-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-xl shadow-lg">
+                  <Brain size={20} className="text-white md:w-6 md:h-6" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <span className="truncate">MonetizeAI Coach</span>
+                  <Sparkles size={16} className="text-[#8B5CF6] flex-shrink-0 md:w-[18px] md:h-[18px]" />
+                    </h3>
+                <p className="text-xs md:text-sm text-[#8B5CF6] dark:text-[#8B5CF6] flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
+                  <span className="truncate">۲۴/۷ آنلاین - آماده کمک</span>
+                </p>
                   </div>
-                  <div className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <span className="truncate">MonetizeAI Coach</span>
-                    <Sparkles size={16} className="text-[#8B5CF6] flex-shrink-0 md:w-[18px] md:h-[18px]" />
-                  </h3>
-                  <p className="text-xs md:text-sm text-[#8B5CF6] dark:text-[#8B5CF6] flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
-                    <span className="truncate">۲۴/۷ آنلاین - آماده کمک</span>
-                  </p>
-                </div>
                 <div className="text-xs bg-[#8B5CF6]/20 dark:bg-[#8B5CF6]/20 text-[#8B5CF6] dark:text-[#8B5CF6] px-2 md:px-3 py-1 rounded-full border border-[#8B5CF6]/30 dark:border-[#8B5CF6]/30 flex-shrink-0">
                   AI
                 </div>
               </div>
               
               <div className="flex-shrink-0">
-                <button
+              <button
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -2820,12 +2820,12 @@ const Levels: React.FC = () => {
                     handleOpenModal();
                   }}
                   className="p-2 hover:bg-gray-100/20 dark:hover:bg-gray-700/20 rounded-lg transition-colors duration-200 cursor-pointer"
-                  title="بزرگ کردن چت"
+                title="بزرگ کردن چت"
                   type="button"
-                >
-                  <Maximize2 size={18} className="text-gray-600 dark:text-gray-300" />
-                </button>
-              </div>
+              >
+                <Maximize2 size={18} className="text-gray-600 dark:text-gray-300" />
+              </button>
+                        </div>
             </div>
 
                         {/* Chat Messages */}
@@ -2838,7 +2838,7 @@ const Levels: React.FC = () => {
                                   <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white p-4 rounded-2xl">
                                     <p className="text-sm leading-relaxed">{message.text}</p>
                                   </div>
-                                  <p className="text-xs opacity-70 mt-2 text-right px-2">{message.timestamp}</p>
+                                  <p className="text-xs text-gray-400 dark:text-gray-400 opacity-70 mt-2 text-right px-2">{message.timestamp}</p>
                                 </div>
                               ) : (
                                 <AIMessage
@@ -2879,37 +2879,39 @@ const Levels: React.FC = () => {
                               
                               <div className="flex gap-2">
                                 <button
-                                  onClick={handleCancelPromptEdit}
-                                  className="px-4 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-xl transition-all duration-300"
+                                  onClick={handleSendMessage}
+                                  disabled={!chatMessage.trim()}
+                                  className="flex-1 min-w-0 px-4 py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-[#2c189a]/50 disabled:to-[#5a189a]/50 text-white rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 border border-white/10 flex items-center justify-center gap-2"
                                 >
-                                  انصراف
+                                  <span className="truncate">ارسال پرامپت</span>
+                                  <span>🚀</span>
                                 </button>
                                 <button
-                                  onClick={handleSendMessage}
-                                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl transition-all duration-300 hover:scale-105"
+                                  onClick={handleCancelPromptEdit}
+                                  className="px-4 py-3 bg-gray-200/70 dark:bg-gray-600/70 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-300/70 dark:hover:bg-gray-500/70 transition-all duration-300 flex-shrink-0"
                                 >
-                                  ارسال
+                                  انصراف
                                 </button>
                               </div>
                               </>
                             ) : (
                             <div className="space-y-2">
-                              <div className="flex gap-2">
+                              <div className="flex gap-2 items-center">
                                 <input
                                   type="text"
                                   placeholder="سوال یا نظرتان را بنویسید..."
                                   value={chatMessage}
                                   onChange={(e) => setChatMessage(e.target.value)}
-                                  className="flex-1 px-4 py-3 bg-white/70 dark:bg-gray-700/60 backdrop-blur-md rounded-xl border border-purple-200/30 dark:border-purple-700/30 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                  className="flex-1 min-w-0 px-3 py-2 bg-white/70 dark:bg-gray-700/60 backdrop-blur-md rounded-xl border border-purple-200/30 dark:border-purple-700/30 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                  style={{ fontSize: '16px' }}
+                                  style={{ fontSize: '16px', height: '40px' }}
                                 />
                                 <button
                                   onClick={handleSendMessage}
                                   disabled={!chatMessage.trim()}
-                                  className="px-4 py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-[#2c189a]/50 disabled:to-[#5a189a]/50 text-white rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/10 flex-shrink-0"
+                                  className="w-10 h-10 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-[#2c189a]/50 disabled:to-[#5a189a]/50 text-white rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 border border-white/10 flex-shrink-0 flex items-center justify-center"
                                 >
-                                  ارسال
+                                  <span className="text-lg">➤</span>
                                 </button>
                               </div>
                             </div>
@@ -2920,10 +2922,10 @@ const Levels: React.FC = () => {
                         <div className="flex justify-center mt-4">
                           <button
                             onClick={() => navigate(`/ready-prompts?from=levels&stage=${selectedStage.id}`)}
-                            className="w-full py-2 text-xs bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 rounded-lg transition-all duration-300 flex items-center justify-center gap-1 shadow-lg hover:scale-105"
+                            className="w-full py-2 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-200/50 dark:border-purple-700/50 hover:border-purple-300/70 dark:hover:border-purple-600/70 rounded-lg hover:bg-purple-50/30 dark:hover:bg-purple-900/20 transition-all duration-300 flex items-center justify-center gap-1 truncate"
                           >
-                            <Sparkles size={12} />
-                            پرامپت این مرحله
+                            <Sparkles size={12} className="flex-shrink-0" />
+                            <span className="truncate">پرامپت این مرحله</span>
               </button>
                   </div>
                 </div>
@@ -3514,14 +3516,14 @@ const Levels: React.FC = () => {
                       <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white p-3 rounded-2xl">
                         <p className="text-sm leading-relaxed break-words">{msg.text}</p>
                       </div>
-                      <p className="text-xs opacity-70 mt-1 text-right px-2">{msg.timestamp}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-400 opacity-70 mt-1 text-right px-2">{msg.timestamp}</p>
                     </div>
                   ) : (
                     <div className="max-w-[75%]">
                       <div className="bg-gray-700/50 text-white p-3 rounded-2xl">
                         <p className="text-sm leading-relaxed break-words">{msg.text}</p>
                       </div>
-                      <p className="text-xs opacity-70 mt-1 px-2">{msg.timestamp}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-400 opacity-70 mt-1 px-2">{msg.timestamp}</p>
                     </div>
                   )}
                 </div>
