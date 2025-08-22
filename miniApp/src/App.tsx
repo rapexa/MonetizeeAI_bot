@@ -21,6 +21,7 @@ import SalesPathAI from './pages/SalesPathAI';
 import ReadyPrompts from './pages/ReadyPrompts';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
+import AccessControl from './components/AccessControl';
 
 function App() {
   return (
@@ -40,28 +41,30 @@ function App() {
       <ThemeProvider>
         <AppProvider>
           <Router>
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/levels" element={<Levels />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/ai-coach" element={<AICoach />} />
-                <Route path="/tools" element={<Tools />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/chatbot" element={<Chatbot />} />
-                <Route path="/growth-club" element={<SocialGrowth />} />
-                <Route path="/messages" element={<Messages />} />
-                <Route path="/chat/:userId" element={<Chat />} />
-                <Route path="/energy-boost" element={<EnergyBoost />} />
+            <AccessControl>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/levels" element={<Levels />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/ai-coach" element={<AICoach />} />
+                  <Route path="/tools" element={<Tools />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/chatbot" element={<Chatbot />} />
+                  <Route path="/growth-club" element={<SocialGrowth />} />
+                  <Route path="/messages" element={<Messages />} />
+                  <Route path="/chat/:userId" element={<Chat />} />
+                  <Route path="/energy-boost" element={<EnergyBoost />} />
 
-                <Route path="/business-builder-ai" element={<BusinessBuilderAI />} />
-                <Route path="/sell-kit-ai" element={<SellKitAI />} />
-                <Route path="/client-finder-ai" element={<ClientFinderAI />} />
-                <Route path="/sales-path-ai" element={<SalesPathAI />} />
-                <Route path="/sales-panel" element={<SalesPanel />} />
-                <Route path="/ready-prompts" element={<ReadyPrompts />} />
-              </Routes>
-            </Layout>
+                  <Route path="/business-builder-ai" element={<BusinessBuilderAI />} />
+                  <Route path="/sell-kit-ai" element={<SellKitAI />} />
+                  <Route path="/client-finder-ai" element={<ClientFinderAI />} />
+                  <Route path="/sales-path-ai" element={<SalesPathAI />} />
+                  <Route path="/sales-panel" element={<SalesPanel />} />
+                  <Route path="/ready-prompts" element={<ReadyPrompts />} />
+                </Routes>
+              </Layout>
+            </AccessControl>
           </Router>
         </AppProvider>
       </ThemeProvider>

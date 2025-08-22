@@ -31,6 +31,8 @@ interface AppContextType {
   isInTelegram: boolean;
   loadingUser: boolean;
   hasRealData: boolean;
+  isAuthenticated: boolean;
+  isLicensed: boolean;
   syncWithAPI: () => Promise<void>;
   refreshUserData: () => Promise<void>;
 }
@@ -64,6 +66,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isInTelegram, setIsInTelegram] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
   const [hasRealData, setHasRealData] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLicensed, setIsLicensed] = useState(false);
 
   // Sync user data with API
   const syncWithAPI = async () => {
@@ -103,6 +107,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       if (authResponse.success && authResponse.data) {
         const userInfo = authResponse.data as any;
+        
+        // Check authentication and license status
+        const isUserAuthenticated = userInfo.telegram_id && userInfo.is_verified;
+        const isUserLicensed = userInfo.is_active;
+        
+        setIsAuthenticated(isUserAuthenticated);
+        setIsLicensed(isUserLicensed);
+        
+        if (!isUserAuthenticated || !isUserLicensed) {
+          console.log('❌ User not authenticated or licensed:', { isAuthenticated: isUserAuthenticated, isLicensed: isUserLicensed });
+          setHasRealData(false);
+          setLoadingUser(false);
+          return;
+        }
         
         // Get detailed progress
         const progressResponse = await apiService.getUserProgress();
@@ -149,6 +167,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
       } else {
         console.log('❌ Authentication failed:', authResponse.error);
+        setIsAuthenticated(false);
+        setIsLicensed(false);
         // Keep using default data
       }
     } catch (error) {
@@ -239,6 +259,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isInTelegram,
       loadingUser,
       hasRealData,
+      isAuthenticated,
+      isLicensed,
       syncWithAPI,
       refreshUserData
     }}>
