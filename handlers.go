@@ -407,9 +407,12 @@ func processUserInput(input string, user *User) string {
 ✅ مراحل تکمیل شده: %d
 
 %s`,
-			user.Username, level, user.CurrentSession, progressBar, progress, user.CurrentSession-1, GetLevelUpMessage(level))
+			user.Username, level.Level, user.CurrentSession, progressBar, progress, user.CurrentSession-1, GetLevelUpMessage(level))
 
 		return profileText
+	case "❇️ دیدن همه مسیر":
+		userStates[user.TelegramID] = ""
+		return getFullRoadmap(user)
 	case "📚 ادامه مسیر من":
 		// Re-fetch user data to get latest session
 		var freshUser User
