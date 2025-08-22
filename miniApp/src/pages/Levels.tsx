@@ -1590,7 +1590,9 @@ const Levels: React.FC = () => {
 
   // Generate levels data with dynamic status based on user progress
   const generateLevels = (): Level[] => {
-    const levelsArray: Level[] = [
+    
+    // First, define the level structures without progress
+    const levelDefinitions = [
     {
       id: 1,
       title: "انتخاب ایده و ساخت اولین دارایی",
@@ -1601,7 +1603,6 @@ const Levels: React.FC = () => {
       color: "text-green-600",
       gradient: "from-[#2c189a] to-[#5a189a]",
       isUnlocked: true,
-      progress: 0,
       stages: [
         {
           id: 1,
@@ -1690,7 +1691,7 @@ const Levels: React.FC = () => {
       color: "text-orange-600",
       gradient: "from-[#2c189a] to-[#5a189a]",
       isUnlocked: true, // TODO: بعداً برای قفل کردن به false تغییر بده
-      progress: 0,
+
       stages: [
         {
           id: 6,
@@ -1746,7 +1747,7 @@ const Levels: React.FC = () => {
       color: "text-purple-600",
       gradient: "from-[#2c189a] to-[#5a189a]",
       isUnlocked: true, // TODO: بعداً برای قفل کردن به false تغییر بده
-      progress: 0,
+
       stages: [
         {
           id: 9,
@@ -1802,7 +1803,7 @@ const Levels: React.FC = () => {
       color: "text-blue-600",
       gradient: "from-[#2c189a] to-[#5a189a]",
       isUnlocked: true, // TODO: بعداً برای قفل کردن به false تغییر بده
-      progress: 0,
+
       stages: [
         {
           id: 12,
@@ -1858,7 +1859,7 @@ const Levels: React.FC = () => {
       color: "text-indigo-600",
       gradient: "from-[#2c189a] to-[#5a189a]",
       isUnlocked: true, // TODO: بعداً برای قفل کردن به false تغییر بده
-      progress: 0,
+
       stages: [
         {
           id: 15,
@@ -1914,7 +1915,7 @@ const Levels: React.FC = () => {
       color: "text-green-600",
       gradient: "from-[#2c189a] to-[#5a189a]",
       isUnlocked: true, // TODO: بعداً برای قفل کردن به false تغییر بده
-      progress: 0,
+
       stages: [
         {
           id: 18,
@@ -1970,7 +1971,7 @@ const Levels: React.FC = () => {
       color: "text-blue-600",
       gradient: "from-[#2c189a] to-[#5a189a]",
       isUnlocked: true, // TODO: بعداً برای قفل کردن به false تغییر بده
-      progress: 0,
+
       stages: [
         {
           id: 21,
@@ -2026,7 +2027,7 @@ const Levels: React.FC = () => {
       color: "text-emerald-600",
       gradient: "from-[#2c189a] to-[#5a189a]",
       isUnlocked: true, // TODO: بعداً برای قفل کردن به false تغییر بده
-      progress: 0,
+
       stages: [
         {
           id: 24,
@@ -2082,7 +2083,7 @@ const Levels: React.FC = () => {
       color: "text-gray-600",
       gradient: "from-[#2c189a] to-[#5a189a]",
       isUnlocked: true, // TODO: بعداً برای قفل کردن به false تغییر بده
-      progress: 0,
+
       stages: [
         {
           id: 27,
@@ -2130,8 +2131,8 @@ const Levels: React.FC = () => {
     }
   ];
 
-  // Calculate progress for each level based on completed stages and return new objects
-  const levelsWithProgress = levelsArray.map(level => ({
+  // Calculate progress for each level and add it to the final objects
+  const levelsWithProgress = levelDefinitions.map(level => ({
     ...level,
     progress: calculateLevelProgress(level.stages)
   }));
