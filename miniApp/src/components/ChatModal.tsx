@@ -156,7 +156,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
                   <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white p-3 md:p-4 rounded-2xl">
                     <p className="text-sm leading-relaxed">{msg.text}</p>
                   </div>
-                  <p className="text-xs opacity-70 mt-2 text-right px-2">{msg.timestamp}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400 opacity-70 mt-2 text-right px-2">{msg.timestamp}</p>
                 </div>
               ) : (
                 <AIMessage

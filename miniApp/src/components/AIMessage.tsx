@@ -37,7 +37,7 @@ const AIMessage: React.FC<AIMessageProps> = ({
             <span className="inline-block w-2 h-4 bg-monetize-primary-500 ml-1 animate-pulse"></span>
           )}
         </div>
-        <span className="text-xs text-gray-500 mt-1 px-1">{timestamp}</span>
+        <span className="text-xs text-gray-400 dark:text-gray-400 mt-1 px-1">{timestamp}</span>
       </div>
     </div>
   );
