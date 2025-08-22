@@ -780,13 +780,14 @@ const Dashboard: React.FC = () => {
                     <button 
                       onClick={handleSendMessage}
                       disabled={!chatMessage.trim()}
-                      className="flex-1 px-4 py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-[#2c189a]/50 disabled:to-[#5a189a]/50 text-white rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/10 flex items-center justify-center gap-2"
+                      className="flex-1 min-w-0 px-4 py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-[#2c189a]/50 disabled:to-[#5a189a]/50 text-white rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 border border-white/10 flex items-center justify-center gap-2"
                     >
-                      ارسال پرامپت 🚀
+                      <span className="truncate">ارسال پرامپت</span>
+                      <span>🚀</span>
                     </button>
                     <button 
                       onClick={handleCancelPromptEdit}
-                      className="px-4 py-3 bg-gray-200/70 dark:bg-gray-600/70 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-300/70 dark:hover:bg-gray-500/70 transition-all duration-300"
+                      className="px-4 py-3 bg-gray-200/70 dark:bg-gray-600/70 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-300/70 dark:hover:bg-gray-500/70 transition-all duration-300 flex-shrink-0"
                     >
                       انصراف
                     </button>
@@ -794,32 +795,32 @@ const Dashboard: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
                     <input
                       type="text"
                       placeholder="سوال خود را بپرسید..."
                       value={chatMessage}
                       onChange={(e) => setChatMessage(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-white/70 dark:bg-gray-700/60 backdrop-blur-md rounded-xl border border-purple-200/30 dark:border-purple-700/30 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      className="flex-1 min-w-0 px-3 py-2 bg-white/70 dark:bg-gray-700/60 backdrop-blur-md rounded-xl border border-purple-200/30 dark:border-purple-700/30 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                      style={{ fontSize: '16px' }}
+                      style={{ fontSize: '16px', height: '40px' }}
                     />
                     <button 
                       onClick={handleSendMessage}
                       disabled={!chatMessage.trim()}
-                      className="px-4 py-2 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-[#2c189a]/50 disabled:to-[#5a189a]/50 text-white rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/10 flex-shrink-0"
+                      className="w-10 h-10 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-[#2c189a]/50 disabled:to-[#5a189a]/50 text-white rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 border border-white/10 flex-shrink-0 flex items-center justify-center"
                     >
-                      ارسال
+                      <span className="text-lg">➤</span>
                     </button>
                   </div>
                   
                   {/* Minimal Prompts Button */}
                   <button
                     onClick={() => navigate('/ready-prompts')}
-                    className="w-full py-2 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-200/50 dark:border-purple-700/50 hover:border-purple-300/70 dark:hover:border-purple-600/70 rounded-lg hover:bg-purple-50/30 dark:hover:bg-purple-900/20 transition-all duration-300 flex items-center justify-center gap-1"
+                    className="w-full py-2 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-200/50 dark:border-purple-700/50 hover:border-purple-300/70 dark:hover:border-purple-600/70 rounded-lg hover:bg-purple-50/30 dark:hover:bg-purple-900/20 transition-all duration-300 flex items-center justify-center gap-1 truncate"
                   >
-                    <Sparkles size={12} />
-                    پرامپت‌های آماده
+                    <Sparkles size={12} className="flex-shrink-0" />
+                    <span className="truncate">پرامپت‌های آماده</span>
                   </button>
                 </div>
               )}
@@ -828,10 +829,10 @@ const Dashboard: React.FC = () => {
             {/* Quick Action */}
             <button 
               onClick={() => navigate('/ai-coach')}
-              className="w-full bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white py-3 rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 backdrop-blur-sm border border-white/10 hover:scale-[1.02]"
+              className="w-full bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white py-3 rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 backdrop-blur-sm border border-white/10 hover:scale-[1.02] min-w-0"
             >
-              <MessageCircle size={16} />
-              باز کردن چت کامل
+              <MessageCircle size={16} className="flex-shrink-0" />
+              <span className="truncate">باز کردن چت کامل</span>
             </button>
           </div>
         </div>
