@@ -2417,11 +2417,11 @@ const Levels: React.FC = () => {
                 <div className="flex-1 bg-gray-700/50 rounded-full h-2">
                   <div 
                     className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${Math.round((selectedLevel.stages.filter(stage => stageQuizResults[stage.id]?.passed).length / selectedLevel.stages.length) * 100) || 0}%` }}
+                    style={{ width: `${selectedLevel.progress}%` }}
                   ></div>
               </div>
                 <div className="text-xs font-bold text-white">
-                {Math.round((selectedLevel.stages.filter(stage => stageQuizResults[stage.id]?.passed).length / selectedLevel.stages.length) * 100) || 0}%
+                {selectedLevel.progress}%
                 </div>
               </div>
             </div>
