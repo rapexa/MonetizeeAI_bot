@@ -110,10 +110,23 @@ const ChatModal: React.FC<ChatModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    console.log('🔥 ChatModal: isOpen is false, returning null');
+    return null;
+  }
 
+  console.log('🔥 ChatModal: Rendering modal!');
   return (
-    <div className="fixed inset-0 z-[9999] flex items-start md:items-center justify-center bg-black/50 backdrop-blur-sm p-0 md:p-4">
+    <div className="fixed inset-0 z-[9999] flex items-start md:items-center justify-center bg-black/50 backdrop-blur-sm p-0 md:p-4"
+         style={{ 
+           position: 'fixed',
+           top: 0,
+           left: 0,
+           right: 0,
+           bottom: 0,
+           zIndex: 99999,
+           backgroundColor: 'rgba(0,0,0,0.8)' // More visible background
+         }}>
       <div className="w-full max-w-4xl h-screen md:h-[90vh] md:rounded-3xl bg-gradient-to-br from-gray-900 to-black border-0 md:border border-gray-700/50 overflow-hidden flex flex-col" style={{ height: '100vh', maxHeight: '100vh' }}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700/50 bg-gray-800/30 pt-safe">
