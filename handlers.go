@@ -380,6 +380,11 @@ func processUserInput(input string, user *User) string {
 	// Handle other states and commands
 	switch input {
 	case "📚 ادامه مسیر من":
+		// Re-fetch user data to get latest session
+		var freshUser User
+		if err := db.Where("telegram_id = ?", user.TelegramID).First(&freshUser).Error; err == nil {
+			user.CurrentSession = freshUser.CurrentSession
+		}
 		return getCurrentSessionInfo(user)
 	case "✅ ارسال تمرین":
 		userStates[user.TelegramID] = "submitting_exercise"
@@ -388,6 +393,12 @@ func processUserInput(input string, user *User) string {
 		bot.Send(msg)
 		return ""
 	case "📥 دریافت تمرین":
+		// Re-fetch user data to get latest session
+		var freshUser User
+		if err := db.Where("telegram_id = ?", user.TelegramID).First(&freshUser).Error; err == nil {
+			user.CurrentSession = freshUser.CurrentSession
+		}
+
 		// Get current session info
 		var session Session
 		if err := db.Where("number = ?", user.CurrentSession).First(&session).Error; err != nil {
@@ -516,8 +527,29 @@ func processUserInput(input string, user *User) string {
 }
 
 func getCurrentSessionInfo(user *User) string {
+	// Re-fetch user to get latest data
+	var freshUser User
+	if err := db.Where("telegram_id = ?", user.TelegramID).First(&freshUser).Error; err != nil {
+		logger.Error("Failed to fetch fresh user data",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
+		return "خطا در دریافت اطلاعات کاربر. لطفا دوباره تلاش کنید."
+	}
+
+	logger.Info("getCurrentSessionInfo - User session data",
+		zap.Int64("user_id", user.TelegramID),
+		zap.Int("old_current_session", user.CurrentSession),
+		zap.Int("fresh_current_session", freshUser.CurrentSession))
+
+	// Use fresh user data
+	user.CurrentSession = freshUser.CurrentSession
+
 	var session Session
 	if err := db.First(&session, user.CurrentSession).Error; err != nil {
+		logger.Error("Failed to get session",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Int("session_number", user.CurrentSession),
+			zap.Error(err))
 		return "خطا در دریافت اطلاعات مرحله فعلی. لطفا دوباره تلاش کنید."
 	}
 
