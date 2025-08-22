@@ -2615,7 +2615,7 @@ const Levels: React.FC = () => {
                   <div className="backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg" style={{ backgroundColor: '#11091C' }}>
                     <div className="text-center mb-6">
                       <h3 className="text-lg font-bold text-white mb-2">مسیر یادگیری</h3>
-                      <p className="text-sm text-gray-300">4 قدم تا تسلط کامل</p>
+                      <p className="text-sm text-gray-300">3 قدم تا تسلط کامل</p>
                     </div>
               
                     {/* Progress Steps */}
@@ -2790,8 +2790,11 @@ const Levels: React.FC = () => {
                 </p>
                   </div>
               <button
-                onClick={() => setIsChatModalOpen(true)}
-                className="p-2 hover:bg-gray-100/20 dark:hover:bg-gray-700/20 rounded-lg transition-colors duration-200"
+                onClick={() => {
+                  console.log('Expand button clicked');
+                  setIsChatModalOpen(true);
+                }}
+                className="p-2 hover:bg-gray-100/20 dark:hover:bg-gray-700/20 rounded-lg transition-colors duration-200 cursor-pointer"
                 title="بزرگ کردن چت"
               >
                 <Maximize2 size={18} className="text-gray-600 dark:text-gray-300" />

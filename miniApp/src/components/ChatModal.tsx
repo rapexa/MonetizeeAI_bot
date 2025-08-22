@@ -176,7 +176,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
         </div>
 
         {/* Input */}
-        <div className="sticky bottom-0 p-4 md:p-6 border-t border-gray-700/50 bg-gray-800/95 backdrop-blur-xl pb-safe-area-inset-bottom">
+        <div className="sticky bottom-0 p-4 md:p-6 border-t border-gray-700/50 bg-gray-800/95 backdrop-blur-xl" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
           <div className="flex gap-3 items-end">
             <input
               type="text"
@@ -184,8 +184,11 @@ const ChatModal: React.FC<ChatModalProps> = ({
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="سوال خود را بپرسید..."
-              className="flex-1 p-3 md:p-4 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:border-[#2c189a] focus:ring-1 focus:ring-[#2c189a] transition-colors text-base"
-              style={{ fontSize: '16px' }} // Prevents zoom on iOS
+              className="flex-1 p-3 md:p-4 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:border-[#2c189a] focus:ring-1 focus:ring-[#2c189a] transition-colors resize-none"
+              style={{ 
+                fontSize: '16px', // Prevents zoom on iOS
+                minHeight: '52px' // Ensures consistent height
+              }}
             />
             <button
               onClick={handleSendMessage}
