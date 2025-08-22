@@ -379,6 +379,37 @@ func processUserInput(input string, user *User) string {
 
 	// Handle other states and commands
 	switch input {
+	case "🏠 ورود به داشبورد":
+		// Show Mini App dashboard
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL != "" {
+			// Create Mini App URL with user ID
+			miniAppWithParams := fmt.Sprintf("https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=%d", user.TelegramID)
+
+			msg := tgbotapi.NewMessage(user.TelegramID, "🏠 برای ورود به داشبورد روی لینک زیر کلیک کنید:\n\n"+miniAppWithParams)
+			bot.Send(msg)
+		} else {
+			return "❌ داشبورد در حال حاضر در دسترس نیست."
+		}
+		return ""
+	case "👤 پروفایل":
+		// Show user profile (previously 📊 پیشرفت)
+		level := GetUserLevel(user.CurrentSession)
+		progress := GetUserProgress(user.CurrentSession)
+		progressBar := GetProgressBar(progress)
+
+		profileText := fmt.Sprintf(`👤 پروفایل شما:
+
+👋 نام کاربری: %s
+🎯 سطح فعلی: %d
+📍 مرحله فعلی: %d
+📊 پیشرفت: %s (%d%%)
+✅ مراحل تکمیل شده: %d
+
+%s`,
+			user.Username, level, user.CurrentSession, progressBar, progress, user.CurrentSession-1, GetLevelUpMessage(level))
+
+		return profileText
 	case "📚 ادامه مسیر من":
 		// Re-fetch user data to get latest session
 		var freshUser User
@@ -442,15 +473,9 @@ func processUserInput(input string, user *User) string {
 			exercise.Content)
 		bot.Send(tgbotapi.NewMessage(user.TelegramID, exerciseMsg))
 		return ""
-	case "📊 پیشرفت":
+	case "🆘 پشتیبانی":
 		userStates[user.TelegramID] = ""
-		return getProgressInfo(user)
-	case "❇️ دیدن همه مسیر":
-		userStates[user.TelegramID] = ""
-		return getFullRoadmap(user)
-	case "❓ راهنما":
-		userStates[user.TelegramID] = ""
-		return getHelpMessage(user)
+		return getSupportMessage(user)
 	case "🔙 بازگشت":
 		userStates[user.TelegramID] = ""
 		msg := tgbotapi.NewMessage(user.TelegramID, "به منوی اصلی بازگشتید.")
@@ -642,26 +667,8 @@ func getProgressInfo(user *User) string {
 		progress)
 }
 
-func getHelpMessage(user *User) string {
-	// Create inline keyboard with video download button
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonURL("🎥 دانلود ویدیو ", "https://sianacademy.com/wp-content/uploads/2025/06/help.mp4"),
-		),
-	)
-
-	// Create a new message with the video URL
-	msg := tgbotapi.NewMessage(user.TelegramID, "🎥 راهنمای استفاده از ربات MonetizeAI\n\nاین ویدیو به شما کمک می‌کند تا با امکانات ربات آشنا شوید و از آن به بهترین شکل استفاده کنید.\n\n روی دکمه زیر کلیک کنید:")
-	msg.ReplyMarkup = keyboard
-
-	// Send message with error handling
-	if _, err := bot.Send(msg); err != nil {
-		logger.Error("Failed to send help message",
-			zap.Int64("user_id", user.TelegramID),
-			zap.Error(err))
-	}
-
-	return `❓ راهنمای استفاده از ربات MonetizeAI:
+func getSupportMessage(user *User) string {
+	return `🆘 پشتیبانی MonetizeAI:
 
 1. از دکمه‌های منو برای پیمایش استفاده کنید
 2. تمرین‌های خود را برای بررسی ارسال کنید
@@ -878,34 +885,23 @@ func sendMessage(chatID int64, text string) {
 func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	rows := [][]tgbotapi.KeyboardButton{
 		{
-			tgbotapi.NewKeyboardButton("📚 ادامه مسیر من"),
-			tgbotapi.NewKeyboardButton("✅ ارسال تمرین"),
+			tgbotapi.NewKeyboardButton("🏠 ورود به داشبورد"),
 		},
 		{
-			tgbotapi.NewKeyboardButton("📥 دریافت تمرین"),
+			tgbotapi.NewKeyboardButton("👤 پروفایل"),
+		},
+		{
 			tgbotapi.NewKeyboardButton("❇️ دیدن همه مسیر"),
 		},
 		{
-			tgbotapi.NewKeyboardButton("📊 پیشرفت"),
-			tgbotapi.NewKeyboardButton("❓ راهنما"),
+			tgbotapi.NewKeyboardButton("🆘 پشتیبانی"),
 		},
 		{
-			tgbotapi.NewKeyboardButton("🛍️ خرید اشتراک هوش مصنوعی"),
 			tgbotapi.NewKeyboardButton("🎯 استخدام"),
 		},
 		{
 			tgbotapi.NewKeyboardButton("💬 چت با دستیار هوشمند"),
 		},
-	}
-
-	// Add Mini App button if enabled
-	if strings.ToLower(os.Getenv("MINI_APP_ENABLED")) == "true" {
-		miniAppURL := os.Getenv("MINI_APP_URL")
-		if miniAppURL != "" {
-			rows = append(rows, []tgbotapi.KeyboardButton{
-				tgbotapi.NewKeyboardButton("🌐 مینی اپ"),
-			})
-		}
 	}
 
 	keyboard := tgbotapi.ReplyKeyboardMarkup{
@@ -1199,10 +1195,7 @@ func getFullRoadmap(user *User) string {
 📊 پیشرفت تو: %d%%
 🔥 فقط %d سطح دیگه تا پایان مسیر و ساخت درآمد دلاری واقعی باقی مونده!
 
-⸻
-
-🚀 برای رفتن به مرحله بعد، بزن:
-👉 [ادامه مسیر من]`,
+⸻`,
 		user.Username,
 		level.Level,
 		level.Level,
