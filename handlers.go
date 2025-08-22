@@ -536,17 +536,8 @@ func getCurrentSessionInfo(user *User) string {
 		return "خطا در دریافت اطلاعات کاربر. لطفا دوباره تلاش کنید."
 	}
 
-	logger.Info("getCurrentSessionInfo - User session data",
-		zap.Int64("user_id", user.TelegramID),
-		zap.Int("old_current_session", user.CurrentSession),
-		zap.Int("fresh_current_session", freshUser.CurrentSession))
-
 	// Use fresh user data
 	user.CurrentSession = freshUser.CurrentSession
-
-	// Send debug message to user (temporary)
-	debugMsg := fmt.Sprintf("🔍 Debug: currentSession=%d, looking for session number %d", user.CurrentSession, user.CurrentSession)
-	bot.Send(tgbotapi.NewMessage(user.TelegramID, debugMsg))
 
 	var session Session
 	if err := db.Where("number = ?", user.CurrentSession).First(&session).Error; err != nil {
@@ -555,19 +546,11 @@ func getCurrentSessionInfo(user *User) string {
 			zap.Int("session_number", user.CurrentSession),
 			zap.Error(err))
 
-		// Debug: Send error info to user
-		errorMsg := fmt.Sprintf("🚨 Debug: Session %d not found in database! Error: %v", user.CurrentSession, err)
-		bot.Send(tgbotapi.NewMessage(user.TelegramID, errorMsg))
-
 		return "خطا در دریافت اطلاعات مرحله فعلی. لطفا دوباره تلاش کنید."
 	}
 
 	var video Video
 	db.Where("session_id = ?", session.ID).First(&video)
-
-	// Debug: Send session info
-	sessionDebugMsg := fmt.Sprintf("✅ Debug: Found session %d: %s", session.Number, session.Title)
-	bot.Send(tgbotapi.NewMessage(user.TelegramID, sessionDebugMsg))
 
 	// Create a message without the video link
 	message := fmt.Sprintf("📚 %d: %s\n\n%s",
