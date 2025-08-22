@@ -83,6 +83,11 @@ const Levels: React.FC = () => {
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
 
+  // Debug modal state changes
+  useEffect(() => {
+    console.log('🔥 Modal state changed to:', isChatModalOpen);
+  }, [isChatModalOpen]);
+
   const [showQuiz, setShowQuiz] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [userAnswers, setUserAnswers] = useState<{[key: number]: any}>({});
@@ -3469,7 +3474,6 @@ const Levels: React.FC = () => {
       </div>
       
       {/* Chat Modal for AI Coach */}
-      {console.log('🔥 Rendering ChatModal with isOpen:', isChatModalOpen)}
       <ChatModal
         isOpen={isChatModalOpen}
         onClose={() => {
