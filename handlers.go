@@ -544,17 +544,30 @@ func getCurrentSessionInfo(user *User) string {
 	// Use fresh user data
 	user.CurrentSession = freshUser.CurrentSession
 
+	// Send debug message to user (temporary)
+	debugMsg := fmt.Sprintf("🔍 Debug: currentSession=%d, looking for session number %d", user.CurrentSession, user.CurrentSession)
+	bot.Send(tgbotapi.NewMessage(user.TelegramID, debugMsg))
+
 	var session Session
-	if err := db.First(&session, user.CurrentSession).Error; err != nil {
+	if err := db.Where("number = ?", user.CurrentSession).First(&session).Error; err != nil {
 		logger.Error("Failed to get session",
 			zap.Int64("user_id", user.TelegramID),
 			zap.Int("session_number", user.CurrentSession),
 			zap.Error(err))
+
+		// Debug: Send error info to user
+		errorMsg := fmt.Sprintf("🚨 Debug: Session %d not found in database! Error: %v", user.CurrentSession, err)
+		bot.Send(tgbotapi.NewMessage(user.TelegramID, errorMsg))
+
 		return "خطا در دریافت اطلاعات مرحله فعلی. لطفا دوباره تلاش کنید."
 	}
 
 	var video Video
 	db.Where("session_id = ?", session.ID).First(&video)
+
+	// Debug: Send session info
+	sessionDebugMsg := fmt.Sprintf("✅ Debug: Found session %d: %s", session.Number, session.Title)
+	bot.Send(tgbotapi.NewMessage(user.TelegramID, sessionDebugMsg))
 
 	// Create a message without the video link
 	message := fmt.Sprintf("📚 %d: %s\n\n%s",
@@ -600,10 +613,6 @@ func getCurrentSessionInfo(user *User) string {
 		msg := tgbotapi.NewMessage(user.TelegramID, congratsMsg)
 		msg.ReplyMarkup = keyboard
 		bot.Send(msg)
-	} else {
-		// Send normal instruction message for other sessions
-		instructionMsg := "بعد از ارسال تکالیف این مرحله و ارسال تمرین و بررسی جواب شما به ویدیو بعدی منتقل خواهید شد"
-		bot.Send(tgbotapi.NewMessage(user.TelegramID, instructionMsg))
 	}
 
 	return "" // Return empty string since we're sending the messages directly
