@@ -34,6 +34,12 @@ import {
   Maximize2
 } from 'lucide-react';
 
+interface Video {
+  title: string;
+  duration: string;
+  url: string;
+}
+
 interface Stage {
   id: number;
   title: string;
@@ -41,8 +47,10 @@ interface Stage {
   status: 'locked' | 'available' | 'in_progress' | 'completed';
   exercise: string;
   checklist: string[];
-  videoTitle: string;
-  videoDuration: string;
+  videos?: Video[];
+  // Legacy support for single video
+  videoTitle?: string;
+  videoDuration?: string;
   videoUrl?: string;
 }
 
@@ -1704,8 +1712,18 @@ const Levels: React.FC = () => {
             "طراحی فرآیند ارائه خدمات",
             "مشخص کردن نقاط تماس با مشتری"
           ],
-          videoTitle: "طراحی سرویس با AI",
-          videoDuration: "20:30"
+          videos: [
+            {
+              title: "طراحی سرویس با AI - قسمت اول",
+              duration: "15:20",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video1za6sth2.mp4"
+            },
+            {
+              title: "طراحی سرویس با AI - قسمت دوم",
+              duration: "12:45",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video2az6sth2.mp4"
+            }
+          ]
         },
         {
           id: 7,
@@ -2626,44 +2644,85 @@ const Levels: React.FC = () => {
                     </div>
 
                     <div className="p-6">
-                                            {/* Video Player */}
-                      <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-6">
-                        <div className="aspect-video relative">
-                          {selectedStage.videoUrl ? (
-                            <video 
-                              controls 
-                              controlsList="nodownload"
-                              className="w-full h-full object-cover"
-                              poster="/video-thumbnail.jpg"
-                            >
-                              <source src={selectedStage.videoUrl} type="video/mp4" />
-                              مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
-                            </video>
-                          ) : (
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-purple-900/20 flex items-center justify-center">
+                      {/* Video Player(s) */}
+                      {selectedStage.videos && selectedStage.videos.length > 0 ? (
+                        selectedStage.videos.map((video, index) => (
+                          <div key={index} className="mb-6">
+                            <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4">
+                              <div className="aspect-video relative">
+                                <video 
+                                  controls 
+                                  controlsList="nodownload"
+                                  className="w-full h-full object-cover"
+                                  poster="/video-thumbnail.jpg"
+                                >
+                                  <source src={video.url} type="video/mp4" />
+                                  مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
+                                </video>
+                              </div>
+                            </div>
+
+                            {/* Video Info */}
+                            <div className="bg-gradient-to-r from-purple-50/80 to-purple-100/80 dark:from-purple-900/20 dark:to-purple-800/20 rounded-2xl p-6 border border-purple-200/50 dark:border-purple-800/50 mb-4">
+                              <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{video.title}</h4>
+                              <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                  <span className="font-medium">{video.duration}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                  <span className="font-medium">1,234 مشاهده</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : selectedStage.videoUrl ? (
+                        // Legacy single video support
+                        <div className="mb-6">
+                          <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4">
+                            <div className="aspect-video relative">
+                              <video 
+                                controls 
+                                controlsList="nodownload"
+                                className="w-full h-full object-cover"
+                                poster="/video-thumbnail.jpg"
+                              >
+                                <source src={selectedStage.videoUrl} type="video/mp4" />
+                                مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
+                              </video>
+                            </div>
+                          </div>
+
+                          {/* Video Info */}
+                          <div className="bg-gradient-to-r from-purple-50/80 to-purple-100/80 dark:from-purple-900/20 dark:to-purple-800/20 rounded-2xl p-6 border border-purple-200/50 dark:border-purple-800/50 mb-4">
+                            <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{selectedStage.videoTitle}</h4>
+                            <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                <span className="font-medium">{selectedStage.videoDuration}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                <span className="font-medium">1,234 مشاهده</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        // No video available
+                        <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-6">
+                          <div className="aspect-video relative">
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-purple-900/20 flex items-center justify-center">
                               <div className="text-center text-white">
                                 <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
                                 <p className="text-sm opacity-75">ویدیو در دسترس نیست</p>
+                              </div>
                             </div>
                           </div>
-                          )}
                         </div>
-                      </div>
-
-                      {/* Video Info */}
-                      <div className="bg-gradient-to-r from-purple-50/80 to-purple-100/80 dark:from-purple-900/20 dark:to-purple-800/20 rounded-2xl p-6 border border-purple-200/50 dark:border-purple-800/50">
-                        <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{selectedStage.videoTitle}</h4>
-                        <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                            <span className="font-medium">{selectedStage.videoDuration}</span>
-                      </div>
-                          <div className="flex items-center gap-2">
-                            <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
-                            <span className="font-medium">1,234 مشاهده</span>
-                    </div>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
 
