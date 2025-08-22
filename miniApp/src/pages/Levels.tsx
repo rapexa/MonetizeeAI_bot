@@ -84,40 +84,70 @@ const Levels: React.FC = () => {
 
 
 
-  // TODO: برای قفل کردن مراحل، این خط رو با: new Set([1, 2, 3]) عوض کن
-  const [passedStages, setPassedStages] = useState<Set<number>>(new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29])); // همه مراحل باز
-  // TODO: برای قفل کردن، فقط مراحل 1 و 2 رو نگه دار و بقیه رو حذف کن
-  const [stageQuizResults, setStageQuizResults] = useState<{[key: number]: {passed: boolean, score: number, attempts: number}}>({
-    1: { passed: true, score: 85, attempts: 1 },
-    2: { passed: true, score: 92, attempts: 1 },
-    3: { passed: true, score: 88, attempts: 1 },
-    4: { passed: true, score: 91, attempts: 1 },
-    5: { passed: true, score: 89, attempts: 1 },
-    6: { passed: true, score: 87, attempts: 1 },
-    7: { passed: true, score: 90, attempts: 1 },
-    8: { passed: true, score: 86, attempts: 1 },
-    9: { passed: true, score: 93, attempts: 1 },
-    10: { passed: true, score: 84, attempts: 1 },
-    11: { passed: true, score: 88, attempts: 1 },
-    12: { passed: true, score: 91, attempts: 1 },
-    13: { passed: true, score: 89, attempts: 1 },
-    14: { passed: true, score: 87, attempts: 1 },
-    15: { passed: true, score: 90, attempts: 1 },
-    16: { passed: true, score: 86, attempts: 1 },
-    17: { passed: true, score: 93, attempts: 1 },
-    18: { passed: true, score: 84, attempts: 1 },
-    19: { passed: true, score: 88, attempts: 1 },
-    20: { passed: true, score: 91, attempts: 1 },
-    21: { passed: true, score: 89, attempts: 1 },
-    22: { passed: true, score: 87, attempts: 1 },
-    23: { passed: true, score: 90, attempts: 1 },
-    24: { passed: true, score: 86, attempts: 1 },
-    25: { passed: true, score: 93, attempts: 1 },
-    26: { passed: true, score: 84, attempts: 1 },
-    27: { passed: true, score: 88, attempts: 1 },
-    28: { passed: true, score: 91, attempts: 1 },
-    29: { passed: true, score: 89, attempts: 1 }
-  });
+  // Initialize stages based on user progress from API
+  const [passedStages, setPassedStages] = useState<Set<number>>(new Set([1])); // Only first stage unlocked by default
+  // Initialize empty quiz results - will be populated from API
+  const [stageQuizResults, setStageQuizResults] = useState<{[key: number]: {passed: boolean, score: number, attempts: number}}>({});
+
+  // Helper function to get stage status based on user progress
+  const getStageStatus = (stageId: number): 'locked' | 'available' | 'in_progress' | 'completed' => {
+    const completedStages = userData.currentSession - 1;
+    
+    if (stageId <= completedStages) {
+      return 'completed';
+    } else if (stageId === completedStages + 1) {
+      return 'available'; // Current stage user can work on
+    } else {
+      return 'locked';
+    }
+  };
+
+  // Sync passed stages with user's actual progress from backend
+  useEffect(() => {
+    if (userData.currentSession && userData.currentSession > 1) {
+      // User's current session means they have completed sessions up to currentSession - 1
+      const completedStages = userData.currentSession - 1;
+      
+      // Allow access to stages up to completed + 1 (next available stage)
+      const availableStages = [];
+      for (let i = 1; i <= Math.min(completedStages + 1, 29); i++) {
+        availableStages.push(i);
+      }
+      
+      setPassedStages(new Set(availableStages));
+      
+      console.log('🔓 Updated available stages based on user progress:', {
+        currentSession: userData.currentSession,
+        completedStages,
+        availableStages: availableStages.length
+      });
+    }
+  }, [userData.currentSession]);
+
+  // Auto-select current level based on user progress
+  useEffect(() => {
+    if (levels.length > 0 && !selectedLevel && userData.currentSession) {
+      // Find the level containing the current session
+      const currentStage = userData.currentSession;
+      let targetLevel = levels[0]; // Default to first level
+      
+      for (const level of levels) {
+        for (const stage of level.stages) {
+          if (stage.id === currentStage) {
+            targetLevel = level;
+            break;
+          }
+        }
+        if (targetLevel !== levels[0]) break;
+      }
+      
+      setSelectedLevel(targetLevel);
+      console.log('🎯 Auto-selected level based on current session:', {
+        currentSession: userData.currentSession,
+        selectedLevel: targetLevel.name
+      });
+    }
+  }, [levels, selectedLevel, userData.currentSession]);
 
   // Quiz Questions based on current stage
   const getQuizQuestions = (stage: Stage) => {
@@ -1295,59 +1325,114 @@ const Levels: React.FC = () => {
   };
 
   const analyzeQuizResults = async () => {
-    // Simulate AI analysis with real feedback
-    await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 2000)); // 3-5 seconds
+    if (!selectedStage) return;
     
-    const questions = getQuizQuestions(selectedStage!);
-    let score = 0;
-    let correctAnswers = 0;
-    
-    // Calculate score based on answers
-    questions.forEach(question => {
-      const userAnswer = userAnswers[question.id];
-      if (question.type === 'multiple' && userAnswer === question.correct) {
-        correctAnswers++;
-        score += 25;
-      } else if ((question.type === 'short' || question.type === 'long') && userAnswer && userAnswer.trim().length > 10) {
-        // Simple validation for text answers
-        correctAnswers++;
-        score += 25;
-      }
-    });
-
-    const passed = score >= 70; // 70% to pass
-    
-    const feedbacks = {
-      excellent: "🎉 عالی! شما درک کاملی از این مرحله دارید. پاسخ‌هایتان نشان می‌دهد که آماده پیشرفت به مرحله بعد هستید. ادامه دهید!",
-      good: "👍 خوب! شما اساس این مرحله را درک کرده‌اید. با کمی مرور بیشتر، می‌تونید به راحتی به مرحله بعد بروید.",
-      needsWork: "📚 نیاز به مطالعه بیشتر! پیشنهاد می‌کنم ویدئو آموزشی را دوباره مشاهده کنید و با AI Coach بیشتر صحبت کنید.",
-      failed: "🔄 تلاش مجدد! این بار زمان بیشتری برای یادگیری صرف کنید. من آماده کمک به شما هستم!"
-    };
-
-    let feedback = feedbacks.failed;
-    if (score >= 90) feedback = feedbacks.excellent;
-    else if (score >= 80) feedback = feedbacks.good;
-    else if (score >= 70) feedback = feedbacks.needsWork;
-
-    setQuizResult({ passed, score, feedback });
-    setIsAnalyzing(false);
-    setQuizCompleted(true);
-    
-    // Save quiz result for this stage
-    if (selectedStage) {
-      setStageQuizResults(prev => ({
-        ...prev,
-        [selectedStage.id]: {
-          passed,
-          score,
-          attempts: (prev[selectedStage.id]?.attempts || 0) + 1
-        }
-      }));
+    try {
+      setIsAnalyzing(true);
       
-      // If passed, unlock next stage
-      if (passed) {
-        setPassedStages(prev => new Set([...prev, selectedStage.id + 1]));
+      if (isAPIConnected) {
+        // Use real ChatGPT evaluation via API
+        console.log('🧠 Evaluating quiz with ChatGPT...');
+        const response = await apiService.evaluateQuiz({
+          stage_id: selectedStage.id,
+          answers: userAnswers
+        });
+        
+        if (response.success && response.data) {
+          const { passed, score, feedback, next_stage_unlocked } = response.data;
+          
+          setQuizResult({ passed, score, feedback });
+          setIsAnalyzing(false);
+          setQuizCompleted(true);
+          
+          // Save quiz result for this stage
+          setStageQuizResults(prev => ({
+            ...prev,
+            [selectedStage.id]: {
+              passed,
+              score,
+              attempts: (prev[selectedStage.id]?.attempts || 0) + 1
+            }
+          }));
+          
+          // If passed and next stage unlocked, update progress
+          if (passed && next_stage_unlocked) {
+            setPassedStages(prev => new Set([...prev, selectedStage.id + 1]));
+            // Refresh user data to get updated progress
+            setTimeout(() => {
+              refreshUserData();
+            }, 1000);
+          }
+          
+          console.log('✅ Quiz evaluated successfully:', { passed, score, next_stage_unlocked });
+        } else {
+          throw new Error(response.error || 'Failed to evaluate quiz');
+        }
+      } else {
+        // Fallback to local simulation when API not connected
+        await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 2000));
+        
+        const questions = getQuizQuestions(selectedStage);
+        let score = 0;
+        let correctAnswers = 0;
+        
+        // Calculate score based on answers
+        questions.forEach(question => {
+          const userAnswer = userAnswers[question.id];
+          if (question.type === 'multiple' && userAnswer === question.correct) {
+            correctAnswers++;
+            score += 25;
+          } else if ((question.type === 'short' || question.type === 'long') && userAnswer && userAnswer.trim().length > 10) {
+            // Simple validation for text answers
+            correctAnswers++;
+            score += 25;
+          }
+        });
+
+        const passed = score >= 70; // 70% to pass
+        
+        const feedbacks = {
+          excellent: "🎉 عالی! شما درک کاملی از این مرحله دارید. پاسخ‌هایتان نشان می‌دهد که آماده پیشرفت به مرحله بعد هستید. ادامه دهید!",
+          good: "👍 خوب! شما اساس این مرحله را درک کرده‌اید. با کمی مرور بیشتر، می‌تونید به راحتی به مرحله بعد بروید.",
+          needsWork: "📚 نیاز به مطالعه بیشتر! پیشنهاد می‌کنم ویدئو آموزشی را دوباره مشاهده کنید و با AI Coach بیشتر صحبت کنید.",
+          failed: "🔄 تلاش مجدد! این بار زمان بیشتری برای یادگیری صرف کنید. من آماده کمک به شما هستم!"
+        };
+
+        let feedback = feedbacks.failed;
+        if (score >= 90) feedback = feedbacks.excellent;
+        else if (score >= 80) feedback = feedbacks.good;
+        else if (score >= 70) feedback = feedbacks.needsWork;
+
+        setQuizResult({ passed, score, feedback });
+        setIsAnalyzing(false);
+        setQuizCompleted(true);
+        
+        // Save quiz result for this stage
+        setStageQuizResults(prev => ({
+          ...prev,
+          [selectedStage.id]: {
+            passed,
+            score,
+            attempts: (prev[selectedStage.id]?.attempts || 0) + 1
+          }
+        }));
+        
+        // If passed, unlock next stage
+        if (passed) {
+          setPassedStages(prev => new Set([...prev, selectedStage.id + 1]));
+        }
       }
+    } catch (error) {
+      console.error('❌ Error evaluating quiz:', error);
+      setIsAnalyzing(false);
+      
+      // Show error message
+      setQuizResult({ 
+        passed: false, 
+        score: 0, 
+        feedback: 'خطا در ارزیابی آزمون. لطفاً دوباره تلاش کنید.' 
+      });
+      setQuizCompleted(true);
     }
   };
 
@@ -1358,6 +1443,21 @@ const Levels: React.FC = () => {
     setIsAnalyzing(false);
     setQuizResult(null);
     setShowQuiz(false);
+  };
+
+  // Function to refresh user data after stage completion
+  const refreshUserData = async () => {
+    try {
+      if (isAPIConnected) {
+        const response = await apiService.getUserProfile();
+        if (response.success && response.data) {
+          console.log('✅ User data refreshed:', response.data);
+          // Update any relevant user data state here if needed
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing user data:', error);
+    }
   };
 
   // Chat functions
@@ -1445,7 +1545,8 @@ const Levels: React.FC = () => {
 
 
 
-  const levels: Level[] = [
+  // Generate levels data with dynamic status based on user progress
+  const generateLevels = (): Level[] => [
     {
       id: 1,
       title: "انتخاب ایده و ساخت اولین دارایی",
@@ -1462,7 +1563,7 @@ const Levels: React.FC = () => {
           id: 1,
           title: "چرا انتخاب ایده مهم‌ترین قدمه",
           description: "درک اهمیت انتخاب ایده درست برای موفقیت کسب‌وکار",
-          status: 'completed',
+          status: getStageStatus(1),
           exercise: "تحلیل ۵ کسب‌وکار موفق و شناسایی ایده‌های پشت آن‌ها",
           checklist: [
             "مطالعه موردی ۵ کسب‌وکار موفق",
@@ -1477,7 +1578,7 @@ const Levels: React.FC = () => {
           id: 2,
           title: "ویژگی‌های یک ایده پول‌ساز قابل اجرا با AI",
           description: "معیارهای ارزیابی ایده‌ها برای قابلیت اجرا با هوش مصنوعی",
-          status: 'completed',
+          status: getStageStatus(2),
           exercise: "ایجاد چک‌لیست ارزیابی ایده بر اساس معیارهای آموخته‌شده",
           checklist: [
             "تعریف مشکل واقعی و قابل حل",
@@ -1492,7 +1593,7 @@ const Levels: React.FC = () => {
           id: 3,
           title: "تولید ایده‌های شخصی‌سازی‌شده با کمک GPT",
           description: "استفاده از GPT برای تولید ایده‌های منحصر به فرد",
-          status: 'in_progress',
+          status: getStageStatus(3),
           exercise: "تولید ۱۰ ایده کسب‌وکار با استفاده از پرامپت‌های GPT",
           checklist: [
             "نوشتن پرامپت موثر برای تولید ایده",
@@ -1507,7 +1608,7 @@ const Levels: React.FC = () => {
           id: 4,
           title: "مقایسه و انتخاب ایده نهایی",
           description: "روش‌های علمی مقایسه و انتخاب بهترین ایده",
-          status: 'available',
+          status: getStageStatus(4),
           exercise: "مقایسه ۳ ایده برتر با ماتریس تصمیم‌گیری",
           checklist: [
             "ایجاد ماتریس مقایسه ایده‌ها",
@@ -1522,7 +1623,7 @@ const Levels: React.FC = () => {
           id: 5,
           title: "پیش‌نمایش سرویس",
           description: "تعریف دقیق مشکل و راه‌حل پیشنهادی",
-          status: 'locked',
+          status: getStageStatus(5),
           exercise: "نوشتن پروپوزال یک‌صفحه‌ای برای ایده انتخاب‌شده",
           checklist: [
             "تعریف مشکل اصلی",
@@ -1551,7 +1652,7 @@ const Levels: React.FC = () => {
           id: 6,
           title: "طراحی سرویس واقعی با AI (شامل اسم، شعار و موقعیت برند)",
           description: "طراحی ساختار، خدمات و تجربه کاربری سرویس",
-          status: 'locked',
+          status: getStageStatus(6),
           exercise: "طراحی blueprint کامل سرویس با GPT",
           checklist: [
             "تعریف ویژگی‌های اصلی سرویس",
@@ -1565,7 +1666,7 @@ const Levels: React.FC = () => {
           id: 7,
           title: "ساخت نسخه اولیه (MVP) و تست با بازار کوچک",
           description: "پیاده‌سازی کمترین ویژگی‌های قابل تست و دریافت بازخورد",
-          status: 'locked',
+          status: getStageStatus(7),
           exercise: "ساخت MVP با ابزارهای no-code و تست روی ۳ مشتری",
           checklist: [
             "انتخاب ابزار مناسب ساخت MVP",
@@ -1579,7 +1680,7 @@ const Levels: React.FC = () => {
           id: 8,
           title: "معرفی حرفه‌ای سرویس + طراحی پیشنهاد پولی اولیه",
           description: "خلاصه‌سازی سرویس و طراحی نخستین پیشنهاد درآمدزا",
-          status: 'locked',
+          status: getStageStatus(8),
           exercise: "نوشتن elevator pitch و طراحی پکیج قیمت‌گذاری اولیه",
           checklist: [
             "نوشتن توضیح ۱ پاراگرافی سرویس",
@@ -1607,7 +1708,7 @@ const Levels: React.FC = () => {
           id: 9,
           title: "طراحی داستان برند و پیام احساسی برای فروش",
           description: "ایجاد داستان جذاب و پیام احساسی که مشتریان را تحت تأثیر قرار می‌دهد",
-          status: 'locked',
+          status: getStageStatus(9),
           exercise: "نوشتن داستان برند و پیام‌های کلیدی احساسی",
           checklist: [
             "تعریف داستان پشت برند",
@@ -1621,7 +1722,7 @@ const Levels: React.FC = () => {
           id: 10,
           title: "طراحی حداقل نسخه برند (رنگ، فونت، شخصیت) با AI",
           description: "تعریف ویژگی‌های بصری و شخصیتی برند با کمترین پیچیدگی",
-          status: 'locked',
+          status: getStageStatus(10),
           exercise: "ایجاد Style Guide مینیمال برند",
           checklist: [
             "انتخاب پالت رنگی اصلی",
@@ -1635,7 +1736,7 @@ const Levels: React.FC = () => {
           id: 11,
           title: "طراحی لوگو و گرافیک سریع برای شروع فروش",
           description: "ساخت المان‌های بصری ضروری برند برای شروع فروش",
-          status: 'locked',
+          status: getStageStatus(11),
           exercise: "طراحی بسته کامل بصری برند",
           checklist: [
             "طراحی لوگو با Midjourney",
@@ -1663,7 +1764,7 @@ const Levels: React.FC = () => {
           id: 12,
           title: "راه‌اندازی صفحه فرود حرفه‌ای برای جذب چندکاناله",
           description: "ساخت صفحه فرود جذاب برای تبدیل بازدیدکنندگان به مشتری",
-          status: 'locked',
+          status: getStageStatus(12),
           exercise: "طراحی و راه‌اندازی صفحه فرود با ابزارهای no-code",
           checklist: [
             "انتخاب پلتفرم ساخت صفحه فرود",
@@ -1677,7 +1778,7 @@ const Levels: React.FC = () => {
           id: 13,
           title: "اتصال سیستم پرداخت و درگاه امن",
           description: "راه‌اندازی سیستم پرداخت آنلاین برای دریافت پول",
-          status: 'locked',
+          status: getStageStatus(13),
           exercise: "تنظیم درگاه پرداخت و اتصال به صفحه فروش",
           checklist: [
             "انتخاب درگاه پرداخت مناسب",
@@ -1691,7 +1792,7 @@ const Levels: React.FC = () => {
           id: 14,
           title: "آماده‌سازی کانال‌های پشتیبانی و اولین کانال جذب مکمل",
           description: "ایجاد سیستم پشتیبانی مشتری و کانال جذب مشتری",
-          status: 'locked',
+          status: getStageStatus(14),
           exercise: "راه‌اندازی چت، ایمیل و کانال جذب اول",
           checklist: [
             "راه‌اندازی سیستم چت پشتیبانی",
@@ -1719,7 +1820,7 @@ const Levels: React.FC = () => {
           id: 15,
           title: "ساخت پیج حرفه‌ای اینستاگرامی برای جذب فالوئر هدفمند",
           description: "راه‌اندازی پیج اینستاگرام حرفه‌ای برای جذب مخاطب هدف",
-          status: 'locked',
+          status: getStageStatus(15),
           exercise: "راه‌اندازی و بهینه‌سازی پیج اینستاگرام",
           checklist: [
             "تنظیم اکانت بیزنس اینستاگرام",
@@ -1733,7 +1834,7 @@ const Levels: React.FC = () => {
           id: 16,
           title: "طراحی بایو، هایلایت و پروفایل فروشنده‌ساز با AI",
           description: "بهینه‌سازی المان‌های کلیدی پروفایل برای تبدیل",
-          status: 'locked',
+          status: getStageStatus(16),
           exercise: "طراحی ۵ هایلایت و بایو جذاب با AI",
           checklist: [
             "نوشتن بایو کانورت کننده با AI",
@@ -1747,7 +1848,7 @@ const Levels: React.FC = () => {
           id: 17,
           title: "تولید محتوا و استوری اعتمادساز + انتشار در کانال مکمل",
           description: "ایجاد محتوای آموزشی و اعتمادساز با GPT",
-          status: 'locked',
+          status: getStageStatus(17),
           exercise: "تولید ۱۰ پست و ۲۰ استوری اعتمادساز",
           checklist: [
             "برنامه‌ریزی calendar محتوا",
@@ -1775,7 +1876,7 @@ const Levels: React.FC = () => {
           id: 18,
           title: "پیدا کردن اولین مشتری با روش‌های سریع و کم‌هزینه",
           description: "شناسایی و جذب اولین مشتریان با روش‌های مقرون به صرفه",
-          status: 'locked',
+          status: getStageStatus(18),
           exercise: "شناسایی و تماس با ۱۰ مشتری بالقوه",
           checklist: [
             "تحلیل بازار هدف",
@@ -1789,7 +1890,7 @@ const Levels: React.FC = () => {
           id: 19,
           title: "طراحی پیشنهاد فروش و اجرای روان‌شناسی خرید",
           description: "طراحی پیشنهاد جذاب و استفاده از روان‌شناسی فروش",
-          status: 'locked',
+          status: getStageStatus(19),
           exercise: "طراحی ۳ پیشنهاد فروش مختلف",
           checklist: [
             "تحلیل نیازهای مشتری",
@@ -1803,7 +1904,7 @@ const Levels: React.FC = () => {
           id: 20,
           title: "مکالمه فروش و تبدیل لید به خریدار",
           description: "تکنیک‌های مذاکره و بستن معامله",
-          status: 'locked',
+          status: getStageStatus(20),
           exercise: "شبیه‌سازی ۵ گفتگوی فروش",
           checklist: [
             "آماده‌سازی اسکریپت فروش",
@@ -1831,7 +1932,7 @@ const Levels: React.FC = () => {
           id: 21,
           title: "ساخت سیستم CRM و مدیریت مشتریان",
           description: "راه‌اندازی سیستم مدیریت ارتباط با مشتریان",
-          status: 'locked',
+          status: getStageStatus(21),
           exercise: "انتخاب و راه‌اندازی CRM مناسب",
           checklist: [
             "انتخاب ابزار CRM مناسب",
@@ -1845,7 +1946,7 @@ const Levels: React.FC = () => {
           id: 22,
           title: "اجرای فالوآپ خودکار با ایمیل، واتساپ یا SMS",
           description: "اتوماسیون پیگیری مشتریان با ابزارهای مختلف",
-          status: 'locked',
+          status: getStageStatus(22),
           exercise: "راه‌اندازی سیستم فالوآپ خودکار",
           checklist: [
             "تنظیم email sequences",
@@ -1859,7 +1960,7 @@ const Levels: React.FC = () => {
           id: 23,
           title: "طراحی سناریوهای اتوماسیون فروش و خدمات",
           description: "طراحی فرآیندهای خودکار برای فروش و پشتیبانی",
-          status: 'locked',
+          status: getStageStatus(23),
           exercise: "طراحی workflow های اتوماسیون",
           checklist: [
             "طراحی سناریوهای فروش",
@@ -1887,7 +1988,7 @@ const Levels: React.FC = () => {
           id: 24,
           title: "انتخاب بازار بین‌المللی مناسب",
           description: "شناسایی و انتخاب بازارهای بین‌المللی برای گسترش",
-          status: 'locked',
+          status: getStageStatus(24),
           exercise: "تحلیل و انتخاب ۳ بازار بین‌المللی",
           checklist: [
             "تحلیل بازارهای هدف",
@@ -1901,7 +2002,7 @@ const Levels: React.FC = () => {
           id: 25,
           title: "طراحی زیرساخت تیمی و فنی برای رشد ۱۰ برابری",
           description: "آماده‌سازی سیستم‌ها و تیم برای رشد سریع",
-          status: 'locked',
+          status: getStageStatus(25),
           exercise: "طراحی architecture قابل scale",
           checklist: [
             "طراحی ساختار تیمی",
@@ -1915,7 +2016,7 @@ const Levels: React.FC = () => {
           id: 26,
           title: "طراحی نقشه رشد ۹۰ روزه با شاخص پیشرفت",
           description: "تدوین برنامه عملیاتی برای ۳ ماه آینده",
-          status: 'locked',
+          status: getStageStatus(26),
           exercise: "ایجاد roadmap تفصیلی ۹۰ روزه",
           checklist: [
             "تعریف اهداف هر ماه",
@@ -1943,7 +2044,7 @@ const Levels: React.FC = () => {
           id: 27,
           title: "سیستم تثبیت فروش و تکرارپذیری درآمد",
           description: "ایجاد سیستم‌های پایدار برای فروش مداوم",
-          status: 'locked',
+          status: getStageStatus(27),
           exercise: "طراحی سیستم فروش تکرارپذیر",
           checklist: [
             "طراحی سیستم فروش مداوم",
@@ -1957,7 +2058,7 @@ const Levels: React.FC = () => {
           id: 28,
           title: "مدیریت طولانی‌مدت مشتریان و ارتقاء آن‌ها",
           description: "ایجاد سیستم مدیریت مشتریان برای رشد درآمد",
-          status: 'locked',
+          status: getStageStatus(28),
           exercise: "طراحی استراتژی retention و upsell",
           checklist: [
             "طراحی برنامه وفاداری",
@@ -1971,7 +2072,7 @@ const Levels: React.FC = () => {
           id: 29,
           title: "مسیر ادامه رشد و نوآوری با AI",
           description: "طراحی مسیر آینده با استفاده از هوش مصنوعی",
-          status: 'locked',
+          status: getStageStatus(29),
           exercise: "طراحی نقشه راه آینده با AI",
           checklist: [
             "تحلیل روندهای آینده",
@@ -1984,6 +2085,9 @@ const Levels: React.FC = () => {
       ]
     }
   ];
+
+  // Generate levels with current user progress
+  const levels = generateLevels();
 
   // Load chat history on component mount
   useEffect(() => {

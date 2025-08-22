@@ -599,7 +599,10 @@ const Dashboard: React.FC = () => {
             
             {/* Button Section */}
             <div className="flex justify-center mt-auto mb-4" style={{ marginBottom: '6px' }}>
-              <button className="w-full px-5 py-2.5 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white text-base font-bold rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-white/10">
+              <button 
+                onClick={() => navigate('/levels')}
+                className="w-full px-5 py-2.5 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white text-base font-bold rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-white/10"
+              >
                 ادامه مسیر
               </button>
             </div>

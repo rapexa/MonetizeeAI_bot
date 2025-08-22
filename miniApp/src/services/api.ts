@@ -444,6 +444,32 @@ class APIService {
       ...salesPathData
     });
   }
+
+  // Quiz evaluation - Evaluate quiz answers with ChatGPT
+  async evaluateQuiz(quizData: {
+    stage_id: number;
+    answers: { [key: string]: any };
+  }): Promise<APIResponse<{
+    passed: boolean;
+    score: number;
+    feedback: string;
+    next_stage_unlocked: boolean;
+  }>> {
+    const telegramId = this.getTelegramId();
+    if (!telegramId) {
+      return { success: false, error: 'No user ID available' };
+    }
+
+    return this.makeRequest<{
+      passed: boolean;
+      score: number;
+      feedback: string;
+      next_stage_unlocked: boolean;
+    }>('POST', '/evaluate-quiz', {
+      telegram_id: telegramId,
+      ...quizData
+    });
+  }
 }
 
 const apiService = new APIService();

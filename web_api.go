@@ -128,6 +128,9 @@ func StartWebAPI() {
 
 		// Progress tracking
 		v1.POST("/user/:telegram_id/progress", updateUserProgress)
+
+		// Quiz evaluation endpoint
+		v1.POST("/evaluate-quiz", handleQuizEvaluation)
 	}
 
 	port := getEnvWithDefault("WEB_API_PORT", "8080")
@@ -1395,6 +1398,160 @@ func extractJSONFromResponse(response string) string {
 
 	// Return original response if no JSON structure found
 	return response
+}
+
+// QuizEvaluationRequest represents the quiz evaluation request
+type QuizEvaluationRequest struct {
+	TelegramID int64                  `json:"telegram_id" binding:"required"`
+	StageID    int                    `json:"stage_id" binding:"required"`
+	Answers    map[string]interface{} `json:"answers" binding:"required"`
+}
+
+// QuizEvaluationResponse represents the quiz evaluation response
+type QuizEvaluationResponse struct {
+	Passed            bool   `json:"passed"`
+	Score             int    `json:"score"`
+	Feedback          string `json:"feedback"`
+	NextStageUnlocked bool   `json:"next_stage_unlocked"`
+}
+
+// handleQuizEvaluation handles quiz evaluation with ChatGPT
+func handleQuizEvaluation(c *gin.Context) {
+	var req QuizEvaluationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid request format",
+		})
+		return
+	}
+
+	// Find user
+	var user User
+	result := db.Where("telegram_id = ?", req.TelegramID).First(&user)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "User not found",
+		})
+		return
+	}
+
+	// Get stage information (from current session)
+	var session Session
+	if err := db.Where("number = ?", req.StageID).First(&session).Error; err != nil {
+		logger.Error("Failed to get session for quiz evaluation", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Stage not found",
+		})
+		return
+	}
+
+	// Convert answers to string for ChatGPT analysis
+	answersJSON, _ := json.Marshal(req.Answers)
+	answersStr := string(answersJSON)
+
+	// Create evaluation prompt similar to exercise submission
+	context := fmt.Sprintf(`Stage Title: %s
+Stage Description: %s
+Stage ID: %d
+
+Student's Quiz Answers:
+%s
+
+Please evaluate this quiz submission according to these criteria:
+1. Check if the answers demonstrate understanding of the stage's learning objectives
+2. Evaluate the quality and depth of responses
+3. If the answers are insufficient:
+   - Provide specific feedback on what's missing
+   - Give helpful guidance for improvement
+   - Explain what they should study more
+4. If the answers are good:
+   - Provide positive reinforcement
+   - Give permission to move to next stage
+5. Keep the tone friendly and encouraging
+6. Respond in Persian
+
+Rate the performance on a scale of 0-100 and determine if they should pass (≥70).
+
+Format your response as:
+APPROVED: [yes/no]
+SCORE: [0-100]
+FEEDBACK: [your detailed feedback in Persian]`,
+		session.Title,
+		session.Description,
+		req.StageID,
+		answersStr)
+
+	// Get evaluation from ChatGPT
+	evaluation := handleChatGPTMessage(&user, context)
+
+	// Parse the response
+	var approved bool
+	var score int
+	var feedback string
+
+	// Split the response into lines
+	lines := strings.Split(evaluation, "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "APPROVED:") {
+			approved = strings.Contains(strings.ToLower(line), "yes")
+		} else if strings.HasPrefix(line, "SCORE:") {
+			scoreStr := strings.TrimSpace(strings.TrimPrefix(line, "SCORE:"))
+			if parsedScore, err := strconv.Atoi(scoreStr); err == nil {
+				score = parsedScore
+			}
+		} else if strings.HasPrefix(line, "FEEDBACK:") {
+			feedback = strings.TrimSpace(strings.TrimPrefix(line, "FEEDBACK:"))
+		}
+	}
+
+	// Fallback values if parsing failed
+	if feedback == "" {
+		if approved {
+			feedback = "عالی! شما با موفقیت این مرحله را تکمیل کردید و آماده ورود به مرحله بعدی هستید."
+		} else {
+			feedback = "نیاز به بهبود دارید. لطفا مطالب را مرور کنید و دوباره تلاش کنید."
+		}
+	}
+	if score == 0 {
+		if approved {
+			score = 80
+		} else {
+			score = 50
+		}
+	}
+
+	nextStageUnlocked := false
+	if approved {
+		// Update user progress - move to next stage
+		user.CurrentSession++
+		if err := db.Save(&user).Error; err != nil {
+			logger.Error("Failed to update user session after quiz",
+				zap.Int64("user_id", user.TelegramID),
+				zap.Int("new_session", user.CurrentSession),
+				zap.Error(err))
+		} else {
+			nextStageUnlocked = true
+			logger.Info("User passed quiz and moved to next session",
+				zap.Int64("user_id", user.TelegramID),
+				zap.Int("stage_id", req.StageID),
+				zap.Int("score", score))
+		}
+	}
+
+	response := QuizEvaluationResponse{
+		Passed:            approved,
+		Score:             score,
+		Feedback:          feedback,
+		NextStageUnlocked: nextStageUnlocked,
+	}
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    response,
+	})
 }
 
 // Helper function to get environment variable with default
