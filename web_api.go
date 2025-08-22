@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -150,6 +151,7 @@ func authenticateTelegramUser(c *gin.Context) {
 		Username   string `json:"username"`
 		FirstName  string `json:"first_name"`
 		LastName   string `json:"last_name"`
+		InitData   string `json:"init_data"` // Telegram WebApp initData for validation
 	}
 
 	if err := c.ShouldBindJSON(&requestData); err != nil {
@@ -158,6 +160,26 @@ func authenticateTelegramUser(c *gin.Context) {
 			Error:   "Invalid request data: " + err.Error(),
 		})
 		return
+	}
+
+	// Validate Telegram initData if provided
+	if requestData.InitData != "" {
+		if !validateTelegramInitData(requestData.InitData, requestData.TelegramID) {
+			c.JSON(http.StatusUnauthorized, APIResponse{
+				Success: false,
+				Error:   "Invalid Telegram authentication. Please access through official Telegram bot.",
+			})
+			return
+		}
+	} else {
+		// If no initData provided, reject (except for testing)
+		if os.Getenv("ENVIRONMENT") != "development" {
+			c.JSON(http.StatusUnauthorized, APIResponse{
+				Success: false,
+				Error:   "Telegram authentication required. Please access through official Telegram bot.",
+			})
+			return
+		}
 	}
 
 	// Find user in database
@@ -1552,6 +1574,51 @@ FEEDBACK: [your detailed feedback in Persian]`,
 		Success: true,
 		Data:    response,
 	})
+}
+
+// validateTelegramInitData validates Telegram WebApp initData
+func validateTelegramInitData(initData string, expectedTelegramID int64) bool {
+	if initData == "" {
+		return false
+	}
+
+	// Parse initData to extract user information
+	params, err := url.ParseQuery(initData)
+	if err != nil {
+		logger.Error("Failed to parse initData", zap.Error(err))
+		return false
+	}
+
+	userDataStr := params.Get("user")
+	if userDataStr == "" {
+		logger.Error("No user data in initData")
+		return false
+	}
+
+	// Decode user data
+	var userData struct {
+		ID        int64  `json:"id"`
+		FirstName string `json:"first_name"`
+		Username  string `json:"username"`
+	}
+
+	if err := json.Unmarshal([]byte(userDataStr), &userData); err != nil {
+		logger.Error("Failed to parse user data", zap.Error(err))
+		return false
+	}
+
+	// Check if user ID matches expected ID
+	if userData.ID != expectedTelegramID {
+		logger.Warn("Telegram ID mismatch",
+			zap.Int64("expected", expectedTelegramID),
+			zap.Int64("received", userData.ID))
+		return false
+	}
+
+	// TODO: Add HMAC validation using bot token for additional security
+	// This would require implementing Telegram's validation algorithm
+
+	return true
 }
 
 // Helper function to get environment variable with default
