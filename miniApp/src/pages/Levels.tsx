@@ -3474,16 +3474,21 @@ const Levels: React.FC = () => {
       </div>
       
       {/* Chat Modal for AI Coach */}
-      <ChatModal
-        isOpen={isChatModalOpen}
-        onClose={() => {
-          console.log('🔥 Modal close called');
-          setIsChatModalOpen(false);
-        }}
-        title="MonetizeAI Coach"
-        chatMessages={chatMessages}
-        setChatMessages={setChatMessages}
-      />
+      {(() => {
+        console.log('🔥 Rendering ChatModal with isOpen:', isChatModalOpen);
+        return (
+          <ChatModal
+            isOpen={isChatModalOpen}
+            onClose={() => {
+              console.log('🔥 Modal close called');
+              setIsChatModalOpen(false);
+            }}
+            title="MonetizeAI Coach"
+            chatMessages={chatMessages}
+            setChatMessages={setChatMessages}
+          />
+        );
+      })()}
     </div>
   );
 };
