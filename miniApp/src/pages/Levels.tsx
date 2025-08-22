@@ -2772,39 +2772,46 @@ const Levels: React.FC = () => {
                       {/* Full AI Coach Chat Interface */}
                       <div className="bg-gray-900/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-gray-700/60 shadow-lg w-full h-[500px] flex flex-col">
                         {/* Header */}
-            <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
-              <div className="relative">
-                <div className="p-2 md:p-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-xl shadow-lg">
-                  <Brain size={20} className="text-white md:w-6 md:h-6" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <span className="truncate">MonetizeAI Coach</span>
-                  <Sparkles size={16} className="text-[#8B5CF6] flex-shrink-0 md:w-[18px] md:h-[18px]" />
-                    </h3>
-                <p className="text-xs md:text-sm text-[#8B5CF6] dark:text-[#8B5CF6] flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
-                  <span className="truncate">۲۴/۷ آنلاین - آماده کمک</span>
-                </p>
+            <div className="flex items-center justify-between gap-2 md:gap-3 mb-4 md:mb-6">
+              <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                <div className="relative">
+                  <div className="p-2 md:p-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-xl shadow-lg">
+                    <Brain size={20} className="text-white md:w-6 md:h-6" />
                   </div>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('Expand button clicked');
-                  setIsChatModalOpen(true);
-                }}
-                className="p-2 hover:bg-gray-100/20 dark:hover:bg-gray-700/20 rounded-lg transition-colors duration-200 cursor-pointer z-50 relative"
-                title="بزرگ کردن چت"
-                type="button"
-              >
-                <Maximize2 size={18} className="text-gray-600 dark:text-gray-300 pointer-events-none" />
-              </button>
-              <div className="text-xs bg-[#8B5CF6]/20 dark:bg-[#8B5CF6]/20 text-[#8B5CF6] dark:text-[#8B5CF6] px-2 md:px-3 py-1 rounded-full border border-[#8B5CF6]/30 dark:border-[#8B5CF6]/30 flex-shrink-0">
-                AI
-                        </div>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <span className="truncate">MonetizeAI Coach</span>
+                    <Sparkles size={16} className="text-[#8B5CF6] flex-shrink-0 md:w-[18px] md:h-[18px]" />
+                  </h3>
+                  <p className="text-xs md:text-sm text-[#8B5CF6] dark:text-[#8B5CF6] flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
+                    <span className="truncate">۲۴/۷ آنلاین - آماده کمک</span>
+                  </p>
+                </div>
+                <div className="text-xs bg-[#8B5CF6]/20 dark:bg-[#8B5CF6]/20 text-[#8B5CF6] dark:text-[#8B5CF6] px-2 md:px-3 py-1 rounded-full border border-[#8B5CF6]/30 dark:border-[#8B5CF6]/30 flex-shrink-0">
+                  AI
+                </div>
+              </div>
+              
+              <div className="flex-shrink-0">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🔥 Expand button clicked!');
+                    alert('Button works!'); // Simple test
+                    setIsChatModalOpen(true);
+                  }}
+                  className="p-3 hover:bg-gray-100/20 dark:hover:bg-gray-700/20 rounded-lg transition-colors duration-200 cursor-pointer bg-red-500/20 border-2 border-red-500"
+                  title="بزرگ کردن چت"
+                  type="button"
+                  style={{ zIndex: 9999, position: 'relative' }}
+                >
+                  <Maximize2 size={20} className="text-red-400" />
+                </button>
+              </div>
             </div>
 
                         {/* Chat Messages */}
