@@ -1367,6 +1367,8 @@ const Levels: React.FC = () => {
             // Refresh user data to get updated progress
             setTimeout(() => {
               refreshUserData();
+              // Re-generate levels to reflect the updated status
+              setLevels(generateLevels());
             }, 1000);
           }
           
@@ -1426,6 +1428,10 @@ const Levels: React.FC = () => {
         // If passed, unlock next stage
         if (passed) {
           setPassedStages(prev => new Set([...prev, selectedStage.id + 1]));
+          // Re-generate levels to reflect the updated status
+          setTimeout(() => {
+            setLevels(generateLevels());
+          }, 500);
         }
       }
     } catch (error) {
@@ -1551,8 +1557,15 @@ const Levels: React.FC = () => {
 
 
 
+  // Helper function to calculate level progress
+  const calculateLevelProgress = (levelStages: Stage[]): number => {
+    const completedStages = levelStages.filter(stage => getStageStatus(stage.id) === 'completed').length;
+    return Math.round((completedStages / levelStages.length) * 100);
+  };
+
   // Generate levels data with dynamic status based on user progress
-  const generateLevels = (): Level[] => [
+  const generateLevels = (): Level[] => {
+    const levelsArray: Level[] = [
     {
       id: 1,
       title: "انتخاب ایده و ساخت اولین دارایی",
@@ -1563,7 +1576,7 @@ const Levels: React.FC = () => {
       color: "text-green-600",
       gradient: "from-[#2c189a] to-[#5a189a]",
       isUnlocked: true,
-      progress: 100,
+      progress: 0, // Will be calculated after stages are defined
       stages: [
         {
           id: 1,
@@ -2091,6 +2104,14 @@ const Levels: React.FC = () => {
       ]
     }
   ];
+
+  // Calculate progress for each level based on completed stages
+  levelsArray.forEach(level => {
+    level.progress = calculateLevelProgress(level.stages);
+  });
+
+  return levelsArray;
+};
 
   // Initialize levels after generateLevels function is defined
   useEffect(() => {
