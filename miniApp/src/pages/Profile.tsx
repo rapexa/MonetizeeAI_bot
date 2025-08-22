@@ -21,7 +21,7 @@ const Profile: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [editForm, setEditForm] = useState({
-    username: "کاربر MonetizeAI",
+    username: userData.username || userData.firstName || "کاربر MonetizeAI",
     phone: "+98 912 345 6789",
     email: "user@monetizeai.com",
     income: userData.incomeMonth || 0
@@ -52,10 +52,19 @@ const Profile: React.FC = () => {
     };
 
     loadProfileData();
-  }, [isAPIConnected, userData.incomeMonth]);
+  }, [isAPIConnected, userData.incomeMonth, userData.username, userData.firstName]);
+
+  // Update editForm when userData changes
+  useEffect(() => {
+    setEditForm(prev => ({
+      ...prev,
+      username: userData.username || userData.firstName || "کاربر MonetizeAI",
+      income: userData.incomeMonth || 0
+    }));
+  }, [userData.username, userData.firstName, userData.incomeMonth]);
 
   const userProfile = {
-    name: "کاربر MonetizeAI",
+    name: userData.username || userData.firstName || "کاربر MonetizeAI",
     subscription: {
       plan: "پرو",
       status: "فعال",
