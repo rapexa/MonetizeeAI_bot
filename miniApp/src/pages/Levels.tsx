@@ -3338,13 +3338,13 @@ const Levels: React.FC = () => {
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-xs text-gray-400">پیشرفت</span>
                     <span className="text-xs font-medium text-gray-300">
-                      {Math.round((level.stages.filter(stage => stageQuizResults[stage.id]?.passed).length / level.stages.length) * 100) || 0}%
+                      {level.progress}%
                     </span>
           </div>
                   <div className="w-full bg-gray-700 rounded-full h-2">
                     <div 
                       className={`h-2 rounded-full transition-all duration-500 bg-gradient-to-r ${level.gradient}`} 
-                      style={{ width: `${Math.round((level.stages.filter(stage => stageQuizResults[stage.id]?.passed).length / level.stages.length) * 100) || 0}%` }}
+                      style={{ width: `${level.progress}%` }}
                     ></div>
                   </div>
                 </div>
