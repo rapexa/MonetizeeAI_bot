@@ -88,6 +88,17 @@ const Levels: React.FC = () => {
     console.log('🔥 Modal state changed to:', isChatModalOpen);
   }, [isChatModalOpen]);
 
+  // Force modal handling
+  const handleOpenModal = useCallback(() => {
+    console.log('🔥 Opening modal via callback');
+    setIsChatModalOpen(true);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    console.log('🔥 Closing modal via callback');
+    setIsChatModalOpen(false);
+  }, []);
+
   const [showQuiz, setShowQuiz] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [userAnswers, setUserAnswers] = useState<{[key: number]: any}>({});
@@ -2805,10 +2816,8 @@ const Levels: React.FC = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('🔥 Button clicked, setting modal to true');
-                    console.log('Current modal state:', isChatModalOpen);
-                    setIsChatModalOpen(true);
-                    console.log('State should be true now');
+                    console.log('🔥 Button clicked, current state:', isChatModalOpen);
+                    handleOpenModal();
                   }}
                   className="p-2 hover:bg-gray-100/20 dark:hover:bg-gray-700/20 rounded-lg transition-colors duration-200 cursor-pointer"
                   title="بزرگ کردن چت"
@@ -3478,11 +3487,9 @@ const Levels: React.FC = () => {
         console.log('🔥 Rendering ChatModal with isOpen:', isChatModalOpen);
         return (
           <ChatModal
+            key={`modal-${isChatModalOpen}`} // Force re-render
             isOpen={isChatModalOpen}
-            onClose={() => {
-              console.log('🔥 Modal close called');
-              setIsChatModalOpen(false);
-            }}
+            onClose={handleCloseModal}
             title="MonetizeAI Coach"
             chatMessages={chatMessages}
             setChatMessages={setChatMessages}
