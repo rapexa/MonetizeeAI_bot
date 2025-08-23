@@ -1,7 +1,6 @@
 // Simple logger for debugging
 const logger = {
   debug: (...args: any[]) => console.log('[DEBUG]', ...args),
-  warn: (...args: any[]) => console.warn('[WARN]', ...args),
   error: (...args: any[]) => console.error('[ERROR]', ...args)
 };
 
@@ -119,24 +118,14 @@ class APIService {
         }
       }
 
-      // Method 3: Try URL parameters (startapp) - ONLY if in Telegram context
-      if (typeof window !== 'undefined' && this.isInTelegram()) {
+      // Method 3: Try URL parameters (startapp)
+      if (typeof window !== 'undefined') {
         const urlParams = new URLSearchParams(window.location.search);
         const startParam = urlParams.get('startapp');
-        
-        // Only use startapp if we're actually in Telegram and can validate it
         if (startParam && !isNaN(Number(startParam))) {
-          // Additional security: Check if initDataUnsafe exists and matches
-          if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-            const actualTelegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
-            if (Number(startParam) === actualTelegramId) {
-              this.cachedTelegramId = Number(startParam);
-              logger.debug(`🔍 Got Telegram ID from URL startapp (validated): ${this.cachedTelegramId}`);
-              return this.cachedTelegramId;
-            } else {
-              logger.warn(`🚨 Security: startapp ID (${startParam}) doesn't match actual Telegram ID (${actualTelegramId})`);
-            }
-          }
+          this.cachedTelegramId = Number(startParam);
+          logger.debug(`🔍 Got Telegram ID from URL startapp: ${this.cachedTelegramId}`);
+          return this.cachedTelegramId;
         }
       }
 
@@ -230,43 +219,7 @@ class APIService {
       };
     }
 
-    // Use authentication endpoint instead of direct user endpoint
-    return this.authenticateUser();
-  }
-
-  // Authenticate user with Telegram validation
-  async authenticateUser(): Promise<APIResponse> {
-    const telegramId = this.getTelegramId();
-    
-    if (!telegramId) {
-      return {
-        success: false,
-        error: 'No user ID available'
-      };
-    }
-
-    // Get Telegram WebApp initData for validation
-    let initData = '';
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) {
-      initData = window.Telegram.WebApp.initData;
-    }
-
-    // Get user info from initDataUnsafe
-    const userData = window.Telegram?.WebApp?.initDataUnsafe?.user || {
-      username: '',
-      first_name: '',
-      last_name: ''
-    };
-
-    const authData = {
-      telegram_id: telegramId,
-      username: userData.username || '',
-      first_name: userData.first_name || '',
-      last_name: userData.last_name || '',
-      init_data: initData
-    };
-
-    return this.makeRequest('POST', '/auth/telegram', authData);
+    return this.makeRequest('GET', `/user/${telegramId}`);
   }
 
   // Get user progress

@@ -386,7 +386,15 @@ func processUserInput(input string, user *User) string {
 			// Create Mini App URL with user ID
 			miniAppWithParams := fmt.Sprintf("https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=%d", user.TelegramID)
 
-			msg := tgbotapi.NewMessage(user.TelegramID, "🏠 برای ورود به داشبورد روی لینک زیر کلیک کنید:\n\n"+miniAppWithParams)
+			// Create inline keyboard with glass button
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonURL("🏠 ورود به داشبورد", miniAppWithParams),
+				),
+			)
+
+			msg := tgbotapi.NewMessage(user.TelegramID, "🏠 برای ورود به داشبورد روی دکمه زیر کلیک کنید:")
+			msg.ReplyMarkup = keyboard
 			bot.Send(msg)
 		} else {
 			return "❌ داشبورد در حال حاضر در دسترس نیست."
@@ -889,14 +897,10 @@ func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	rows := [][]tgbotapi.KeyboardButton{
 		{
 			tgbotapi.NewKeyboardButton("🏠 ورود به داشبورد"),
-		},
-		{
 			tgbotapi.NewKeyboardButton("👤 پروفایل"),
 		},
 		{
 			tgbotapi.NewKeyboardButton("❇️ دیدن همه مسیر"),
-		},
-		{
 			tgbotapi.NewKeyboardButton("🆘 پشتیبانی"),
 		},
 		{
