@@ -1819,8 +1819,18 @@ const Levels: React.FC = () => {
             "شناسایی احساسات هدف",
             "نوشتن پیام‌های احساسی کلیدی"
           ],
-          videoTitle: "قدرت داستان‌گویی در برند",
-          videoDuration: "19:30"
+          videos: [
+            {
+              title: "طراحی داستان برند - قسمت اول",
+              duration: "19:30",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video1az9sth3.mp4"
+            },
+            {
+              title: "طراحی داستان برند - قسمت دوم",
+              duration: "16:45",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video2az9sth3.mp4"
+            }
+          ]
         },
         {
           id: 10,
