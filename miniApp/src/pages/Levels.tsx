@@ -2523,7 +2523,7 @@ const Levels: React.FC = () => {
                         <div className="flex-shrink-0 relative">
                           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#2c189a] to-[#5a189a] flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                             <span className="text-sm font-bold text-white">
-                              {index + 1}
+                              {stage.id}
                             </span>
                           </div>
                         </div>
