@@ -483,6 +483,11 @@ func handleChatRequest(c *gin.Context) {
 
 // handleChatGPTMessageAPI handles ChatGPT requests for API (similar to handlers.go function)
 func handleChatGPTMessageAPI(user *User, message string) string {
+	return makeChatGPTRequest(user, message)
+}
+
+// makeChatGPTRequest makes the actual ChatGPT API request
+func makeChatGPTRequest(user *User, message string) string {
 	// Create the API request
 	url := "https://api.openai.com/v1/chat/completions"
 
@@ -500,7 +505,7 @@ func handleChatGPTMessageAPI(user *User, message string) string {
 			},
 		},
 		"temperature": 0.7,
-		"max_tokens":  1000,
+		"max_tokens":  4000, // Increased from 1000 to prevent truncation
 	}
 
 	// Convert request body to JSON
@@ -527,7 +532,7 @@ func handleChatGPTMessageAPI(user *User, message string) string {
 
 	// Send request
 	client := &http.Client{
-		Timeout: 60 * time.Second, // Increased timeout for AI tools
+		Timeout: 120 * time.Second, // Increased timeout for complete AI responses
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -555,7 +560,7 @@ func handleChatGPTMessageAPI(user *User, message string) string {
 			} `json:"message"`
 		} `json:"choices"`
 		Error struct {
-			Message string `json:"message"`
+			Message string `json:"error"`
 		} `json:"error"`
 	}
 
@@ -582,9 +587,11 @@ func handleChatGPTMessageAPI(user *User, message string) string {
 	}
 
 	response := openAIResponse.Choices[0].Message.Content
+
 	logger.Info("ChatGPT response received",
 		zap.Int64("user_id", user.TelegramID),
-		zap.Int("response_length", len(response)))
+		zap.Int("response_length", len(response)),
+		zap.String("response_preview", response[:min(len(response), 200)]))
 
 	return response
 }
@@ -1485,7 +1492,7 @@ FEEDBACK: [your detailed feedback in Persian]`,
 		answersStr)
 
 	// Get evaluation from ChatGPT
-	evaluation := handleChatGPTMessage(&user, context)
+	evaluation := handleChatGPTMessageAPI(&user, context)
 
 	// Parse the response
 	var approved bool
@@ -1560,4 +1567,19 @@ func getEnvWithDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// Helper functions for logging
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
