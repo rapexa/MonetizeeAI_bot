@@ -10,16 +10,10 @@ interface UseTypingEffectProps {
 export const useTypingEffect = ({ text, speed = 30, onComplete, shouldAnimate = true }: UseTypingEffectProps) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const timerRef = useRef<number | null>(null);
-  const textRef = useRef(text);
+  const intervalRef = useRef<number | null>(null);
+  const currentTextRef = useRef(text);
 
   useEffect(() => {
-    // Clear any existing timer
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-
     // If no animation needed, show text immediately
     if (!shouldAnimate || !text) {
       setDisplayedText(text);
@@ -27,32 +21,43 @@ export const useTypingEffect = ({ text, speed = 30, onComplete, shouldAnimate = 
       return;
     }
 
+    // If this is the same text and we're already typing, don't restart
+    if (currentTextRef.current === text && isTyping) {
+      return;
+    }
+
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     // Reset state for new text
     setDisplayedText('');
     setIsTyping(true);
-    textRef.current = text;
+    currentTextRef.current = text;
 
     let currentIndex = 0;
     
-    const typeNextChar = () => {
-      if (currentIndex < text.length && textRef.current === text) {
+    intervalRef.current = setInterval(() => {
+      if (currentIndex < text.length) {
         setDisplayedText(text.slice(0, currentIndex + 1));
         currentIndex++;
-        timerRef.current = setTimeout(typeNextChar, speed);
       } else {
         setIsTyping(false);
         if (onComplete) onComplete();
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
       }
-    };
-
-    // Start typing
-    timerRef.current = setTimeout(typeNextChar, speed);
+    }, speed);
 
     // Cleanup function
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [text, speed, onComplete, shouldAnimate]);
@@ -60,8 +65,8 @@ export const useTypingEffect = ({ text, speed = 30, onComplete, shouldAnimate = 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
       }
     };
   }, []);

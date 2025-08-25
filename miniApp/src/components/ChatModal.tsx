@@ -72,6 +72,16 @@ const ChatModal: React.FC<ChatModalProps> = ({
         const response = await apiService.sendChatMessage(currentMessage);
         
         if (response.success && response.data) {
+          // Debug logging to see what we're getting from API
+          console.log('🔍 === API RESPONSE DEBUG ===');
+          console.log('🔍 Full Response:', response);
+          console.log('🔍 Response Data:', response.data);
+          console.log('🔍 Response Text:', response.data.response);
+          console.log('🔍 Text Length:', response.data.response?.length);
+          console.log('🔍 Text Preview (first 200 chars):', response.data.response?.substring(0, 200));
+          console.log('🔍 Text Preview (last 100 chars):', response.data.response?.substring(-100));
+          console.log('🔍 === END DEBUG ===');
+          
           const aiResponse = {
             id: chatMessages.length + 2,
             text: response.data.response,
