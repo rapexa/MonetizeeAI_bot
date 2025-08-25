@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, Send, Brain } from 'lucide-react';
 import AIMessage from './AIMessage';
 import { useAutoScroll } from '../hooks/useAutoScroll';
@@ -39,20 +39,23 @@ const ChatModal: React.FC<ChatModalProps> = ({
   
   const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
 
+  // Memoize the welcome message to prevent unnecessary re-renders
+  const welcomeMessage = useMemo(() => ({
+    id: 1,
+    text: "سلام! من AI Coach هستم 👋\n\nآماده‌ام تا در مسیر یادگیری و کسب‌وکارتان راهنمایی‌تان کنم. چه سوالی دارید؟",
+    sender: 'ai' as const,
+    timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+  }), []);
+
   // Welcome message only for internal chat (when no external messages provided)
   useEffect(() => {
     if (isOpen && !externalChatMessages && chatMessages.length === 0) {
-      const welcomeMessage = {
-        id: 1,
-        text: "سلام! من AI Coach هستم 👋\n\nآماده‌ام تا در مسیر یادگیری و کسب‌وکارتان راهنمایی‌تان کنم. چه سوالی دارید؟",
-        sender: 'ai' as const,
-        timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
-      };
       setChatMessages([welcomeMessage]);
     }
-  }, [isOpen, externalChatMessages, chatMessages.length, setChatMessages]);
+  }, [isOpen, externalChatMessages, chatMessages.length, setChatMessages, welcomeMessage]);
 
-  const handleSendMessage = async () => {
+  // Memoize the handleSendMessage function to prevent unnecessary re-renders
+  const handleSendMessage = useCallback(async () => {
     if (!message.trim()) return;
 
     const newMessage = {
@@ -99,16 +102,40 @@ const ChatModal: React.FC<ChatModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [message, chatMessages.length, setChatMessages, isAPIConnected]);
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (!isLoading && message.trim()) {
         handleSendMessage();
       }
     }
-  };
+  }, [handleSendMessage, isLoading, message]);
+
+  // Memoize the message rendering to prevent unnecessary re-renders
+  const renderedMessages = useMemo(() => {
+    return chatMessages.map((msg, index) => (
+      <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+        {msg.sender === 'user' ? (
+          <div className="max-w-xs lg:max-w-md">
+            <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white p-3 md:p-4 rounded-2xl">
+              <p className="text-sm leading-relaxed">{msg.text}</p>
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-400 opacity-70 mt-2 text-right px-2">{msg.timestamp}</p>
+          </div>
+        ) : (
+          <AIMessage
+            message={msg.text}
+            timestamp={msg.timestamp}
+            isLatest={index === chatMessages.length - 1}
+            isNew={msg.isNew || false}
+            onTypingComplete={scrollToBottom}
+          />
+        )}
+      </div>
+    ));
+  }, [chatMessages, scrollToBottom]);
 
   if (!isOpen) {
     console.log('🔥 ChatModal: isOpen is false, returning null');
@@ -149,26 +176,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4">
-          {chatMessages.map((msg, index) => (
-            <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {msg.sender === 'user' ? (
-                <div className="max-w-xs lg:max-w-md">
-                  <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white p-3 md:p-4 rounded-2xl">
-                    <p className="text-sm leading-relaxed">{msg.text}</p>
-                  </div>
-                  <p className="text-xs text-gray-400 dark:text-gray-400 opacity-70 mt-2 text-right px-2">{msg.timestamp}</p>
-                </div>
-              ) : (
-                <AIMessage
-                  message={msg.text}
-                  timestamp={msg.timestamp}
-                  isLatest={index === chatMessages.length - 1}
-                  isNew={msg.isNew || false}
-                  onTypingComplete={scrollToBottom}
-                />
-              )}
-            </div>
-          ))}
+          {renderedMessages}
           
           {isLoading && (
             <div className="flex justify-start">
