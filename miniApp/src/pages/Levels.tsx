@@ -1640,7 +1640,7 @@ const Levels: React.FC = () => {
             "بررسی چگونگی استفاده از AI در این کسب‌وکارها"
           ],
           videoTitle: "اصول انتخاب ایده پول‌ساز",
-          videoDuration: "12:30",
+          videoDuration: "40:38",
           videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az1sth1.mp4"
         },
         {
@@ -1655,7 +1655,7 @@ const Levels: React.FC = () => {
             "ارزیابی بازار هدف و تقاضا"
           ],
           videoTitle: "معیارهای ایده موفق",
-          videoDuration: "15:45",
+          videoDuration: "38:07",
           videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az2sth1.mp4"
         },
         {
@@ -1670,7 +1670,7 @@ const Levels: React.FC = () => {
             "دسته‌بندی ایده‌ها بر اساس حوزه کاری"
           ],
           videoTitle: "تکنیک‌های Prompting برای ایده‌پردازی",
-          videoDuration: "18:20",
+          videoDuration: "44:32",
           videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az3sth1.mp4"
         },
         {
@@ -1685,7 +1685,7 @@ const Levels: React.FC = () => {
             "انتخاب ایده نهایی با دلیل"
           ],
           videoTitle: "تکنیک‌های تصمیم‌گیری",
-          videoDuration: "14:15",
+          videoDuration: "19:23",
           videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az4ath1.mp4"
         },
         {
@@ -1700,7 +1700,7 @@ const Levels: React.FC = () => {
             "مشخص کردن مزیت رقابتی"
           ],
           videoTitle: "طراحی پیش‌نمایش محصول",
-          videoDuration: "16:40",
+          videoDuration: "20:22",
           videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az5sth1.mp4"
         }
       ]
@@ -1731,12 +1731,12 @@ const Levels: React.FC = () => {
           videos: [
             {
               title: "طراحی سرویس با AI - قسمت اول",
-              duration: "15:20",
+              duration: "30:00",
               url: "https://dl.sianmarketing.com/monetizeAIvideo/video1za6sth2.mp4"
             },
             {
               title: "طراحی سرویس با AI - قسمت دوم",
-              duration: "12:45",
+              duration: "23:30",
               url: "https://dl.sianmarketing.com/monetizeAIvideo/video2az6sth2.mp4"
             }
           ]
@@ -1755,17 +1755,17 @@ const Levels: React.FC = () => {
           videos: [
             {
               title: "ساخت MVP با No-Code - قسمت اول: انتخاب ابزار",
-              duration: "18:30",
+              duration: "38:51",
               url: "https://dl.sianmarketing.com/monetizeAIvideo/video1az7sth2.mp4"
             },
             {
               title: "ساخت MVP با No-Code - قسمت دوم: پیاده‌سازی",
-              duration: "22:15",
+              duration: "51:29",
               url: "https://dl.sianmarketing.com/monetizeAIvideo/video2az7sth2.mp4"
             },
             {
               title: "ساخت MVP با No-Code - قسمت سوم: تست و بهینه‌سازی",
-              duration: "20:45",
+              duration: "30:44",
               url: "https://dl.sianmarketing.com/monetizeAIvideo/video3az7sth2.mp4"
             }
           ]
@@ -1784,12 +1784,12 @@ const Levels: React.FC = () => {
           videos: [
             {
               title: "هنر Storytelling و قیمت‌گذاری - قسمت اول: داستان‌گویی",
-              duration: "16:25",
+              duration: "39:07",
               url: "https://dl.sianmarketing.com/monetizeAIvideo/video1az8sth2.mp4"
             },
             {
               title: "هنر Storytelling و قیمت‌گذاری - قسمت دوم: استراتژی قیمت‌گذاری",
-              duration: "14:30",
+              duration: "57:33",
               url: "https://dl.sianmarketing.com/monetizeAIvideo/video2az8sth2.mp4"
             }
           ]
@@ -1822,13 +1822,18 @@ const Levels: React.FC = () => {
           videos: [
             {
               title: "طراحی داستان برند - قسمت اول",
-              duration: "19:30",
+              duration: "18:50",
               url: "https://dl.sianmarketing.com/monetizeAIvideo/video1az9sth3.mp4"
             },
             {
               title: "طراحی داستان برند - قسمت دوم",
-              duration: "16:45",
+              duration: "33:03",
               url: "https://dl.sianmarketing.com/monetizeAIvideo/video2az9sth3.mp4"
+            },
+            {
+              title: "طراحی داستان برند - قسمت سوم",
+              duration: "35:56",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video3az9sth3.mp4"
             }
           ]
         },
@@ -2721,10 +2726,10 @@ const Levels: React.FC = () => {
                             <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                                   <span className="font-medium">{video.duration}</span>
                       </div>
-                          <div className="flex items-center gap-2">
+                          {/* <div className="flex items-center gap-2">
                             <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
                             <span className="font-medium">1,234 مشاهده</span>
-                    </div>
+                    </div> */}
                         </div>
                       </div>
                     </div>
