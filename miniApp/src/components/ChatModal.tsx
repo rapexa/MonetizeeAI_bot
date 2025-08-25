@@ -76,10 +76,13 @@ const ChatModal: React.FC<ChatModalProps> = ({
           console.log('🔍 === API RESPONSE DEBUG ===');
           console.log('🔍 Full Response:', response);
           console.log('🔍 Response Data:', response.data);
+          console.log('🔍 Response Data Keys:', Object.keys(response.data));
           console.log('🔍 Response Text:', response.data.response);
           console.log('🔍 Text Length:', response.data.response?.length);
           console.log('🔍 Text Preview (first 200 chars):', response.data.response?.substring(0, 200));
           console.log('🔍 Text Preview (last 100 chars):', response.data.response?.substring(-100));
+          console.log('🔍 Is Response String?', typeof response.data.response);
+          console.log('🔍 Response Data Type:', typeof response.data);
           console.log('🔍 === END DEBUG ===');
           
           const aiResponse = {
@@ -90,6 +93,18 @@ const ChatModal: React.FC<ChatModalProps> = ({
             isNew: true
           };
           setChatMessages(prev => [...prev, aiResponse]);
+          
+          // Check if response seems incomplete and add a note
+          if (response.data.response && response.data.response.length < 100) {
+            const incompleteNote = {
+              id: chatMessages.length + 3,
+              text: '⚠️ توجه: پاسخ دریافتی کوتاه است. ممکن است مشکل در سرور باشد. لطفا دوباره سوال کنید.',
+              sender: 'ai' as const,
+              timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+              isNew: true
+            };
+            setChatMessages(prev => [...prev, incompleteNote]);
+          }
         } else {
           throw new Error(response.error || 'Failed to get response');
         }
