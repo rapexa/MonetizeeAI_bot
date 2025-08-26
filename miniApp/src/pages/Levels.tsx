@@ -2838,11 +2838,11 @@ const Levels: React.FC = () => {
                       {/* Video Info */}
                             <div className="bg-gradient-to-r from-purple-50/80 to-purple-100/80 dark:from-purple-900/20 dark:to-purple-800/20 rounded-2xl p-3 border border-purple-200/50 dark:border-purple-800/50 mb-2">
                               <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-0.5">{video.title}</h4>
-                        <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                                  <span className="font-medium">{video.duration}</span>
-                      </div>
+                        <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center gap-2 bg-purple-100/50 dark:bg-purple-900/30 px-3 py-1.5 rounded-lg border border-purple-200/50 dark:border-purple-700/50">
+                            <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                            <span className="font-medium text-sm text-purple-700 dark:text-purple-300">{video.duration}</span>
+                          </div>
                           {/* <div className="flex items-center gap-2">
                             <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
                             <span className="font-medium">1,234 مشاهده</span>
@@ -2871,11 +2871,11 @@ const Levels: React.FC = () => {
                           {/* Video Info */}
                                                       <div className="bg-gradient-to-r from-purple-50/80 to-purple-100/80 dark:from-purple-900/20 dark:to-purple-800/50 dark:border-purple-800/50 mb-2">
                             <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-0.5">{selectedStage.videoTitle}</h4>
-                            <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
-                              <div className="flex items-center gap-2">
-                                <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                                <span className="font-medium">{selectedStage.videoDuration}</span>
-                            </div>
+                            <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+                              <div className="flex items-center gap-2 bg-purple-100/50 dark:bg-purple-900/30 px-3 py-1.5 rounded-lg border border-purple-200/50 dark:border-purple-700/50">
+                                <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                <span className="font-medium text-sm text-purple-700 dark:text-purple-300">{selectedStage.videoDuration}</span>
+                              </div>
                               {/* <div className="flex items-center gap-2">
                                 <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
                                 <span className="font-medium">1,234 مشاهده</span>
