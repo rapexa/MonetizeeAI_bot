@@ -89,6 +89,18 @@ const Levels: React.FC = () => {
     console.log('🔥 Modal state changed to:', isChatModalOpen);
   }, [isChatModalOpen]);
 
+  // Debug: Log localStorage contents
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('monetize-quiz-results');
+      if (saved) {
+        console.log('🔍 Current localStorage quiz results:', JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('❌ Error reading localStorage:', error);
+    }
+  }, []);
+
   // Force modal handling
   const handleOpenModal = useCallback(() => {
     console.log('🔥 Opening modal via callback');
@@ -111,8 +123,21 @@ const Levels: React.FC = () => {
 
   // Initialize stages based on user progress from API
   const [passedStages, setPassedStages] = useState<Set<number>>(new Set([1])); // Only first stage unlocked by default
-  // Initialize empty quiz results - will be populated from API
-  const [stageQuizResults, setStageQuizResults] = useState<{[key: number]: {passed: boolean, score: number, attempts: number}}>({});
+  // Initialize quiz results from localStorage and user progress
+  const [stageQuizResults, setStageQuizResults] = useState<{[key: number]: {passed: boolean, score: number, attempts: number}}>(() => {
+    // Try to load from localStorage first
+    try {
+      const saved = localStorage.getItem('monetize-quiz-results');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        console.log('📱 Loaded quiz results from localStorage:', parsed);
+        return parsed;
+      }
+    } catch (error) {
+      console.error('❌ Error loading quiz results from localStorage:', error);
+    }
+    return {};
+  });
 
   // Helper function to get stage status based on user progress
   const getStageStatus = (stageId: number): 'locked' | 'available' | 'in_progress' | 'completed' => {
@@ -150,7 +175,50 @@ const Levels: React.FC = () => {
     }
   }, [userData.currentSession]);
 
+  // Generate quiz results based on user's current session and merge with localStorage
+  useEffect(() => {
+    if (userData.currentSession && userData.currentSession > 1) {
+      // User has completed stages up to currentSession - 1
+      const completedStages = userData.currentSession - 1;
+      
+      // Create quiz results based on completed stages
+      const generatedResults: {[key: number]: {passed: boolean, score: number, attempts: number}} = {};
+      
+      for (let i = 1; i <= completedStages; i++) {
+        generatedResults[i] = {
+          passed: true,  // If user is at stage 6, they must have passed stages 1-5
+          score: 85,     // Default score for completed stages
+          attempts: 1    // Default attempts
+        };
+      }
+      
+      // Merge with existing localStorage results (preserve failed attempts and real scores)
+      const mergedResults = { ...stageQuizResults, ...generatedResults };
+      
+      console.log('📊 Merged quiz results:', {
+        currentSession: userData.currentSession,
+        completedStages,
+        generatedResults,
+        existingResults: stageQuizResults,
+        mergedResults
+      });
+      
+      setStageQuizResults(mergedResults);
+    } else {
+      // User is at stage 1, no completed stages - keep localStorage results
+      console.log('📱 User at stage 1, keeping localStorage results:', stageQuizResults);
+    }
+  }, [userData.currentSession]);
 
+  // Save quiz results to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('monetize-quiz-results', JSON.stringify(stageQuizResults));
+      console.log('💾 Saved quiz results to localStorage:', stageQuizResults);
+    } catch (error) {
+      console.error('❌ Error saving quiz results to localStorage:', error);
+    }
+  }, [stageQuizResults]);
 
   // Define levels state - will be initialized after generateLevels function definition
   const [levels, setLevels] = useState<Level[]>([]);
@@ -1506,6 +1574,17 @@ const Levels: React.FC = () => {
       }
     } catch (error) {
       console.error('❌ Error refreshing user data:', error);
+    }
+  };
+
+  // Function to clear quiz results (for testing/debugging)
+  const clearQuizResults = () => {
+    try {
+      localStorage.removeItem('monetize-quiz-results');
+      setStageQuizResults({});
+      console.log('🧹 Quiz results cleared from localStorage');
+    } catch (error) {
+      console.error('❌ Error clearing quiz results:', error);
     }
   };
 

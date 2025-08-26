@@ -131,6 +131,7 @@ func StartWebAPI() {
 
 		// Quiz evaluation endpoint
 		v1.POST("/evaluate-quiz", handleQuizEvaluation)
+
 	}
 
 	port := getEnvWithDefault("WEB_API_PORT", "8080")
