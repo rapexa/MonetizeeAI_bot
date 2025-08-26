@@ -1588,6 +1588,43 @@ const Levels: React.FC = () => {
     }
   };
 
+  // Function to navigate to next stage/level
+  const navigateToNext = () => {
+    if (!selectedStage || !selectedLevel) return;
+    
+    console.log('🔍 Navigating to next stage/level:', {
+      currentStage: selectedStage.title,
+      currentLevel: selectedLevel.title
+    });
+    
+    // Try to find next stage in current level
+    const nextStageId = selectedStage.id + 1;
+    const nextStage = selectedLevel.stages.find(s => s.id === nextStageId);
+    
+    if (nextStage) {
+      // Move to next stage in same level
+      setSelectedStage(nextStage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      console.log('✅ Moved to next stage:', nextStage.title);
+    } else {
+      // Try to move to next level
+      const currentLevelIndex = levels.findIndex(l => l.id === selectedLevel.id);
+      if (currentLevelIndex < levels.length - 1) {
+        const nextLevel = levels[currentLevelIndex + 1];
+        const firstStageOfNextLevel = nextLevel.stages[0];
+        if (firstStageOfNextLevel) {
+          setSelectedLevel(nextLevel);
+          setSelectedStage(firstStageOfNextLevel);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          console.log('✅ Moved to next level:', nextLevel.title, 'stage:', firstStageOfNextLevel.title);
+        }
+      } else {
+        console.log('🎉 User has completed all levels!');
+        alert('🎉 تبریک! شما تمام مراحل را تکمیل کرده‌اید!');
+      }
+    }
+  };
+
   // Chat functions
   const handleCancelPromptEdit = () => {
     setIsEditingPrompt(false);
@@ -3199,12 +3236,7 @@ const Levels: React.FC = () => {
                           alert('ابتدا باید آزمون این مرحله را با موفقیت بگذرانید!');
                           return;
                         }
-                        const nextStageId = selectedStage.id + 1;
-                        const nextStage = selectedLevel?.stages.find(s => s.id === nextStageId);
-                        if (nextStage) {
-                          setSelectedStage(nextStage);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }
+                        navigateToNext();
                       }}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:scale-105 ${
                         stageQuizResults[selectedStage.id]?.passed
@@ -3212,7 +3244,23 @@ const Levels: React.FC = () => {
                           : 'bg-gray-500/20 hover:bg-gray-500/30 text-gray-300 border border-gray-500/30'
                       }`}
                     >
-                      <span>مرحله بعدی</span>
+                      <span>
+                        {(() => {
+                          const nextStageId = selectedStage.id + 1;
+                          const nextStage = selectedLevel?.stages.find(s => s.id === nextStageId);
+                          if (nextStage) {
+                            return `مرحله بعدی: ${nextStage.title}`;
+                          } else {
+                            // Check if there's a next level
+                            const currentLevelIndex = levels.findIndex(l => l.id === selectedLevel?.id);
+                            if (currentLevelIndex < levels.length - 1) {
+                              const nextLevel = levels[currentLevelIndex + 1];
+                              return `سطح بعدی: ${nextLevel.title}`;
+                            }
+                            return 'مرحله آخر';
+                          }
+                        })()}
+                      </span>
                       <ArrowRight className="w-4 h-4 rotate-180" />
                     </button>
                   </div>
