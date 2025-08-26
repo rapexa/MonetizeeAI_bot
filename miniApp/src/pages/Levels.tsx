@@ -3300,10 +3300,6 @@ const Levels: React.FC = () => {
               </div>
 
               <div className="p-6 overflow-y-auto relative" style={{ backgroundColor: '#0F0817' }}>
-                {/* Scroll Indicator */}
-                <div className="absolute top-2 right-2 text-xs text-gray-400 bg-black/20 px-2 py-1 rounded-full">
-                  ↕️ اسکرول کنید
-                </div>
                 {isAnalyzing ? (
                   /* AI Analysis Loading */
                   <div className="text-center py-12">
