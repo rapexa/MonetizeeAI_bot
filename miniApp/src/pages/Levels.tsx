@@ -31,7 +31,8 @@ import {
   ClipboardCheck,
   ChevronLeft,
   Award,
-  Maximize2
+  Maximize2,
+  RefreshCw
 } from 'lucide-react';
 
 interface Video {
@@ -2950,77 +2951,131 @@ const Levels: React.FC = () => {
                   </div>
 
                   {/* Step 3: Quiz Section */}
-                  <div className="backdrop-blur-xl rounded-2xl border border-gray-800/60 shadow-xl overflow-hidden" style={{ backgroundColor: '#11091C' }}>
+                  <div className={`backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden transition-all duration-500 ${
+                    stageQuizResults[selectedStage.id]?.passed 
+                      ? 'border-green-600/60 shadow-green-500/20' 
+                      : stageQuizResults[selectedStage.id] 
+                      ? 'border-red-600/60 shadow-red-500/20'
+                      : 'border-gray-800/60'
+                  }`} style={{ backgroundColor: '#11091C' }}>
                     {/* Header */}
                     <div className="backdrop-blur-xl border-b border-gray-800/60 p-4" style={{ backgroundColor: '#11091C' }}>
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-[#2c189a] to-[#5a189a] rounded-xl">
-                          <Award className="w-6 h-6 text-white" />
+                        <div className={`p-2 rounded-xl transition-all duration-300 ${
+                          stageQuizResults[selectedStage.id]?.passed 
+                            ? 'bg-gradient-to-br from-green-500 to-emerald-500' 
+                            : stageQuizResults[selectedStage.id] 
+                            ? 'bg-gradient-to-br from-red-500 to-pink-500'
+                            : 'bg-gradient-to-br from-[#2c189a] to-[#5a189a]'
+                        }`}>
+                          {stageQuizResults[selectedStage.id]?.passed ? (
+                            <CheckCircle2 className="w-6 h-6 text-white" />
+                          ) : stageQuizResults[selectedStage.id] ? (
+                            <X className="w-6 h-6 text-white" />
+                          ) : (
+                            <Award className="w-6 h-6 text-white" />
+                          )}
                         </div>
-                        <div>
-                          <h3 className="text-lg font-bold text-white">قدم سوم: آزمون نهایی</h3>
-                          <p className="text-gray-300 text-sm mt-1">تست میزان یادگیری شما</p>
-                        </div>
+                                                  <div>
+                            <h3 className={`text-lg font-bold transition-all duration-300 ${
+                              stageQuizResults[selectedStage.id]?.passed 
+                                ? 'text-green-300' 
+                                : stageQuizResults[selectedStage.id] 
+                                ? 'text-red-300'
+                                : 'text-white'
+                            }`}>
+                              قدم سوم: آزمون نهایی
+                            </h3>
+                            <p className={`text-sm mt-1 transition-all duration-300 ${
+                              stageQuizResults[selectedStage.id]?.passed 
+                                ? 'text-green-200' 
+                                : stageQuizResults[selectedStage.id] 
+                                ? 'text-red-200'
+                                : 'text-gray-300'
+                            }`}>
+                              {stageQuizResults[selectedStage.id]?.passed 
+                                ? '✅ تکمیل شده' 
+                                : stageQuizResults[selectedStage.id] 
+                                ? '❌ نیاز به تلاش مجدد'
+                                : 'تست میزان یادگیری شما'
+                              }
+                            </p>
+                          </div>
                       </div>
                     </div>
 
                     <div className="p-6">
               {/* Quiz Result Status */}
               {stageQuizResults[selectedStage.id] ? (
-                        <div className={`rounded-2xl p-6 mb-6 border-2 ${
+                <div className={`rounded-2xl p-6 mb-6 border-2 ${
                   stageQuizResults[selectedStage.id].passed 
-                            ? 'bg-green-50/80 dark:bg-green-900/20 border-green-300/50 dark:border-green-700/50' 
-                            : 'bg-red-50/80 dark:bg-red-900/20 border-red-300/50 dark:border-red-700/50'
+                    ? 'bg-gradient-to-r from-green-50/80 to-emerald-50/80 dark:from-green-900/30 dark:to-emerald-900/30 border-green-300/60 dark:border-green-600/60' 
+                    : 'bg-gradient-to-r from-red-50/80 to-pink-50/80 dark:from-red-900/30 dark:to-pink-900/30 border-red-300/60 dark:border-red-600/60'
                 }`}>
-                          <div className="flex items-center gap-4 mb-4">
+                  <div className="flex items-center gap-4 mb-4">
                     {stageQuizResults[selectedStage.id].passed ? (
-                              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                                <CheckCircle2 className="w-7 h-7 text-white" />
-                              </div>
+                      <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                        <CheckCircle2 className="w-8 h-8 text-white" />
+                      </div>
                     ) : (
-                              <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
-                                <X className="w-7 h-7 text-white" />
-                              </div>
+                      <div className="w-14 h-14 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+                        <X className="w-8 h-8 text-white" />
+                      </div>
                     )}
-                            <div>
-                              <h4 className={`font-bold text-lg ${
-                      stageQuizResults[selectedStage.id].passed 
-                        ? 'text-green-700 dark:text-green-300' 
-                        : 'text-red-700 dark:text-red-300'
-                    }`}>
-                                {stageQuizResults[selectedStage.id].passed ? '🎉 آزمون با موفقیت گذرانده شد!' : '📚 نیاز به تلاش مجدد'}
-                              </h4>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                امتیاز: {stageQuizResults[selectedStage.id].score}% • تلاش: {stageQuizResults[selectedStage.id].attempts}
-                              </p>
+                    <div className="flex-1">
+                      <h4 className={`font-bold text-xl mb-2 ${
+                        stageQuizResults[selectedStage.id].passed 
+                          ? 'text-green-700 dark:text-green-300' 
+                          : 'text-red-700 dark:text-red-300'
+                      }`}>
+                        {stageQuizResults[selectedStage.id].passed ? '🎉 تبریک! شما در آزمون موفق شدید!' : '📚 متأسفانه در آزمون موفق نشدید'}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        امتیاز: <span className="font-semibold">{stageQuizResults[selectedStage.id].score}%</span> • 
+                        تلاش: <span className="font-semibold">{stageQuizResults[selectedStage.id].attempts}</span>
+                      </p>
+                      {stageQuizResults[selectedStage.id].passed && (
+                        <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                          ✅ این مرحله برای شما باز شده است
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-                </div>
               ) : (
-                        <div className="bg-gradient-to-br from-orange-50/80 to-orange-100/80 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200/50 dark:border-orange-700/50 rounded-2xl p-6 mb-6">
-                          <div className="flex items-center gap-4">
-                                                          <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center">
-                                                              <Clock className="w-7 h-7 text-orange-600 dark:text-orange-400" />
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-yellow-700 dark:text-yellow-300 text-lg">آماده چالش نهایی؟</h4>
-                              <p className="text-sm text-yellow-600 dark:text-yellow-400">آزمون منتظر شماست!</p>
-                            </div>
+                <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/50 dark:border-blue-700/50 rounded-2xl p-6 mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
+                      <ClipboardCheck className="w-8 h-8 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-blue-700 dark:text-blue-300 text-xl mb-2">آماده چالش نهایی؟</h4>
+                      <p className="text-sm text-blue-600 dark:text-blue-400">آزمون این مرحله منتظر شماست!</p>
+                    </div>
                   </div>
                 </div>
               )}
               
               <button 
                 onClick={() => setShowQuiz(true)}
-                        className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl flex items-center justify-center gap-3 ${
+                className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl flex items-center justify-center gap-3 ${
                   stageQuizResults[selectedStage.id]?.passed 
-                            ? 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white'
-                            : 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white'
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/30'
+                    : 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white shadow-lg shadow-[#2c189a]/30'
                 }`}
               >
-                        <ClipboardCheck className="w-6 h-6" />
-                {stageQuizResults[selectedStage.id]?.passed ? 'آزمون مجدد' : 'شروع آزمون'}
-                  </button>
+                {stageQuizResults[selectedStage.id]?.passed ? (
+                  <>
+                    <RefreshCw className="w-6 h-6" />
+                    آزمون مجدد
+                  </>
+                ) : (
+                  <>
+                    <ClipboardCheck className="w-6 h-6" />
+                    شروع آزمون
+                  </>
+                )}
+              </button>
                 </div>
                 </div>
                     </div>
