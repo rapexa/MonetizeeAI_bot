@@ -3088,7 +3088,7 @@ const Levels: React.FC = () => {
         {/* Quiz Modal */}
         {showQuiz && selectedStage && (
           <div className="fixed inset-0 bg-black/60 dark:bg-black/70 backdrop-blur-lg flex items-center justify-center p-4 z-[70]">
-            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-2xl rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl border border-white/20 dark:border-gray-700/30">
+            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-2xl rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800 shadow-2xl border border-white/20 dark:border-gray-700/30">
               {/* Quiz Header */}
               <div className="relative px-6 py-5 bg-gradient-to-r from-slate-700 via-purple-800 to-slate-700 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-[#2c189a]/30 to-[#5a189a]/30"></div>
@@ -3117,7 +3117,7 @@ const Levels: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-6" style={{ backgroundColor: '#0F0817' }}>
+              <div className="p-6 overflow-y-auto" style={{ backgroundColor: '#0F0817' }}>
                 {isAnalyzing ? (
                   /* AI Analysis Loading */
                   <div className="text-center py-12">
@@ -3278,7 +3278,7 @@ const Levels: React.FC = () => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex gap-3 justify-center">
+                    <div className="flex gap-3 justify-center mt-6">
                       <button
                         onClick={resetQuiz}
                         className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors border border-gray-300 dark:border-gray-600"
@@ -3315,6 +3315,8 @@ const Levels: React.FC = () => {
                   </div>
                 )}
               </div>
+              {/* Add bottom padding for better scrolling */}
+              <div className="h-6"></div>
             </div>
           </div>
         )}
