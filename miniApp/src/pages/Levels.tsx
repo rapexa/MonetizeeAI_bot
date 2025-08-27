@@ -32,7 +32,8 @@ import {
   ChevronLeft,
   Award,
   Maximize2,
-  RefreshCw
+  RefreshCw,
+  MessageCircle
 } from 'lucide-react';
 
 interface Video {
@@ -101,16 +102,7 @@ const Levels: React.FC = () => {
     }
   }, []);
 
-  // Force modal handling
-  const handleOpenModal = useCallback(() => {
-    console.log('🔥 Opening modal via callback');
-    setIsChatModalOpen(true);
-  }, []);
 
-  const handleCloseModal = useCallback(() => {
-    console.log('🔥 Closing modal via callback');
-    setIsChatModalOpen(false);
-  }, []);
 
   const [showQuiz, setShowQuiz] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -2945,17 +2937,12 @@ const Levels: React.FC = () => {
               
               <div className="flex-shrink-0">
               <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('🔥 Button clicked, current state:', isChatModalOpen);
-                    handleOpenModal();
-                  }}
+                  onClick={() => navigate('/chatbot')}
                   className="p-2 hover:bg-gray-100/20 dark:hover:bg-gray-700/20 rounded-lg transition-colors duration-200 cursor-pointer"
-                title="بزرگ کردن چت"
+                  title="چت کامل"
                   type="button"
               >
-                <Maximize2 size={18} className="text-gray-600 dark:text-gray-300" />
+                <MessageCircle size={18} className="text-gray-600 dark:text-gray-300" />
               </button>
                         </div>
             </div>
@@ -3699,7 +3686,7 @@ const Levels: React.FC = () => {
                 </div>
               </div>
               <button
-                onClick={handleCloseModal}
+                onClick={() => setIsChatModalOpen(false)}
                 className="w-10 h-10 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 ml-2"
               >
                 <X size={20} className="text-gray-300" />
