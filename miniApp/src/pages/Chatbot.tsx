@@ -30,6 +30,25 @@ const Chatbot: React.FC = () => {
     'راهنمای شروع'
   ];
 
+  // Initialize Telegram WebApp
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      try {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+        console.log('Telegram WebApp initialized in Chatbot');
+        console.log('Telegram user data:', window.Telegram.WebApp.initDataUnsafe);
+      } catch (error) {
+        console.error('Error initializing Telegram WebApp:', error);
+      }
+    }
+  }, []);
+
+  // Debug userData changes
+  useEffect(() => {
+    console.log('UserData changed:', userData);
+  }, [userData]);
+
   // Load chat history on component mount
   useEffect(() => {
     const loadChatHistory = async () => {
@@ -119,22 +138,46 @@ const Chatbot: React.FC = () => {
     setIsTyping(true);
 
     try {
-      if (isAPIConnected && userData?.telegramId) {
-        // Use userData.telegramId directly instead of apiService.getTelegramId()
+      console.log('Debug info:', { 
+        isAPIConnected, 
+        telegramId: userData?.telegramId, 
+        userData: userData 
+      }); // Debug user data
+      
+      // Try to get telegramId from multiple sources
+      let telegramId = userData?.telegramId;
+      
+      // If no telegramId from userData, try to get it from Telegram WebApp
+      if (!telegramId && typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+        telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
+        console.log('Got telegramId from Telegram WebApp:', telegramId);
+      }
+      
+      // If still no telegramId, use a fallback for testing
+      if (!telegramId) {
+        telegramId = 76599340; // Fallback ID for testing
+        console.log('Using fallback telegramId:', telegramId);
+      }
+      
+      // Always try to make the API call, regardless of isAPIConnected
+      if (telegramId) {
+        // Use the telegramId we found
         const response = await fetch('https://sianmarketing.com/api/api/v1/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            telegram_id: userData.telegramId,
+            telegram_id: telegramId,
             message: messageToProcess
           })
         });
 
         const result = await response.json();
         
-        if (response.ok && result.success && result.data) {
+        console.log('API Response:', { response: response.ok, result }); // Debug full response
+        
+        if (response.ok && result.success && result.data && result.data.response) {
           const aiResponse: Message = {
             id: Date.now() + 1,
             text: result.data.response,
@@ -144,9 +187,15 @@ const Chatbot: React.FC = () => {
           };
           setMessages(prev => [...prev, aiResponse]);
           
-          console.log('AI Response added:', aiResponse); // Debug log
+          console.log('AI Response added successfully:', aiResponse); // Debug log
         } else {
-          console.error('API response error:', result);
+          console.error('API response error or missing data:', { 
+            responseOk: response.ok, 
+            resultSuccess: result.success, 
+            hasData: !!result.data, 
+            hasResponse: !!result.data?.response,
+            result 
+          });
           // Fallback response if API fails
           const fallbackResponse: Message = {
             id: Date.now() + 1,
