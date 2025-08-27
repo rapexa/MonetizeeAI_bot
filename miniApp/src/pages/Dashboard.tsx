@@ -6,7 +6,7 @@ import apiService from '../services/api';
 // import RadialGauge from '../components/RadialGauge';
 import ChatModal from '../components/ChatModal';
 import AIMessage from '../components/AIMessage';
-import { useAutoScroll } from '../hooks/useAutoScroll';
+
 import { 
   TrendingUp, 
   Users, 
@@ -45,7 +45,16 @@ const Dashboard: React.FC = () => {
   const [isEditingPrompt, setIsEditingPrompt] = React.useState<boolean>(false);
   const [chatMessages, setChatMessages] = React.useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string, isNew?: boolean}>>([]);
   const [isChatModalOpen, setIsChatModalOpen] = React.useState(false);
-  const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
+  // Remove auto-scroll for Dashboard - it's not needed here
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    }
+  };
 
   // Auto refresh data periodically
   React.useEffect(() => {
