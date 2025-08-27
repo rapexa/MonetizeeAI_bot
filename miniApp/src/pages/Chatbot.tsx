@@ -2,28 +2,24 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Send, Wifi, WifiOff, Brain, X } from 'lucide-react';
+import apiService from '../services/api';
+import { useAutoScroll } from '../hooks/useAutoScroll';
 
 interface Message {
   id: number;
   text: string;
-  sender: 'user' | 'bot';
-  timestamp: Date;
+  sender: 'user' | 'ai';
+  timestamp: string;
+  isNew?: boolean;
 }
 
 const Chatbot: React.FC = () => {
-  const { isOnline, userData } = useApp();
+  const { isOnline, userData, isAPIConnected } = useApp();
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      text: 'سلام! من دستیار هوشمند MonetizeAI هستم. چطور می‌تونم کمکتان کنم؟',
-      sender: 'bot',
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { messagesEndRef, scrollToBottom } = useAutoScroll([messages]);
 
   const faqItems = [
     'چطور درآمد کسب کنم؟',
@@ -33,13 +29,78 @@ const Chatbot: React.FC = () => {
     'راهنمای شروع'
   ];
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  // Load chat history on component mount
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const loadChatHistory = async () => {
+      if (isAPIConnected) {
+        try {
+          const response = await apiService.getChatHistory();
+          if (response.success && response.data) {
+            const historyMessages: Message[] = response.data.flatMap((item: any, index): Message[] => [
+              {
+                id: index * 2 + 1,
+                text: String(item.message),
+                sender: 'user' as const,
+                timestamp: new Date(item.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+              },
+              {
+                id: index * 2 + 2,
+                text: String(item.response),
+                sender: 'ai' as const,
+                timestamp: new Date(item.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+              }
+            ]);
+
+            if (historyMessages.length === 0) {
+              // Add welcome message if no history
+              setMessages([{
+                id: 1,
+                text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
+                sender: 'ai',
+                timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+              }]);
+            } else {
+              // Add welcome message at the beginning if it's not already there
+              const hasWelcomeMessage = historyMessages.some(msg => 
+                msg.sender === 'ai' && msg.text.includes('سلام! من AI کوچ شخصی شما هستم')
+              );
+              
+              if (!hasWelcomeMessage) {
+                const welcomeMessage: Message = {
+                  id: 0,
+                  text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
+                  sender: 'ai',
+                  timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+                };
+                setMessages([welcomeMessage, ...historyMessages]);
+              } else {
+                setMessages(historyMessages);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error loading chat history:', error);
+          // Add welcome message on error
+          setMessages([{
+            id: 1,
+            text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
+            sender: 'ai',
+            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+          }]);
+        }
+      } else {
+        // Add welcome message if API not connected
+        setMessages([{
+          id: 1,
+          text: 'سلام! من AI کوچ شخصی شما هستم. آماده‌ام تا در مسیر کسب‌وکار و درآمدزایی کمکتون کنم. چطور می‌تونم کمکتون کنم؟',
+          sender: 'ai',
+          timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+        }]);
+      }
+    };
+
+    loadChatHistory();
+  }, [isAPIConnected]);
 
   const handleSend = async () => {
     if (!inputValue.trim() || !isOnline) return;
@@ -48,7 +109,7 @@ const Chatbot: React.FC = () => {
       id: Date.now(),
       text: inputValue,
       sender: 'user',
-      timestamp: new Date()
+      timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -60,8 +121,8 @@ const Chatbot: React.FC = () => {
       const botResponse: Message = {
         id: Date.now() + 1,
         text: generateAIResponse(inputValue),
-        sender: 'bot',
-        timestamp: new Date()
+        sender: 'ai',
+        timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, botResponse]);
       setIsTyping(false);
@@ -157,10 +218,7 @@ const Chatbot: React.FC = () => {
                 <p className={`text-xs mt-1 ${
                   message.sender === 'user' ? 'text-gray-400 dark:text-gray-400' : 'text-[#5A189A]/80 dark:text-[#5A189A]/70'
                 }`}>
-                  {message.timestamp.toLocaleTimeString('fa-IR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
+                  {message.timestamp}
                 </p>
               </div>
             </div>
