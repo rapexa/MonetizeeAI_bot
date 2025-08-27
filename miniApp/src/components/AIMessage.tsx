@@ -18,7 +18,7 @@ const AIMessage: React.FC<AIMessageProps> = ({
 }) => {
   const { displayedText, isTyping } = useTypingEffect({
     text: message,
-    speed: 20, // Faster typing speed for smoother effect
+    speed: 15, // Even faster typing speed
     onComplete: onTypingComplete,
     shouldAnimate: isNew,
     onTypingComplete: onTypingComplete
@@ -32,7 +32,7 @@ const AIMessage: React.FC<AIMessageProps> = ({
       <div className="flex flex-col">
         <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700/50">
           <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
-            {isLatest ? displayedText : message}
+            {isNew && displayedText ? displayedText : message}
           </p>
           {isLatest && isTyping && (
             <span className="inline-block w-2 h-4 bg-monetize-primary-500 ml-1 animate-pulse"></span>

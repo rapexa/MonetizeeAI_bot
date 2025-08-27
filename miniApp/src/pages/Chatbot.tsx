@@ -144,8 +144,7 @@ const Chatbot: React.FC = () => {
           };
           setMessages(prev => [...prev, aiResponse]);
           
-          // Keep isNew true until typing effect completes
-          // We'll let the useTypingEffect handle when to stop
+          console.log('AI Response added:', aiResponse); // Debug log
         } else {
           console.error('API response error:', result);
           // Fallback response if API fails
