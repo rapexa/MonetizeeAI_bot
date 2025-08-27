@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Send, Wifi, WifiOff, Brain, X } from 'lucide-react';
 import apiService from '../services/api';
 import { useAutoScroll } from '../hooks/useAutoScroll';
+import AIMessage from '../components/AIMessage';
 
 interface Message {
   id: number;
@@ -130,6 +131,13 @@ const Chatbot: React.FC = () => {
             isNew: true
           };
           setMessages(prev => [...prev, aiResponse]);
+          
+          // Start auto-typing effect for the new AI response
+          setTimeout(() => {
+            setMessages(prev => prev.map(msg => 
+              msg.id === aiResponse.id ? { ...msg, isNew: false } : msg
+            ));
+          }, 100);
         } else {
           // Fallback response if API fails
           const fallbackResponse: Message = {
@@ -212,25 +220,26 @@ const Chatbot: React.FC = () => {
       {/* Messages */}
       <div className="flex-1 p-4 overflow-y-auto pb-32 bg-gradient-to-b from-transparent to-gray-900/20 pt-24">
         <div className="space-y-4 max-w-md mx-auto">
-          {messages.map((message) => (
+          {messages.map((message, index) => (
             <div
               key={message.id}
               className={`flex ${message.sender === 'user' ? 'justify-start' : 'justify-end'}`}
             >
-              <div
-                className={`max-w-xs px-4 py-3 rounded-2xl shadow-lg backdrop-blur-sm ${
-                  message.sender === 'user'
-                    ? 'bg-gray-700/80 dark:bg-gray-700/80 text-white dark:text-white border border-gray-600/30'
-                    : 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white border border-[#5A189A]/30 dark:border-[#5A189A]/40'
-                } transition-colors duration-300`}
-              >
-                <p className="text-sm">{message.text}</p>
-                <p className={`text-xs mt-1 ${
-                  message.sender === 'user' ? 'text-gray-400 dark:text-gray-400' : 'text-[#5A189A]/80 dark:text-[#5A189A]/70'
-                }`}>
-                  {message.timestamp}
-                </p>
-              </div>
+              {message.sender === 'user' ? (
+                <div className="max-w-xs px-4 py-3 rounded-2xl shadow-lg backdrop-blur-sm bg-gray-700/80 dark:bg-gray-700/80 text-white dark:text-white border border-gray-600/30 transition-colors duration-300">
+                  <p className="text-sm">{message.text}</p>
+                  <p className="text-xs mt-1 text-gray-400 dark:text-gray-400">
+                    {message.timestamp}
+                  </p>
+                </div>
+              ) : (
+                <AIMessage
+                  message={message.text}
+                  timestamp={message.timestamp}
+                  isLatest={index === messages.length - 1}
+                  isNew={message.isNew}
+                />
+              )}
             </div>
           ))}
           
