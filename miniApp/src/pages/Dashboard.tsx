@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import apiService from '../services/api';
 // import Card from '../components/Card';
 // import RadialGauge from '../components/RadialGauge';
-import ChatModal from '../components/ChatModal';
+
 import AIMessage from '../components/AIMessage';
 
 import { 
@@ -44,7 +44,7 @@ const Dashboard: React.FC = () => {
   const [chatMessage, setChatMessage] = React.useState<string>('');
   const [isEditingPrompt, setIsEditingPrompt] = React.useState<boolean>(false);
   const [chatMessages, setChatMessages] = React.useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string, isNew?: boolean}>>([]);
-  const [isChatModalOpen, setIsChatModalOpen] = React.useState(false);
+
   // Remove auto-scroll for Dashboard - it's not needed here
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const scrollToBottom = () => {
@@ -718,11 +718,11 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setIsChatModalOpen(true)}
+                  onClick={() => navigate('/chatbot')}
                   className="p-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl transition-colors duration-200 group"
-                  title="گسترش چت"
+                  title="چت کامل"
                 >
-                  <Maximize2 size={16} className="text-gray-400 group-hover:text-white transition-colors" />
+                  <MessageCircle size={16} className="text-gray-400 group-hover:text-white transition-colors" />
                 </button>
                 <div className="flex items-center gap-1 text-green-600 dark:text-green-400 bg-green-100/70 dark:bg-green-900/40 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium border border-green-200/50 dark:border-green-700/50">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -963,14 +963,7 @@ const Dashboard: React.FC = () => {
         </>
       )}
 
-      {/* Chat Modal */}
-      <ChatModal
-        isOpen={isChatModalOpen}
-        onClose={() => setIsChatModalOpen(false)}
-        title="MonetizeAI Coach"
-        chatMessages={chatMessages}
-        setChatMessages={setChatMessages}
-      />
+
 
       </div>
     </div>

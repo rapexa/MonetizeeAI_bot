@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { ArrowRight, Send, Wifi, WifiOff, Brain } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, Send, Wifi, WifiOff, Brain, X } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -10,7 +11,8 @@ interface Message {
 }
 
 const Chatbot: React.FC = () => {
-  const { isOnline } = useApp();
+  const { isOnline, userData } = useApp();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -124,6 +126,15 @@ const Chatbot: React.FC = () => {
               <h1 className="text-xl font-bold text-white mb-1">AI کوچ</h1>
               <p className="text-xs text-gray-300">دستیار هوشمند شخصی</p>
             </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl transition-all duration-300 hover:scale-110 border border-white/30"
+              title="بازگشت"
+            >
+              <X size={20} className="text-white" />
+            </button>
           </div>
         </div>
 
