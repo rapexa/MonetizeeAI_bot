@@ -498,7 +498,7 @@ func makeChatGPTRequest(user *User, message string) string {
 		"messages": []map[string]string{
 			{
 				"role":    "system",
-				"content": "You are a helpful course assistant for MonetizeeAI. Provide clear, concise, and relevant answers to help students with their questions about the course content. Always respond in Persian.",
+				"content": "You are a helpful course assistant for MonetizeeAI. Provide clear, concise, and relevant answers to help monetizers with their questions about the course content. Always respond in Persian and address users as 'مانیتایزر عزیز' (dear monetizer).",
 			},
 			{
 				"role":    "user",
@@ -1479,7 +1479,8 @@ Please evaluate this quiz submission according to these criteria:
    - Provide positive reinforcement
    - Give permission to move to next stage
 5. Keep the tone friendly and encouraging
-6. Respond in Persian
+6. Always address the user as 'مانیتایزر عزیز' (dear monetizer)
+7. Respond in Persian
 
 Rate the performance on a scale of 0-100 and determine if they should pass (≥70).
 
@@ -1518,9 +1519,9 @@ FEEDBACK: [your detailed feedback in Persian]`,
 	// Fallback values if parsing failed
 	if feedback == "" {
 		if approved {
-			feedback = "عالی! شما با موفقیت این مرحله را تکمیل کردید و آماده ورود به مرحله بعدی هستید."
+			feedback = "عالی! مانیتایزر عزیز، شما با موفقیت این مرحله را تکمیل کردید و آماده ورود به مرحله بعدی هستید."
 		} else {
-			feedback = "نیاز به بهبود دارید. لطفا مطالب را مرور کنید و دوباره تلاش کنید."
+			feedback = "نیاز به بهبود دارید. مانیتایزر عزیز، لطفا مطالب را مرور کنید و دوباره تلاش کنید."
 		}
 	}
 	if score == 0 {
