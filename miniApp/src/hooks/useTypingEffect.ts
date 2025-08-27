@@ -11,18 +11,12 @@ export const useTypingEffect = ({ text, speed = 30, onComplete, shouldAnimate = 
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const intervalRef = useRef<number | null>(null);
-  const currentTextRef = useRef(text);
 
   useEffect(() => {
     // If no animation needed, show text immediately
     if (!shouldAnimate || !text) {
       setDisplayedText(text);
       setIsTyping(false);
-      return;
-    }
-
-    // If this is the same text and we're already typing, don't restart
-    if (currentTextRef.current === text && isTyping) {
       return;
     }
 
@@ -35,7 +29,6 @@ export const useTypingEffect = ({ text, speed = 30, onComplete, shouldAnimate = 
     // Reset state for new text
     setDisplayedText('');
     setIsTyping(true);
-    currentTextRef.current = text;
 
     let currentIndex = 0;
     

@@ -119,26 +119,39 @@ const Chatbot: React.FC = () => {
     setIsTyping(true);
 
     try {
-      if (isAPIConnected) {
-        const response = await apiService.sendChatMessage(messageToProcess);
+      if (isAPIConnected && userData?.telegramId) {
+        // Use userData.telegramId directly instead of apiService.getTelegramId()
+        const response = await fetch('https://sianmarketing.com/api/api/v1/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            telegram_id: userData.telegramId,
+            message: messageToProcess
+          })
+        });
+
+        const result = await response.json();
         
-        if (response.success && response.data) {
+        if (response.ok && result.success && result.data) {
           const aiResponse: Message = {
             id: Date.now() + 1,
-            text: response.data.response,
+            text: result.data.response,
             sender: 'ai',
             timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
             isNew: true
           };
           setMessages(prev => [...prev, aiResponse]);
           
-          // Start auto-typing effect for the new AI response
+          // Keep isNew true for a bit longer to ensure typing effect starts
           setTimeout(() => {
             setMessages(prev => prev.map(msg => 
               msg.id === aiResponse.id ? { ...msg, isNew: false } : msg
             ));
-          }, 100);
+          }, 2000); // Wait 2 seconds before setting isNew to false
         } else {
+          console.error('API response error:', result);
           // Fallback response if API fails
           const fallbackResponse: Message = {
             id: Date.now() + 1,
@@ -149,6 +162,7 @@ const Chatbot: React.FC = () => {
           setMessages(prev => [...prev, fallbackResponse]);
         }
       } else {
+        console.error('API not connected or no telegramId:', { isAPIConnected, telegramId: userData?.telegramId });
         // Fallback response if API not connected
         const fallbackResponse: Message = {
           id: Date.now() + 1,

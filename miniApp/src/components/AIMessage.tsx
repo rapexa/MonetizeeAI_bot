@@ -20,7 +20,7 @@ const AIMessage: React.FC<AIMessageProps> = ({
     text: message,
     speed: 25,
     onComplete: onTypingComplete,
-    shouldAnimate: isLatest && isNew
+    shouldAnimate: isNew
   });
 
   return (
