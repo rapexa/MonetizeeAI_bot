@@ -113,49 +113,59 @@ const Chatbot: React.FC = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const messageToProcess = inputValue;
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const botResponse: Message = {
+    try {
+      if (isAPIConnected) {
+        const response = await apiService.sendChatMessage(messageToProcess);
+        
+        if (response.success && response.data) {
+          const aiResponse: Message = {
+            id: Date.now() + 1,
+            text: response.data.response,
+            sender: 'ai',
+            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+            isNew: true
+          };
+          setMessages(prev => [...prev, aiResponse]);
+        } else {
+          // Fallback response if API fails
+          const fallbackResponse: Message = {
+            id: Date.now() + 1,
+            text: 'متأسفانه در حال حاضر نمی‌توانم پاسخ دهم. لطفاً دوباره تلاش کنید.',
+            sender: 'ai',
+            timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+          };
+          setMessages(prev => [...prev, fallbackResponse]);
+        }
+      } else {
+        // Fallback response if API not connected
+        const fallbackResponse: Message = {
+          id: Date.now() + 1,
+          text: 'اتصال به سرور برقرار نیست. لطفاً دوباره تلاش کنید.',
+          sender: 'ai',
+          timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages(prev => [...prev, fallbackResponse]);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Error response
+      const errorResponse: Message = {
         id: Date.now() + 1,
-        text: generateAIResponse(inputValue),
+        text: 'خطا در ارسال پیام. لطفاً دوباره تلاش کنید.',
         sender: 'ai',
         timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
       };
-      setMessages(prev => [...prev, botResponse]);
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
-  const generateAIResponse = (userMessage: string): string => {
-    const responses = {
-      'چطور درآمد کسب کنم؟': 'برای کسب درآمد آنلاین، ابتدا مهارت‌های خود را شناسایی کنید. سپس می‌توانید از طریق فریلنسینگ، فروش محصولات دیجیتال، یا ایجاد کسب‌وکار آنلاین شروع کنید. من می‌تونم مرحله به مرحله راهنماییتان کنم.',
-      'بهترین ابزارها کدامند؟': 'بهترین ابزارها بستگی به نوع کسب‌وکارتان دارد. برای شروع پیشنهاد می‌کنم از ابزارهای رایگان مثل Canva برای طراحی، MailChimp برای ایمیل مارکتینگ و Google Analytics برای تحلیل استفاده کنید.',
-      'تمرین‌های امروز': 'تمرین‌های امروز شما شامل: ۱) ایجاد یک پست اینستاگرام جذاب ۲) نوشتن ۵ ایده محتوا ۳) بررسی رقبای خود. هر کدام را که انجام دادید، به من اطلاع دهید تا امتیاز بگیرید!',
-      'تحلیل پیشرفت من': `پیشرفت شما عالی است! تا الان ${userData.completedTasks} تسک انجام داده‌اید و در سطح ${userData.currentLevel} قرار دارید. درآمد ماهانه شما ${new Intl.NumberFormat('fa-IR').format(userData.incomeMonth)} تومان است که نسبت به ماه قبل رشد داشته.`,
-      'راهنمای شروع': 'برای شروع، این مراحل را دنبال کنید: ۱) تعیین نیش (حوزه تخصصی) ۲) ساخت محتوا ۳) جذب مخاطب ۴) فروش محصول/خدمات. من در هر مرحله کمکتان می‌کنم!'
-    };
 
-    // Check for exact matches first
-    for (const [key, response] of Object.entries(responses)) {
-      if (userMessage.includes(key)) {
-        return response;
-      }
-    }
-
-    // Default responses based on keywords
-    if (userMessage.includes('درآمد') || userMessage.includes('پول')) {
-      return 'درآمدزایی آنلاین نیاز به صبر و استراتژی دارد. بهترین راه شروع، شناسایی مهارت‌هایتان و تبدیل آن‌ها به محصول یا خدمات قابل فروش است. چه مهارتی دارید؟';
-    }
-    
-    if (userMessage.includes('کمک') || userMessage.includes('راهنمایی')) {
-      return 'البته! من اینجا هستم تا کمکتان کنم. می‌توانید از من در مورد استراتژی‌های درآمدزایی، بازاریابی، فروش و توسعه کسب‌وکار سوال بپرسید. چه موضوعی برایتان مهم است؟';
-    }
-
-    return 'سوال جالبی پرسیدید! بر اساس تجربه‌ام در حوزه درآمدزایی آنلاین، پیشنهاد می‌کنم ابتدا اهداف مشخصی تعریف کنید. می‌توانید سوال خود را واضح‌تر بپرسید تا بتوانم راهنمایی دقیق‌تری ارائه دهم؟';
-  };
 
   const handleFAQClick = (question: string) => {
     setInputValue(question);
