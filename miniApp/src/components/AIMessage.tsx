@@ -18,9 +18,10 @@ const AIMessage: React.FC<AIMessageProps> = ({
 }) => {
   const { displayedText, isTyping } = useTypingEffect({
     text: message,
-    speed: 25,
+    speed: 20, // Faster typing speed for smoother effect
     onComplete: onTypingComplete,
-    shouldAnimate: isNew
+    shouldAnimate: isNew,
+    onTypingComplete: onTypingComplete
   });
 
   return (

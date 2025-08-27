@@ -144,12 +144,8 @@ const Chatbot: React.FC = () => {
           };
           setMessages(prev => [...prev, aiResponse]);
           
-          // Keep isNew true for a bit longer to ensure typing effect starts
-          setTimeout(() => {
-            setMessages(prev => prev.map(msg => 
-              msg.id === aiResponse.id ? { ...msg, isNew: false } : msg
-            ));
-          }, 2000); // Wait 2 seconds before setting isNew to false
+          // Keep isNew true until typing effect completes
+          // We'll let the useTypingEffect handle when to stop
         } else {
           console.error('API response error:', result);
           // Fallback response if API fails
@@ -252,6 +248,14 @@ const Chatbot: React.FC = () => {
                   timestamp={message.timestamp}
                   isLatest={index === messages.length - 1}
                   isNew={message.isNew}
+                  onTypingComplete={() => {
+                    // When typing is complete, set isNew to false
+                    if (message.isNew) {
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === message.id ? { ...msg, isNew: false } : msg
+                      ));
+                    }
+                  }}
                 />
               )}
             </div>
