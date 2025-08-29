@@ -225,7 +225,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     // Check if running in Telegram
-    setIsInTelegram(apiService.isInTelegram());
+    const currentIsInTelegram = apiService.isInTelegram();
+    setIsInTelegram(currentIsInTelegram);
+    
+    // Clear cache when switching between Telegram and browser
+    if (currentIsInTelegram !== isInTelegram) {
+      apiService.clearCache();
+    }
     
     // Setup online/offline listeners
     const handleOnline = () => setIsOnline(true);
@@ -241,7 +247,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [isInTelegram]);
 
   return (
     <AppContext.Provider value={{ 

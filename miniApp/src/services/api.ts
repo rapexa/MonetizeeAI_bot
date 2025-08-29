@@ -135,12 +135,12 @@ class APIService {
         }
       }
 
-      // Method 4: Try localStorage for saved Telegram ID
-      if (typeof window !== 'undefined') {
+      // Method 4: Try localStorage for saved Telegram ID (only if no other method worked)
+      if (typeof window !== 'undefined' && !this.isInTelegram()) {
         const savedTelegramId = localStorage.getItem('telegram_id');
         if (savedTelegramId && !isNaN(Number(savedTelegramId))) {
           this.cachedTelegramId = Number(savedTelegramId);
-          logger.debug(`🔍 Got Telegram ID from localStorage: ${this.cachedTelegramId}`);
+          logger.debug(`🔍 Got Telegram ID from localStorage (fallback): ${this.cachedTelegramId}`);
           return this.cachedTelegramId;
         }
       }
@@ -163,12 +163,26 @@ class APIService {
   private saveTelegramIdToStorage(telegramId: number): void {
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem('telegram_id', telegramId.toString());
-        logger.debug(`💾 Saved Telegram ID to localStorage: ${telegramId}`);
+        // Only save to localStorage if we're not in Telegram WebApp
+        if (!this.isInTelegram()) {
+          localStorage.setItem('telegram_id', telegramId.toString());
+          logger.debug(`💾 Saved Telegram ID to localStorage: ${telegramId}`);
+        } else {
+          // Clear localStorage when in Telegram WebApp to avoid conflicts
+          localStorage.removeItem('telegram_id');
+          logger.debug(`🗑️ Cleared localStorage for Telegram WebApp user: ${telegramId}`);
+        }
       } catch (error) {
         logger.error('❌ Failed to save Telegram ID to localStorage:', error);
       }
     }
+  }
+
+  // Clear cached data when switching between Telegram and browser
+  clearCache(): void {
+    this.cachedTelegramId = null;
+    this.cachedIsInTelegram = null;
+    logger.debug('🗑️ Cleared API service cache');
   }
 
   async makeRequest<T = any>(method: string, endpoint: string, data?: any): Promise<APIResponse<T>> {
