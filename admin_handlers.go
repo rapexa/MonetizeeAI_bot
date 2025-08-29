@@ -1,12 +1,16 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"MonetizeeAI_bot/logger"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -536,6 +540,10 @@ func handleCallbackQuery(update tgbotapi.Update) {
 func getAdminByTelegramID(telegramID int64) *Admin {
 	var admin Admin
 	if err := db.Where("telegram_id = ?", telegramID).First(&admin).Error; err != nil {
+		// Don't log error for record not found - this is expected for non-admin users
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.Error("Database error in getAdminByTelegramID", zap.Error(err), zap.Int64("telegram_id", telegramID))
+		}
 		return nil
 	}
 	return &admin
