@@ -224,8 +224,8 @@ class APIService {
     const telegramId = this.getTelegramId();
     
     if (!telegramId) {
-      // Return mock data for browser testing
-      if (!this.isInTelegram()) {
+      // Only return mock data in development mode
+      if (!this.isInTelegram() && import.meta.env.DEV) {
         return {
           success: true,
           data: {
@@ -242,7 +242,7 @@ class APIService {
       
       return {
         success: false,
-        error: 'No user ID available'
+        error: 'No user ID available - please access from Telegram or provide valid telegram_id'
       };
     }
 

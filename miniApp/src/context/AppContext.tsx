@@ -31,6 +31,7 @@ interface AppContextType {
   isInTelegram: boolean;
   loadingUser: boolean;
   hasRealData: boolean;
+  telegramIdError: string | null;
   syncWithAPI: () => Promise<void>;
   refreshUserData: () => Promise<void>;
 }
@@ -64,6 +65,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isInTelegram, setIsInTelegram] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
   const [hasRealData, setHasRealData] = useState(false);
+  const [telegramIdError, setTelegramIdError] = useState<string | null>(null);
 
   // Sync user data with API
   const syncWithAPI = async () => {
@@ -149,7 +151,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
       } else {
         console.log('❌ Authentication failed:', authResponse.error);
-        // Keep using default data
+        
+        // If no telegram_id available, show appropriate message
+        if (authResponse.error?.includes('No user ID available')) {
+          console.log('⚠️ No Telegram ID available - user must access from Telegram');
+          setTelegramIdError('لطفا از طریق تلگرام وارد شوید تا اطلاعات شما نمایش داده شود');
+          // Keep using default data but mark as not real
+          setHasRealData(false);
+        } else {
+          // Keep using default data for other errors
+          setHasRealData(false);
+          setTelegramIdError(null);
+        }
       }
     } catch (error) {
       console.error('❌ Error syncing with API:', error);
@@ -239,6 +252,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isInTelegram,
       loadingUser,
       hasRealData,
+      telegramIdError,
       syncWithAPI,
       refreshUserData
     }}>
