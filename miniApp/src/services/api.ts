@@ -69,6 +69,9 @@ class APIService {
       }
     } else {
       logger.debug('⚠️ Telegram WebApp not available (likely in browser)');
+      logger.debug('🔍 Window object:', typeof window);
+      logger.debug('🔍 Telegram object:', typeof window?.Telegram);
+      logger.debug('🔍 WebApp object:', typeof window?.Telegram?.WebApp);
     }
   }
 
@@ -80,10 +83,16 @@ class APIService {
     const inTelegram = typeof window !== 'undefined' && 
                       window.Telegram?.WebApp && 
                       (window.Telegram.WebApp.initDataUnsafe?.user?.id || 
-                       window.Telegram.WebApp.initData);
+                       window.Telegram.WebApp.initData ||
+                       window.Telegram.WebApp.initDataUnsafe?.start_param ||
+                       window.location.href.includes('t.me'));
     
     this.cachedIsInTelegram = !!inTelegram;
     logger.debug(`🔍 Is in Telegram: ${this.cachedIsInTelegram}`);
+    logger.debug(`🔍 Telegram WebApp available: ${!!window.Telegram?.WebApp}`);
+    logger.debug(`🔍 initDataUnsafe:`, window.Telegram?.WebApp?.initDataUnsafe);
+    logger.debug(`🔍 initData:`, window.Telegram?.WebApp?.initData);
+    logger.debug(`🔍 URL:`, window.location.href);
     return this.cachedIsInTelegram;
   }
 
@@ -93,6 +102,12 @@ class APIService {
     }
 
     try {
+      logger.debug('🔍 Starting Telegram ID detection...');
+      logger.debug('🔍 Telegram WebApp available:', !!window.Telegram?.WebApp);
+      logger.debug('🔍 initDataUnsafe:', window.Telegram?.WebApp?.initDataUnsafe);
+      logger.debug('🔍 initData:', window.Telegram?.WebApp?.initData);
+      logger.debug('🔍 URL:', window.location.href);
+
       // Method 1: Try initDataUnsafe
       if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
         const telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
