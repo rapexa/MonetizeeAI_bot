@@ -80,10 +80,14 @@ class APIService {
     const inTelegram = typeof window !== 'undefined' && 
                       window.Telegram?.WebApp && 
                       (window.Telegram.WebApp.initDataUnsafe?.user?.id || 
-                       window.Telegram.WebApp.initData);
+                       window.Telegram.WebApp.initData ||
+                       window.Telegram.WebApp.initDataUnsafe?.start_param);
     
     this.cachedIsInTelegram = !!inTelegram;
     logger.debug(`🔍 Is in Telegram: ${this.cachedIsInTelegram}`);
+    logger.debug(`🔍 Telegram WebApp available: ${!!window.Telegram?.WebApp}`);
+    logger.debug(`🔍 initDataUnsafe:`, window.Telegram?.WebApp?.initDataUnsafe);
+    logger.debug(`🔍 initData:`, window.Telegram?.WebApp?.initData);
     return this.cachedIsInTelegram;
   }
 
@@ -93,6 +97,11 @@ class APIService {
     }
 
     try {
+      logger.debug('🔍 Starting Telegram ID detection...');
+      logger.debug('🔍 Telegram WebApp available:', !!window.Telegram?.WebApp);
+      logger.debug('🔍 initDataUnsafe:', window.Telegram?.WebApp?.initDataUnsafe);
+      logger.debug('🔍 initData:', window.Telegram?.WebApp?.initData);
+
       // Method 1: Try initDataUnsafe
       if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
         const telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
@@ -145,14 +154,8 @@ class APIService {
         }
       }
 
-      // Method 5: Only use default ID if explicitly in development mode
-      if (!this.isInTelegram() && import.meta.env.DEV) {
-        this.cachedTelegramId = 76599340; // Default ID only for development
-        logger.debug(`🔍 Using default ID for development mode: ${this.cachedTelegramId}`);
-        return this.cachedTelegramId;
-      }
-
-      logger.debug('❌ No Telegram ID found - user must access from Telegram');
+      // No fallback to test user - user must provide valid telegram_id
+      logger.debug('❌ No Telegram ID found - user must access from Telegram or provide valid telegram_id');
       return null;
     } catch (error) {
       logger.error('❌ Error getting Telegram ID:', error || '');
@@ -238,22 +241,6 @@ class APIService {
     const telegramId = this.getTelegramId();
     
     if (!telegramId) {
-      // Only return mock data in development mode
-      if (!this.isInTelegram() && import.meta.env.DEV) {
-        return {
-          success: true,
-          data: {
-            telegram_id: 76599340,
-            username: "test_user",
-            first_name: "Test",
-            last_name: "User",
-            current_session: 1,
-            is_active: true,
-            phone: "+98 912 345 6789"
-          }
-        };
-      }
-      
       return {
         success: false,
         error: 'No user ID available - please access from Telegram or provide valid telegram_id'
