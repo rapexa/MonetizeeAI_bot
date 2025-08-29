@@ -80,14 +80,10 @@ class APIService {
     const inTelegram = typeof window !== 'undefined' && 
                       window.Telegram?.WebApp && 
                       (window.Telegram.WebApp.initDataUnsafe?.user?.id || 
-                       window.Telegram.WebApp.initData ||
-                       window.Telegram.WebApp.initDataUnsafe?.start_param);
+                       window.Telegram.WebApp.initData);
     
     this.cachedIsInTelegram = !!inTelegram;
     logger.debug(`🔍 Is in Telegram: ${this.cachedIsInTelegram}`);
-    logger.debug(`🔍 Telegram WebApp available: ${!!window.Telegram?.WebApp}`);
-    logger.debug(`🔍 initDataUnsafe:`, window.Telegram?.WebApp?.initDataUnsafe);
-    logger.debug(`🔍 initData:`, window.Telegram?.WebApp?.initData);
     return this.cachedIsInTelegram;
   }
 
@@ -97,11 +93,6 @@ class APIService {
     }
 
     try {
-      logger.debug('🔍 Starting Telegram ID detection...');
-      logger.debug('🔍 Telegram WebApp available:', !!window.Telegram?.WebApp);
-      logger.debug('🔍 initDataUnsafe:', window.Telegram?.WebApp?.initDataUnsafe);
-      logger.debug('🔍 initData:', window.Telegram?.WebApp?.initData);
-
       // Method 1: Try initDataUnsafe
       if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
         const telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
@@ -154,8 +145,14 @@ class APIService {
         }
       }
 
-      // No fallback to test user - user must provide valid telegram_id
-      logger.debug('❌ No Telegram ID found - user must access from Telegram or provide valid telegram_id');
+      // Method 5: Use test user for browser testing (both dev and production)
+      if (!this.isInTelegram()) {
+        this.cachedTelegramId = 76599340; // Test user for browser testing
+        logger.debug(`🔍 Using test user ID for browser testing: ${this.cachedTelegramId}`);
+        return this.cachedTelegramId;
+      }
+
+      logger.debug('❌ No Telegram ID found - user must access from Telegram');
       return null;
     } catch (error) {
       logger.error('❌ Error getting Telegram ID:', error || '');
