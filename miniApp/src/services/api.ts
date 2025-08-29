@@ -95,9 +95,11 @@ class APIService {
     try {
       // Method 1: Try initDataUnsafe
       if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-        this.cachedTelegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
-        logger.debug(`🔍 Got Telegram ID from initDataUnsafe: ${this.cachedTelegramId}`);
-        return this.cachedTelegramId;
+        const telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
+        this.cachedTelegramId = telegramId;
+        this.saveTelegramIdToStorage(telegramId);
+        logger.debug(`🔍 Got Telegram ID from initDataUnsafe: ${telegramId}`);
+        return telegramId;
       }
 
       // Method 2: Try parsing initData string
@@ -108,9 +110,11 @@ class APIService {
           try {
             const userData = JSON.parse(decodeURIComponent(userMatch[1]));
             if (userData.id) {
-              this.cachedTelegramId = userData.id;
-              logger.debug(`🔍 Got Telegram ID from initData string: ${this.cachedTelegramId}`);
-              return this.cachedTelegramId;
+              const telegramId = userData.id;
+              this.cachedTelegramId = telegramId;
+              this.saveTelegramIdToStorage(telegramId);
+              logger.debug(`🔍 Got Telegram ID from initData string: ${telegramId}`);
+              return telegramId;
             }
           } catch (e) {
             logger.debug('❌ Failed to parse user data from initData string');
@@ -123,24 +127,47 @@ class APIService {
         const urlParams = new URLSearchParams(window.location.search);
         const startParam = urlParams.get('startapp');
         if (startParam && !isNaN(Number(startParam))) {
-          this.cachedTelegramId = Number(startParam);
-          logger.debug(`🔍 Got Telegram ID from URL startapp: ${this.cachedTelegramId}`);
+          const telegramId = Number(startParam);
+          this.cachedTelegramId = telegramId;
+          this.saveTelegramIdToStorage(telegramId);
+          logger.debug(`🔍 Got Telegram ID from URL startapp: ${telegramId}`);
+          return telegramId;
+        }
+      }
+
+      // Method 4: Try localStorage for saved Telegram ID
+      if (typeof window !== 'undefined') {
+        const savedTelegramId = localStorage.getItem('telegram_id');
+        if (savedTelegramId && !isNaN(Number(savedTelegramId))) {
+          this.cachedTelegramId = Number(savedTelegramId);
+          logger.debug(`🔍 Got Telegram ID from localStorage: ${this.cachedTelegramId}`);
           return this.cachedTelegramId;
         }
       }
 
-      // Method 4: Default for browser testing
-      if (!this.isInTelegram()) {
-        this.cachedTelegramId = 76599340; // Default ID for browser testing
-        logger.debug(`🔍 Using default ID for browser testing: ${this.cachedTelegramId}`);
+      // Method 5: Only use default ID if explicitly in development mode
+      if (!this.isInTelegram() && import.meta.env.DEV) {
+        this.cachedTelegramId = 76599340; // Default ID only for development
+        logger.debug(`🔍 Using default ID for development mode: ${this.cachedTelegramId}`);
         return this.cachedTelegramId;
       }
 
-      logger.debug('❌ No Telegram ID found');
+      logger.debug('❌ No Telegram ID found - user must access from Telegram');
       return null;
     } catch (error) {
       logger.error('❌ Error getting Telegram ID:', error || '');
       return null;
+    }
+  }
+
+  private saveTelegramIdToStorage(telegramId: number): void {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('telegram_id', telegramId.toString());
+        logger.debug(`💾 Saved Telegram ID to localStorage: ${telegramId}`);
+      } catch (error) {
+        logger.error('❌ Failed to save Telegram ID to localStorage:', error);
+      }
     }
   }
 
