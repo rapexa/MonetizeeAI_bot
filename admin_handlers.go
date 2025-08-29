@@ -87,6 +87,12 @@ var adminCommands = []AdminCommand{
 		Description: "📲 ارسال پیامک به همه کاربران",
 		Handler:     handleAdminSMSBroadcast,
 	},
+	// 🔒 SECURITY: New security commands
+	{
+		Command:     "/admin_security",
+		Description: "🛡️ مدیریت امنیت و کاربران مسدود شده",
+		Handler:     handleAdminSecurity,
+	},
 }
 
 // Add these at the top of the file after the imports
@@ -1375,4 +1381,96 @@ func handleSMSBroadcastConfirmation(admin *Admin, confirm bool) string {
 		return fmt.Sprintf("❌ خطا در ارسال پیامک همگانی:\n%s", err.Error())
 	}
 	return fmt.Sprintf("وضعیت ارسال پیامک: %s\nتعداد شماره معتبر: %d", apiStatus, len(phones))
+}
+
+// 🔒 SECURITY: Handle admin security commands
+func handleAdminSecurity(admin *Admin, args []string) string {
+	if len(args) == 0 {
+		// Show security overview
+		blockedCount := len(blockedUsers)
+		suspiciousCount := 0
+		for _, count := range suspiciousActivityCount {
+			if count > 0 {
+				suspiciousCount++
+			}
+		}
+
+		response := fmt.Sprintf("🛡️ **وضعیت امنیت سیستم:**\n\n"+
+			"🚫 کاربران مسدود شده: %d\n"+
+			"⚠️ کاربران مشکوک: %d\n\n"+
+			"**دستورات امنیتی:**\n"+
+			"• `/admin_security list` - نمایش کاربران مسدود شده\n"+
+			"• `/admin_security unblock <user_id>` - آزادسازی کاربر\n"+
+			"• `/admin_security clear <user_id>` - پاک کردن سوابق مشکوک\n"+
+			"• `/admin_security logs` - نمایش لاگ‌های امنیتی",
+			blockedCount, suspiciousCount)
+
+		return response
+	}
+
+	switch args[0] {
+	case "list":
+		if len(blockedUsers) == 0 {
+			return "✅ هیچ کاربری مسدود نشده است."
+		}
+
+		response := "🚫 **کاربران مسدود شده:**\n\n"
+		for telegramID := range blockedUsers {
+			violationCount := suspiciousActivityCount[telegramID]
+			response += fmt.Sprintf("👤 آیدی: %d\n⚠️ تعداد تخلفات: %d\n\n", telegramID, violationCount)
+		}
+		return response
+
+	case "unblock":
+		if len(args) < 2 {
+			return "❌ لطفا آیدی کاربر را وارد کنید: `/admin_security unblock <user_id>`"
+		}
+
+		userID, err := strconv.ParseInt(args[1], 10, 64)
+		if err != nil {
+			return "❌ آیدی کاربر نامعتبر است"
+		}
+
+		if !blockedUsers[userID] {
+			return "❌ این کاربر مسدود نشده است"
+		}
+
+		// Unblock user
+		delete(blockedUsers, userID)
+		suspiciousActivityCount[userID] = 0
+
+		logger.Info("User unblocked by admin",
+			zap.Int64("admin_id", admin.TelegramID),
+			zap.Int64("user_id", userID))
+
+		return fmt.Sprintf("✅ کاربر %d آزادسازی شد.", userID)
+
+	case "clear":
+		if len(args) < 2 {
+			return "❌ لطفا آیدی کاربر را وارد کنید: `/admin_security clear <user_id>`"
+		}
+
+		userID, err := strconv.ParseInt(args[1], 10, 64)
+		if err != nil {
+			return "❌ آیدی کاربر نامعتبر است"
+		}
+
+		// Clear suspicious activity
+		suspiciousActivityCount[userID] = 0
+		delete(chatRateLimits, userID)
+		delete(chatMessageCounts, userID)
+
+		logger.Info("User suspicious activity cleared by admin",
+			zap.Int64("admin_id", admin.TelegramID),
+			zap.Int64("user_id", userID))
+
+		return fmt.Sprintf("✅ سوابق مشکوک کاربر %d پاک شد.", userID)
+
+	case "logs":
+		// This would show recent security logs
+		return "📋 نمایش لاگ‌های امنیتی در نسخه‌های آینده اضافه خواهد شد."
+
+	default:
+		return "❌ دستور نامعتبر. از `/admin_security` برای راهنما استفاده کنید."
+	}
 }

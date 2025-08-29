@@ -19,6 +19,115 @@ import (
 	"gorm.io/gorm"
 )
 
+// 🔒 SECURITY: Global variables for Mini App security
+var (
+	// Rate limiting for Mini App API calls
+	miniAppRateLimits = make(map[int64]time.Time)
+	miniAppCallCounts = make(map[int64]int)
+
+	// User blocking for Mini App
+	miniAppBlockedUsers            = make(map[int64]bool)
+	miniAppSuspiciousActivityCount = make(map[int64]int)
+)
+
+const (
+	// 🔒 SECURITY: Rate limiting constants for Mini App
+	MaxMiniAppCallsPerMinute = 40 // Allow more calls than bot since Mini App has multiple features
+	MiniAppRateLimitWindow   = time.Minute
+)
+
+// 🔒 SECURITY: Block suspicious users for Mini App
+func blockMiniAppUser(telegramID int64, reason string) {
+	miniAppBlockedUsers[telegramID] = true
+	miniAppSuspiciousActivityCount[telegramID]++
+
+	logger.Warn("Mini App user blocked for suspicious activity",
+		zap.Int64("user_id", telegramID),
+		zap.String("reason", reason),
+		zap.Int("violation_count", miniAppSuspiciousActivityCount[telegramID]))
+}
+
+// 🔒 SECURITY: Check if Mini App user is blocked
+func isMiniAppUserBlocked(telegramID int64) bool {
+	return miniAppBlockedUsers[telegramID]
+}
+
+// 🔒 SECURITY: Validate and sanitize Mini App input
+func isValidMiniAppInput(input string, maxLength int) bool {
+	// Block suspicious patterns
+	suspiciousPatterns := []string{
+		"system:", "role:", "assistant:", "user:", "function:", "tool:",
+		"prompt injection", "jailbreak", "ignore previous",
+		"forget", "reset", "clear", "delete",
+		"execute", "run", "command", "script",
+		"<script>", "javascript:", "eval(", "document.",
+		"admin", "root", "sudo", "chmod", "rm -rf",
+		"DROP TABLE", "INSERT INTO", "UPDATE", "DELETE FROM",
+		"../../", "..\\", "file://", "ftp://", "http://", "https://",
+	}
+
+	inputLower := strings.ToLower(input)
+	for _, pattern := range suspiciousPatterns {
+		if strings.Contains(inputLower, pattern) {
+			return false
+		}
+	}
+
+	// Block messages that are too long
+	if len(input) > maxLength {
+		return false
+	}
+
+	// Block messages with too many special characters
+	specialCharCount := 0
+	for _, char := range input {
+		if char < 32 || char > 126 { // ASCII printable characters
+			specialCharCount++
+		}
+	}
+	if specialCharCount > len(input)/2 {
+		return false
+	}
+
+	return true
+}
+
+// 🔒 SECURITY: Rate limiting for Mini App API calls
+func checkMiniAppRateLimit(telegramID int64) bool {
+	now := time.Now()
+	if lastCallTime, exists := miniAppRateLimits[telegramID]; exists {
+		if now.Sub(lastCallTime) < MiniAppRateLimitWindow {
+			if miniAppCallCounts[telegramID] >= MaxMiniAppCallsPerMinute {
+				return false // Rate limit exceeded
+			}
+			miniAppCallCounts[telegramID]++
+		} else {
+			miniAppCallCounts[telegramID] = 1
+			miniAppRateLimits[telegramID] = now
+		}
+	} else {
+		miniAppCallCounts[telegramID] = 1
+		miniAppRateLimits[telegramID] = now
+	}
+	return true
+}
+
+// 🔒 SECURITY: Clean up Mini App rate limit cache periodically
+func cleanupMiniAppRateLimitCache() {
+	ticker := time.NewTicker(5 * time.Minute)
+	go func() {
+		for range ticker.C {
+			now := time.Now()
+			for telegramID, lastCallTime := range miniAppRateLimits {
+				if now.Sub(lastCallTime) > 10*time.Minute {
+					delete(miniAppRateLimits, telegramID)
+					delete(miniAppCallCounts, telegramID)
+				}
+			}
+		}
+	}()
+}
+
 // API Response structures
 type APIResponse struct {
 	Success bool        `json:"success"`
@@ -54,6 +163,9 @@ func StartWebAPI() {
 		logger.Info("Web API is disabled")
 		return
 	}
+
+	// 🔒 SECURITY: Start cleanup for Mini App rate limiting
+	cleanupMiniAppRateLimitCache()
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
@@ -131,6 +243,9 @@ func StartWebAPI() {
 
 		// Quiz evaluation endpoint
 		v1.POST("/evaluate-quiz", handleQuizEvaluation)
+
+		// 🔒 SECURITY: Mini App security management endpoint
+		v1.POST("/security", handleMiniAppSecurity)
 
 	}
 
@@ -435,6 +550,50 @@ func handleChatRequest(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, APIResponse{
 			Success: false,
 			Error:   "Invalid request data",
+		})
+		return
+	}
+
+	// 🔒 SECURITY: Check if user is blocked
+	if isMiniAppUserBlocked(requestData.TelegramID) {
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   "🚫 دسترسی شما به چت مسدود شده است. لطفا با پشتیبانی تماس بگیرید.",
+		})
+		return
+	}
+
+	// 🔒 SECURITY: Rate limiting
+	if !checkMiniAppRateLimit(requestData.TelegramID) {
+		c.JSON(http.StatusTooManyRequests, APIResponse{
+			Success: false,
+			Error:   "⚠️ شما بیش از حد درخواست ارسال کرده‌اید. لطفا چند دقیقه صبر کنید.",
+		})
+		return
+	}
+
+	// 🔒 SECURITY: Validate and sanitize user input
+	if !isValidMiniAppInput(requestData.Message, 500) {
+		logger.Warn("Blocked suspicious chat message",
+			zap.Int64("user_id", requestData.TelegramID),
+			zap.String("message", requestData.Message))
+
+		// Increment suspicious activity count
+		miniAppSuspiciousActivityCount[requestData.TelegramID]++
+
+		// Block user after 3 violations
+		if miniAppSuspiciousActivityCount[requestData.TelegramID] >= 3 {
+			blockMiniAppUser(requestData.TelegramID, "Multiple suspicious messages")
+			c.JSON(http.StatusForbidden, APIResponse{
+				Success: false,
+				Error:   "🚫 دسترسی شما به دلیل فعالیت مشکوک مسدود شده است.",
+			})
+			return
+		}
+
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "❌ پیام شما حاوی محتوای نامعتبر است. لطفا فقط سوالات مرتبط با دوره را بپرسید.",
 		})
 		return
 	}
@@ -1560,6 +1719,51 @@ FEEDBACK: [your detailed feedback in Persian]`,
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
 		Data:    response,
+	})
+}
+
+// handleMiniAppSecurity handles security-related requests for Mini App
+func handleMiniAppSecurity(c *gin.Context) {
+	// This endpoint is for Mini App developers to manage security settings.
+	// For now, it's a placeholder. In a real application, you'd implement
+	// actual security logic here, e.g., rate limiting, blocking, etc.
+
+	// Example: Block a user for suspicious activity
+	telegramIDStr := c.PostForm("telegram_id")
+	if telegramIDStr == "" {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Telegram ID is required",
+		})
+		return
+	}
+
+	telegramID, err := strconv.ParseInt(telegramIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid Telegram ID",
+		})
+		return
+	}
+
+	// Simulate suspicious activity for demonstration
+	// In a real app, you'd check actual suspicious activity counts
+	if miniAppSuspiciousActivityCount[telegramID] >= 3 { // Example: block after 3 suspicious activities
+		blockMiniAppUser(telegramID, "Too many suspicious activities detected.")
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   "User account is blocked due to suspicious activity.",
+		})
+		return
+	}
+
+	// Simulate a successful check
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data: map[string]string{
+			"message": "Security check passed. No suspicious activity detected.",
+		},
 	})
 }
 

@@ -114,6 +114,9 @@ func init() {
 	// Start receiving updates
 	updates := bot.GetUpdatesChan(updateConfig)
 
+	// 🔒 SECURITY: Start rate limit cache cleanup
+	cleanupRateLimitCache()
+
 	// Process updates
 	for update := range updates {
 		if update.Message != nil {
