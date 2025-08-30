@@ -2942,7 +2942,7 @@ const Levels: React.FC = () => {
                   title="چت کامل"
                   type="button"
               >
-                <MessageCircle size={18} className="text-gray-600 dark:text-gray-300" />
+                <Maximize2 size={18} className="text-gray-600 dark:text-gray-300" />
               </button>
                         </div>
             </div>

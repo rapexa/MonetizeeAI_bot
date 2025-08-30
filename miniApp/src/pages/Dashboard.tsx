@@ -722,7 +722,7 @@ const Dashboard: React.FC = () => {
                   className="p-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl transition-colors duration-200 group"
                   title="چت کامل"
                 >
-                  <MessageCircle size={16} className="text-gray-400 group-hover:text-white transition-colors" />
+                  <Maximize2 size={16} className="text-gray-400 group-hover:text-white transition-colors" />
                 </button>
                 <div className="flex items-center gap-1 text-green-600 dark:text-green-400 bg-green-100/70 dark:bg-green-900/40 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium border border-green-200/50 dark:border-green-700/50">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
