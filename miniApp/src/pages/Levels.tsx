@@ -1958,7 +1958,8 @@ const Levels: React.FC = () => {
             "تعریف شخصیت برند"
           ],
           videoTitle: "طراحی سریع هویت بصری",
-          videoDuration: "16:45"
+          videoDuration: "38:50",
+          videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az5sth1.mp4"
         },
         {
           id: 11,
