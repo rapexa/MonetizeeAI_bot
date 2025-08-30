@@ -6,6 +6,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ['IranSansX', 'Vazir', 'system-ui', 'sans-serif'],
+        'iran-sans': ['IranSansX', 'Vazir', 'system-ui', 'sans-serif'],
+        'iran-sans-medium': ['IranSansX', 'Vazir', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         'card': '0 4px 12px rgba(0, 0, 0, 0.12)',

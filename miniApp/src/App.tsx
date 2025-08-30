@@ -24,7 +24,7 @@ import { ThemeProvider } from './context/ThemeContext';
 
 function App() {
   return (
-          <div className="min-h-screen transition-colors duration-300 app-container" dir="rtl" style={{ backgroundColor: '#0e0817' }}>
+          <div className="min-h-screen transition-colors duration-300 app-container" dir="rtl" style={{ backgroundColor: '#0e0817', fontFamily: 'IranSansX, Vazir, system-ui, sans-serif' }}>
         <style dangerouslySetInnerHTML={{
           __html: `
             html.dark .app-container {
@@ -34,6 +34,13 @@ function App() {
               .app-container {
                 background: #08000f !important;
               }
+            }
+            /* Global font application */
+            * {
+              font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
+            }
+            body, html {
+              font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
             }
           `
         }} />
