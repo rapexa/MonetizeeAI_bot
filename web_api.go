@@ -32,7 +32,7 @@ var (
 
 const (
 	// 🔒 SECURITY: Rate limiting constants for Mini App
-	MaxMiniAppCallsPerMinute = 40 // Allow more calls than bot since Mini App has multiple features
+	MaxMiniAppCallsPerMinute = 20 // Simple rate limit: 20 messages per minute
 	MiniAppRateLimitWindow   = time.Minute
 )
 
@@ -52,43 +52,14 @@ func isMiniAppUserBlocked(telegramID int64) bool {
 	return miniAppBlockedUsers[telegramID]
 }
 
-// 🔒 SECURITY: Validate and sanitize Mini App input
+// 🔒 SECURITY: Simple input validation for Mini App (only length check)
 func isValidMiniAppInput(input string, maxLength int) bool {
-	// Block suspicious patterns
-	suspiciousPatterns := []string{
-		"system:", "role:", "assistant:", "user:", "function:", "tool:",
-		"prompt injection", "jailbreak", "ignore previous",
-		"forget", "reset", "clear", "delete",
-		"execute", "run", "command", "script",
-		"<script>", "javascript:", "eval(", "document.",
-		"admin", "root", "sudo", "chmod", "rm -rf",
-		"DROP TABLE", "INSERT INTO", "UPDATE", "DELETE FROM",
-		"../../", "..\\", "file://", "ftp://", "http://", "https://",
-	}
-
-	inputLower := strings.ToLower(input)
-	for _, pattern := range suspiciousPatterns {
-		if strings.Contains(inputLower, pattern) {
-			return false
-		}
-	}
-
-	// Block messages that are too long
+	// Only check message length - no other restrictions
 	if len(input) > maxLength {
 		return false
 	}
 
-	// Block messages with too many special characters
-	specialCharCount := 0
-	for _, char := range input {
-		if char < 32 || char > 126 { // ASCII printable characters
-			specialCharCount++
-		}
-	}
-	if specialCharCount > len(input)/2 {
-		return false
-	}
-
+	// Allow all other content
 	return true
 }
 
@@ -554,16 +525,7 @@ func handleChatRequest(c *gin.Context) {
 		return
 	}
 
-	// 🔒 SECURITY: Check if user is blocked
-	if isMiniAppUserBlocked(requestData.TelegramID) {
-		c.JSON(http.StatusForbidden, APIResponse{
-			Success: false,
-			Error:   "🚫 دسترسی شما به چت مسدود شده است. لطفا با پشتیبانی تماس بگیرید.",
-		})
-		return
-	}
-
-	// 🔒 SECURITY: Rate limiting
+	// 🔒 SECURITY: Only rate limiting (20 messages per minute)
 	if !checkMiniAppRateLimit(requestData.TelegramID) {
 		c.JSON(http.StatusTooManyRequests, APIResponse{
 			Success: false,
@@ -572,28 +534,11 @@ func handleChatRequest(c *gin.Context) {
 		return
 	}
 
-	// 🔒 SECURITY: Validate and sanitize user input
-	if !isValidMiniAppInput(requestData.Message, 500) {
-		logger.Warn("Blocked suspicious chat message",
-			zap.Int64("user_id", requestData.TelegramID),
-			zap.String("message", requestData.Message))
-
-		// Increment suspicious activity count
-		miniAppSuspiciousActivityCount[requestData.TelegramID]++
-
-		// Block user after 3 violations
-		if miniAppSuspiciousActivityCount[requestData.TelegramID] >= 3 {
-			blockMiniAppUser(requestData.TelegramID, "Multiple suspicious messages")
-			c.JSON(http.StatusForbidden, APIResponse{
-				Success: false,
-				Error:   "🚫 دسترسی شما به دلیل فعالیت مشکوک مسدود شده است.",
-			})
-			return
-		}
-
+	// 🔒 SECURITY: Simple input validation (only length check)
+	if !isValidMiniAppInput(requestData.Message, 2000) { // Increased limit to 2000 characters
 		c.JSON(http.StatusBadRequest, APIResponse{
 			Success: false,
-			Error:   "❌ پیام شما حاوی محتوای نامعتبر است. لطفا فقط سوالات مرتبط با دوره را بپرسید.",
+			Error:   "❌ پیام شما خیلی طولانی است. لطفا پیام کوتاه‌تری ارسال کنید.",
 		})
 		return
 	}
@@ -657,7 +602,7 @@ func makeChatGPTRequest(user *User, message string) string {
 		"messages": []map[string]string{
 			{
 				"role":    "system",
-				"content": "You are a helpful course assistant for MonetizeeAI. Provide clear, concise, and relevant answers to help monetizers with their questions about the course content. Always respond in Persian and address users as 'مانیتایزر عزیز' (dear monetizer).",
+				"content": "You are a helpful AI assistant for MonetizeeAI. You can help with various topics including business, marketing, sales, and general questions. Always respond in Persian and be friendly and helpful. Address users as 'مانیتایزر عزیز' (dear monetizer).",
 			},
 			{
 				"role":    "user",
