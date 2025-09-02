@@ -1239,6 +1239,9 @@ func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("📲 ارسال پیامک همگانی"),
 		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("🔒 امنیت مینی اپ"),
+		),
 	)
 	keyboard.ResizeKeyboard = true
 	return keyboard

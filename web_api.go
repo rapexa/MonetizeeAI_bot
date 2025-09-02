@@ -245,7 +245,7 @@ func StartWebAPI() {
 		v1.POST("/evaluate-quiz", handleQuizEvaluation)
 
 		// 🔒 SECURITY: Mini App security management endpoint
-		v1.POST("/security", handleMiniAppSecurity)
+		v1.POST("/security", handleMiniAppSecurityAPI)
 
 	}
 
@@ -1722,13 +1722,60 @@ FEEDBACK: [your detailed feedback in Persian]`,
 	})
 }
 
-// handleMiniAppSecurity handles security-related requests for Mini App
-func handleMiniAppSecurity(c *gin.Context) {
-	// This endpoint is for Mini App developers to manage security settings.
-	// For now, it's a placeholder. In a real application, you'd implement
-	// actual security logic here, e.g., rate limiting, blocking, etc.
+// handleMiniAppSecurityAPI handles security-related requests for Mini App API
+func handleMiniAppSecurityAPI(c *gin.Context) {
+	action := c.Query("action")
 
-	// Example: Block a user for suspicious activity
+	switch action {
+	case "list_blocked":
+		handleListBlockedMiniAppUsers(c)
+	case "unblock":
+		handleUnblockMiniAppUser(c)
+	case "clear_activity":
+		handleClearMiniAppUserActivity(c)
+	case "block":
+		handleBlockMiniAppUser(c)
+	default:
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid action. Use: list_blocked, unblock, clear_activity, or block",
+		})
+	}
+}
+
+// handleListBlockedMiniAppUsers lists all blocked Mini App users
+func handleListBlockedMiniAppUsers(c *gin.Context) {
+	if len(miniAppBlockedUsers) == 0 {
+		c.JSON(http.StatusOK, APIResponse{
+			Success: true,
+			Data: map[string]interface{}{
+				"message":       "No Mini App users are currently blocked",
+				"blocked_users": []interface{}{},
+			},
+		})
+		return
+	}
+
+	var blockedUsers []map[string]interface{}
+	for telegramID := range miniAppBlockedUsers {
+		violationCount := miniAppSuspiciousActivityCount[telegramID]
+		blockedUsers = append(blockedUsers, map[string]interface{}{
+			"telegram_id":     telegramID,
+			"violation_count": violationCount,
+		})
+	}
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"blocked_users": blockedUsers,
+			"total_blocked": len(miniAppBlockedUsers),
+		},
+	})
+}
+
+// handleUnblockMiniAppUser unblocks a Mini App user
+func handleUnblockMiniAppUser(c *gin.Context) {
 	telegramIDStr := c.PostForm("telegram_id")
 	if telegramIDStr == "" {
 		c.JSON(http.StatusBadRequest, APIResponse{
@@ -1747,22 +1794,97 @@ func handleMiniAppSecurity(c *gin.Context) {
 		return
 	}
 
-	// Simulate suspicious activity for demonstration
-	// In a real app, you'd check actual suspicious activity counts
-	if miniAppSuspiciousActivityCount[telegramID] >= 3 { // Example: block after 3 suspicious activities
-		blockMiniAppUser(telegramID, "Too many suspicious activities detected.")
-		c.JSON(http.StatusForbidden, APIResponse{
+	if !miniAppBlockedUsers[telegramID] {
+		c.JSON(http.StatusBadRequest, APIResponse{
 			Success: false,
-			Error:   "User account is blocked due to suspicious activity.",
+			Error:   "User is not blocked",
 		})
 		return
 	}
 
-	// Simulate a successful check
+	// Unblock user
+	delete(miniAppBlockedUsers, telegramID)
+	miniAppSuspiciousActivityCount[telegramID] = 0
+
+	logger.Info("Mini App user unblocked",
+		zap.Int64("user_id", telegramID))
+
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
 		Data: map[string]string{
-			"message": "Security check passed. No suspicious activity detected.",
+			"message": fmt.Sprintf("User %d has been unblocked", telegramID),
+		},
+	})
+}
+
+// handleClearMiniAppUserActivity clears suspicious activity for a Mini App user
+func handleClearMiniAppUserActivity(c *gin.Context) {
+	telegramIDStr := c.PostForm("telegram_id")
+	if telegramIDStr == "" {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Telegram ID is required",
+		})
+		return
+	}
+
+	telegramID, err := strconv.ParseInt(telegramIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid Telegram ID",
+		})
+		return
+	}
+
+	// Clear suspicious activity
+	miniAppSuspiciousActivityCount[telegramID] = 0
+	delete(miniAppRateLimits, telegramID)
+	delete(miniAppCallCounts, telegramID)
+
+	logger.Info("Mini App user suspicious activity cleared",
+		zap.Int64("user_id", telegramID))
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data: map[string]string{
+			"message": fmt.Sprintf("Suspicious activity cleared for user %d", telegramID),
+		},
+	})
+}
+
+// handleBlockMiniAppUser blocks a Mini App user
+func handleBlockMiniAppUser(c *gin.Context) {
+	telegramIDStr := c.PostForm("telegram_id")
+	reason := c.PostForm("reason")
+	if reason == "" {
+		reason = "Manual block by admin"
+	}
+
+	if telegramIDStr == "" {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Telegram ID is required",
+		})
+		return
+	}
+
+	telegramID, err := strconv.ParseInt(telegramIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid Telegram ID",
+		})
+		return
+	}
+
+	// Block user
+	blockMiniAppUser(telegramID, reason)
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data: map[string]string{
+			"message": fmt.Sprintf("User %d has been blocked", telegramID),
 		},
 	})
 }

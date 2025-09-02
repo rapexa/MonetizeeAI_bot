@@ -1474,3 +1474,107 @@ func handleAdminSecurity(admin *Admin, args []string) string {
 		return "❌ دستور نامعتبر. از `/admin_security` برای راهنما استفاده کنید."
 	}
 }
+
+// handleMiniAppSecurity handles Mini App security management
+func handleMiniAppSecurity(admin *Admin, args []string) string {
+	if len(args) == 0 {
+		return "🔒 **مدیریت امنیت مینی اپ**\n\n" +
+			"دستورات موجود:\n" +
+			"• `list` - نمایش کاربران مسدود شده\n" +
+			"• `unblock <user_id>` - آزادسازی کاربر\n" +
+			"• `clear <user_id>` - پاک کردن سوابق مشکوک\n" +
+			"• `block <user_id> [reason]` - مسدود کردن کاربر\n\n" +
+			"مثال:\n" +
+			"`/miniapp_security list`\n" +
+			"`/miniapp_security unblock 76599340`\n" +
+			"`/miniapp_security clear 76599340`\n" +
+			"`/miniapp_security block 76599340 دلیل مسدودیت`"
+	}
+
+	switch args[0] {
+	case "list":
+		if len(miniAppBlockedUsers) == 0 {
+			return "✅ هیچ کاربری در مینی اپ مسدود نشده است."
+		}
+
+		response := "🚫 **کاربران مسدود شده در مینی اپ:**\n\n"
+		for telegramID := range miniAppBlockedUsers {
+			violationCount := miniAppSuspiciousActivityCount[telegramID]
+			response += fmt.Sprintf("👤 آیدی: %d\n⚠️ تعداد تخلفات: %d\n\n", telegramID, violationCount)
+		}
+		return response
+
+	case "unblock":
+		if len(args) < 2 {
+			return "❌ لطفا آیدی کاربر را وارد کنید: `/miniapp_security unblock <user_id>`"
+		}
+
+		userID, err := strconv.ParseInt(args[1], 10, 64)
+		if err != nil {
+			return "❌ آیدی کاربر نامعتبر است"
+		}
+
+		if !miniAppBlockedUsers[userID] {
+			return "❌ این کاربر در مینی اپ مسدود نشده است"
+		}
+
+		// Unblock user
+		delete(miniAppBlockedUsers, userID)
+		miniAppSuspiciousActivityCount[userID] = 0
+
+		logger.Info("Mini App user unblocked by admin",
+			zap.Int64("admin_id", admin.TelegramID),
+			zap.Int64("user_id", userID))
+
+		return fmt.Sprintf("✅ کاربر %d در مینی اپ آزادسازی شد.", userID)
+
+	case "clear":
+		if len(args) < 2 {
+			return "❌ لطفا آیدی کاربر را وارد کنید: `/miniapp_security clear <user_id>`"
+		}
+
+		userID, err := strconv.ParseInt(args[1], 10, 64)
+		if err != nil {
+			return "❌ آیدی کاربر نامعتبر است"
+		}
+
+		// Clear suspicious activity
+		miniAppSuspiciousActivityCount[userID] = 0
+		delete(miniAppRateLimits, userID)
+		delete(miniAppCallCounts, userID)
+
+		logger.Info("Mini App user suspicious activity cleared by admin",
+			zap.Int64("admin_id", admin.TelegramID),
+			zap.Int64("user_id", userID))
+
+		return fmt.Sprintf("✅ سوابق مشکوک کاربر %d در مینی اپ پاک شد.", userID)
+
+	case "block":
+		if len(args) < 2 {
+			return "❌ لطفا آیدی کاربر را وارد کنید: `/miniapp_security block <user_id> [reason]`"
+		}
+
+		userID, err := strconv.ParseInt(args[1], 10, 64)
+		if err != nil {
+			return "❌ آیدی کاربر نامعتبر است"
+		}
+
+		reason := "Manual block by admin"
+		if len(args) > 2 {
+			reason = strings.Join(args[2:], " ")
+		}
+
+		// Block user
+		blockMiniAppUser(userID, reason)
+
+		logger.Info("Mini App user blocked by admin",
+			zap.Int64("admin_id", admin.TelegramID),
+			zap.Int64("user_id", userID),
+			zap.String("reason", reason))
+
+		return fmt.Sprintf("✅ کاربر %d در مینی اپ مسدود شد.", userID)
+
+	default:
+		return "❌ دستور نامعتبر. از `/miniapp_security` برای راهنما استفاده کنید."
+	}
+}

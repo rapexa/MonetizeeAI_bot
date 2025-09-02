@@ -253,6 +253,10 @@ func handleMessage(update tgbotapi.Update) {
 			response := handleAdminSMSBroadcast(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
 			return
+		case "🔒 امنیت مینی اپ":
+			response := handleMiniAppSecurity(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
 		}
 
 		// Send admin keyboard if no command matched
