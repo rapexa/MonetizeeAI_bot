@@ -93,6 +93,11 @@ var adminCommands = []AdminCommand{
 		Description: "🛡️ مدیریت امنیت و کاربران مسدود شده",
 		Handler:     handleAdminSecurity,
 	},
+	{
+		Command:     "/miniapp_security",
+		Description: "🔒 مدیریت امنیت مینی اپ",
+		Handler:     handleMiniAppSecurity,
+	},
 }
 
 // Add these at the top of the file after the imports
