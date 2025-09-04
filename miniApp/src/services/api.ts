@@ -220,6 +220,13 @@ class APIService {
       const result = await response.json();
 
       if (!response.ok) {
+        // Handle rate limit errors specifically
+        if (response.status === 429) {
+          return {
+            success: false,
+            error: result.error || 'شما به محدودیت سه تا سوال در دقیقه رسیدید لطفا دقایق دیگر امتحان کنید'
+          };
+        }
         throw new Error(result.error || `HTTP error! status: ${response.status}`);
       }
 

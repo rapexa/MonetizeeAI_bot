@@ -157,9 +157,19 @@ const AICoach: React.FC = () => {
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Check if it's a rate limit error
+      let errorMessage = '❌ متأسفانه در حال حاضر نمی‌توانم پاسخ دهم. لطفا دوباره تلاش کنید.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('محدودیت سه تا سوال') || error.message.includes('rate limit')) {
+          errorMessage = '⚠️ ' + error.message;
+        }
+      }
+      
       const errorResponse = {
         id: chatMessages.length + 2,
-        text: '❌ متأسفانه در حال حاضر نمی‌توانم پاسخ دهم. لطفا دوباره تلاش کنید.',
+        text: errorMessage,
         sender: 'ai' as const,
         timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
         isNew: true

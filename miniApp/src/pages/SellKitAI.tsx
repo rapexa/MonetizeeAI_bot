@@ -119,11 +119,25 @@ const SellKitAI: React.FC = () => {
         setResult(response.data);
       } else {
         console.error('❌ Failed to generate sell kit:', response.error);
-        alert('خطا در تولید کیت فروش: ' + (response.error || 'خطای نامشخص'));
+        
+        // Check if it's a rate limit error
+        let errorMessage = 'خطا در تولید کیت فروش: ' + (response.error || 'خطای نامشخص');
+        if (response.error && response.error.includes('محدودیت سه تا سوال')) {
+          errorMessage = '⚠️ ' + response.error;
+        }
+        
+        alert(errorMessage);
       }
     } catch (error) {
       console.error('❌ Error generating sell kit:', error);
-      alert('خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.');
+      
+      // Check if it's a rate limit error
+      let errorMessage = 'خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.';
+      if (error instanceof Error && error.message.includes('محدودیت سه تا سوال')) {
+        errorMessage = '⚠️ ' + error.message;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsGenerating(false);
     }

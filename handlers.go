@@ -30,7 +30,7 @@ const (
 	StateWaitingForPhone   = "waiting_for_phone"
 
 	// 🔒 SECURITY: Rate limiting constants
-	MaxChatMessagesPerMinute = 20
+	MaxChatMessagesPerMinute = 3
 	ChatRateLimitWindow      = time.Minute
 )
 
@@ -1039,7 +1039,7 @@ func handleChatGPTMessage(user *User, message string) string {
 
 	// 🔒 SECURITY: Rate limiting
 	if !checkChatRateLimit(user.TelegramID) {
-		return "⚠️ شما بیش از حد پیام ارسال کرده‌اید. لطفا چند دقیقه صبر کنید."
+		return "شما به محدودیت سه تا سوال در دقیقه رسیدید لطفا دقایق دیگر امتحان کنید"
 	}
 
 	// Create the API request

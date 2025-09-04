@@ -32,7 +32,7 @@ var (
 
 const (
 	// 🔒 SECURITY: Rate limiting constants for Mini App
-	MaxMiniAppCallsPerMinute = 20 // Simple rate limit: 20 messages per minute
+	MaxMiniAppCallsPerMinute = 3 // Rate limit: 3 messages per minute
 	MiniAppRateLimitWindow   = time.Minute
 )
 
@@ -525,11 +525,11 @@ func handleChatRequest(c *gin.Context) {
 		return
 	}
 
-	// 🔒 SECURITY: Only rate limiting (20 messages per minute)
+	// 🔒 SECURITY: Only rate limiting (3 messages per minute)
 	if !checkMiniAppRateLimit(requestData.TelegramID) {
 		c.JSON(http.StatusTooManyRequests, APIResponse{
 			Success: false,
-			Error:   "⚠️ شما بیش از حد درخواست ارسال کرده‌اید. لطفا چند دقیقه صبر کنید.",
+			Error:   "شما به محدودیت سه تا سوال در دقیقه رسیدید لطفا دقایق دیگر امتحان کنید",
 		})
 		return
 	}
@@ -961,6 +961,15 @@ func handleBusinessBuilderRequest(c *gin.Context) {
 		return
 	}
 
+	// 🔒 SECURITY: Rate limiting for AI tools
+	if !checkMiniAppRateLimit(req.TelegramID) {
+		c.JSON(http.StatusTooManyRequests, APIResponse{
+			Success: false,
+			Error:   "شما به محدودیت سه تا سوال در دقیقه رسیدید لطفا دقایق دیگر امتحان کنید",
+		})
+		return
+	}
+
 	// Call ChatGPT API
 	response := handleChatGPTMessageAPI(&user, prompt)
 
@@ -1072,6 +1081,15 @@ func handleSellKitRequest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
 			Error:   "کاربر یافت نشد",
+		})
+		return
+	}
+
+	// 🔒 SECURITY: Rate limiting for AI tools
+	if !checkMiniAppRateLimit(req.TelegramID) {
+		c.JSON(http.StatusTooManyRequests, APIResponse{
+			Success: false,
+			Error:   "شما به محدودیت سه تا سوال در دقیقه رسیدید لطفا دقایق دیگر امتحان کنید",
 		})
 		return
 	}
@@ -1202,6 +1220,15 @@ func handleClientFinderRequest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
 			Error:   "کاربر یافت نشد",
+		})
+		return
+	}
+
+	// 🔒 SECURITY: Rate limiting for AI tools
+	if !checkMiniAppRateLimit(req.TelegramID) {
+		c.JSON(http.StatusTooManyRequests, APIResponse{
+			Success: false,
+			Error:   "شما به محدودیت سه تا سوال در دقیقه رسیدید لطفا دقایق دیگر امتحان کنید",
 		})
 		return
 	}
@@ -1351,6 +1378,15 @@ func handleSalesPathRequest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
 			Error:   "کاربر یافت نشد",
+		})
+		return
+	}
+
+	// 🔒 SECURITY: Rate limiting for AI tools
+	if !checkMiniAppRateLimit(req.TelegramID) {
+		c.JSON(http.StatusTooManyRequests, APIResponse{
+			Success: false,
+			Error:   "شما به محدودیت سه تا سوال در دقیقه رسیدید لطفا دقایق دیگر امتحان کنید",
 		})
 		return
 	}

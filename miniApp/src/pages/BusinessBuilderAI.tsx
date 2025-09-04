@@ -134,11 +134,25 @@ const BusinessBuilderAI: React.FC = () => {
         setResult(response.data);
       } else {
         console.error('❌ Failed to generate business plan:', response.error);
-        alert('خطا در تولید طرح کسب‌وکار: ' + (response.error || 'خطای نامشخص'));
+        
+        // Check if it's a rate limit error
+        let errorMessage = 'خطا در تولید طرح کسب‌وکار: ' + (response.error || 'خطای نامشخص');
+        if (response.error && response.error.includes('محدودیت سه تا سوال')) {
+          errorMessage = '⚠️ ' + response.error;
+        }
+        
+        alert(errorMessage);
       }
     } catch (error) {
       console.error('❌ Error generating business plan:', error);
-      alert('خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.');
+      
+      // Check if it's a rate limit error
+      let errorMessage = 'خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.';
+      if (error instanceof Error && error.message.includes('محدودیت سه تا سوال')) {
+        errorMessage = '⚠️ ' + error.message;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsGenerating(false);
     }
