@@ -1973,7 +1973,8 @@ const Levels: React.FC = () => {
             "تولید قالب‌های گرافیکی"
           ],
           videoTitle: "طراحی با AI Tools",
-          videoDuration: "26:30"
+          videoDuration: "14:16",
+          videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video11az11sth3.mp4"
         }
       ]
     },
