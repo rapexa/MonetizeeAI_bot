@@ -1980,6 +1980,83 @@ const Levels: React.FC = () => {
     },
     {
       id: 4,
+      title: "ماشین رشد مخاطب",
+      subtitle: "",
+      description: "تبدیل پیج به ماشین رشد با استراتژی محتوا و تعامل هدفمند؛ مسیری برای جذب مداوم و ساختن اعتماد.",
+      goal: "طراحی نقشه رشد و اجرای سیستمی که فالوئر سرد رو به مشتری واقعی تبدیل کنه.",
+      icon: <Users className="w-6 h-6" />,
+      color: "text-indigo-600",
+      gradient: "from-[#2c189a] to-[#5a189a]",
+      isUnlocked: true, // TODO: بعداً برای قفل کردن به false تغییر بده
+
+      stages: [
+        {
+          id: 12,
+          title: "پایه‌گذاری پیج روی شناخت مخاطب",
+          description: "راه‌اندازی پیج اینستاگرام حرفه‌ای برای جذب مخاطب هدف",
+          status: getStageStatus(12),
+          exercise: "راه‌اندازی و بهینه‌سازی پیج اینستاگرام",
+          checklist: [
+            "تنظیم اکانت بیزنس اینستاگرام",
+            "بهینه‌سازی نام و بایو",
+            "آپلود محتوای اولیه جذاب"
+          ],
+          videos: [
+            {
+              title: "پایه‌گذاری پیج روی شناخت مخاطب - قسمت اول",
+              duration: "14:14",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video1az12sth4.mp4"
+            },
+            {
+              title: "پایه‌گذاری پیج روی شناخت مخاطب - قسمت دوم",
+              duration: "22:28",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video2az12sth4.mp4"
+            },
+            {
+              title: "پایه‌گذاری پیج روی شناخت مخاطب - قسمت سوم",
+              duration: "11:09",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video3az12sth4.mp4"
+            },
+            {
+              title: "پایه‌گذاری پیج روی شناخت مخاطب - قسمت چهارم",
+              duration: "25:09",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video4as12sth4.mp4"
+            }
+          ]
+        },
+        {
+          id: 13,
+          title: "تولید محتوای اعتمادساز و مداوم",
+          description: "بهینه‌سازی المان‌های کلیدی پروفایل برای تبدیل",
+          status: getStageStatus(13),
+          exercise: "طراحی ۵ هایلایت و بایو جذاب با AI",
+          checklist: [
+            "نوشتن بایو کانورت کننده با AI",
+            "طراحی کاور هایلایت‌ها",
+            "تنظیم link in bio حرفه‌ای"
+          ],
+          videoTitle: "بهینه‌سازی پروفایل با AI",
+          videoDuration: "25:14",
+          videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az13sth4.mp4"
+        },
+        {
+          id: 14,
+          title: "جذب، تعامل هدفمند و تبدیل",
+          description: "ایجاد محتوای آموزشی و اعتمادساز با GPT",
+          status: getStageStatus(14),
+          exercise: "تولید ۱۰ پست و ۲۰ استوری اعتمادساز",
+          checklist: [
+            "برنامه‌ریزی calendar محتوا",
+            "تولید کپشن‌ها با GPT",
+            "انتشار در کانال مکمل"
+          ],
+          videoTitle: "تولید محتوا با AI",
+          videoDuration: "28:30"
+        }
+      ]
+    },
+    {
+      id: 5,
       title: "زیرساخت آنلاین و ابزارهای چندکاناله",
       subtitle: "",
       description: "ایجاد حضور آنلاین قوی برای جذب مشتری",
@@ -1991,10 +2068,10 @@ const Levels: React.FC = () => {
 
       stages: [
         {
-          id: 12,
+          id: 15,
           title: "راه‌اندازی صفحه فرود حرفه‌ای برای جذب چندکاناله",
           description: "ساخت صفحه فرود جذاب برای تبدیل بازدیدکنندگان به مشتری",
-          status: getStageStatus(12),
+          status: getStageStatus(15),
           exercise: "طراحی و راه‌اندازی صفحه فرود با ابزارهای no-code",
           checklist: [
             "انتخاب پلتفرم ساخت صفحه فرود",
@@ -2005,10 +2082,10 @@ const Levels: React.FC = () => {
           videoDuration: "24:15"
         },
         {
-          id: 13,
+          id: 16,
           title: "اتصال سیستم پرداخت و درگاه امن",
           description: "راه‌اندازی سیستم پرداخت آنلاین برای دریافت پول",
-          status: getStageStatus(13),
+          status: getStageStatus(16),
           exercise: "تنظیم درگاه پرداخت و اتصال به صفحه فروش",
           checklist: [
             "انتخاب درگاه پرداخت مناسب",
@@ -2019,10 +2096,10 @@ const Levels: React.FC = () => {
           videoDuration: "18:30"
         },
         {
-          id: 14,
+          id: 17,
           title: "آماده‌سازی کانال‌های پشتیبانی و اولین کانال جذب مکمل",
           description: "ایجاد سیستم پشتیبانی مشتری و کانال جذب مشتری",
-          status: getStageStatus(14),
+          status: getStageStatus(17),
           exercise: "راه‌اندازی چت، ایمیل و کانال جذب اول",
           checklist: [
             "راه‌اندازی سیستم چت پشتیبانی",
@@ -2031,62 +2108,6 @@ const Levels: React.FC = () => {
           ],
           videoTitle: "راه‌اندازی کانال‌های پشتیبانی",
           videoDuration: "22:45"
-        }
-      ]
-    },
-    {
-      id: 5,
-      title: "حضور و جذب حرفه‌ای در شبکه‌های اجتماعی",
-      subtitle: "",
-      description: "ایجاد حضور قوی در شبکه‌های اجتماعی برای جذب مشتری",
-      goal: "جذب فالوئر هدفمند و تبدیل آن‌ها به مشتری",
-      icon: <Users className="w-6 h-6" />,
-      color: "text-indigo-600",
-      gradient: "from-[#2c189a] to-[#5a189a]",
-      isUnlocked: true, // TODO: بعداً برای قفل کردن به false تغییر بده
-
-      stages: [
-        {
-          id: 15,
-          title: "ساخت پیج حرفه‌ای اینستاگرامی برای جذب فالوئر هدفمند",
-          description: "راه‌اندازی پیج اینستاگرام حرفه‌ای برای جذب مخاطب هدف",
-          status: getStageStatus(15),
-          exercise: "راه‌اندازی و بهینه‌سازی پیج اینستاگرام",
-          checklist: [
-            "تنظیم اکانت بیزنس اینستاگرام",
-            "بهینه‌سازی نام و بایو",
-            "آپلود محتوای اولیه جذاب"
-          ],
-          videoTitle: "استراتژی Instagram Business",
-          videoDuration: "21:20"
-        },
-        {
-          id: 16,
-          title: "طراحی بایو، هایلایت و پروفایل فروشنده‌ساز با AI",
-          description: "بهینه‌سازی المان‌های کلیدی پروفایل برای تبدیل",
-          status: getStageStatus(16),
-          exercise: "طراحی ۵ هایلایت و بایو جذاب با AI",
-          checklist: [
-            "نوشتن بایو کانورت کننده با AI",
-            "طراحی کاور هایلایت‌ها",
-            "تنظیم link in bio حرفه‌ای"
-          ],
-          videoTitle: "بهینه‌سازی پروفایل با AI",
-          videoDuration: "16:45"
-        },
-        {
-          id: 17,
-          title: "تولید محتوا و استوری اعتمادساز + انتشار در کانال مکمل",
-          description: "ایجاد محتوای آموزشی و اعتمادساز با GPT",
-          status: getStageStatus(17),
-          exercise: "تولید ۱۰ پست و ۲۰ استوری اعتمادساز",
-          checklist: [
-            "برنامه‌ریزی calendar محتوا",
-            "تولید کپشن‌ها با GPT",
-            "انتشار در کانال مکمل"
-          ],
-          videoTitle: "تولید محتوا با AI",
-          videoDuration: "28:30"
         }
       ]
     },
