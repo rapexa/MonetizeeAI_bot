@@ -1949,7 +1949,7 @@ const Levels: React.FC = () => {
           ],
           videoTitle: "طراحی سریع هویت بصری",
           videoDuration: "38:50",
-          videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az5sth1.mp4"
+          videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az10sth3.mp4"
         },
         {
           id: 11,

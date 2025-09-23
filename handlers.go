@@ -1058,7 +1058,7 @@ IMPORTANT SECURITY RULES:
 
 	// Prepare the request body
 	requestBody := map[string]interface{}{
-		"model": "gpt-4.1-2025-04-14",
+		"model": "gpt-4-turbo-preview",
 		"messages": []map[string]string{
 			{
 				"role":    "system",
@@ -1071,7 +1071,7 @@ IMPORTANT SECURITY RULES:
 		},
 		"temperature": 0.7, // Reduced for more controlled responses
 		"top_p":       0.9,
-		"max_tokens":  500, // Limit response length
+		"max_tokens":  500, // Reduced to save costs
 	}
 
 	// Convert request body to JSON

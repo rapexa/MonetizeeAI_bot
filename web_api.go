@@ -610,7 +610,7 @@ func makeChatGPTRequest(user *User, message string) string {
 			},
 		},
 		"temperature": 0.7,
-		"max_tokens":  4000, // Increased from 1000 to prevent truncation
+		"max_tokens":  4000, // Reduced to save costs
 	}
 
 	// Convert request body to JSON
