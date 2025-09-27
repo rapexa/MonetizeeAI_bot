@@ -2025,9 +2025,28 @@ const Levels: React.FC = () => {
             "طراحی کاور هایلایت‌ها",
             "تنظیم link in bio حرفه‌ای"
           ],
-          videoTitle: "بهینه‌سازی پروفایل با AI",
-          videoDuration: "25:14",
-          videoUrl: "https://dl.sianmarketing.com/monetizeAIvideo/video1az13sth4.mp4"
+          videos: [
+            {
+              title: "بهینه‌سازی پروفایل با AI - قسمت اول",
+              duration: "25:14",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video1az13sth4.mp4"
+            },
+            {
+              title: "تولید محتوای اعتمادساز - قسمت دوم",
+              duration: "61:53",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video2as13sth4.mp4"
+            },
+            {
+              title: "طراحی هایلایت‌های جذاب - قسمت سوم",
+              duration: "12:23",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video3as13sth4.mp4"
+            },
+            {
+              title: "بهینه‌سازی link in bio - قسمت چهارم",
+              duration: "18:35",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video4as13sth4.mp4"
+            }
+          ]
         },
         {
           id: 14,
@@ -2040,8 +2059,18 @@ const Levels: React.FC = () => {
             "تولید کپشن‌ها با GPT",
             "انتشار در کانال مکمل"
           ],
-          videoTitle: "تولید محتوا با AI",
-          videoDuration: "28:30"
+          videos: [
+            {
+              title: "تولید محتوا با AI - قسمت اول",
+              duration: "17:19",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video1as14sth4.mp4"
+            },
+            {
+              title: "استراتژی تعامل هدفمند - قسمت دوم",
+              duration: "08:18",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video2as14sth4.mp4"
+            }
+          ]
         }
       ]
     },
