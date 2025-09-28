@@ -537,8 +537,8 @@ const Tools: React.FC = () => {
                 <div className="text-xs text-white font-medium transition-colors duration-300">سیستم مدیریت فروش</div>
               </div>
               <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-                <BarChart3 size={16} className="text-blue-500 drop-shadow-lg" />
-                <span className="text-blue-500 drop-shadow-lg">مدیریت فروش</span>
+                <BarChart3 size={16} className="text-green-500 drop-shadow-lg" />
+                <span className="text-green-500 drop-shadow-lg">مدیریت فروش</span>
               </div>
             </div>
           </div>
