@@ -272,11 +272,11 @@ const Dashboard: React.FC = () => {
       action: () => navigate('/energy-boost')
     },
     {
-      id: 'sales-panel',
-      title: 'پنل فروش',
+      id: 'sales-path-ai',
+      title: 'مسیر فروش سریع',
       icon: DollarSign,
       color: 'text-emerald-600 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/30',
-      action: () => navigate('/sales-panel')
+      action: () => navigate('/sales-path-ai')
     },
     {
       id: 'growth-club',

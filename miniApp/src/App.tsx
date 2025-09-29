@@ -12,7 +12,7 @@ import SocialGrowth from './pages/GrowthClub';
 import Messages from './pages/Messages';
 import Chat from './pages/Chat';
 import EnergyBoost from './pages/EnergyBoost';
-import SalesPanel from './pages/SalesPanel';
+
 
 import BusinessBuilderAI from './pages/BusinessBuilderAI';
 import SellKitAI from './pages/SellKitAI';
@@ -65,7 +65,7 @@ function App() {
                 <Route path="/sell-kit-ai" element={<SellKitAI />} />
                 <Route path="/client-finder-ai" element={<ClientFinderAI />} />
                 <Route path="/sales-path-ai" element={<SalesPathAI />} />
-                <Route path="/sales-panel" element={<SalesPanel />} />
+                {/* SalesPanel removed */}
                 <Route path="/ready-prompts" element={<ReadyPrompts />} />
               </Routes>
             </Layout>

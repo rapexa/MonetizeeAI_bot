@@ -533,7 +533,7 @@ const Tools: React.FC = () => {
           <div 
             className="mt-3 text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden"
             style={{ backgroundColor: '#10091c' }}
-            onClick={() => navigate('/sales-panel')}
+            onClick={() => navigate('/sales-path-ai')}
           >
             <div className="flex items-center justify-center mb-1">
               <div className="text-xs text-white font-medium transition-colors duration-300">سیستم مدیریت فروش</div>
