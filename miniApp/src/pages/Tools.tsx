@@ -492,58 +492,8 @@ const Tools: React.FC = () => {
             <p className="text-gray-400">ابزارهای هوشمند MonetizeAI برای رشد کسب‌وکار</p>
           </div>
           
-          {/* Sales Management System - Large Card */}
-          <div className="mb-8">
-            {/* Two smaller cards above */}
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              {/* مسیر فروش سریع */}
-              <div 
-                className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden"
-                style={{ backgroundColor: '#10091c' }}
-                onClick={() => navigate('/sales-path-ai')}
-              >
-                <div className="flex items-center justify-center mb-1">
-                  <div className="text-xs text-white font-medium transition-colors duration-300">مسیر فروش</div>
-                </div>
-                <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-                  <Map size={16} className="text-purple-500 drop-shadow-lg" />
-                  <span className="text-purple-500 drop-shadow-lg">سریع</span>
-                </div>
-              </div>
+          {/* Small AI Tools - All four on top */}
 
-              {/* یابنده مشتری فوری */}
-              <div 
-                className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden"
-                style={{ backgroundColor: '#10091c' }}
-                onClick={() => navigate('/client-finder-ai')}
-              >
-                <div className="flex items-center justify-center mb-1">
-                  <div className="text-xs text-white font-medium transition-colors duration-300">یابنده مشتری</div>
-                </div>
-                <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-                  <Search size={16} className="text-orange-500 drop-shadow-lg" />
-                  <span className="text-orange-500 drop-shadow-lg">فوری</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Large Sales Management System Card */}
-            <div 
-              className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden"
-              style={{ backgroundColor: '#10091c' }}
-              onClick={() => navigate('/sales-panel')}
-            >
-              <div className="flex items-center justify-center mb-1">
-                <div className="text-xs text-white font-medium transition-colors duration-300">سیستم مدیریت فروش</div>
-              </div>
-              <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-                <BarChart3 size={16} className="text-green-500 drop-shadow-lg" />
-                <span className="text-green-500 drop-shadow-lg">مدیریت فروش</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Original 4 AI Tools */}
           <div className="grid grid-cols-2 gap-3">
             {internalTools.map((tool) => {
               const Icon = tool.icon;
@@ -577,6 +527,21 @@ const Tools: React.FC = () => {
                 </div>
               );
             })}
+          </div>
+
+          {/* Large Sales Management System Card - below all small buttons */}
+          <div 
+            className="mt-3 text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden"
+            style={{ backgroundColor: '#10091c' }}
+            onClick={() => navigate('/sales-panel')}
+          >
+            <div className="flex items-center justify-center mb-1">
+              <div className="text-xs text-white font-medium transition-colors duration-300">سیستم مدیریت فروش</div>
+            </div>
+            <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
+              <BarChart3 size={16} className="text-green-500 drop-shadow-lg" />
+              <span className="text-green-500 drop-shadow-lg">مدیریت فروش</span>
+            </div>
           </div>
         </div>
 
