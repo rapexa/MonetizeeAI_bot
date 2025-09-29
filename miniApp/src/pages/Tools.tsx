@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, Wrench, Rocket, Package, Search, Map, ExternalLink, Sparkles, Brain, Target, Users, BarChart3, Globe, Zap, Shield, Clock,
   Palette, FileText, Image, Layers, PenTool, Eye, TrendingUp, Activity, BarChart, PieChart, LineChart, Mail, MessageSquare, ShoppingCart, CreditCard, DollarSign,
-  Settings, Calendar, FolderOpen, Cloud, Link, Workflow, Cpu, Database, Server, Network, Zap as ZapIcon, GitBranch, GitCommit, GitPullRequest
+  Settings, Calendar, FolderOpen, Cloud, Link, Workflow, Cpu, Database, Server, Network, Zap as ZapIcon, GitBranch, GitCommit, GitPullRequest, Trophy
 } from 'lucide-react';
 
 const Tools: React.FC = () => {
@@ -541,6 +541,43 @@ const Tools: React.FC = () => {
             <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
               <BarChart3 size={16} className="text-green-500 drop-shadow-lg" />
               <span className="text-green-500 drop-shadow-lg">مدیریت فروش</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="w-64 h-px bg-gray-200/30 dark:bg-gray-700/30 my-6 mx-auto"></div>
+
+        {/* Featured Courses Section (minimal, like internal tools) */}
+        <div className="mb-12">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-white mb-2">دوره‌های ویژه</h2>
+            <p className="text-gray-400">دو مسیر سریع و کاربردی برای رشد</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {/* دوره درآمد دلاری واقعی */}
+            <div
+              onClick={() => navigate('/courses?open=real-dollar-income')}
+              className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-yellow-500/50 shadow-lg relative overflow-hidden"
+              style={{ backgroundColor: '#10091c' }}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <Trophy size={16} className="text-yellow-400 drop-shadow-lg" />
+                <div className="text-xs text-white font-medium transition-colors duration-300">دوره درآمد دلاری واقعی</div>
+              </div>
+            </div>
+
+            {/* دوره طراحی سایت بدون کدنویسی */}
+            <div
+              onClick={() => navigate('/courses?open=no-code-web-design')}
+              className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-rose-500/50 shadow-lg relative overflow-hidden"
+              style={{ backgroundColor: '#10091c' }}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <Layers size={16} className="text-rose-400 drop-shadow-lg" />
+                <div className="text-xs text-white font-medium transition-colors duration-300">دوره طراحی سایت بدون کدنویسی</div>
+              </div>
             </div>
           </div>
         </div>
