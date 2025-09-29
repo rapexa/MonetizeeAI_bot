@@ -20,6 +20,7 @@ import ClientFinderAI from './pages/ClientFinderAI';
 import SalesPathAI from './pages/SalesPathAI';
 import CRM from './pages/CRM';
 import ReadyPrompts from './pages/ReadyPrompts';
+import CoursePlayer from './pages/CoursePlayer';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -69,6 +70,7 @@ function App() {
                 <Route path="/crm" element={<CRM />} />
                 {/* SalesPanel removed */}
                 <Route path="/ready-prompts" element={<ReadyPrompts />} />
+                <Route path="/courses/:courseId" element={<CoursePlayer />} />
               </Routes>
             </Layout>
           </Router>

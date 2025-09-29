@@ -558,7 +558,7 @@ const Tools: React.FC = () => {
           <div className="grid grid-cols-2 gap-3">
             {/* دوره درآمد دلاری واقعی */}
             <div
-              onClick={() => navigate('/courses?open=real-dollar-income')}
+              onClick={() => navigate('/courses/real-dollar-income')}
               className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-yellow-500/50 shadow-lg relative overflow-hidden"
               style={{ backgroundColor: '#10091c' }}
             >
@@ -570,7 +570,7 @@ const Tools: React.FC = () => {
 
             {/* دوره طراحی سایت بدون کدنویسی */}
             <div
-              onClick={() => navigate('/courses?open=no-code-web-design')}
+              onClick={() => navigate('/courses/no-code-web-design')}
               className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-rose-500/50 shadow-lg relative overflow-hidden"
               style={{ backgroundColor: '#10091c' }}
             >
