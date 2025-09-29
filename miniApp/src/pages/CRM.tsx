@@ -49,6 +49,10 @@ const CRM: React.FC = () => {
   const [showLead, setShowLead] = React.useState<Lead | null>(null);
   const [note, setNote] = React.useState('');
   const [aiMessageType, setAiMessageType] = React.useState<'open' | 'follow' | 'gift' | 'direct'>('open');
+  const [showAdd, setShowAdd] = React.useState(false);
+  const [newLead, setNewLead] = React.useState<{name: string; phone: string; email: string; country: string; estimatedValue: string; status: LeadStatus}>({
+    name: '', phone: '', email: '', country: 'IR', estimatedValue: '', status: 'cold'
+  });
 
   const filteredLeads = leads.filter(l => {
     const matchesQuery = !query || l.name.includes(query) || l.phone?.includes(query) || l.email?.includes(query);
@@ -56,12 +60,19 @@ const CRM: React.FC = () => {
     return matchesQuery && matchesStatus;
   });
 
-  const summary = React.useMemo(() => ({
-    salesThisMonth: 32000000,
-    leadsCount: leads.length,
-    newToday: 3,
-    hotLeads: leads.filter(l => l.status === 'hot').length,
-  }), [leads]);
+  const summary = React.useMemo(() => {
+    const leadsCount = leads.length;
+    const hotLeads = leads.filter(l => l.status === 'hot');
+    const salesThisMonth = hotLeads.reduce((acc, l) => acc + (l.estimatedValue || 0), 0);
+    const avgValue = leadsCount ? Math.round(leads.reduce((a, l) => a + (l.estimatedValue || 0), 0) / leadsCount) : 0;
+    return {
+      salesThisMonth,
+      leadsCount,
+      newToday: 0,
+      hotLeads: hotLeads.length,
+      avgValue
+    };
+  }, [leads]);
 
   const pipeline = React.useMemo(() => ({
     cold: leads.filter(l => l.status === 'cold').length,
@@ -76,6 +87,24 @@ const CRM: React.FC = () => {
       const idx = order.indexOf(l.status);
       return { ...l, status: order[(idx + 1) % order.length] };
     }));
+  };
+
+  const addLead = () => {
+    if (!newLead.name || (!newLead.phone && !newLead.email)) return;
+    const created: Lead = {
+      id: 'L-' + Math.floor(1000 + Math.random() * 9000).toString(),
+      name: newLead.name,
+      phone: newLead.phone || undefined,
+      email: newLead.email || undefined,
+      country: newLead.country || 'IR',
+      status: newLead.status,
+      lastInteraction: 'همین حالا',
+      estimatedValue: parseInt(newLead.estimatedValue || '0') || 0,
+      score: 3
+    };
+    setLeads(prev => [created, ...prev]);
+    setShowAdd(false);
+    setNewLead({ name: '', phone: '', email: '', country: 'IR', estimatedValue: '', status: 'cold' });
   };
 
   const exportSimple = () => {
@@ -132,14 +161,14 @@ const CRM: React.FC = () => {
         </div>
         <div className="max-w-md mx-auto px-4 pb-3">
           <div className="grid grid-cols-3 gap-2 text-xs">
-            <button onClick={() => setSelectedTab('overview')} className={`py-2 rounded-xl border ${selectedTab==='overview' ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>نمای کلی</button>
+            <button onClick={() => setSelectedTab('overview')} className={`py-2 rounded-xl border ${selectedTab==='overview' ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>داشبورد</button>
             <button onClick={() => setSelectedTab('leads')} className={`py-2 rounded-xl border ${selectedTab==='leads' ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>مدیریت لیدها</button>
             <button onClick={() => setSelectedTab('automation')} className={`py-2 rounded-xl border ${selectedTab==='automation' ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>اتوماسیون</button>
           </div>
         </div>
       </div>
 
-      <div className="pt-28 max-w-md mx-auto p-4 space-y-6">
+      <div className="pt-40 max-w-md mx-auto p-4 space-y-6">
         {selectedTab === 'overview' && (
           <>
             {/* Summary Cards */}
@@ -173,13 +202,9 @@ const CRM: React.FC = () => {
               <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <BarChart3 size={18} className="text-purple-400" />
-                  <span className="text-white text-xs">نمایش</span>
+                  <span className="text-white text-xs">میانگین ارزش لید</span>
                 </div>
-                <div className="flex gap-2">
-                  <button className="px-2 py-1 text-xs rounded-lg bg-gray-800/60 text-gray-300 border border-gray-700/60">لیدها</button>
-                  <button className="px-2 py-1 text-xs rounded-lg bg-gray-800/60 text-gray-300 border border-gray-700/60">فروش</button>
-                  <button className="px-2 py-1 text-xs rounded-lg bg-gray-800/60 text-gray-300 border border-gray-700/60">تبدیل</button>
-                </div>
+                <div className="text-white font-black text-xl">{formatCurrency(summary.avgValue)}</div>
               </div>
             </div>
 
@@ -206,6 +231,15 @@ const CRM: React.FC = () => {
                 مشاهده کامل <ChevronRight size={16} />
               </button>
             </div>
+
+            {/* Chart Below Pipeline */}
+            <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <BarChart3 size={18} className="text-violet-400" />
+                <span className="text-white text-sm font-bold">روند هفتگی لید/فروش</span>
+              </div>
+              <MiniLineChart />
+            </div>
           </>
         )}
 
@@ -223,7 +257,7 @@ const CRM: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between mt-2">
-              <button className="px-3 py-2 rounded-xl border border-gray-700/60 bg-gray-800/60 text-xs text-gray-200 flex items-center gap-1">
+              <button onClick={() => setShowAdd(true)} className="px-3 py-2 rounded-xl border border-gray-700/60 bg-gray-800/60 text-xs text-gray-200 flex items-center gap-1">
                 <Plus size={14} /> افزودن لید جدید
               </button>
               <button onClick={exportSimple} className="px-3 py-2 rounded-xl border border-gray-700/60 bg-gray-800/60 text-xs text-gray-200 flex items-center gap-1">
@@ -286,10 +320,10 @@ const CRM: React.FC = () => {
       {/* Lead Profile / AI Modal */}
       {showLead && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl w-full max-w-sm overflow-hidden border border-white/20 dark:border-gray-700/20 shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50">
+          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl w-full max-w-sm overflow-hidden border border-white/20 dark:border-gray-700/20 shadow-2xl">
+            <div className="p-4 bg-gradient-to-r from-[#2c189a]/15 to-[#5a189a]/15 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white">{showLead.name}</h3>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">{showLead.name}</h3>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{showLead.phone || showLead.email}</div>
               </div>
               <button onClick={() => setShowLead(null)} className="p-2 rounded-lg hover:bg-gray-100/70 dark:hover:bg-gray-700/50"><X size={18} className="text-gray-500" /></button>
@@ -337,6 +371,57 @@ const CRM: React.FC = () => {
         </div>
       )}
 
+      {showAdd && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl w-full max-w-sm overflow-hidden border border-white/20 dark:border-gray-700/20 shadow-2xl">
+            <div className="p-4 bg-gradient-to-r from-[#2c189a]/15 to-[#5a189a]/15 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">افزودن لید جدید</h3>
+              <button onClick={() => setShowAdd(false)} className="p-2 rounded-lg hover:bg-gray-100/70 dark:hover:bg-gray-700/50"><X size={18} className="text-gray-500" /></button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor="newLeadName" className="text-xs text-gray-400">نام</label>
+                  <input type="text" id="newLeadName" value={newLead.name} onChange={(e) => setNewLead(prev => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-300/40 dark:border-gray-600/50 text-xs text-gray-900 dark:text-white" />
+                </div>
+                <div>
+                  <label htmlFor="newLeadPhone" className="text-xs text-gray-400">شماره تماس</label>
+                  <input type="text" id="newLeadPhone" value={newLead.phone} onChange={(e) => setNewLead(prev => ({ ...prev, phone: e.target.value }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-300/40 dark:border-gray-600/50 text-xs text-gray-900 dark:text-white" />
+                </div>
+                <div>
+                  <label htmlFor="newLeadEmail" className="text-xs text-gray-400">ایمیل</label>
+                  <input type="email" id="newLeadEmail" value={newLead.email} onChange={(e) => setNewLead(prev => ({ ...prev, email: e.target.value }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-300/40 dark:border-gray-600/50 text-xs text-gray-900 dark:text-white" />
+                </div>
+                <div>
+                  <label htmlFor="newLeadCountry" className="text-xs text-gray-400">کشور</label>
+                  <select id="newLeadCountry" value={newLead.country} onChange={(e) => setNewLead(prev => ({ ...prev, country: e.target.value }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-300/40 dark:border-gray-600/50 text-xs text-gray-900 dark:text-white">
+                    <option value="IR">ایران</option>
+                    <option value="US">آمریکا</option>
+                    <option value="UK">بریتانیا</option>
+                    <option value="DE">آلمان</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="newLeadEstimatedValue" className="text-xs text-gray-400">ارزش پیش‌بینی شده</label>
+                  <input type="number" id="newLeadEstimatedValue" value={newLead.estimatedValue} onChange={(e) => setNewLead(prev => ({ ...prev, estimatedValue: e.target.value }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-300/40 dark:border-gray-600/50 text-xs text-gray-900 dark:text-white" />
+                </div>
+                <div>
+                  <label htmlFor="newLeadStatus" className="text-xs text-gray-400">وضعیت لید</label>
+                  <select id="newLeadStatus" value={newLead.status} onChange={(e) => setNewLead(prev => ({ ...prev, status: e.target.value as LeadStatus }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-300/40 dark:border-gray-600/50 text-xs text-gray-900 dark:text-white">
+                    <option value="cold">سرد</option>
+                    <option value="warm">نیمه‌گرم</option>
+                    <option value="hot">آماده خرید</option>
+                  </select>
+                </div>
+              </div>
+              <button onClick={addLead} className="w-full px-4 py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl text-sm font-bold border border-white/10">
+                افزودن لید
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
@@ -347,6 +432,30 @@ const CopyIcon: React.FC = () => (
     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
   </svg>
 );
+
+const MiniLineChart: React.FC = () => {
+  // Simple SVG line chart (no deps) for weekly trend
+  const data = [3, 5, 4, 7, 6, 9, 8];
+  const max = Math.max(...data) || 1;
+  const points = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * 280;
+    const y = 120 - (v / max) * 100;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <svg viewBox="0 0 280 130" className="w-full h-32">
+      <defs>
+        <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polyline points={points} fill="none" stroke="#a78bfa" strokeWidth="3" strokeLinecap="round" />
+      <polygon points={`${points} 280,130 0,130`} fill="url(#grad)" />
+    </svg>
+  );
+};
 
 export default CRM;
 
