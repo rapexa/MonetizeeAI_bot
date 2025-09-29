@@ -1,8 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import { 
   BarChart3, Users, Flame, TrendingUp, Filter, Download, Plus, Search,
-  Mail, MessageCircle, Gift, CheckCircle, Clock, Star, ChevronRight,
+  MessageCircle, Gift, CheckCircle, Clock, Star, ChevronRight,
   Sparkles, Wand2, Send, X, Phone
 } from 'lucide-react';
 
@@ -18,12 +18,15 @@ type Lead = {
   lastInteraction: string;
   estimatedValue: number;
   score: number; // 1..5
+  notes?: Array<{ text: string; timestamp: string }>;
+  interactions?: Array<{ type: 'call' | 'whatsapp' | 'sms' | 'meeting'; text: string; timestamp: string }>;
+  upcoming?: Array<{ type: 'call' | 'whatsapp' | 'sms' | 'meeting'; due: string; text: string }>;
 };
 
 const mockLeads: Lead[] = [
-  { id: 'L-1001', name: 'علی محمدی', phone: '0912xxxxxxx', email: 'ali@example.com', country: 'IR', status: 'hot', lastInteraction: '۲ ساعت پیش', estimatedValue: 12000000, score: 5 },
-  { id: 'L-1002', name: 'سارا احمدی', phone: '0935xxxxxxx', email: 'sara@example.com', country: 'IR', status: 'warm', lastInteraction: 'دیروز', estimatedValue: 6000000, score: 4 },
-  { id: 'L-1003', name: 'محمد رضایی', phone: '0990xxxxxxx', email: 'mr@example.com', country: 'IR', status: 'cold', lastInteraction: '۳ روز پیش', estimatedValue: 2000000, score: 2 },
+  { id: 'L-1001', name: 'علی محمدی', phone: '0912xxxxxxx', email: 'ali@example.com', country: 'IR', status: 'hot', lastInteraction: '۲ ساعت پیش', estimatedValue: 12000000, score: 5, notes: [{ text: 'تماس اولیه انجام شد.', timestamp: new Date().toLocaleString('fa-IR') }], interactions: [{ type: 'call', text: 'صحبت درباره نیازها', timestamp: new Date().toLocaleString('fa-IR') }], upcoming: [{ type: 'whatsapp', due: new Date(Date.now()+86400000).toISOString().slice(0,16), text: 'ارسال PDF معرفی' }] },
+  { id: 'L-1002', name: 'سارا احمدی', phone: '0935xxxxxxx', email: 'sara@example.com', country: 'IR', status: 'warm', lastInteraction: 'دیروز', estimatedValue: 6000000, score: 4, notes: [], interactions: [], upcoming: [] },
+  { id: 'L-1003', name: 'محمد رضایی', phone: '0990xxxxxxx', email: 'mr@example.com', country: 'IR', status: 'cold', lastInteraction: '۳ روز پیش', estimatedValue: 2000000, score: 2, notes: [], interactions: [], upcoming: [] },
 ];
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat('fa-IR').format(amount) + ' تومان';
@@ -40,7 +43,7 @@ const StatusBadge: React.FC<{ status: LeadStatus }> = ({ status }) => {
 };
 
 const CRM: React.FC = () => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   const [selectedTab, setSelectedTab] = React.useState<'overview' | 'leads' | 'automation'>('overview');
   const [leads, setLeads] = React.useState<Lead[]>(mockLeads);
@@ -129,11 +132,11 @@ const CRM: React.FC = () => {
   const generateAiText = (lead: Lead) => {
     const template = aiTemplates[aiMessageType];
     return template
-      .replaceAll('{{name}}', lead.name)
-      .replaceAll('{{topic}}', 'رشد فروش')
-      .replaceAll('{{gift}}', 'PDF ارزشمند')
-      .replaceAll('{{benefit}}', 'افزایش تبدیل')
-      .replaceAll('{{offer}}', 'پکیج شروع سریع');
+      .split('{{name}}').join(lead.name)
+      .split('{{topic}}').join('رشد فروش')
+      .split('{{gift}}').join('PDF ارزشمند')
+      .split('{{benefit}}').join('افزایش تبدیل')
+      .split('{{offer}}').join('پکیج شروع سریع');
   };
 
   const openWhatsApp = (text: string, phone?: string) => {
@@ -142,6 +145,27 @@ const CRM: React.FC = () => {
     const url = number ? `https://wa.me/${number}?text=${msg}` : `https://wa.me/?text=${msg}`;
     window.open(url, '_blank');
   };
+
+  const callNumber = (phone?: string) => {
+    if (!phone) return;
+    window.location.href = `tel:${phone}`;
+  };
+
+  const smsNumber = (phone?: string) => {
+    if (!phone) return;
+    window.location.href = `sms:${phone}`;
+  };
+
+  const copyNumber = async (phone?: string) => {
+    if (!phone) return;
+    try { await navigator.clipboard.writeText(phone); } catch {}
+  };
+
+  // const saveLeadChanges = () => {
+  //   if (!showLead) return;
+  //   setLeads(prev => prev.map(l => l.id === showLead.id ? showLead : l));
+  //   setShowLead(null);
+  // };
 
   return (
     <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
@@ -319,52 +343,145 @@ const CRM: React.FC = () => {
 
       {/* Lead Profile / AI Modal */}
       {showLead && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl w-full max-w-sm overflow-hidden border border-white/20 dark:border-gray-700/20 shadow-2xl">
-            <div className="p-4 bg-gradient-to-r from-[#2c189a]/15 to-[#5a189a]/15 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">{showLead.name}</h3>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{showLead.phone || showLead.email}</div>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex">
+          <div className="backdrop-blur-xl rounded-3xl w-full max-w-md mx-auto my-3 h-[calc(100vh-24px)] overflow-hidden border border-gray-700/60 shadow-2xl flex flex-col" style={{ backgroundColor: '#10091c' }}>
+            <div className="p-4 border-b border-gray-700/60">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#2c189a] to-[#5a189a] flex items-center justify-center text-white font-bold shadow-lg">
+                  {showLead.name?.charAt(0) || 'L'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-white truncate max-w-[10rem]">{showLead.name}</h3>
+                    <StatusBadge status={showLead.status} />
+                  </div>
+                  <div className="text-xs text-gray-400 mt-0.5">{showLead.phone || showLead.email}</div>
+                  <div className="flex items-center gap-1 text-xs text-gray-300 mt-1">
+                    <span>💰</span>
+                    <span className="font-bold text-white">{formatCurrency(showLead.estimatedValue)}</span>
+                  </div>
+                </div>
+                <button onClick={() => setShowLead(null)} className="p-2 rounded-xl hover:bg-white/10"><X size={18} className="text-gray-400" /></button>
               </div>
-              <button onClick={() => setShowLead(null)} className="p-2 rounded-lg hover:bg-gray-100/70 dark:hover:bg-gray-700/50"><X size={18} className="text-gray-500" /></button>
+
+              {/* Status switcher */}
+              <div className="grid grid-cols-3 gap-2 mt-3 text-[11px]">
+                <button onClick={() => setShowLead(prev => prev ? { ...prev, status: 'cold' } : prev)} className={`py-2 rounded-lg border ${showLead.status==='cold' ? 'bg-gray-700 text-white border-gray-600' : 'bg-gray-800/60 text-gray-300 border-gray-700/60'}`}>سرد</button>
+                <button onClick={() => setShowLead(prev => prev ? { ...prev, status: 'warm' } : prev)} className={`py-2 rounded-lg border ${showLead.status==='warm' ? 'bg-yellow-600/30 text-yellow-200 border-yellow-500/40' : 'bg-gray-800/60 text-gray-300 border-gray-700/60'}`}>نیمه‌گرم</button>
+                <button onClick={() => setShowLead(prev => prev ? { ...prev, status: 'hot' } : prev)} className={`py-2 rounded-lg border ${showLead.status==='hot' ? 'bg-emerald-700/30 text-emerald-200 border-emerald-600/40' : 'bg-gray-800/60 text-gray-300 border-gray-700/60'}`}>آماده خرید</button>
+              </div>
             </div>
-            <div className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <StatusBadge status={showLead.status} />
-                <div className="text-xs text-gray-500">ارزش: <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(showLead.estimatedValue)}</span></div>
+
+            <div className="p-4 space-y-5 overflow-y-auto flex-1 pb-24">
+              {/* Quick actions row */}
+              <div className="grid grid-cols-4 gap-2">
+                <button onClick={() => callNumber(showLead.phone)} className="px-3 py-3 rounded-2xl text-xs bg-gradient-to-br from-gray-700 to-gray-800 text-white flex flex-col items-center justify-center gap-1 border border-gray-700/60">
+                  <Phone size={16} />
+                  <span>تماس</span>
+                </button>
+                <button onClick={() => openWhatsApp(generateAiText(showLead), showLead.phone)} className="px-3 py-3 rounded-2xl text-xs bg-gradient-to-br from-emerald-600 to-emerald-700 text-white flex flex-col items-center justify-center gap-1 border border-emerald-600/60">
+                  <Send size={16} />
+                  <span>واتساپ</span>
+                </button>
+                <button onClick={() => smsNumber(showLead.phone)} className="px-3 py-3 rounded-2xl text-xs bg-gradient-to-br from-indigo-600/60 to-indigo-700/60 text-white flex flex-col items-center justify-center gap-1 border border-indigo-500/60">
+                  <MessageCircle size={16} />
+                  <span>پیامک</span>
+                </button>
+                <button onClick={() => copyNumber(showLead.phone)} className="px-3 py-3 rounded-2xl text-xs bg-gradient-to-br from-gray-700 to-gray-800 text-white flex flex-col items-center justify-center gap-1 border border-gray-700/60">
+                  <CopyIcon />
+                  <span>کپی</span>
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => openWhatsApp(generateAiText(showLead), showLead.phone)} className="px-3 py-2 rounded-xl text-xs bg-emerald-600/80 text-white flex items-center justify-center gap-1"><Send size={14} /> واتساپ</button>
-                <button onClick={() => navigator.clipboard.writeText(generateAiText(showLead))} className="px-3 py-2 rounded-xl text-xs bg-gray-800/80 text-white flex items-center justify-center gap-1"><CopyIcon /> کپی متن</button>
+              {/* Notes input and history */}
+              <div className="space-y-2">
+                <div className="text-xs text-gray-400">یادداشت</div>
+                <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="اینجا بنویس چه قراری گذاشتی یا چی گفت" className="w-full h-20 px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-600/50 text-xs text-white"></textarea>
+                {showLead.notes && showLead.notes.length > 0 && (
+                  <div className="bg-gray-800/40 border border-gray-700/60 rounded-xl p-3">
+                    <div className="text-[11px] text-gray-400 mb-2">تاریخچه یادداشت‌ها</div>
+                    <div className="space-y-2 max-h-36 overflow-y-auto">
+                      {[...showLead.notes].reverse().map((n, i) => (
+                        <div key={i} className="text-[11px] text-gray-300">
+                          <span className="text-gray-400">{n.timestamp} • </span>
+                          {n.text}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div>
-                <div className="text-xs text-gray-400 mb-1">نوع پیام AI</div>
-                <div className="grid grid-cols-4 gap-1 text-[11px]">
-                  <button onClick={() => setAiMessageType('open')} className={`py-2 rounded-lg border ${aiMessageType==='open' ? 'bg-purple-600/80 text-white border-purple-500/60' : 'bg-gray-800/60 text-gray-200 border-gray-700/60'}`}>شروع</button>
-                  <button onClick={() => setAiMessageType('follow')} className={`py-2 rounded-lg border ${aiMessageType==='follow' ? 'bg-purple-600/80 text-white border-purple-500/60' : 'bg-gray-800/60 text-gray-200 border-gray-700/60'}`}>پیگیری</button>
-                  <button onClick={() => setAiMessageType('gift')} className={`py-2 rounded-lg border ${aiMessageType==='gift' ? 'bg-purple-600/80 text-white border-purple-500/60' : 'bg-gray-800/60 text-gray-200 border-gray-700/60'}`}>هدیه</button>
-                  <button onClick={() => setAiMessageType('direct')} className={`py-2 rounded-lg border ${aiMessageType==='direct' ? 'bg-purple-600/80 text-white border-purple-500/60' : 'bg-gray-800/60 text-gray-200 border-gray-700/60'}`}>فروش مستقیم</button>
+              {/* Interactions: done and upcoming */}
+              <div className="grid grid-cols-1 gap-3">
+                {/* Completed interactions */}
+                <div className="backdrop-blur-xl rounded-2xl p-3 border border-gray-700/60" style={{ backgroundColor: '#0f0a18' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-white">تعاملات انجام‌شده</span>
+                    <button onClick={() => setShowLead(prev => prev ? { ...prev, interactions: [...(prev.interactions || []), { type: 'call', text: 'تعامل ثبت شد', timestamp: new Date().toLocaleString('fa-IR') }] } : prev)} className="text-[11px] px-2 py-1 rounded-lg bg-gray-800/60 text-gray-200 border border-gray-700/60">ثبت سریع</button>
+                  </div>
+                  <div className="space-y-1 max-h-28 overflow-y-auto">
+                    {(showLead.interactions || []).length === 0 && (
+                      <div className="text-[11px] text-gray-500">تعامل ثبت نشده است.</div>
+                    )}
+                    {(showLead.interactions || []).slice().reverse().map((it, idx) => (
+                      <div key={idx} className="text-[11px] text-gray-300 flex items-center gap-1">
+                        <span className="text-gray-400">{it.timestamp} •</span>
+                        <span>{it.type === 'call' ? 'تماس' : it.type === 'whatsapp' ? 'واتساپ' : it.type === 'sms' ? 'پیامک' : 'جلسه'}</span>
+                        <span>— {it.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Upcoming interactions */}
+                <div className="backdrop-blur-xl rounded-2xl p-3 border border-gray-700/60" style={{ backgroundColor: '#0f0a18' }}>
+                  <div className="text-xs font-bold text-white mb-2">تعاملات آینده</div>
+                  <UpcomingForm setShowLead={setShowLead} />
+                  <div className="space-y-1 max-h-28 overflow-y-auto mt-2">
+                    {(showLead.upcoming || []).length === 0 && (
+                      <div className="text-[11px] text-gray-500">موردی ثبت نشده است.</div>
+                    )}
+                    {(showLead.upcoming || []).slice().reverse().map((up, revIdx) => {
+                      const realIdx = (showLead.upcoming || []).length - 1 - revIdx;
+                      return (
+                        <label key={revIdx} className="text-[11px] text-gray-300 flex items-center justify-between gap-2 cursor-pointer">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 rounded border-gray-600 bg-gray-800/60 text-emerald-500 focus:ring-emerald-500"
+                              onChange={(e) => {
+                                if (!e.target.checked) return;
+                                const now = new Date().toLocaleString('fa-IR');
+                                setShowLead(prev => {
+                                  if (!prev) return prev;
+                                  const upcoming = [...(prev.upcoming || [])];
+                                  const done = upcoming[realIdx];
+                                  if (!done) return prev;
+                                  upcoming.splice(realIdx, 1);
+                                  const interactions = [
+                                    ...(prev.interactions || []),
+                                    { type: done.type, text: done.text, timestamp: now }
+                                  ];
+                                  return { ...prev, upcoming, interactions };
+                                });
+                              }}
+                            />
+                            <span className="text-gray-400 whitespace-nowrap">{new Date(up.due).toLocaleString('fa-IR')} •</span>
+                            <span className="whitespace-nowrap">{up.type === 'call' ? 'تماس' : up.type === 'whatsapp' ? 'واتساپ' : up.type === 'sms' ? 'پیامک' : 'جلسه'}</span>
+                            <span className="truncate">— {up.text}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <div className="text-xs text-gray-400 mb-1">پیشنهاد AI</div>
-                <textarea readOnly className="w-full h-28 px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-purple-300/50 dark:border-purple-600/50 text-xs text-gray-900 dark:text-white">
-{generateAiText(showLead)}
-                </textarea>
-              </div>
-
-              <div>
-                <div className="text-xs text-gray-400 mb-1">یادداشت</div>
-                <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="مثال: گفت بعد عید تماس بگیرم" className="w-full h-20 px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-300/40 dark:border-gray-600/50 text-xs text-gray-900 dark:text-white"></textarea>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <button onClick={() => openWhatsApp(generateAiText(showLead), showLead.phone)} className="px-3 py-2 rounded-xl text-xs bg-emerald-600/80 text-white flex items-center justify-center gap-1"><Phone size={14} /> واتساپ</button>
-                <button onClick={() => navigator.clipboard.writeText(generateAiText(showLead))} className="px-3 py-2 rounded-xl text-xs bg-gray-800/80 text-white flex items-center justify-center gap-1"><CopyIcon /> کپی</button>
-                <button onClick={() => setShowLead(null)} className="px-3 py-2 rounded-xl text-xs bg-red-600/80 text-white">بستن</button>
+              {/* Footer actions */}
+              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-700/60 pt-3">
+                <button onClick={() => { if (showLead) { const ts = new Date().toLocaleString('fa-IR'); const updated = note.trim() ? { ...showLead, notes: [...(showLead.notes || []), { text: note.trim(), timestamp: ts }] } : showLead; setNote(''); setLeads(prev => prev.map(l => l.id === updated.id ? updated : l)); setShowLead(null); } }} className="px-4 py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl text-sm font-bold border border-white/10">ذخیره تغییرات</button>
+                <button onClick={() => setShowLead(null)} className="px-4 py-3 bg-gray-800/70 text-gray-200 rounded-xl text-sm font-bold border border-gray-700/60">بستن</button>
               </div>
             </div>
           </div>
@@ -372,13 +489,13 @@ const CRM: React.FC = () => {
       )}
 
       {showAdd && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl w-full max-w-sm overflow-hidden border border-white/20 dark:border-gray-700/20 shadow-2xl">
-            <div className="p-4 bg-gradient-to-r from-[#2c189a]/15 to-[#5a189a]/15 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">افزودن لید جدید</h3>
-              <button onClick={() => setShowAdd(false)} className="p-2 rounded-lg hover:bg-gray-100/70 dark:hover:bg-gray-700/50"><X size={18} className="text-gray-500" /></button>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex">
+          <div className="backdrop-blur-xl rounded-3xl w-full max-w-md mx-auto my-3 h-[calc(100vh-24px)] overflow-hidden border border-gray-700/60 shadow-2xl flex flex-col" style={{ backgroundColor: '#10091c' }}>
+            <div className="p-4 border-b border-gray-700/60 flex items-center justify-between">
+              <h3 className="text-base font-bold text-white">افزودن لید جدید</h3>
+              <button onClick={() => setShowAdd(false)} className="p-2 rounded-lg hover:bg-white/10"><X size={18} className="text-gray-400" /></button>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 overflow-y-auto flex-1 pb-24">
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label htmlFor="newLeadName" className="text-xs text-gray-400">نام</label>
@@ -454,6 +571,28 @@ const MiniLineChart: React.FC = () => {
       <polyline points={points} fill="none" stroke="#a78bfa" strokeWidth="3" strokeLinecap="round" />
       <polygon points={`${points} 280,130 0,130`} fill="url(#grad)" />
     </svg>
+  );
+};
+
+const UpcomingForm: React.FC<{ setShowLead: React.Dispatch<React.SetStateAction<Lead | null>> }> = ({ setShowLead }) => {
+  const [type, setType] = React.useState<'call' | 'whatsapp' | 'sms' | 'meeting'>('whatsapp');
+  const [due, setDue] = React.useState<string>(new Date(Date.now() + 3600000).toISOString().slice(0, 16));
+  const [text, setText] = React.useState<string>('');
+
+  return (
+    <div className="grid grid-cols-1 gap-2 text-[11px]">
+      <div className="grid grid-cols-3 gap-2">
+        <select value={type} onChange={(e) => setType(e.target.value as any)} className="px-2 py-2 rounded-lg bg-gray-800/60 text-gray-200 border border-gray-700/60">
+          <option value="call">تماس</option>
+          <option value="whatsapp">واتساپ</option>
+          <option value="sms">پیامک</option>
+          <option value="meeting">جلسه</option>
+        </select>
+        <input type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} className="px-2 py-2 rounded-lg bg-gray-800/60 text-gray-200 border border-gray-700/60" />
+        <button onClick={() => { if (!text.trim()) return; setShowLead(prev => prev ? { ...prev, upcoming: [...(prev.upcoming || []), { type, due, text }] } : prev); setText(''); }} className="rounded-lg bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white px-3">افزودن</button>
+      </div>
+      <input value={text} onChange={(e) => setText(e.target.value)} placeholder="شرح تعامل آینده (مثلاً: پیگیری قیمت)" className="px-3 py-2 rounded-lg bg-gray-800/60 text-gray-200 border border-gray-700/60" />
+    </div>
   );
 };
 
