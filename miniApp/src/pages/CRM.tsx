@@ -551,25 +551,127 @@ const CopyIcon: React.FC = () => (
 );
 
 const MiniLineChart: React.FC = () => {
-  // Simple SVG line chart (no deps) for weekly trend
-  const data = [3, 5, 4, 7, 6, 9, 8];
-  const max = Math.max(...data) || 1;
-  const points = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * 280;
-    const y = 120 - (v / max) * 100;
-    return `${x},${y}`;
-  }).join(' ');
+  // Dual-series micro chart (no deps) – earlier simpler version
+  const labels = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+  const leads = [12, 18, 15, 22, 20, 28, 25];
+  const sales = [3, 5, 4, 9, 7, 12, 10];
+
+  const width = 280;
+  const height = 130;
+  const margin = { top: 10, right: 10, bottom: 24, left: 28 };
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const maxY = Math.max(...leads, ...sales);
+  const yMax = Math.ceil(maxY * 1.2) || 1;
+
+  const xAt = (i: number) => (i / (labels.length - 1)) * innerW + margin.left;
+  const yAt = (v: number) => margin.top + innerH - (v / yMax) * innerH;
+
+  const toPath = (arr: number[]) => arr
+    .map((v, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i)} ${yAt(v)}`)
+    .join(' ');
+
+  const leadsPath = toPath(leads);
+  const salesPath = toPath(sales);
+
+  const [hoverIdx, setHoverIdx] = React.useState<number | null>(null);
+  const handleMove: React.MouseEventHandler<SVGRectElement> = (e) => {
+    const rect = (e.target as SVGRectElement).getBoundingClientRect();
+    const x = e.clientX - rect.left - margin.left;
+    const step = innerW / (labels.length - 1);
+    const idx = Math.max(0, Math.min(labels.length - 1, Math.round(x / step)));
+    setHoverIdx(idx);
+  };
+  const handleLeave = () => setHoverIdx(null);
+
+  const gridLines = 4;
 
   return (
-    <svg viewBox="0 0 280 130" className="w-full h-32">
-      <defs>
-        <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.7" />
-          <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polyline points={points} fill="none" stroke="#a78bfa" strokeWidth="3" strokeLinecap="round" />
-      <polygon points={`${points} 280,130 0,130`} fill="url(#grad)" />
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-36 select-none">
+
+      {/* Grid */}
+      {[...Array(gridLines + 1)].map((_, i) => {
+        const y = margin.top + (i / gridLines) * innerH;
+        const value = Math.round(yMax * (1 - i / gridLines));
+        return (
+          <g key={i}>
+            <line x1={margin.left} x2={width - margin.right} y1={y} y2={y} stroke="#374151" strokeOpacity={0.5} />
+            <text x={margin.left - 8} y={y + 3} fontSize={9} textAnchor="end" fill="#9CA3AF">{value}</text>
+          </g>
+        );
+      })}
+
+      {/* X axis labels */}
+      {labels.map((lbl, i) => (
+        <text key={lbl} x={xAt(i)} y={height - 6} fontSize={10} textAnchor="middle" fill="#9CA3AF">{lbl}</text>
+      ))}
+
+      {/* Lines only (no area fill) */}
+      <path d={leadsPath} fill="none" stroke="#7c3aed" strokeWidth={2.6} strokeLinecap="round" />
+      <path d={salesPath} fill="none" stroke="#22c55e" strokeWidth={2.6} strokeLinecap="round" />
+
+      {/* Points */}
+      {leads.map((v, i) => (
+        <circle key={`l-${i}`} cx={xAt(i)} cy={yAt(v)} r={hoverIdx === i ? 3.8 : 2.6} fill="#7c3aed" opacity={hoverIdx === i ? 1 : 0.95} />
+      ))}
+      {sales.map((v, i) => (
+        <circle key={`s-${i}`} cx={xAt(i)} cy={yAt(v)} r={hoverIdx === i ? 3.8 : 2.6} fill="#22c55e" opacity={hoverIdx === i ? 1 : 0.95} />
+      ))}
+
+      {/* Hover crosshair and tooltip */}
+      {hoverIdx !== null && (
+        <g>
+          <line x1={xAt(hoverIdx)} x2={xAt(hoverIdx)} y1={margin.top} y2={margin.top + innerH} stroke="#6B7280" strokeDasharray="3 3" />
+          {(() => {
+            const x = xAt(hoverIdx);
+            const valueY = yAt(Math.max(leads[hoverIdx], sales[hoverIdx]));
+            const boxW = 120;
+            const boxH = 46;
+            const minX = margin.left;
+            const maxX = margin.left + innerW - boxW;
+            const minY = margin.top;
+            const maxY = margin.top + innerH - boxH;
+            // try above the point first
+            let boxX = x - boxW / 2;
+            let boxY = valueY - boxH - 8;
+            // if exceeds top, flip below the point
+            if (boxY < minY) {
+              boxY = valueY + 8;
+            }
+            // final clamp to keep fully inside
+            boxX = Math.max(minX, Math.min(maxX, boxX));
+            boxY = Math.max(minY, Math.min(maxY, boxY));
+            return (
+              <g>
+                <rect x={boxX} y={boxY} rx={10} ry={10} width={boxW} height={boxH} fill="#0f172a" stroke="#334155" />
+                {(() => {
+                  const cx = boxX + boxW / 2;
+                  const y1 = boxY + 18;
+                  const y2 = boxY + 34;
+                  return (
+                    <g>
+                      <text direction="rtl" x={cx} y={y1} textAnchor="middle" fontSize={12} fill="#E5E7EB">{`لید: ${leads[hoverIdx]}`}</text>
+                      <text direction="rtl" x={cx} y={y2} textAnchor="middle" fontSize={12} fill="#E5E7EB">{`فروش: ${sales[hoverIdx]}`}</text>
+                    </g>
+                  );
+                })()}
+              </g>
+            );
+          })()}
+        </g>
+      )}
+
+      {/* Interaction overlay */}
+      <rect
+        x={margin.left}
+        y={margin.top}
+        width={innerW}
+        height={innerH}
+        fill="transparent"
+        onMouseMove={handleMove}
+        onMouseLeave={handleLeave}
+      />
     </svg>
   );
 };
