@@ -2,8 +2,8 @@ import React from 'react';
 // import { useNavigate } from 'react-router-dom';
 import { 
   BarChart3, Users, Flame, TrendingUp, Filter, Download, Plus, Search,
-  MessageCircle, Gift, CheckCircle, Clock, Star, ChevronRight,
-  Sparkles, Wand2, Send, X, Phone
+  MessageCircle, Star, ChevronRight,
+  Sparkles, Send, X, Phone
 } from 'lucide-react';
 
 type LeadStatus = 'cold' | 'warm' | 'hot';
@@ -45,7 +45,7 @@ const StatusBadge: React.FC<{ status: LeadStatus }> = ({ status }) => {
 const CRM: React.FC = () => {
   // const navigate = useNavigate();
 
-  const [selectedTab, setSelectedTab] = React.useState<'overview' | 'leads' | 'automation'>('overview');
+  const [selectedTab, setSelectedTab] = React.useState<'overview' | 'leads' | 'tasks'>('overview');
   const [leads, setLeads] = React.useState<Lead[]>(mockLeads);
   const [query, setQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | LeadStatus>('all');
@@ -161,6 +161,68 @@ const CRM: React.FC = () => {
     try { await navigator.clipboard.writeText(phone); } catch {}
   };
 
+  // Tasks & Follow-Ups state
+  type TaskStatus = 'pending' | 'done' | 'overdue';
+  type Task = {
+    id: string;
+    title: string;
+    leadId?: string;
+    due: string; // ISO
+    status: TaskStatus;
+    note?: string;
+    remind?: boolean;
+  };
+
+  const [tasks, setTasks] = React.useState<Task[]>([
+    { id: 'T-1', title: 'تماس اولیه با علی', leadId: 'L-1001', due: new Date(Date.now()+2*3600000).toISOString(), status: 'pending' },
+    { id: 'T-2', title: 'ارسال پیشنهاد به سارا', leadId: 'L-1002', due: new Date(Date.now()+6*3600000).toISOString(), status: 'pending' },
+    { id: 'T-3', title: 'پیگیری پرداخت', leadId: 'L-1003', due: new Date(Date.now()-2*3600000).toISOString(), status: 'overdue' },
+  ]);
+  const [taskFilter, setTaskFilter] = React.useState<'all' | TaskStatus>('all');
+  const [showAddTask, setShowAddTask] = React.useState(false);
+  const [newTask, setNewTask] = React.useState<Pick<Task, 'title' | 'leadId' | 'due' | 'status' | 'note' | 'remind'>>({
+    title: '', leadId: undefined, due: new Date(Date.now()+3600000).toISOString().slice(0,16), status: 'pending', note: '', remind: true
+  });
+  const [editTask, setEditTask] = React.useState<Task | null>(null);
+
+  const sortedTasks = React.useMemo(() => {
+    const filtered = tasks.filter(t => taskFilter==='all' ? true : t.status===taskFilter);
+    return [...filtered].sort((a,b) => new Date(a.due).getTime() - new Date(b.due).getTime());
+  }, [tasks, taskFilter]);
+
+  const addTask = () => {
+    if (!newTask.title.trim()) return;
+    const t: Task = {
+      id: 'T-' + Math.floor(1000 + Math.random()*9000).toString(),
+      title: newTask.title.trim(),
+      leadId: newTask.leadId,
+      due: newTask.due.length>16 ? newTask.due : new Date(newTask.due).toISOString(),
+      status: newTask.status,
+      note: newTask.note?.trim() || undefined,
+      remind: !!newTask.remind
+    };
+    setTasks(prev => [...prev, t]);
+    setShowAddTask(false);
+    setNewTask({ title: '', leadId: undefined, due: new Date(Date.now()+3600000).toISOString().slice(0,16), status: 'pending', note: '', remind: true });
+  };
+
+  const toggleTask = (id: string) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: t.status==='done' ? 'pending' : 'done' } : t));
+  };
+
+  const statusChip = (s: TaskStatus) => s==='pending' ? 'bg-purple-600/20 text-purple-200 border-purple-500/30' : s==='done' ? 'bg-emerald-600/20 text-emerald-200 border-emerald-500/30' : 'bg-rose-600/20 text-rose-200 border-rose-500/30';
+
+  const saveEditedTask = () => {
+    if (!editTask) return;
+    setTasks(prev => prev.map(t => t.id === editTask.id ? editTask : t));
+    setEditTask(null);
+  };
+
+  const deleteTask = (id: string) => {
+    setTasks(prev => prev.filter(t => t.id !== id));
+    setEditTask(null);
+  };
+
   // const saveLeadChanges = () => {
   //   if (!showLead) return;
   //   setLeads(prev => prev.map(l => l.id === showLead.id ? showLead : l));
@@ -187,7 +249,7 @@ const CRM: React.FC = () => {
           <div className="grid grid-cols-3 gap-2 text-xs">
             <button onClick={() => setSelectedTab('overview')} className={`py-2 rounded-xl border ${selectedTab==='overview' ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>داشبورد</button>
             <button onClick={() => setSelectedTab('leads')} className={`py-2 rounded-xl border ${selectedTab==='leads' ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>مدیریت لیدها</button>
-            <button onClick={() => setSelectedTab('automation')} className={`py-2 rounded-xl border ${selectedTab==='automation' ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>اتوماسیون</button>
+            <button onClick={() => setSelectedTab('tasks')} className={`py-2 rounded-xl border ${selectedTab==='tasks' ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>وظایف و پیگیری‌ها</button>
           </div>
         </div>
       </div>
@@ -323,20 +385,196 @@ const CRM: React.FC = () => {
           </>
         )}
 
-        {selectedTab === 'automation' && (
+        {selectedTab === 'tasks' && (
           <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
-            <div className="text-center mb-3">
-              <h3 className="text-white text-sm font-bold">اتوماسیون پیگیری هوشمند</h3>
+            {/* Header */}
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="text-white text-sm font-bold">وظایف و پیگیری‌ها</h3>
+                <div className="text-[11px] text-gray-400 mt-1">مدیریت کارهای روزانه، تماس‌ها و پیگیری‌های فروش</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowAddTask(true)}
+                  className="px-4 py-2.5 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-[#8A00FF] to-[#C738FF] border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition flex items-center gap-2"
+                >
+                  <Plus size={16} /> افزودن
+                </button>
+                <button
+                  onClick={() => setTaskFilter(f => f==='all' ? 'pending' : f==='pending' ? 'done' : f==='done' ? 'overdue' : 'all')}
+                  className="px-3 py-2.5 rounded-2xl text-xs border bg-gray-800/60 border-gray-700/70 text-gray-200 hover:bg-white/10 hover:border-white/20 transition flex items-center gap-1"
+                  title="چرخه بین فیلترها"
+                >
+                  <Filter size={14} /> فیلتر
+                </button>
+                {/* Removed "only me" toggle per request */}
+              </div>
             </div>
-            <div className="space-y-3 text-xs text-gray-300">
-              <div className="flex items-center gap-2"><Clock size={14} /> زمان‌بندی پیام پیگیری بعد از ۲۴ ساعت</div>
-              <div className="flex items-center gap-2"><CheckCircle size={14} className="text-emerald-400" /> علامت‌گذاری خودکار لیدهای پاسخ‌داده‌نشده</div>
-              <div className="flex items-center gap-2"><Gift size={14} className="text-pink-400" /> پیشنهاد هدیه کم‌ریسک برای افزایش تبدیل</div>
-              <div className="flex items-center gap-2"><Wand2 size={14} className="text-purple-400" /> تولید خودکار متن با AI بر اساس وضعیت لید</div>
+
+            {/* Status Tabs */}
+            <div className="grid grid-cols-4 gap-2 text-[11px] mt-4">
+              {(['all','pending','done','overdue'] as const).map(k => (
+                <button key={k} onClick={() => setTaskFilter(k)} className={`py-2 rounded-lg border ${taskFilter===k ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>{k==='all'?'همه':k==='pending'?'در انتظار':k==='done'?'انجام شد':'عقب‌افتاده'}</button>
+              ))}
             </div>
-            <button onClick={() => setSelectedTab('leads')} className="w-full mt-4 px-4 py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl text-sm font-bold border border-white/10">
-              پیکربندی روی لیدها
-            </button>
+
+            {/* Add Task Modal */}
+            {showAddTask && (
+              <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex">
+                <div className="relative backdrop-blur-xl rounded-3xl w-full max-w-2xl mx-auto my-2 h-[calc(100vh-16px)] overflow-hidden border border-gray-700/60 shadow-2xl grid grid-rows-[auto_1fr_auto]" style={{ backgroundColor: '#10091c' }}>
+                  <div className="p-4 border-b border-gray-700/60 flex items-center justify-between">
+                    <h3 className="text-base font-bold text-white">افزودن وظیفه</h3>
+                    <button onClick={() => setShowAddTask(false)} className="p-2 rounded-lg hover:bg-white/10"><X size={18} className="text-gray-400" /></button>
+                  </div>
+                  <div className="p-4 space-y-3 overflow-y-auto">
+                    <div>
+                      <label className="text-xs text-gray-400">عنوان وظیفه</label>
+                      <input value={newTask.title} onChange={(e)=>setNewTask(prev=>({ ...prev, title: e.target.value }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-600/50 text-xs text-white" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">مرتبط با لید</label>
+                      <select value={newTask.leadId || ''} onChange={(e)=>setNewTask(prev=>({ ...prev, leadId: e.target.value || undefined }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-600/50 text-xs text-white">
+                        <option value="">- انتخاب کنید -</option>
+                        {leads.map(l => (<option key={l.id} value={l.id}>{l.name}</option>))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-gray-400">تاریخ و ساعت</label>
+                        <input type="datetime-local" value={newTask.due} onChange={(e)=>setNewTask(prev=>({ ...prev, due: e.target.value }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-600/50 text-xs text-white" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400">وضعیت</label>
+                        <select value={newTask.status} onChange={(e)=>setNewTask(prev=>({ ...prev, status: e.target.value as any }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-600/50 text-xs text-white">
+                          <option value="pending">در انتظار</option>
+                          <option value="done">انجام شد</option>
+                          <option value="overdue">عقب‌افتاده</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">یادداشت</label>
+                      <textarea value={newTask.note} onChange={(e)=>setNewTask(prev=>({ ...prev, note: e.target.value }))} className="w-full h-20 px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-600/50 text-xs text-white" />
+                    </div>
+                    <label className="flex items-center gap-2 text-xs text-gray-300">
+                      <input type="checkbox" checked={!!newTask.remind} onChange={(e)=>setNewTask(prev=>({ ...prev, remind: e.target.checked }))} className="w-4 h-4 rounded border-gray-600 bg-gray-800/60 text-purple-500 focus:ring-purple-500" />
+                      یادآوری قبل از موعد
+                    </label>
+                    {/* Inline action buttons (backup) */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 md:hidden">
+                      <button onClick={addTask} className="px-4 py-3 bg-gradient-to-r from-[#06b6d4] to-[#22d3ee] text-white rounded-xl text-sm font-bold border border-white/10">ذخیره وظیفه</button>
+                      <button onClick={() => setShowAddTask(false)} className="px-4 py-3 bg-gray-800/70 text-gray-200 rounded-xl text-sm font-bold border border-gray-700/60">انصراف</button>
+                    </div>
+                  </div>
+                  <div className="p-4 border-t border-gray-700/60 bg-[#0f0a20]">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={addTask} className="px-4 py-3 bg-gradient-to-r from-[#06b6d4] to-[#22d3ee] text-white rounded-xl text-sm font-bold border border-white/10">ذخیره وظیفه</button>
+                      <button onClick={() => setShowAddTask(false)} className="px-4 py-3 bg-gray-800/70 text-gray-200 rounded-xl text-sm font-bold border border-gray-700/60">انصراف</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Task List */}
+            <div className="mt-3 space-y-2">
+              {sortedTasks.map(t => {
+                const lead = leads.find(l => l.id === t.leadId);
+                return (
+                  <label key={t.id} className="flex items-center gap-3 p-3 rounded-2xl bg-gray-800/40 border border-gray-700/60 hover:scale-[1.01] hover:border-purple-400/40 transition cursor-pointer" onClick={(e)=>{ if((e.target as HTMLElement).tagName.toLowerCase()==='input') return; setEditTask(t); }}>
+                    <input type="checkbox" checked={t.status==='done'} onChange={() => toggleTask(t.id)} className="w-4 h-4 rounded border-gray-600 bg-gray-800/60 text-emerald-500 focus:ring-emerald-500" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="truncate text-white text-[13px] font-bold">{t.title}</div>
+                        <span className={`px-2 py-1 text-[10px] rounded-full border whitespace-nowrap ${statusChip(t.status)}`}>{t.status==='pending'?'در انتظار':t.status==='done'?'انجام شد':'عقب‌افتاده'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-300">
+                        {lead && <span className="truncate">{lead.name}</span>}
+                        <span className="px-2 py-0.5 rounded-md bg-gradient-to-r from-[#8A00FF]/20 to-[#C738FF]/20 text-purple-200 border border-purple-500/30">
+                          {new Date(t.due).toLocaleString('fa-IR')}
+                        </span>
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+              {sortedTasks.length===0 && (
+                <div className="text-center text-xs text-gray-400 py-6">موردی یافت نشد.</div>
+              )}
+            </div>
+
+            {/* Edit Task Modal */}
+            {editTask && (
+              <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex">
+                <div className="relative backdrop-blur-xl rounded-3xl w-full max-w-2xl mx-auto my-2 h-[calc(100vh-16px)] overflow-hidden border border-gray-700/60 shadow-2xl grid grid-rows-[auto_1fr_auto]" style={{ backgroundColor: '#10091c' }}>
+                  <div className="p-4 border-b border-gray-700/60 flex items-center justify-between">
+                    <h3 className="text-base font-bold text-white">ویرایش وظیفه</h3>
+                    <button onClick={() => setEditTask(null)} className="p-2 rounded-lg hover:bg-white/10"><X size={18} className="text-gray-400" /></button>
+                  </div>
+                  <div className="p-4 space-y-3 overflow-y-auto">
+                    <div>
+                      <label className="text-xs text-gray-400">عنوان وظیفه</label>
+                      <input value={editTask.title} onChange={(e)=>setEditTask(prev=> prev ? { ...prev, title: e.target.value } : prev)} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-600/50 text-xs text-white" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">مرتبط با لید</label>
+                      <select value={editTask.leadId || ''} onChange={(e)=>setEditTask(prev=> prev ? { ...prev, leadId: e.target.value || undefined } : prev)} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-600/50 text-xs text-white">
+                        <option value="">- انتخاب کنید -</option>
+                        {leads.map(l => (<option key={l.id} value={l.id}>{l.name}</option>))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-gray-400">تاریخ و ساعت</label>
+                        <input type="datetime-local" value={new Date(editTask.due).toISOString().slice(0,16)} onChange={(e)=>setEditTask(prev=> prev ? { ...prev, due: new Date(e.target.value).toISOString() } : prev)} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-600/50 text-xs text-white" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400">وضعیت</label>
+                        <select value={editTask.status} onChange={(e)=>setEditTask(prev=> prev ? { ...prev, status: e.target.value as any } : prev)} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-600/50 text-xs text-white">
+                          <option value="pending">در انتظار</option>
+                          <option value="done">انجام شد</option>
+                          <option value="overdue">عقب‌افتاده</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">یادداشت</label>
+                      <textarea value={editTask.note || ''} onChange={(e)=>setEditTask(prev=> prev ? { ...prev, note: e.target.value } : prev)} className="w-full h-20 px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-600/50 text-xs text-white" />
+                    </div>
+                    {/* Inline action buttons (backup) */}
+                    <div className="grid grid-cols-3 gap-2 pt-2 md:hidden">
+                      <button onClick={saveEditedTask} className="px-4 py-3 bg-gradient-to-r from-[#06b6d4] to-[#22d3ee] text-white rounded-xl text-sm font-bold border border-white/10 col-span-2">ذخیره تغییرات</button>
+                      <button onClick={()=> deleteTask(editTask.id)} className="px-4 py-3 bg-rose-700/40 text-rose-100 rounded-xl text-sm font-bold border border-rose-600/40">حذف</button>
+                    </div>
+                  </div>
+                  <div className="p-4 border-t border-gray-700/60 bg-[#0f0a20]">
+                    <div className="grid grid-cols-3 gap-2">
+                      <button onClick={saveEditedTask} className="px-4 py-3 bg-gradient-to-r from-[#06b6d4] to-[#22d3ee] text-white rounded-xl text-sm font-bold border border-white/10 col-span-2">ذخیره تغییرات</button>
+                      <button onClick={()=> deleteTask(editTask.id)} className="px-4 py-3 bg-rose-700/40 text-rose-100 rounded-xl text-sm font-bold border border-rose-600/40">حذف</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Summary */}
+            {(() => {
+              const today = tasks.filter(t => new Date(t.due).toDateString() === new Date().toDateString());
+              const done = today.filter(t => t.status==='done').length;
+              const pct = today.length ? Math.round((done / today.length) * 100) : 0;
+              return (
+                <div className="mt-4 p-3 rounded-2xl bg-gray-800/40 border border-gray-700/60">
+                  <div className="flex items-center justify-between text-[12px] text-gray-200">
+                    <span>وظایف امروز: {today.length}</span>
+                    <span>انجام شده: {done}</span>
+                    <span>{pct}%</span>
+                  </div>
+                  <div className="h-2 mt-2 rounded-full bg-gray-700/50 overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF]" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="text-[11px] text-gray-300 mt-2 text-center">{done>=today.length? 'عالی! همه وظایف امروز انجام شدند 💫' : `فقط ${Math.max(today.length-done,0)} کار دیگه تا اتمام وظایف امروز 💪`}</div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
