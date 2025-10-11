@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   BarChart3, Users, Flame, TrendingUp, Filter, Download, Plus, Search,
   MessageCircle, Star, ChevronRight,
@@ -44,9 +44,17 @@ const StatusBadge: React.FC<{ status: LeadStatus }> = ({ status }) => {
 
 const CRM: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [selectedTab, setSelectedTab] = React.useState<'overview' | 'leads' | 'tasks'>('overview');
   const [leads, setLeads] = React.useState<Lead[]>(mockLeads);
+
+  // Check for navigation state to set the correct tab
+  React.useEffect(() => {
+    if (location.state?.tab) {
+      setSelectedTab(location.state.tab);
+    }
+  }, [location.state]);
   const [query, setQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | LeadStatus>('all');
   const [showLead, setShowLead] = React.useState<Lead | null>(null);
@@ -160,6 +168,8 @@ const CRM: React.FC = () => {
     { id: 'T-1', title: 'تماس اولیه با علی', leadId: 'L-1001', due: new Date(Date.now()+2*3600000).toISOString(), status: 'pending' },
     { id: 'T-2', title: 'ارسال پیشنهاد به سارا', leadId: 'L-1002', due: new Date(Date.now()+6*3600000).toISOString(), status: 'pending' },
     { id: 'T-3', title: 'پیگیری پرداخت', leadId: 'L-1003', due: new Date(Date.now()-2*3600000).toISOString(), status: 'overdue' },
+    { id: 'T-4', title: 'ارسال قرارداد', leadId: 'L-1001', due: new Date(Date.now()-3600000).toISOString(), status: 'done' },
+    { id: 'T-5', title: 'تماس پیگیری', leadId: 'L-1002', due: new Date(Date.now()-7200000).toISOString(), status: 'done' },
   ]);
   const [taskFilter, setTaskFilter] = React.useState<'all' | TaskStatus>('all');
   const [showAddTask, setShowAddTask] = React.useState(false);
@@ -169,7 +179,10 @@ const CRM: React.FC = () => {
   const [editTask, setEditTask] = React.useState<Task | null>(null);
 
   const sortedTasks = React.useMemo(() => {
-    const filtered = tasks.filter(t => taskFilter==='all' ? true : t.status===taskFilter);
+    const filtered = tasks.filter(t => {
+      if (taskFilter === 'all') return true;
+      return t.status === taskFilter;
+    });
     return [...filtered].sort((a,b) => new Date(a.due).getTime() - new Date(b.due).getTime());
   }, [tasks, taskFilter]);
 
@@ -240,72 +253,194 @@ const CRM: React.FC = () => {
       <div className="pt-40 max-w-md mx-auto p-4 space-y-6">
         {selectedTab === 'overview' && (
           <>
-            {/* Summary Cards */}
+
+            {/* Key Metrics */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp size={18} className="text-emerald-400" />
-                  <span className="text-white text-xs">فروش این ماه</span>
+              {/* فروش این ماه */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-600/5 to-transparent border border-emerald-500/20 p-4">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full -translate-y-10 translate-x-10"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-emerald-300 text-xs font-medium">فروش این ماه</div>
+                    <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+                      <TrendingUp size={14} className="text-white" />
                 </div>
-                <div className="text-white font-black text-xl">{formatCurrency(summary.salesThisMonth)}</div>
               </div>
-              <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <Users size={18} className="text-blue-400" />
-                  <span className="text-white text-xs">تعداد لیدها</span>
+                  <div className="text-white font-bold text-lg mb-2">{formatCurrency(summary.salesThisMonth)}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-emerald-500/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: '75%' }}></div>
                 </div>
-                <div className="text-white font-black text-xl">{summary.leadsCount}</div>
-                <div className="text-xs text-gray-300">+{summary.newToday} امروز</div>
+                    <span className="text-emerald-400 text-xs font-medium">+12%</span>
+                  </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <Flame size={18} className="text-orange-400" />
-                  <span className="text-white text-xs">لیدهای آماده خرید</span>
+              {/* کل لیدها */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-blue-600/5 to-transparent border border-blue-500/20 p-4">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full -translate-y-10 translate-x-10"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-blue-300 text-xs font-medium">کل لیدها</div>
+                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <Users size={14} className="text-white" />
                 </div>
-                <div className="text-white font-black text-xl">{summary.hotLeads}</div>
-                <div className="text-xs text-gray-300">{Math.round((summary.hotLeads / Math.max(summary.leadsCount,1)) * 100)}٪ از کل</div>
               </div>
-              <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 size={18} className="text-purple-400" />
-                  <span className="text-white text-xs">میانگین ارزش لید</span>
+                  <div className="text-white font-bold text-lg mb-2">{summary.leadsCount}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-blue-500/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full transition-all duration-1000" style={{ width: '60%' }}></div>
                 </div>
-                <div className="text-white font-black text-xl">{formatCurrency(summary.avgValue)}</div>
+                    <span className="text-blue-400 text-xs font-medium">+8%</span>
+                  </div>
               </div>
             </div>
 
-            {/* Pipeline Summary */}
-            <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
-              <div className="text-center mb-3">
-                <h3 className="text-white text-sm font-bold">پایپلاین خلاصه</h3>
+              {/* لیدهای داغ */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500/10 via-orange-600/5 to-transparent border border-orange-500/20 p-4">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-orange-500/10 rounded-full -translate-y-10 translate-x-10"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-orange-300 text-xs font-medium">لیدهای داغ</div>
+                    <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                      <Flame size={14} className="text-white" />
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="text-center">
-                  <div className="text-xs text-gray-300 mb-1">سرد</div>
+                  </div>
+                  <div className="text-white font-bold text-lg mb-2">{summary.hotLeads}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-orange-500/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-orange-500 rounded-full transition-all duration-1000" style={{ width: '45%' }}></div>
+                    </div>
+                    <span className="text-orange-400 text-xs font-medium">{Math.round((summary.hotLeads / Math.max(summary.leadsCount,1)) * 100)}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* میانگین ارزش */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500/10 via-purple-600/5 to-transparent border border-purple-500/20 p-4">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/10 rounded-full -translate-y-10 translate-x-10"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-purple-300 text-xs font-medium">میانگین ارزش</div>
+                    <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                      <BarChart3 size={14} className="text-white" />
+                    </div>
+                  </div>
+                  <div className="text-white font-bold text-lg mb-2">{formatCurrency(summary.avgValue)}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-purple-500/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-purple-500 rounded-full transition-all duration-1000" style={{ width: '80%' }}></div>
+                    </div>
+                    <span className="text-purple-400 text-xs font-medium">+15%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pipeline Overview */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-white">پایپلاین فروش</h3>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF]"></div>
+                  <span className="text-xs text-gray-300">وضعیت فعلی</span>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Cold Leads */}
+                <div className="flex items-center justify-between p-4 rounded-2xl border border-gray-700/60 backdrop-blur-xl" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-gray-600/30 flex items-center justify-center">
+                      <span className="text-gray-300 text-sm">❄️</span>
+                    </div>
+                    <div>
+                      <div className="text-white font-medium text-sm">لیدهای سرد</div>
+                      <div className="text-xs text-gray-400">نیاز به گرم کردن</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
                   <div className="text-white font-bold text-lg">{pipeline.cold}</div>
+                    <div className="text-xs text-gray-400">{Math.round((pipeline.cold / Math.max(summary.leadsCount,1)) * 100)}%</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-xs text-yellow-300 mb-1">نیمه‌گرم</div>
+                </div>
+
+                {/* Warm Leads */}
+                <div className="flex items-center justify-between p-4 rounded-2xl border border-gray-700/60 backdrop-blur-xl" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-yellow-600/30 flex items-center justify-center">
+                      <span className="text-yellow-300 text-sm">🔥</span>
+                    </div>
+                    <div>
+                      <div className="text-white font-medium text-sm">لیدهای نیمه‌گرم</div>
+                      <div className="text-xs text-gray-400">در حال پیگیری</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
                   <div className="text-white font-bold text-lg">{pipeline.warm}</div>
+                    <div className="text-xs text-gray-400">{Math.round((pipeline.warm / Math.max(summary.leadsCount,1)) * 100)}%</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-xs text-emerald-300 mb-1">آماده خرید</div>
+                </div>
+
+                {/* Hot Leads */}
+                <div className="flex items-center justify-between p-4 rounded-2xl border border-gray-700/60 backdrop-blur-xl" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-600/30 flex items-center justify-center">
+                      <span className="text-emerald-300 text-sm">🚀</span>
+                    </div>
+                    <div>
+                      <div className="text-white font-medium text-sm">آماده خرید</div>
+                      <div className="text-xs text-gray-400">اولویت بالا</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
                   <div className="text-white font-bold text-lg">{pipeline.hot}</div>
+                    <div className="text-xs text-gray-400">{Math.round((pipeline.hot / Math.max(summary.leadsCount,1)) * 100)}%</div>
                 </div>
               </div>
-              <button onClick={() => setSelectedTab('leads')} className="w-full mt-4 px-4 py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl text-sm font-bold border border-white/10 flex items-center justify-center gap-1">
-                مشاهده کامل <ChevronRight size={16} />
-              </button>
+              </div>
             </div>
 
-            {/* Chart Below Pipeline */}
-            <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <BarChart3 size={18} className="text-violet-400" />
-                <span className="text-white text-sm font-bold">روند هفتگی لید/فروش</span>
+            {/* Quick Actions */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+              <h3 className="text-lg font-bold text-white mb-4">عملیات سریع</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <button 
+                  onClick={() => setSelectedTab('leads')}
+                  className="p-4 rounded-2xl border border-gray-700/60 hover:scale-[1.02] active:scale-[0.99] transition-all backdrop-blur-xl shadow-lg" 
+                  style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
+                >
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                      <Users size={18} className="text-white" />
+                    </div>
+                    <span className="text-white text-sm font-medium">مدیریت لیدها</span>
+                  </div>
+              </button>
+                
+                <button 
+                  onClick={() => setSelectedTab('tasks')}
+                  className="p-4 rounded-2xl border border-gray-700/60 hover:scale-[1.02] active:scale-[0.99] transition-all backdrop-blur-xl shadow-lg" 
+                  style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
+                >
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                      <MessageCircle size={18} className="text-white" />
+                    </div>
+                    <span className="text-white text-sm font-medium">وظایف و پیگیری</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Sales Chart */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-white">روند فروش هفتگی</h3>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF]"></div>
+                  <span className="text-xs text-gray-300">آخرین ۷ روز</span>
+                </div>
               </div>
               <MiniLineChart />
             </div>
@@ -314,50 +449,50 @@ const CRM: React.FC = () => {
 
         {selectedTab === 'leads' && (
           <>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 flex items-center gap-2 bg-gray-800/60 border border-gray-700/60 rounded-xl px-3 py-2">
-                <Search size={16} className="text-gray-400" />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="جستجو (نام، ایمیل، شماره)" className="flex-1 bg-transparent text-sm text-white placeholder-gray-400 outline-none" />
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex-1 flex items-center gap-3 border border-gray-700/60 rounded-2xl px-4 py-3 backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
+                <Search size={18} className="text-gray-300" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="جستجو (نام، ایمیل، شماره)" className="flex-1 bg-transparent text-base text-white placeholder-gray-400 outline-none" />
               </div>
-              <button onClick={() => setStatusFilter(s => s==='all' ? 'hot' : s==='hot' ? 'warm' : s==='warm' ? 'cold' : 'all')} className="px-3 py-2 rounded-xl border border-gray-700/60 bg-gray-800/60 text-xs text-gray-200 flex items-center gap-1">
-                <Filter size={14} />
+              <button onClick={() => setStatusFilter(s => s==='all' ? 'hot' : s==='hot' ? 'warm' : s==='warm' ? 'cold' : 'all')} className="px-4 py-3 rounded-2xl border border-gray-700/60 text-sm text-gray-200 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.99] transition backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
+                <Filter size={16} />
                 {statusFilter==='all' ? 'همه' : statusFilter==='hot' ? 'آماده' : statusFilter==='warm' ? 'نیمه‌گرم' : 'سرد'}
               </button>
             </div>
 
-            <div className="flex items-center justify-between mt-2">
-              <button onClick={() => setShowAdd(true)} className="px-3 py-2 rounded-xl border border-gray-700/60 bg-gray-800/60 text-xs text-gray-200 flex items-center gap-1">
-                <Plus size={14} /> افزودن لید جدید
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <button onClick={() => setShowAdd(true)} className="px-6 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-[#8A00FF] to-[#C738FF] border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition flex items-center gap-2">
+                <Plus size={18} /> افزودن لید جدید
               </button>
-              <button onClick={exportSimple} className="px-3 py-2 rounded-xl border border-gray-700/60 bg-gray-800/60 text-xs text-gray-200 flex items-center gap-1">
-                <Download size={14} /> خروجی اکسل
+              <button onClick={exportSimple} className="px-4 py-3 rounded-2xl text-sm border text-gray-200 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.99] transition backdrop-blur-xl border-gray-700/60 shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
+                <Download size={16} /> خروجی اکسل
               </button>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-4">
               {filteredLeads.map(lead => (
-                <div key={lead.id} className="backdrop-blur-xl rounded-2xl p-4 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-white text-sm font-bold truncate max-w-[10rem]">{lead.name}</span>
+                <div key={lead.id} className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 shadow-lg relative overflow-hidden hover:scale-[1.01] transition-all" style={{ backgroundColor: '#10091c' }}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-white text-lg font-bold truncate">{lead.name}</span>
                         <StatusBadge status={lead.status} />
                       </div>
-                      <div className="text-xs text-gray-400 mt-1 truncate">{lead.phone || lead.email}</div>
-                      <div className="text-[10px] text-gray-500 mt-1">آخرین تعامل: {lead.lastInteraction}</div>
+                      <div className="text-sm text-gray-300 mb-1 truncate">{lead.phone || lead.email}</div>
+                      <div className="text-xs text-gray-400">آخرین تعامل: {lead.lastInteraction}</div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-white text-sm font-bold">{formatCurrency(lead.estimatedValue)}</div>
-                      <div className="flex gap-0.5 justify-end mt-1">
+                    <div className="text-right ml-4">
+                      <div className="text-white text-lg font-bold mb-2">{formatCurrency(lead.estimatedValue)}</div>
+                      <div className="flex gap-1 justify-end">
                         {Array.from({ length: 5 }).map((_, i) => (
-                          <Star key={i} size={12} className={i < lead.score ? 'text-yellow-400' : 'text-gray-600'} />
+                          <Star key={i} size={16} className={i < lead.score ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'} />
                         ))}
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-3">
-                    <button onClick={() => navigate('/lead-profile', { state: { lead } })} className="flex-1 px-3 py-2 rounded-lg text-xs bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white border border-white/10">پروفایل</button>
-                    <button onClick={() => changeStatus(lead.id)} className="px-3 py-2 rounded-lg text-xs bg-gray-800/60 text-gray-200 border border-gray-700/60">تغییر وضعیت</button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => navigate('/lead-profile', { state: { lead } })} className="flex-1 px-4 py-3 rounded-2xl text-sm font-medium bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white border border-white/10 hover:scale-[1.02] active:scale-[0.99] transition-all shadow-lg">پروفایل</button>
+                    <button onClick={() => changeStatus(lead.id)} className="px-4 py-3 rounded-2xl text-sm border text-gray-200 hover:scale-[1.02] active:scale-[0.99] transition backdrop-blur-xl border-gray-700/60 shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>تغییر وضعیت</button>
                   </div>
                 </div>
               ))}
@@ -368,52 +503,62 @@ const CRM: React.FC = () => {
         {selectedTab === 'tasks' && (
           <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
             {/* Header */}
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h3 className="text-white text-sm font-bold">وظایف و پیگیری‌ها</h3>
-                <div className="text-[11px] text-gray-400 mt-1">مدیریت کارهای روزانه، تماس‌ها و پیگیری‌های فروش</div>
-              </div>
-              <div className="flex items-center gap-2">
+            <div className="mb-8">
+              <div className="text-center mb-6">
+                <h3 className="text-white text-xl font-bold mb-2">وظایف و پیگیری‌ها</h3>
+                <div className="text-sm text-gray-300 max-w-xs mx-auto leading-relaxed">مدیریت کارهای روزانه، تماس‌ها و پیگیری‌های فروش</div>
+            </div>
+              <div className="flex items-center justify-center gap-4">
                 <button
                   onClick={() => setShowAddTask(true)}
-                  className="px-4 py-2.5 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-[#8A00FF] to-[#C738FF] border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition flex items-center gap-2"
+                  className="px-6 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-[#8A00FF] to-[#C738FF] border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition flex items-center gap-2"
                 >
-                  <Plus size={16} /> افزودن
+                  <Plus size={18} /> افزودن
                 </button>
                 <button
                   onClick={() => setTaskFilter(f => f==='all' ? 'pending' : f==='pending' ? 'done' : f==='done' ? 'overdue' : 'all')}
-                  className="px-3 py-2.5 rounded-2xl text-xs border bg-gray-800/60 border-gray-700/70 text-gray-200 hover:bg-white/10 hover:border-white/20 transition flex items-center gap-1"
+                  className="px-4 py-3 rounded-2xl text-sm border text-gray-200 hover:scale-[1.02] active:scale-[0.99] transition backdrop-blur-xl border-gray-700/60 shadow-lg flex items-center gap-2" 
+                  style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
                   title="چرخه بین فیلترها"
                 >
-                  <Filter size={14} /> فیلتر
+                  <Filter size={16} /> فیلتر
                 </button>
-                {/* Removed "only me" toggle per request */}
-              </div>
+            </div>
             </div>
 
             {/* Status Tabs */}
-            <div className="grid grid-cols-4 gap-2 text-[11px] mt-4">
+            <div className="grid grid-cols-4 gap-3 mb-6">
               {(['all','pending','done','overdue'] as const).map(k => (
-                <button key={k} onClick={() => setTaskFilter(k)} className={`py-2 rounded-lg border ${taskFilter===k ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>{k==='all'?'همه':k==='pending'?'در انتظار':k==='done'?'انجام شد':'عقب‌افتاده'}</button>
+                <button 
+                  key={k} 
+                  onClick={() => setTaskFilter(k)} 
+                  className={`py-3 rounded-2xl text-sm font-medium border transition-all ${
+                    taskFilter===k 
+                      ? 'bg-white/10 border-white/20 text-white shadow-lg' 
+                      : 'bg-gray-800/60 border-gray-700/60 text-gray-300 hover:scale-[1.02] active:scale-[0.99]'
+                  }`}
+                >
+                  {k==='all'?'همه':k==='pending'?'در انتظار':k==='done'?'انجام شد':'عقب‌افتاده'}
+            </button>
               ))}
             </div>
 
 
             {/* Task List */}
-            <div className="mt-3 space-y-2">
+            <div className="space-y-4">
               {sortedTasks.map(t => {
                 const lead = leads.find(l => l.id === t.leadId);
                 return (
-                  <label key={t.id} className="flex items-center gap-3 p-3 rounded-2xl bg-gray-800/40 border border-gray-700/60 hover:scale-[1.01] hover:border-purple-400/40 transition cursor-pointer" onClick={(e)=>{ if((e.target as HTMLElement).tagName.toLowerCase()==='input') return; setEditTask(t); }}>
-                    <input type="checkbox" checked={t.status==='done'} onChange={() => toggleTask(t.id)} className="w-4 h-4 rounded border-gray-600 bg-gray-800/60 text-emerald-500 focus:ring-emerald-500" />
+                  <label key={t.id} className="flex items-center gap-4 p-4 rounded-2xl border border-gray-700/60 hover:scale-[1.01] hover:border-purple-400/40 transition cursor-pointer backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }} onClick={(e)=>{ if((e.target as HTMLElement).tagName.toLowerCase()==='input') return; setEditTask(t); }}>
+                    <input type="checkbox" checked={t.status==='done'} onChange={() => toggleTask(t.id)} className="w-5 h-5 rounded border-gray-600 bg-gray-800/60 text-emerald-500 focus:ring-emerald-500" />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="truncate text-white text-[13px] font-bold">{t.title}</div>
-                        <span className={`px-2 py-1 text-[10px] rounded-full border whitespace-nowrap ${statusChip(t.status)}`}>{t.status==='pending'?'در انتظار':t.status==='done'?'انجام شد':'عقب‌افتاده'}</span>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="truncate text-white text-base font-bold">{t.title}</div>
+                        <span className={`px-3 py-1 text-xs rounded-full border whitespace-nowrap backdrop-blur-xl shadow-lg ${statusChip(t.status)}`}>{t.status==='pending'?'در انتظار':t.status==='done'?'انجام شد':'عقب‌افتاده'}</span>
                       </div>
-                      <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-300">
-                        {lead && <span className="truncate">{lead.name}</span>}
-                        <span className="px-2 py-0.5 rounded-md bg-gradient-to-r from-[#8A00FF]/20 to-[#C738FF]/20 text-purple-200 border border-purple-500/30">
+                      <div className="flex items-center gap-3 mt-2 text-sm text-gray-300">
+                        {lead && <span className="truncate font-medium">{lead.name}</span>}
+                        <span className="px-2 py-1 rounded-lg bg-gradient-to-r from-[#8A00FF]/20 to-[#C738FF]/20 text-purple-200 border border-purple-500/30 backdrop-blur-xl text-xs">
                           {new Date(t.due).toLocaleString('fa-IR')}
                         </span>
                       </div>
@@ -422,9 +567,15 @@ const CRM: React.FC = () => {
                 );
               })}
               {sortedTasks.length===0 && (
-                <div className="text-center text-xs text-gray-400 py-6">موردی یافت نشد.</div>
-              )}
-            </div>
+                <div className="text-center text-gray-400 py-12">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center mx-auto mb-4">
+                    <Clock size={24} className="text-gray-500" />
+                  </div>
+                  <p className="text-base">موردی یافت نشد</p>
+                  <p className="text-sm text-gray-500 mt-1">برای شروع، یک وظیفه جدید اضافه کنید</p>
+          </div>
+        )}
+      </div>
 
             {/* Summary */}
             {(() => {
@@ -436,37 +587,37 @@ const CRM: React.FC = () => {
               const pct = allTasks.length ? Math.round((done / allTasks.length) * 100) : 0;
               
               return (
-                <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-gray-800/60 to-gray-900/60 border border-gray-700/50 backdrop-blur-sm">
+                <div className="mt-6 p-6 rounded-2xl border border-gray-700/60 backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
                   {/* Header */}
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-bold text-white">خلاصه وظایف</h3>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF]"></div>
-                      <span className="text-xs text-gray-300">{pct}% تکمیل</span>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-bold text-white">خلاصه وظایف</h3>
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF] shadow-lg"></div>
+                      <span className="text-sm text-gray-300 font-medium">{pct}% تکمیل</span>
                     </div>
                   </div>
                   
                   {/* Stats Grid */}
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="text-center p-2 rounded-xl bg-gray-800/40 border border-gray-700/40">
-                      <div className="text-lg font-bold text-white">{allTasks.length}</div>
-                      <div className="text-[10px] text-gray-400">کل وظایف</div>
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="text-center p-4 rounded-2xl border border-gray-700/60 backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
+                      <div className="text-2xl font-bold text-white">{allTasks.length}</div>
+                      <div className="text-sm text-gray-300 mt-1">کل وظایف</div>
                     </div>
-                    <div className="text-center p-2 rounded-xl bg-emerald-600/20 border border-emerald-500/30">
-                      <div className="text-lg font-bold text-emerald-300">{done}</div>
-                      <div className="text-[10px] text-emerald-400">انجام شده</div>
+                    <div className="text-center p-4 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 backdrop-blur-xl shadow-lg">
+                      <div className="text-2xl font-bold text-emerald-300">{done}</div>
+                      <div className="text-sm text-emerald-400 mt-1">انجام شده</div>
                     </div>
-                    <div className="text-center p-2 rounded-xl bg-amber-600/20 border border-amber-500/30">
-                      <div className="text-lg font-bold text-amber-300">{pending + overdue}</div>
-                      <div className="text-[10px] text-amber-400">باقی‌مانده</div>
+                    <div className="text-center p-4 rounded-2xl bg-amber-600/20 border border-amber-500/30 backdrop-blur-xl shadow-lg">
+                      <div className="text-2xl font-bold text-amber-300">{pending + overdue}</div>
+                      <div className="text-sm text-amber-400 mt-1">باقی‌مانده</div>
                     </div>
                   </div>
                   
                   {/* Progress Bar */}
-                  <div className="mb-3">
-                    <div className="h-2 rounded-full bg-gray-700/50 overflow-hidden">
+                  <div className="mb-6">
+                    <div className="h-3 rounded-full bg-gray-700/50 overflow-hidden backdrop-blur-xl">
                       <div 
-                        className="h-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF] transition-all duration-500 ease-out" 
+                        className="h-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF] transition-all duration-500 ease-out shadow-lg" 
                         style={{ width: `${pct}%` }} 
                       />
                     </div>
@@ -475,11 +626,11 @@ const CRM: React.FC = () => {
                   {/* Status Message */}
                   <div className="text-center">
                     {done >= allTasks.length && allTasks.length > 0 ? (
-                      <div className="text-xs text-emerald-300 font-medium">🎉 همه وظایف انجام شدند!</div>
+                      <div className="text-sm text-emerald-300 font-medium">🎉 همه وظایف انجام شدند!</div>
                     ) : allTasks.length === 0 ? (
-                      <div className="text-xs text-gray-400">هیچ وظیفه‌ای تعریف نشده</div>
+                      <div className="text-sm text-gray-400">هیچ وظیفه‌ای تعریف نشده</div>
                     ) : (
-                      <div className="text-xs text-gray-300">
+                      <div className="text-sm text-gray-300">
                         {pending + overdue > 0 ? `${pending + overdue} وظیفه باقی‌مانده` : 'همه وظایف انجام شدند'}
                       </div>
                     )}
@@ -847,29 +998,67 @@ const CRM: React.FC = () => {
       )}
 
       {showAdd && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex">
-          <div className="backdrop-blur-xl rounded-3xl w-full max-w-md mx-auto my-3 h-[calc(100vh-24px)] overflow-hidden border border-gray-700/60 shadow-2xl flex flex-col" style={{ backgroundColor: '#10091c' }}>
-            <div className="p-4 border-b border-gray-700/60 flex items-center justify-between">
-              <h3 className="text-base font-bold text-white">افزودن لید جدید</h3>
-              <button onClick={() => setShowAdd(false)} className="p-2 rounded-lg hover:bg-white/10"><X size={18} className="text-gray-400" /></button>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-start justify-center pt-8">
+          <div className="w-full max-w-2xl backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+            {/* Header */}
+            <div className="p-6 border-b border-gray-700/60 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">افزودن لید جدید</h3>
+                <p className="text-sm text-gray-300">اطلاعات لید جدید را وارد کنید</p>
             </div>
-            <div className="p-4 space-y-4 overflow-y-auto flex-1 pb-24">
-              <div className="grid grid-cols-2 gap-2">
+              <button 
+                onClick={() => setShowAdd(false)} 
+                className="p-3 rounded-2xl text-gray-200 hover:scale-[1.05] active:scale-[0.95] transition-all backdrop-blur-xl border border-gray-700/60 shadow-lg" 
+                style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="newLeadName" className="text-xs text-gray-400">نام</label>
-                  <input type="text" id="newLeadName" value={newLead.name} onChange={(e) => setNewLead(prev => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-300/40 dark:border-gray-600/50 text-xs text-gray-900 dark:text-white" />
+                  <label htmlFor="newLeadName" className="block text-sm font-medium text-gray-300 mb-2">نام و نام خانوادگی</label>
+                  <input 
+                    type="text" 
+                    id="newLeadName" 
+                    value={newLead.name} 
+                    onChange={(e) => setNewLead(prev => ({ ...prev, name: e.target.value }))} 
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600/50 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent backdrop-blur-xl" 
+                    placeholder="نام کامل لید را وارد کنید"
+                  />
                 </div>
                 <div>
-                  <label htmlFor="newLeadPhone" className="text-xs text-gray-400">شماره تماس</label>
-                  <input type="text" id="newLeadPhone" value={newLead.phone} onChange={(e) => setNewLead(prev => ({ ...prev, phone: e.target.value }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-300/40 dark:border-gray-600/50 text-xs text-gray-900 dark:text-white" />
+                  <label htmlFor="newLeadPhone" className="block text-sm font-medium text-gray-300 mb-2">شماره تماس</label>
+                  <input 
+                    type="text" 
+                    id="newLeadPhone" 
+                    value={newLead.phone} 
+                    onChange={(e) => setNewLead(prev => ({ ...prev, phone: e.target.value }))} 
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600/50 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent backdrop-blur-xl" 
+                    placeholder="شماره تماس"
+                  />
                 </div>
                 <div>
-                  <label htmlFor="newLeadEmail" className="text-xs text-gray-400">ایمیل</label>
-                  <input type="email" id="newLeadEmail" value={newLead.email} onChange={(e) => setNewLead(prev => ({ ...prev, email: e.target.value }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-300/40 dark:border-gray-600/50 text-xs text-gray-900 dark:text-white" />
+                  <label htmlFor="newLeadEmail" className="block text-sm font-medium text-gray-300 mb-2">ایمیل</label>
+                  <input 
+                    type="email" 
+                    id="newLeadEmail" 
+                    value={newLead.email} 
+                    onChange={(e) => setNewLead(prev => ({ ...prev, email: e.target.value }))} 
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600/50 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent backdrop-blur-xl" 
+                    placeholder="آدرس ایمیل"
+                  />
                 </div>
                 <div>
-                  <label htmlFor="newLeadCountry" className="text-xs text-gray-400">کشور</label>
-                  <select id="newLeadCountry" value={newLead.country} onChange={(e) => setNewLead(prev => ({ ...prev, country: e.target.value }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-300/40 dark:border-gray-600/50 text-xs text-gray-900 dark:text-white">
+                  <label htmlFor="newLeadCountry" className="block text-sm font-medium text-gray-300 mb-2">کشور</label>
+                  <select 
+                    id="newLeadCountry" 
+                    value={newLead.country} 
+                    onChange={(e) => setNewLead(prev => ({ ...prev, country: e.target.value }))} 
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600/50 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent backdrop-blur-xl"
+                  >
                     <option value="IR">ایران</option>
                     <option value="US">آمریکا</option>
                     <option value="UK">بریتانیا</option>
@@ -877,21 +1066,47 @@ const CRM: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="newLeadEstimatedValue" className="text-xs text-gray-400">ارزش پیش‌بینی شده</label>
-                  <input type="number" id="newLeadEstimatedValue" value={newLead.estimatedValue} onChange={(e) => setNewLead(prev => ({ ...prev, estimatedValue: e.target.value }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-300/40 dark:border-gray-600/50 text-xs text-gray-900 dark:text-white" />
+                  <label htmlFor="newLeadEstimatedValue" className="block text-sm font-medium text-gray-300 mb-2">ارزش تخمینی (تومان)</label>
+                  <input 
+                    type="number" 
+                    id="newLeadEstimatedValue" 
+                    value={newLead.estimatedValue} 
+                    onChange={(e) => setNewLead(prev => ({ ...prev, estimatedValue: e.target.value }))} 
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600/50 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent backdrop-blur-xl" 
+                    placeholder="ارزش تخمینی"
+                  />
                 </div>
                 <div>
-                  <label htmlFor="newLeadStatus" className="text-xs text-gray-400">وضعیت لید</label>
-                  <select id="newLeadStatus" value={newLead.status} onChange={(e) => setNewLead(prev => ({ ...prev, status: e.target.value as LeadStatus }))} className="w-full px-3 py-2 bg-white/80 dark:bg-gray-700/70 rounded-xl border border-gray-300/40 dark:border-gray-600/50 text-xs text-gray-900 dark:text-white">
+                  <label htmlFor="newLeadStatus" className="block text-sm font-medium text-gray-300 mb-2">وضعیت لید</label>
+                  <select 
+                    id="newLeadStatus" 
+                    value={newLead.status} 
+                    onChange={(e) => setNewLead(prev => ({ ...prev, status: e.target.value as LeadStatus }))} 
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600/50 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent backdrop-blur-xl"
+                  >
                     <option value="cold">سرد</option>
                     <option value="warm">نیمه‌گرم</option>
                     <option value="hot">آماده خرید</option>
                   </select>
                 </div>
               </div>
-              <button onClick={addLead} className="w-full px-4 py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl text-sm font-bold border border-white/10">
+              
+              {/* Action Buttons */}
+              <div className="flex items-center gap-4 pt-4">
+                <button 
+                  onClick={() => setShowAdd(false)} 
+                  className="flex-1 px-6 py-3 rounded-2xl text-sm font-medium text-gray-200 border border-gray-700/60 hover:scale-[1.02] active:scale-[0.99] transition backdrop-blur-xl shadow-lg" 
+                  style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
+                >
+                  انصراف
+                </button>
+                <button 
+                  onClick={addLead} 
+                  className="flex-1 px-6 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-[#8A00FF] to-[#C738FF] border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition-all"
+                >
                 افزودن لید
               </button>
+              </div>
             </div>
           </div>
         </div>

@@ -63,18 +63,24 @@ const CoursePlayer: React.FC = () => {
   return (
     <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
-        <div className="flex items-center p-4 max-w-md mx-auto">
-          <div className="flex-1 text-right">
-            <h1 className="text-base font-extrabold text-white tracking-tight">{course.title}</h1>
-          </div>
-          <button onClick={() => navigate(-1)} className="ml-2 p-2 rounded-xl hover:bg-white/10">
-            <ArrowLeft size={18} className="text-white" />
+      <div className="sticky top-0 z-40 backdrop-blur-xl border-b border-gray-700/50 shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.8)' }}>
+        <div className="flex items-center justify-between p-4 max-w-md mx-auto">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="p-3 rounded-2xl text-gray-200 hover:scale-[1.02] active:scale-[0.99] transition-all backdrop-blur-xl border border-gray-700/60 shadow-lg" 
+            style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
+          >
+            <ArrowLeft size={18} />
           </button>
+          <div className="flex-1 text-center">
+            <h1 className="text-lg font-bold text-white">{course.title}</h1>
+            <p className="text-sm text-gray-300">{course.description}</p>
+          </div>
+          <div className="w-12"></div>
         </div>
       </div>
 
-      <div className="pt-4 max-w-md mx-auto p-4 space-y-4">
+      <div className="pt-6 max-w-md mx-auto p-4 space-y-6">
         {/* Video Player Card */}
         <div className="backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-lg overflow-hidden" style={{ backgroundColor: '#10091c' }}>
           <div className="relative">
@@ -82,7 +88,7 @@ const CoursePlayer: React.FC = () => {
               key={current?.id}
               controls
               playsInline
-              className="w-full h-48 bg-black"
+              className="w-full h-52 bg-black"
               controlsList="nodownload"
               disablePictureInPicture
               // @ts-ignore - non-standard but supported in Chromium
@@ -91,62 +97,113 @@ const CoursePlayer: React.FC = () => {
             >
               <source src={current?.src} type="video/mp4" />
             </video>
-            <div className="absolute bottom-2 left-2 bg-black/40 text-white text-[10px] px-2 py-1 rounded-full border border-white/20">
+            <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full border border-white/20">
               {current?.title}
             </div>
-          </div>
-          <div className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="text-white text-sm font-bold truncate">{current?.title}</div>
-              <span className="text-[11px] text-gray-400 flex items-center gap-1"><Clock size={12} />{current?.duration}</span>
+            <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full border border-white/20 flex items-center gap-1">
+              <Clock size={12} />
+              {current?.duration}
             </div>
           </div>
         </div>
 
+        {/* Progress Section */}
+        <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 shadow-lg" style={{ backgroundColor: '#10091c' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-white">پیشرفت دوره</h3>
+            <div className="text-sm text-gray-300">
+              {Object.values(completed).filter(Boolean).length} از {course.sessions.length}
+            </div>
+          </div>
+          <div className="w-full h-3 bg-gray-700/50 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF] transition-all duration-1000 rounded-full"
+              style={{ width: `${(Object.values(completed).filter(Boolean).length / course.sessions.length) * 100}%` }}
+            ></div>
+          </div>
+          <div className="text-center mt-3">
+            <span className="text-sm text-gray-300">
+              {Math.round((Object.values(completed).filter(Boolean).length / course.sessions.length) * 100)}% تکمیل شده
+            </span>
+          </div>
+        </div>
+
         {/* Sessions List */}
-        <div className="backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-lg p-4 space-y-2" style={{ backgroundColor: '#10091c' }}>
-          <div className="text-white text-sm font-bold mb-2">جلسات دوره</div>
-          {course.sessions.map((s, idx) => {
-            const isActive = current?.id === s.id;
-            const isDone = completed[s.id];
-            return (
-              <button
-                key={s.id}
-                onClick={() => setCurrent(s)}
-                className={`w-full text-right px-3 py-3 rounded-2xl border transition-all duration-300 flex items-center justify-between ${
-                  isActive ? 'bg-white/10 border-white/20' : 'bg-gray-800/40 border-gray-700/60 hover:bg-gray-800/60'
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isActive ? 'bg-gradient-to-br from-[#2c189a] to-[#5a189a]' : 'bg-gray-700/60'}`}>
-                    <span className="text-white text-xs font-bold">{idx + 1}</span>
-                  </div>
-                  <div className="min-w-0">
-                    <div className={`text-sm font-bold truncate ${isActive ? 'text-white' : 'text-gray-200'}`}>{s.title}</div>
-                    <div className="text-[10px] text-gray-400">{s.duration}</div>
-                  </div>
-                </div>
-                <label
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCompleted(prev => ({ ...prev, [s.id]: !prev[s.id] }));
-                  }}
-                  className={`cursor-pointer w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${
-                    isDone
-                      ? 'bg-gradient-to-br from-emerald-500 to-emerald-700 border-emerald-400 ring-1 ring-emerald-300/60 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
-                      : 'bg-transparent border-gray-600 hover:border-emerald-400/60'
+        <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 shadow-lg" style={{ backgroundColor: '#10091c' }}>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-white">جلسات دوره</h3>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF]"></div>
+              <span className="text-xs text-gray-300">{course.sessions.length} جلسه</span>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            {course.sessions.map((s, idx) => {
+              const isActive = current?.id === s.id;
+              const isDone = completed[s.id];
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setCurrent(s)}
+                  className={`w-full p-4 rounded-2xl border transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] ${
+                    isActive 
+                      ? 'bg-gradient-to-r from-[#8A00FF]/20 to-[#C738FF]/20 border-[#8A00FF]/50 shadow-[0_0_20px_rgba(139,0,255,0.2)]' 
+                      : 'bg-gray-800/40 border-gray-700/60 hover:border-gray-600/60'
                   }`}
                 >
-                  {isDone && (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
-                  )}
-                </label>
-              </button>
-            );
-          })}
-
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                      isActive 
+                        ? 'bg-gradient-to-br from-[#8A00FF] to-[#C738FF] shadow-lg' 
+                        : isDone 
+                          ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' 
+                          : 'bg-gray-700/60'
+                    }`}>
+                      {isDone ? (
+                        <CheckCircle2 size={20} className="text-white" />
+                      ) : (
+                        <span className="text-white font-bold text-sm">{idx + 1}</span>
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 text-right">
+                      <div className={`text-base font-bold mb-1 ${isActive ? 'text-white' : 'text-gray-200'}`}>
+                        {s.title}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <Clock size={14} />
+                        <span>{s.duration}</span>
+                        {isActive && (
+                          <span className="px-2 py-1 bg-[#8A00FF]/20 text-[#8A00FF] rounded-full text-xs font-medium">
+                            در حال پخش
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <label
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCompleted(prev => ({ ...prev, [s.id]: !prev[s.id] }));
+                      }}
+                      className={`cursor-pointer w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 ${
+                        isDone
+                          ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                          : 'bg-transparent border-gray-600 hover:border-emerald-400/60'
+                      }`}
+                    >
+                      {isDone && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      )}
+                    </label>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
