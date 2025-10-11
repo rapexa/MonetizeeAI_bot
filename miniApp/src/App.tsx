@@ -19,6 +19,7 @@ import SellKitAI from './pages/SellKitAI';
 import ClientFinderAI from './pages/ClientFinderAI';
 import SalesPathAI from './pages/SalesPathAI';
 import CRM from './pages/CRM';
+import LeadProfile from './pages/LeadProfile';
 import ReadyPrompts from './pages/ReadyPrompts';
 import CoursePlayer from './pages/CoursePlayer';
 import { AppProvider } from './context/AppContext';
@@ -68,6 +69,7 @@ function App() {
                 <Route path="/client-finder-ai" element={<ClientFinderAI />} />
                 <Route path="/sales-path-ai" element={<SalesPathAI />} />
                 <Route path="/crm" element={<CRM />} />
+                <Route path="/lead-profile" element={<LeadProfile />} />
                 {/* SalesPanel removed */}
                 <Route path="/ready-prompts" element={<ReadyPrompts />} />
                 <Route path="/courses/:courseId" element={<CoursePlayer />} />
