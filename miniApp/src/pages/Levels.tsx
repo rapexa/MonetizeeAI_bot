@@ -2591,6 +2591,32 @@ const Levels: React.FC = () => {
     }
   }, [location.state, navigate, location.pathname, selectedStage, viewMode, levels]);
 
+  // Handle navigation back from Chatbot
+  useEffect(() => {
+    if (location.state?.selectedLevel) {
+      const targetLevel = levels.find(level => level.id === location.state.selectedLevel);
+      if (targetLevel && (!selectedLevel || selectedLevel.id !== targetLevel.id)) {
+        setSelectedLevel(targetLevel);
+        
+        // Set the specific stage if provided, otherwise set the first stage
+        if (location.state?.selectedStage) {
+          const targetStage = targetLevel.stages.find(stage => stage.id === location.state.selectedStage);
+          if (targetStage) {
+            setSelectedStage(targetStage);
+          } else if (targetLevel.stages.length > 0) {
+            setSelectedStage(targetLevel.stages[0]);
+          }
+        } else if (targetLevel.stages.length > 0) {
+          setSelectedStage(targetLevel.stages[0]);
+        }
+        
+        setViewMode('stage-detail');
+        // Clear the state to prevent re-processing
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    }
+  }, [location.state?.selectedLevel, location.state?.selectedStage, selectedLevel, levels, navigate, location.pathname]);
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -3061,7 +3087,7 @@ const Levels: React.FC = () => {
                   </div>
                           <div className="flex items-center gap-2">
               <button
-                  onClick={() => navigate('/chatbot')}
+                  onClick={() => navigate('/chatbot', { state: { fromPage: 'levels', fromLevel: selectedLevel?.id, fromStage: selectedStage?.id } })}
                               className="p-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl transition-colors duration-200 group"
                   title="چت کامل"
               >

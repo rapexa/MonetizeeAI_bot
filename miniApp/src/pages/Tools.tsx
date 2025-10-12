@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, Wrench, Rocket, Package, Search, Map, ExternalLink, Sparkles, Brain, Target, Users, BarChart3, Globe, Zap, Shield, Clock,
   Palette, FileText, Image, Layers, PenTool, Eye, TrendingUp, Activity, BarChart, PieChart, LineChart, Mail, MessageSquare, ShoppingCart, CreditCard, DollarSign,
-  Settings, Calendar, FolderOpen, Cloud, Link, Workflow, Cpu, Database, Server, Network, Zap as ZapIcon, GitBranch, GitCommit, GitPullRequest, Trophy
+  Settings, Calendar, FolderOpen, Cloud, Link, Workflow, Cpu, Database, Server, Network, Zap as ZapIcon, GitBranch, GitCommit, GitPullRequest, Trophy, X
 } from 'lucide-react';
 
 const Tools: React.FC = () => {
@@ -456,10 +456,23 @@ const Tools: React.FC = () => {
 
   const categories = ['همه', 'طراحی', 'مدیریت', 'تحلیل', 'بازاریابی', 'پرداخت', 'اتوماسیون'];
   const [selectedCategory, setSelectedCategory] = useState('همه');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredExternalTools = selectedCategory === 'همه' 
-    ? externalTools 
-    : externalTools.filter(tool => tool.category === selectedCategory);
+  const filteredExternalTools = externalTools.filter(tool => {
+    const matchesCategory = selectedCategory === 'همه' || tool.category === selectedCategory;
+    const matchesSearch = searchQuery === '' || 
+      tool.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tool.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tool.category.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  // Function to highlight search terms
+  const highlightText = (text: string, query: string) => {
+    if (!query) return text;
+    const regex = new RegExp(`(${query})`, 'gi');
+    return text.replace(regex, '<mark class="bg-yellow-400/30 text-yellow-200 px-1 rounded">$1</mark>');
+  };
 
   return (
     <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
@@ -592,56 +605,134 @@ const Tools: React.FC = () => {
             <p className="text-gray-400">ابزارهای مفید برای تکمیل کسب‌وکار شما</p>
           </div>
 
-          {/* Category Filter */}
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
-                  selectedCategory === category
-                    ? 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white'
-                    : 'bg-gray-800/60 text-gray-300 hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 hover:text-white'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
+          {/* Search Bar */}
+          <div className="max-w-md mx-auto mb-8">
+            <div className="relative">
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <Search size={20} className="text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="جستجو در ابزارها..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-4 pr-10 py-3 bg-gray-800/60 backdrop-blur-md border border-gray-700/60 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 text-base"
+                style={{ fontSize: '16px' }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 hover:text-white transition-colors duration-200"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredExternalTools.map((tool) => {
-              const Icon = tool.icon;
+          {/* Search Results Count */}
+          {searchQuery && (
+            <div className="text-center mb-4">
+              <p className="text-sm text-gray-400">
+                {filteredExternalTools.length > 0 
+                  ? `${filteredExternalTools.length} ابزار یافت شد` 
+                  : 'نتیجه‌ای یافت نشد'
+                }
+              </p>
+            </div>
+          )}
+
+          {/* Category Filter */}
+          <div className="flex flex-wrap justify-center gap-2 mb-8">
+            {categories.map((category) => {
+              const categoryTools = externalTools.filter(tool => tool.category === category);
+              const hasResults = searchQuery === '' || categoryTools.some(tool => 
+                tool.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                tool.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                tool.category.toLowerCase().includes(searchQuery.toLowerCase())
+              );
+              
               return (
-                <div
-                  key={tool.id}
-                  onClick={() => window.open(tool.url, '_blank')}
-                  className="group cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-300 backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden"
-                  style={{ backgroundColor: '#10091c' }}
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  disabled={!hasResults && searchQuery !== ''}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                    selectedCategory === category
+                      ? 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white'
+                      : hasResults || searchQuery === ''
+                        ? 'bg-gray-800/60 text-gray-300 hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 hover:text-white'
+                        : 'bg-gray-800/30 text-gray-500 cursor-not-allowed opacity-50'
+                  }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-16 h-16 bg-gradient-to-br ${tool.color} rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 flex-shrink-0`}>
-                      <Icon size={28} className="text-white" />
-                    </div>
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-white font-bold text-base">{tool.title}</h3>
-                        <ExternalLink size={14} className="text-gray-400 group-hover:text-orange-400 transition-colors duration-300" />
-                      </div>
-                      
-                      <p className="text-sm text-gray-400 mb-3 line-clamp-2 leading-relaxed">{tool.description}</p>
-                      
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-[#8B5CF6] font-medium bg-[#7222F2]/20 px-2 py-1 rounded-full">{tool.category}</span>
-                        <span className="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">خارجی</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  {category}
+                </button>
               );
             })}
           </div>
+
+          {filteredExternalTools.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredExternalTools.map((tool) => {
+                const Icon = tool.icon;
+                return (
+                  <div
+                    key={tool.id}
+                    onClick={() => window.open(tool.url, '_blank')}
+                    className="group cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-300 backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden"
+                    style={{ backgroundColor: '#10091c' }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-16 h-16 bg-gradient-to-br ${tool.color} rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 flex-shrink-0`}>
+                        <Icon size={28} className="text-white" />
+                      </div>
+                      
+                      <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 
+                          className="text-white font-bold text-base"
+                          dangerouslySetInnerHTML={{ __html: highlightText(tool.title, searchQuery) }}
+                        />
+                        <ExternalLink size={14} className="text-gray-400 group-hover:text-orange-400 transition-colors duration-300" />
+                      </div>
+                      
+                      <p 
+                        className="text-sm text-gray-400 mb-3 line-clamp-2 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: highlightText(tool.description, searchQuery) }}
+                      />
+                      
+                      <div className="flex items-center gap-2">
+                        <span 
+                          className="text-xs text-[#8B5CF6] font-medium bg-[#7222F2]/20 px-2 py-1 rounded-full"
+                          dangerouslySetInnerHTML={{ __html: highlightText(tool.category, searchQuery) }}
+                        />
+                        <span className="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">خارجی</span>
+                      </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-gray-800/60 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search size={32} className="text-gray-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">نتیجه‌ای یافت نشد</h3>
+              <p className="text-gray-400 mb-4">
+                {searchQuery ? `برای "${searchQuery}" ابزاری پیدا نشد` : 'ابزاری در این دسته‌بندی وجود ندارد'}
+              </p>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="px-4 py-2 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl hover:shadow-lg transition-all duration-300"
+                >
+                  پاک کردن جستجو
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

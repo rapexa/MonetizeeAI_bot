@@ -765,7 +765,7 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => navigate('/chatbot')}
+                  onClick={() => navigate('/chatbot', { state: { fromPage: 'dashboard' } })}
                   className="p-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl transition-colors duration-200 group"
                   title="چت کامل"
                 >

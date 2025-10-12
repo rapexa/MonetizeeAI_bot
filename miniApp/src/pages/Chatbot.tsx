@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Send, Wifi, WifiOff, Brain, X } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowRight, Send, Wifi, WifiOff, Brain, X, Sparkles } from 'lucide-react';
 import apiService from '../services/api';
 import { useAutoScroll } from '../hooks/useAutoScroll';
 import AIMessage from '../components/AIMessage';
@@ -17,6 +17,7 @@ interface Message {
 const Chatbot: React.FC = () => {
   const { isOnline, userData, isAPIConnected } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -266,7 +267,17 @@ const Chatbot: React.FC = () => {
 
             {/* Close Button */}
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                // Check if we came from levels page with specific level
+                const state = location.state as { fromLevel?: number; fromStage?: number; fromPage?: string } | null;
+                if (state?.fromPage === 'levels' && state?.fromLevel) {
+                  // Navigate back to levels page with the specific level and stage
+                  navigate('/levels', { state: { selectedLevel: state.fromLevel, selectedStage: state.fromStage } });
+                } else {
+                  // Default behavior - go back
+                  navigate(-1);
+                }
+              }}
               className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl transition-all duration-300 hover:scale-110 border border-white/30"
               title="بازگشت"
             >
@@ -277,18 +288,18 @@ const Chatbot: React.FC = () => {
 
       {/* Messages */}
       <div className="flex-1 p-4 overflow-y-auto pb-32 bg-gradient-to-b from-transparent to-gray-900/20 pt-24">
-        <div className="space-y-4 max-w-md mx-auto">
+        <div className="space-y-3 max-w-md mx-auto">
           {messages.map((message, index) => (
             <div
               key={message.id}
-              className={`flex ${message.sender === 'user' ? 'justify-start' : 'justify-end'}`}
+              className={`flex ${message.sender === 'user' ? 'justify-start' : 'justify-end'} animate-fade-in`}
             >
               {message.sender === 'user' ? (
-                <div className="max-w-xs px-4 py-3 rounded-2xl shadow-lg backdrop-blur-sm bg-gray-700/80 dark:bg-gray-700/80 text-white dark:text-white border border-gray-600/30 transition-colors duration-300">
-                  <p className="text-sm">{message.text}</p>
-                  <p className="text-xs mt-1 text-gray-400 dark:text-gray-400">
-                    {message.timestamp}
-                  </p>
+                <div className="flex flex-col max-w-[80%]">
+                  <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-lg rounded-br-md px-3 py-2">
+                    <p className="text-white text-xs leading-relaxed">{message.text}</p>
+                  </div>
+                  <span className="text-xs text-gray-400 mt-1 px-1 text-right">{message.timestamp}</span>
                 </div>
               ) : (
                 <AIMessage
@@ -325,50 +336,34 @@ const Chatbot: React.FC = () => {
       </div>
 
       {/* Input Area */}
-      <div className="fixed bottom-20 left-0 right-0 bg-gray-800/95 dark:bg-gray-800/95 backdrop-blur-xl border-t border-gray-700/50 dark:border-gray-700/50 p-4 transition-colors duration-300 shadow-2xl">
-        <div className="max-w-md mx-auto">
-          {/* FAQ Chips */}
-          <div className="mb-3 overflow-x-auto">
-            <div className="flex gap-2 pb-2">
-              {faqItems.map((item, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleFAQClick(item)}
-                  className="whitespace-nowrap bg-gray-700/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-300 dark:text-gray-300 px-3 py-1 rounded-full text-sm hover:bg-gray-600/80 dark:hover:bg-gray-600/80 hover:scale-105 transition-all duration-300 shadow-lg border border-gray-600/30"
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Input */}
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={isOnline ? "پیام خود را بنویسید..." : "اتصال اینترنت قطع است"}
-              disabled={!isOnline}
-              className={`flex-1 px-4 py-3 border rounded-2xl text-sm transition-all duration-300 backdrop-blur-sm shadow-inner ${
-                isOnline 
-                  ? 'border-gray-600/50 dark:border-gray-600/50 placeholder-gray-400 dark:placeholder-gray-400 focus:border-[#5A189A]/50 dark:focus:border-[#5A189A]/40 focus:outline-none focus:ring-2 focus:ring-[#5A189A]/20 bg-gray-700/80 dark:bg-gray-700/80 text-white dark:text-white' 
-                  : 'border-gray-600/50 dark:border-gray-600/50 placeholder-gray-500 dark:placeholder-gray-500 bg-gray-700/60 dark:bg-gray-700/60 text-gray-400 dark:text-gray-400'
-              }`}
-            />
-            <button
-              onClick={handleSend}
-              disabled={!inputValue.trim() || !isOnline}
-              className={`px-4 py-3 rounded-2xl transition-all duration-300 shadow-lg hover:scale-105 ${
-                inputValue.trim() && isOnline
-                  ? 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white hover:shadow-xl'
-                  : 'bg-gradient-to-r from-[#2c189a]/60 to-[#5a189a]/60 text-white/60 border border-[#5A189A]/20 dark:border-[#5A189A]/40'
-              }`}
-            >
-              <Send size={18} />
-            </button>
-          </div>
+      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-4 backdrop-blur-xl rounded-3xl border border-gray-700/60 p-7 shadow-lg transition-all duration-500 pb-safe-area-inset-bottom z-40" style={{ backgroundColor: 'rgb(16, 9, 28)' }}>
+        <div className="flex gap-3 items-center">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={isOnline ? "پیام خود را بنویسید..." : "اتصال اینترنت قطع است"}
+            disabled={!isOnline}
+            className="flex-1 bg-gray-800/40 border border-gray-700/40 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20 transition-all duration-300 text-base"
+            style={{ fontSize: '16px' }}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!inputValue.trim() || !isOnline}
+            className="p-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all duration-300 hover:scale-105 shadow-lg flex-shrink-0 min-w-[48px]"
+          >
+            <Send size={18} className="text-white drop-shadow-lg font-bold" />
+          </button>
+        </div>
+        <div className="mt-3 flex justify-center">
+          <button
+            onClick={() => navigate('/ready-prompts')}
+            className="w-full py-2 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-200/50 dark:border-purple-700/50 hover:border-purple-300/70 dark:hover:border-purple-600/70 rounded-lg hover:bg-purple-50/30 dark:hover:bg-purple-900/20 transition-all duration-300 flex items-center justify-center gap-1"
+          >
+            <Sparkles size={12} />
+            <span>پرامپت‌های آماده</span>
+          </button>
         </div>
       </div>
 
