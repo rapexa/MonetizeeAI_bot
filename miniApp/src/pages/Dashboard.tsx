@@ -28,7 +28,8 @@ import {
   Package,
   Search,
   Map,
-  Maximize2
+  Maximize2,
+  BarChart3
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -44,15 +45,27 @@ const Dashboard: React.FC = () => {
   const [chatMessage, setChatMessage] = React.useState<string>('');
   const [isEditingPrompt, setIsEditingPrompt] = React.useState<boolean>(false);
   const [chatMessages, setChatMessages] = React.useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string, isNew?: boolean}>>([]);
+  const [showScrollButton, setShowScrollButton] = React.useState(false);
 
   // Remove auto-scroll for Dashboard - it's not needed here
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const chatContainerRef = React.useRef<HTMLDivElement>(null);
+  
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ 
         behavior: 'smooth',
         block: 'nearest'
       });
+    }
+  };
+
+  // Check if user is at bottom of chat
+  const checkScrollPosition = () => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isAtBottom = scrollHeight - scrollTop <= clientHeight + 10; // 10px tolerance
+      setShowScrollButton(!isAtBottom && chatMessages.length > 0);
     }
   };
 
@@ -372,7 +385,10 @@ const Dashboard: React.FC = () => {
           };
           setChatMessages(prev => [...prev, aiResponse]);
           // Auto scroll after AI response
-          setTimeout(scrollToBottom, 100);
+          setTimeout(() => {
+            scrollToBottom();
+            checkScrollPosition();
+          }, 100);
         } else {
           throw new Error(response.error || 'Failed to get response');
         }
@@ -387,7 +403,10 @@ const Dashboard: React.FC = () => {
         };
         setChatMessages(prev => [...prev, aiResponse]);
         // Auto scroll after AI response
-        setTimeout(scrollToBottom, 100);
+        setTimeout(() => {
+          scrollToBottom();
+          checkScrollPosition();
+        }, 100);
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -410,7 +429,10 @@ const Dashboard: React.FC = () => {
       };
       setChatMessages(prev => [...prev, errorResponse]);
       // Auto scroll after error response
-      setTimeout(scrollToBottom, 100);
+      setTimeout(() => {
+        scrollToBottom();
+        checkScrollPosition();
+      }, 100);
     }
   };
 
@@ -698,6 +720,21 @@ const Dashboard: React.FC = () => {
               <span className="text-purple-500 drop-shadow-lg">سریع</span>
             </div>
           </div>
+
+          {/* Sales Management System - Full Width */}
+          <div 
+            className="col-span-2 text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden"
+            style={{ backgroundColor: '#10091c' }}
+            onClick={() => navigate('/crm')}
+          >
+            <div className="flex items-center justify-center mb-1">
+              <div className="text-xs text-white font-medium transition-colors duration-300">سیستم مدیریت فروش</div>
+            </div>
+            <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
+              <BarChart3 size={16} className="text-green-500 drop-shadow-lg" />
+              <span className="text-green-500 drop-shadow-lg">مدیریت فروش</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -744,13 +781,31 @@ const Dashboard: React.FC = () => {
 
 
             {/* Chat Interface */}
-            <div className={`backdrop-blur-md rounded-xl p-4 border border-gray-700/60 shadow-lg transition-all duration-500 ${isEditingPrompt ? 'ring-2 ring-purple-400/50' : ''}`} style={{ backgroundColor: '#10091c' }}>
+            <div className={`backdrop-blur-md rounded-xl p-4 border border-gray-700/60 shadow-lg transition-all duration-500 relative ${isEditingPrompt ? 'ring-2 ring-purple-400/50' : ''}`} style={{ backgroundColor: '#10091c' }}>
+              {/* Scroll to Bottom Button - Fixed Position */}
+              {showScrollButton && (
+                <button
+                  onClick={scrollToBottom}
+                  className="absolute top-2 left-2 w-10 h-10 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg border border-white/20 z-10"
+                  title="اسکرول به پایین"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                    <path d="M12 5v14"/>
+                    <path d="M19 12l-7 7-7-7"/>
+                  </svg>
+                </button>
+              )}
+              
               {/* Chat Messages */}
-              <div className={`overflow-y-auto space-y-3 mb-4 transition-all duration-500 ${isEditingPrompt ? 'h-20' : 'h-40'}`}>
+              <div 
+                ref={chatContainerRef}
+                className={`overflow-y-auto space-y-3 mb-4 transition-all duration-500 ${isEditingPrompt ? 'h-20' : 'h-56'}`}
+                onScroll={checkScrollPosition}
+              >
                 {chatMessages.map((message, index) => (
                   <div
                     key={message.id}
-                    className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+                    className={`flex ${message.sender === 'user' ? 'justify-start' : 'justify-end'} animate-fade-in`}
                   >
                     {message.sender === 'user' ? (
                       <div className="flex flex-col max-w-[80%]">

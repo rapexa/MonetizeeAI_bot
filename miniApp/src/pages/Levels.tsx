@@ -2952,80 +2952,75 @@ const Levels: React.FC = () => {
 
 
                       {/* Full AI Coach Chat Interface */}
-                      <div className="bg-gray-900/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-gray-700/60 shadow-lg w-full h-[500px] flex flex-col">
+                      <div className="backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg transition-all duration-300 w-full h-[600px] flex flex-col" style={{ backgroundColor: '#10091c' }}>
                         {/* Header */}
-            <div className="flex items-center justify-between gap-2 md:gap-3 mb-4 md:mb-6">
-              <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-              <div className="relative">
-                <div className="p-2 md:p-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-xl shadow-lg">
-                  <Brain size={20} className="text-white md:w-6 md:h-6" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <span className="truncate">MonetizeAI Coach</span>
-                  <Sparkles size={16} className="text-[#8B5CF6] flex-shrink-0 md:w-[18px] md:h-[18px]" />
-                    </h3>
-                <p className="text-xs md:text-sm text-[#8B5CF6] dark:text-[#8B5CF6] flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
-                  <span className="truncate">۲۴/۷ آنلاین - آماده کمک</span>
-                </p>
-                  </div>
-                <div className="text-xs bg-[#8B5CF6]/20 dark:bg-[#8B5CF6]/20 text-[#8B5CF6] dark:text-[#8B5CF6] px-2 md:px-3 py-1 rounded-full border border-[#8B5CF6]/30 dark:border-[#8B5CF6]/30 flex-shrink-0">
-                  AI
-                </div>
-              </div>
-              
-              <div className="flex-shrink-0">
-              <button
-                  onClick={() => navigate('/chatbot')}
-                  className="p-2 hover:bg-gray-100/20 dark:hover:bg-gray-700/20 rounded-lg transition-colors duration-200 cursor-pointer"
-                  title="چت کامل"
-                  type="button"
-              >
-                <Maximize2 size={18} className="text-gray-600 dark:text-gray-300" />
-              </button>
+                        <div className="flex items-center justify-between mb-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-[#2c189a] to-[#5a189a] rounded-2xl flex items-center justify-center shadow-lg animate-pulse relative">
+                              <div className="absolute inset-0 bg-gradient-to-br from-[#2c189a]/30 via-[#5a189a]/30 to-[#7222F2]/30 rounded-2xl blur-md animate-pulse"></div>
+                              <Brain size={20} className="text-white relative z-10" />
+                            </div>
+                            <div>
+                              <h4 className="text-lg font-bold text-white transition-colors duration-300">
+                                AI کوچ
+                              </h4>
+                              <p className="text-sm text-gray-300 transition-colors duration-300">آماده کمک به شما</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => navigate('/chatbot')}
+                              className="p-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl transition-colors duration-200 group"
+                              title="چت کامل"
+                            >
+                              <Maximize2 size={16} className="text-gray-400 group-hover:text-white transition-colors" />
+                            </button>
+                            <div className="flex items-center gap-1 text-green-600 dark:text-green-400 bg-green-100/70 dark:bg-green-900/40 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium border border-green-200/50 dark:border-green-700/50">
+                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                              آنلاین
+                            </div>
+                          </div>
                         </div>
-            </div>
 
                         {/* Chat Messages */}
-            <div className="bg-gray-800/80 dark:bg-gray-800/80 rounded-xl p-2 md:p-3 mb-4 flex-1 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800 border border-gray-700/60 shadow-inner">
+                        <div className="backdrop-blur-md rounded-xl p-4 border border-gray-700/60 shadow-lg mb-4 flex-1 overflow-y-auto space-y-3" style={{ backgroundColor: '#10091c' }}>
                           {/* Chat Messages */}
                           {chatMessages.map((message, index) => (
-                            <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-start' : 'justify-end'} animate-fade-in`}>
                               {message.sender === 'user' ? (
-                                <div className="max-w-xs lg:max-w-md">
-                                  <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white p-4 rounded-2xl">
-                                    <p className="text-sm leading-relaxed">{message.text}</p>
+                                <div className="flex flex-col max-w-[80%]">
+                                  <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-lg rounded-br-md px-3 py-2">
+                                    <p className="text-white text-xs leading-relaxed">{message.text}</p>
                                   </div>
-                                  <p className="text-xs text-gray-400 dark:text-gray-400 opacity-70 mt-2 text-right px-2">{message.timestamp}</p>
+                                  <span className="text-xs text-gray-400 mt-1 px-1 text-right">{message.timestamp}</span>
                                 </div>
                               ) : (
-                                <AIMessage
-                                  message={message.text}
-                                  timestamp={message.timestamp}
-                                  isLatest={index === chatMessages.length - 1}
-                                  isNew={message.isNew || false}
-                                  onTypingComplete={scrollToBottom}
-                                />
+                                <div className="w-full">
+                                  <AIMessage
+                                    message={message.text}
+                                    timestamp={message.timestamp}
+                                    isLatest={index === chatMessages.length - 1}
+                                    isNew={message.isNew || false}
+                                    onTypingComplete={scrollToBottom}
+                                  />
+                                </div>
                               )}
                             </div>
                           ))}
                           <div ref={messagesEndRef} />
-            </div>
+                        </div>
 
                         {/* Input Area */}
                         <div className="space-y-4">
                             {isEditingPrompt ? (
                               <>
                               <div className="flex items-center justify-between">
-                                <h6 className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                                <h6 className="text-sm font-medium text-[#7222F2]">
                                   ویرایش پرامپت - جاهای خالی رو پر کنید:
                                 </h6>
                                 <button
                                   onClick={handleCancelPromptEdit}
-                                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                  className="text-xs text-gray-400 hover:text-gray-200"
                                 >
                                   انصراف ✕
                                 </button>
@@ -3035,7 +3030,7 @@ const Levels: React.FC = () => {
                                   value={chatMessage}
                                   onChange={(e) => setChatMessage(e.target.value)}
                                   placeholder="پرامپت خود را ویرایش کنید..."
-                                className="w-full h-32 px-4 py-3 bg-white/80 dark:bg-gray-700/70 backdrop-blur-md rounded-xl border border-purple-300/50 dark:border-purple-600/50 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 resize-none leading-relaxed"
+                                className="w-full h-32 px-4 py-3 bg-gray-800/40 backdrop-blur-md rounded-xl border border-purple-300/50 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 resize-none leading-relaxed"
                                 />
                               
                               <div className="flex gap-2">
@@ -3049,7 +3044,7 @@ const Levels: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={handleCancelPromptEdit}
-                                  className="px-4 py-3 bg-gray-200/70 dark:bg-gray-600/70 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-300/70 dark:hover:bg-gray-500/70 transition-all duration-300 flex-shrink-0"
+                                  className="px-4 py-3 bg-gray-700/70 text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-600/70 transition-all duration-300 flex-shrink-0"
                                 >
                                   انصراف
                                 </button>
@@ -3063,7 +3058,7 @@ const Levels: React.FC = () => {
                                   placeholder="سوال یا نظرتان را بنویسید..."
                                   value={chatMessage}
                                   onChange={(e) => setChatMessage(e.target.value)}
-                                  className="flex-1 min-w-0 px-3 py-2 bg-white/70 dark:bg-gray-700/60 backdrop-blur-md rounded-xl border border-purple-200/30 dark:border-purple-700/30 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                  className="flex-1 min-w-0 px-3 py-2 bg-gray-800/40 backdrop-blur-md rounded-xl border border-gray-700/40 text-base text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20 transition-all duration-300"
                                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                                   style={{ fontSize: '16px', height: '40px' }}
                                 />
@@ -3083,12 +3078,12 @@ const Levels: React.FC = () => {
                         <div className="flex justify-center mt-4">
                           <button
                             onClick={() => navigate(`/ready-prompts?from=levels&stage=${selectedStage.id}`)}
-                            className="w-full py-2 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-200/50 dark:border-purple-700/50 hover:border-purple-300/70 dark:hover:border-purple-600/70 rounded-lg hover:bg-purple-50/30 dark:hover:bg-purple-900/20 transition-all duration-300 flex items-center justify-center gap-1 truncate"
+                            className="w-full py-2 text-xs text-purple-600 hover:text-purple-700 border border-purple-200/50 hover:border-purple-300/70 rounded-lg hover:bg-purple-50/30 transition-all duration-300 flex items-center justify-center gap-1 truncate backdrop-blur-xl"
                           >
                             <Sparkles size={12} className="flex-shrink-0" />
                             <span className="truncate">پرامپت این مرحله</span>
-              </button>
-                  </div>
+                          </button>
+                        </div>
                 </div>
 
 

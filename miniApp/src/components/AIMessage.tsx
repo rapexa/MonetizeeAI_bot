@@ -39,8 +39,9 @@ const AIMessage: React.FC<AIMessageProps> = ({
   return (
     <div className="mb-6">
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#8A00FF] to-[#C738FF] flex items-center justify-center flex-shrink-0">
-          <Brain size={14} className="text-white" />
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2c189a] via-[#5a189a] to-[#7222F2] flex items-center justify-center flex-shrink-0 relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#2c189a]/30 via-[#5a189a]/30 to-[#7222F2]/30 rounded-full blur-md animate-pulse"></div>
+          <Brain size={14} className="text-white relative z-10" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-white text-base leading-relaxed whitespace-pre-wrap">
