@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Send, Brain, Sparkles, MessageSquare, Target, TrendingUp, Lightbulb, Copy, ChevronRight, Zap, BookOpen, Users, DollarSign, Rocket, BarChart3 } from 'lucide-react';
+import { ArrowRight, Send, Brain, Sparkles, MessageSquare, Target, TrendingUp, Lightbulb, Copy, ChevronRight, Zap, BookOpen, Users, DollarSign, Rocket, BarChart3, Settings, X, Trash2, Plus, History, Crown, Zap as ZapIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import apiService from '../services/api';
 import AIMessage from '../components/AIMessage';
@@ -13,6 +13,8 @@ const AICoach: React.FC = () => {
   const [message, setMessage] = useState('');
   const [isEditingPrompt, setIsEditingPrompt] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [selectedAIModel, setSelectedAIModel] = useState('chatgpt-plus');
   const [chatMessages, setChatMessages] = useState<Array<{
     id: number;
     text: string;
@@ -182,7 +184,8 @@ const AICoach: React.FC = () => {
     }
   };
 
-      return (
+  return (
+    <>
       <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
         {/* Fixed Header */}
         <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
@@ -201,6 +204,15 @@ const AICoach: React.FC = () => {
               <h1 className="text-xl font-bold text-white mb-1">AI کوچ</h1>
               <p className="text-xs text-gray-300">دستیار هوشمند شخصی</p>
             </div>
+
+            {/* Settings Button */}
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl transition-all duration-300 hover:scale-110 border border-white/30"
+              title="تنظیمات"
+            >
+              <Settings size={20} className="text-white" />
+            </button>
           </div>
         </div>
 
@@ -315,7 +327,137 @@ const AICoach: React.FC = () => {
           )}
         </div>
       </div>
-    );
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-gradient-to-br from-gray-900 to-black rounded-3xl border border-gray-700/50 overflow-hidden shadow-2xl">
+            {/* Settings Header */}
+            <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] p-6 relative">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                    <Settings size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white">تنظیمات AI کوچ</h2>
+                    <p className="text-xs text-white/80">مدیریت تنظیمات و تاریخچه</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-all duration-300"
+                >
+                  <X size={18} className="text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Settings Content */}
+            <div className="p-6 space-y-6">
+              {/* AI Model Selection */}
+              <div className="space-y-3">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  <Crown size={16} className="text-yellow-400" />
+                  مدل هوش مصنوعی
+                </h3>
+                <div className="p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-xl border border-yellow-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center">
+                      <Crown size={20} className="text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-white font-bold text-lg">ChatGPT Plus</div>
+                      <div className="text-gray-400 text-sm">پیشرفته‌ترین مدل OpenAI</div>
+                    </div>
+                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                      <div className="w-3 h-3 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Chat History */}
+              <div className="space-y-3">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  <History size={16} className="text-blue-400" />
+                  تاریخچه چت‌ها
+                </h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {[
+                    { id: 1, title: 'چت فعلی', time: 'الان', preview: 'آخرین پیام...' },
+                    { id: 2, title: 'مشاوره کسب‌وکار', time: 'دیروز', preview: 'چطور درآمد کسب کنم؟' },
+                    { id: 3, title: 'تحلیل بازار', time: '2 روز پیش', preview: 'بررسی رقبا...' },
+                    { id: 4, title: 'استراتژی فروش', time: '3 روز پیش', preview: 'نحوه فروش محصول...' }
+                  ].map((chat) => (
+                    <div
+                      key={chat.id}
+                      className="p-3 bg-gray-800/30 rounded-xl border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 cursor-pointer group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="text-white font-medium text-sm">{chat.title}</div>
+                          <div className="text-gray-400 text-xs mt-1">{chat.preview}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500 text-xs">{chat.time}</span>
+                          <button className="p-1 bg-red-500/20 hover:bg-red-500/30 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300">
+                            <Trash2 size={12} className="text-red-400" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="space-y-3">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  <ZapIcon size={16} className="text-yellow-400" />
+                  اقدامات سریع
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      setChatMessages([]);
+                      setShowSettings(false);
+                    }}
+                    className="p-3 bg-gradient-to-r from-green-500/20 to-teal-500/20 border border-green-500/30 rounded-xl hover:from-green-500/30 hover:to-teal-500/30 transition-all duration-300"
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <Plus size={16} className="text-green-400" />
+                      <span className="text-green-400 text-xs font-medium">چت جدید</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setChatMessages([]);
+                      setShowSettings(false);
+                    }}
+                    className="p-3 bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-500/30 rounded-xl hover:from-red-500/30 hover:to-pink-500/30 transition-all duration-300"
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <Trash2 size={16} className="text-red-400" />
+                      <span className="text-red-400 text-xs font-medium">پاک کردن همه</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-xl border border-purple-500/20">
+                <div className="text-center">
+                  <div className="text-white font-bold text-lg">24</div>
+                  <div className="text-gray-400 text-xs">تعداد چت‌های انجام شده</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 };
 
 export default AICoach; 

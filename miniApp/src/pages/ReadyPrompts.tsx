@@ -4,7 +4,6 @@ import {
   Copy, 
   Search, 
   Sparkles,
-  ArrowRight,
   ArrowLeft,
   X
 } from 'lucide-react';
@@ -453,7 +452,20 @@ const ReadyPrompts: React.FC = () => {
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              // Check if we came from levels page with specific stage
+              const searchParams = new URLSearchParams(location.search);
+              const fromLevels = searchParams.get('from') === 'levels';
+              const stageParam = searchParams.get('stage');
+              
+              if (fromLevels && stageParam) {
+                // Navigate back to levels page with the specific stage
+                navigate('/levels', { state: { selectedStage: parseInt(stageParam) } });
+              } else {
+                // Default behavior - go to dashboard
+                navigate('/');
+              }
+            }}
             className="w-12 h-12 bg-gray-800/50 hover:bg-gray-700/70 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-105 border border-gray-700/60"
           >
             <ArrowLeft size={20} className="text-gray-300" />

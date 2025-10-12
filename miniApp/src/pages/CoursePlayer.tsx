@@ -63,24 +63,23 @@ const CoursePlayer: React.FC = () => {
   return (
     <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
       {/* Header */}
-      <div className="sticky top-0 z-40 backdrop-blur-xl border-b border-gray-700/50 shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.8)' }}>
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
         <div className="flex items-center justify-between p-4 max-w-md mx-auto">
           <button 
             onClick={() => navigate(-1)} 
-            className="p-3 rounded-2xl text-gray-200 hover:scale-[1.02] active:scale-[0.99] transition-all backdrop-blur-xl border border-gray-700/60 shadow-lg" 
-            style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
+            className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl transition-all duration-300 hover:scale-110 border border-white/30"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={20} className="text-white" />
           </button>
-          <div className="flex-1 text-center">
-            <h1 className="text-lg font-bold text-white">{course.title}</h1>
-            <p className="text-sm text-gray-300">{course.description}</p>
+          <div className="text-right flex-1 mr-4">
+            <h1 className="text-xl font-bold text-white mb-1">{course.title}</h1>
+            <p className="text-xs text-gray-300">{course.description}</p>
           </div>
           <div className="w-12"></div>
         </div>
       </div>
 
-      <div className="pt-6 max-w-md mx-auto p-4 space-y-6">
+      <div className="pt-24 max-w-md mx-auto p-4 space-y-6">
         {/* Video Player Card */}
         <div className="backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-lg overflow-hidden" style={{ backgroundColor: '#10091c' }}>
           <div className="relative">

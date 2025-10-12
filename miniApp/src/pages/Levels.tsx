@@ -2617,6 +2617,28 @@ const Levels: React.FC = () => {
     }
   }, [location.state?.selectedLevel, location.state?.selectedStage, selectedLevel, levels, navigate, location.pathname]);
 
+  // Handle navigation back from ReadyPrompts with selectedStage
+  useEffect(() => {
+    if (location.state?.selectedStage && !location.state?.promptText) {
+      // Find the stage and set it
+      const allStages = levels.flatMap(level => level.stages);
+      const targetStage = allStages.find(stage => stage.id === location.state.selectedStage);
+      if (targetStage) {
+        setSelectedStage(targetStage);
+        // Find the level that contains this stage
+        const targetLevel = levels.find(level => 
+          level.stages.some(stage => stage.id === location.state.selectedStage)
+        );
+        if (targetLevel) {
+          setSelectedLevel(targetLevel);
+        }
+        setViewMode('stage-detail');
+        // Clear the state to prevent re-processing
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    }
+  }, [location.state?.selectedStage, levels, navigate, location.pathname]);
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
