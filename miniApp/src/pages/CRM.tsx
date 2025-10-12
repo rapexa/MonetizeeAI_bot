@@ -2,8 +2,8 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   BarChart3, Users, Flame, TrendingUp, Filter, Download, Plus, Search,
-  MessageCircle, Star, ChevronRight,
-  Send, X, Phone
+  MessageCircle, Star,
+  Send, X, Phone, Clock
 } from 'lucide-react';
 
 type LeadStatus = 'cold' | 'warm' | 'hot';
@@ -48,6 +48,8 @@ const CRM: React.FC = () => {
 
   const [selectedTab, setSelectedTab] = React.useState<'overview' | 'leads' | 'tasks'>('overview');
   const [leads, setLeads] = React.useState<Lead[]>(mockLeads);
+  const [isEditingSales, setIsEditingSales] = React.useState(false);
+  const [customSalesAmount, setCustomSalesAmount] = React.useState('');
 
   // Check for navigation state to set the correct tab
   React.useEffect(() => {
@@ -73,7 +75,8 @@ const CRM: React.FC = () => {
   const summary = React.useMemo(() => {
     const leadsCount = leads.length;
     const hotLeads = leads.filter(l => l.status === 'hot');
-    const salesThisMonth = hotLeads.reduce((acc, l) => acc + (l.estimatedValue || 0), 0);
+    const calculatedSales = hotLeads.reduce((acc, l) => acc + (l.estimatedValue || 0), 0);
+    const salesThisMonth = customSalesAmount ? parseInt(customSalesAmount.replace(/,/g, '')) || calculatedSales : calculatedSales;
     const avgValue = leadsCount ? Math.round(leads.reduce((a, l) => a + (l.estimatedValue || 0), 0) / leadsCount) : 0;
     return {
       salesThisMonth,
@@ -82,7 +85,7 @@ const CRM: React.FC = () => {
       hotLeads: hotLeads.length,
       avgValue
     };
-  }, [leads]);
+  }, [leads, customSalesAmount]);
 
   const pipeline = React.useMemo(() => ({
     cold: leads.filter(l => l.status === 'cold').length,
@@ -257,7 +260,10 @@ const CRM: React.FC = () => {
             {/* Key Metrics */}
             <div className="grid grid-cols-2 gap-3">
               {/* فروش این ماه */}
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-600/5 to-transparent border border-emerald-500/20 p-4">
+              <div 
+                className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-600/5 to-transparent border border-emerald-500/20 p-4 cursor-pointer hover:border-emerald-500/40 transition-all duration-300"
+                onClick={() => setIsEditingSales(true)}
+              >
                 <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full -translate-y-10 translate-x-10"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-3">
@@ -266,11 +272,30 @@ const CRM: React.FC = () => {
                       <TrendingUp size={14} className="text-white" />
                 </div>
               </div>
-                  <div className="text-white font-bold text-lg mb-2">{formatCurrency(summary.salesThisMonth)}</div>
+                  {isEditingSales ? (
+                    <div className="mb-2">
+                      <input
+                        type="text"
+                        value={customSalesAmount}
+                        onChange={(e) => setCustomSalesAmount(e.target.value)}
+                        onBlur={() => setIsEditingSales(false)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            setIsEditingSales(false);
+                          }
+                        }}
+                        className="w-full bg-transparent text-white font-bold text-lg border-none outline-none"
+                        placeholder="مبلغ فروش"
+                        autoFocus
+                      />
+                </div>
+                  ) : (
+                    <div className="text-white font-bold text-lg mb-2">{formatCurrency(summary.salesThisMonth)}</div>
+                  )}
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-1.5 bg-emerald-500/20 rounded-full overflow-hidden">
                       <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: '75%' }}></div>
-                </div>
+                    </div>
                     <span className="text-emerald-400 text-xs font-medium">+12%</span>
                   </div>
               </div>
@@ -1149,6 +1174,8 @@ const MiniLineChart: React.FC = () => {
   const salesPath = toPath(sales);
 
   const [hoverIdx, setHoverIdx] = React.useState<number | null>(null);
+  const [clickedIdx, setClickedIdx] = React.useState<number | null>(null);
+  
   const handleMove: React.MouseEventHandler<SVGRectElement> = (e) => {
     const rect = (e.target as SVGRectElement).getBoundingClientRect();
     const x = e.clientX - rect.left - margin.left;
@@ -1156,7 +1183,16 @@ const MiniLineChart: React.FC = () => {
     const idx = Math.max(0, Math.min(labels.length - 1, Math.round(x / step)));
     setHoverIdx(idx);
   };
+  
   const handleLeave = () => setHoverIdx(null);
+  
+  const handleClick: React.MouseEventHandler<SVGRectElement> = (e) => {
+    const rect = (e.target as SVGRectElement).getBoundingClientRect();
+    const x = e.clientX - rect.left - margin.left;
+    const step = innerW / (labels.length - 1);
+    const idx = Math.max(0, Math.min(labels.length - 1, Math.round(x / step)));
+    setClickedIdx(clickedIdx === idx ? null : idx);
+  };
 
   const gridLines = 4;
 
@@ -1186,14 +1222,74 @@ const MiniLineChart: React.FC = () => {
 
       {/* Points */}
       {leads.map((v, i) => (
-        <circle key={`l-${i}`} cx={xAt(i)} cy={yAt(v)} r={hoverIdx === i ? 3.8 : 2.6} fill="#7c3aed" opacity={hoverIdx === i ? 1 : 0.95} />
+        <circle 
+          key={`l-${i}`} 
+          cx={xAt(i)} 
+          cy={yAt(v)} 
+          r={clickedIdx === i ? 4.5 : hoverIdx === i ? 3.8 : 2.6} 
+          fill="#7c3aed" 
+          opacity={clickedIdx === i ? 1 : hoverIdx === i ? 1 : 0.95}
+          className="cursor-pointer transition-all duration-200"
+        />
       ))}
       {sales.map((v, i) => (
-        <circle key={`s-${i}`} cx={xAt(i)} cy={yAt(v)} r={hoverIdx === i ? 3.8 : 2.6} fill="#22c55e" opacity={hoverIdx === i ? 1 : 0.95} />
+        <circle 
+          key={`s-${i}`} 
+          cx={xAt(i)} 
+          cy={yAt(v)} 
+          r={clickedIdx === i ? 4.5 : hoverIdx === i ? 3.8 : 2.6} 
+          fill="#22c55e" 
+          opacity={clickedIdx === i ? 1 : hoverIdx === i ? 1 : 0.95}
+          className="cursor-pointer transition-all duration-200"
+        />
       ))}
 
+      {/* Clicked point tooltip (persistent) */}
+      {clickedIdx !== null && (
+        <g>
+          <line x1={xAt(clickedIdx)} x2={xAt(clickedIdx)} y1={margin.top} y2={margin.top + innerH} stroke="#8B5CF6" strokeWidth={2} strokeDasharray="4 4" />
+          {(() => {
+            const x = xAt(clickedIdx);
+            const valueY = yAt(Math.max(leads[clickedIdx], sales[clickedIdx]));
+            const boxW = 140;
+            const boxH = 50;
+            const minX = margin.left;
+            const maxX = margin.left + innerW - boxW;
+            const minY = margin.top;
+            const maxY = margin.top + innerH - boxH;
+            let boxX = x - boxW / 2;
+            let boxY = valueY - boxH - 8;
+            if (boxY < minY) {
+              boxY = valueY + 8;
+            }
+            boxX = Math.max(minX, Math.min(maxX, boxX));
+            boxY = Math.max(minY, Math.min(maxY, boxY));
+            return (
+              <g>
+                <rect x={boxX} y={boxY} rx={12} ry={12} width={boxW} height={boxH} fill="#1e1b4b" stroke="#8B5CF6" strokeWidth={1.5} />
+                {(() => {
+                  const cx = boxX + boxW / 2;
+                  const y1 = boxY + 18;
+                  const y2 = boxY + 34;
+                  return (
+                    <>
+                      <text x={cx} y={y1} fontSize={11} textAnchor="middle" fill="#A78BFA" fontWeight="bold">
+                        {labels[clickedIdx]} - {leads[clickedIdx]} لید
+                      </text>
+                      <text x={cx} y={y2} fontSize={11} textAnchor="middle" fill="#10B981" fontWeight="bold">
+                        {sales[clickedIdx]} فروش
+                      </text>
+                    </>
+                  );
+                })()}
+              </g>
+            );
+          })()}
+        </g>
+      )}
+
       {/* Hover crosshair and tooltip */}
-      {hoverIdx !== null && (
+      {hoverIdx !== null && hoverIdx !== clickedIdx && (
         <g>
           <line x1={xAt(hoverIdx)} x2={xAt(hoverIdx)} y1={margin.top} y2={margin.top + innerH} stroke="#6B7280" strokeDasharray="3 3" />
           {(() => {
@@ -1244,6 +1340,8 @@ const MiniLineChart: React.FC = () => {
         fill="transparent"
         onMouseMove={handleMove}
         onMouseLeave={handleLeave}
+        onClick={handleClick}
+        className="cursor-pointer"
       />
     </svg>
   );

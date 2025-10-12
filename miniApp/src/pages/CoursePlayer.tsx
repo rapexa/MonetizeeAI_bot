@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Play, Clock, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Play, Clock, CheckCircle2, ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
 
 type Session = {
   id: string;
@@ -45,12 +45,44 @@ const CoursePlayer: React.FC = () => {
   const course = courseId ? COURSES[courseId] : undefined;
   const [current, setCurrent] = React.useState<Session | null>(course ? course.sessions[0] : null);
   const [completed, setCompleted] = React.useState<Record<string, boolean>>({});
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
 
   React.useEffect(() => {
     if (course && (!current || !course.sessions.find(s => s.id === current.id))) {
       setCurrent(course.sessions[0]);
     }
   }, [courseId]);
+
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      if (videoRef.current) {
+        try {
+          await videoRef.current.requestFullscreen();
+          setIsFullscreen(true);
+        } catch (error) {
+          console.error('Error attempting to enable fullscreen:', error);
+        }
+      }
+    } else {
+      try {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      } catch (error) {
+        console.error('Error attempting to exit fullscreen:', error);
+      }
+    }
+  };
+
+  // Listen for fullscreen changes
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   if (!course) {
     return (
@@ -79,15 +111,16 @@ const CoursePlayer: React.FC = () => {
         </div>
       </div>
 
-      <div className="pt-24 max-w-md mx-auto p-4 space-y-6">
+      <div className={`pt-24 mx-auto p-4 space-y-6 ${isFullscreen ? 'max-w-6xl' : 'max-w-md'}`}>
         {/* Video Player Card */}
-        <div className="backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-lg overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+        <div className={`backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'shadow-2xl' : ''}`} style={{ backgroundColor: '#10091c' }}>
           <div className="relative">
             <video
+              ref={videoRef}
               key={current?.id}
               controls
               playsInline
-              className="w-full h-52 bg-black"
+              className={`w-full bg-black transition-all duration-300 ${isFullscreen ? 'h-96' : 'h-52'}`}
               controlsList="nodownload"
               disablePictureInPicture
               // @ts-ignore - non-standard but supported in Chromium
@@ -103,6 +136,13 @@ const CoursePlayer: React.FC = () => {
               <Clock size={12} />
               {current?.duration}
             </div>
+            <button
+              onClick={toggleFullscreen}
+              className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white p-2 rounded-full border border-white/20 hover:bg-black/80 transition-all duration-300 hover:scale-110"
+              title={isFullscreen ? 'خروج از تمام صفحه' : 'تمام صفحه'}
+            >
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
           </div>
         </div>
 
@@ -138,13 +178,13 @@ const CoursePlayer: React.FC = () => {
           </div>
           
           <div className="space-y-3">
-            {course.sessions.map((s, idx) => {
-              const isActive = current?.id === s.id;
-              const isDone = completed[s.id];
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setCurrent(s)}
+          {course.sessions.map((s, idx) => {
+            const isActive = current?.id === s.id;
+            const isDone = completed[s.id];
+            return (
+              <button
+                key={s.id}
+                onClick={() => setCurrent(s)}
                   className={`w-full p-4 rounded-2xl border transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] ${
                     isActive 
                       ? 'bg-gradient-to-r from-[#8A00FF]/20 to-[#C738FF]/20 border-[#8A00FF]/50 shadow-[0_0_20px_rgba(139,0,255,0.2)]' 
@@ -169,7 +209,7 @@ const CoursePlayer: React.FC = () => {
                     <div className="flex-1 text-right">
                       <div className={`text-base font-bold mb-1 ${isActive ? 'text-white' : 'text-gray-200'}`}>
                         {s.title}
-                      </div>
+                  </div>
                       <div className="flex items-center gap-2 text-sm text-gray-400">
                         <Clock size={14} />
                         <span>{s.duration}</span>
@@ -178,30 +218,30 @@ const CoursePlayer: React.FC = () => {
                             در حال پخش
                           </span>
                         )}
-                      </div>
-                    </div>
-                    
-                    <label
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCompleted(prev => ({ ...prev, [s.id]: !prev[s.id] }));
-                      }}
-                      className={`cursor-pointer w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 ${
-                        isDone
-                          ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                          : 'bg-transparent border-gray-600 hover:border-emerald-400/60'
-                      }`}
-                    >
-                      {isDone && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 6 9 17l-5-5" />
-                        </svg>
-                      )}
-                    </label>
                   </div>
-                </button>
-              );
-            })}
+                </div>
+                    
+                <label
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCompleted(prev => ({ ...prev, [s.id]: !prev[s.id] }));
+                  }}
+                      className={`cursor-pointer w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 ${
+                    isDone
+                          ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                      : 'bg-transparent border-gray-600 hover:border-emerald-400/60'
+                  }`}
+                >
+                  {isDone && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  )}
+                </label>
+                  </div>
+              </button>
+            );
+          })}
           </div>
         </div>
       </div>

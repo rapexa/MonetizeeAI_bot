@@ -78,6 +78,26 @@ const Levels: React.FC = () => {
   const [selectedLevel, setSelectedLevel] = useState<Level | null>(null);
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail' | 'stage-detail'>('list');
+  const videoRefs = React.useRef<{[key: number]: HTMLVideoElement | null}>({});
+
+  const toggleFullscreen = async (videoIndex: number) => {
+    const videoElement = videoRefs.current[videoIndex];
+    if (!videoElement) return;
+
+    if (!document.fullscreenElement) {
+      try {
+        await videoElement.requestFullscreen();
+      } catch (error) {
+        console.error('Error attempting to enable fullscreen:', error);
+      }
+    } else {
+      try {
+        await document.exitFullscreen();
+      } catch (error) {
+        console.error('Error attempting to exit fullscreen:', error);
+      }
+    }
+  };
 
   // Chat and edit mode states
   const [chatMessage, setChatMessage] = useState<string>('');
@@ -2998,6 +3018,7 @@ const Levels: React.FC = () => {
                             <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4">
                         <div className="aspect-video relative">
                                 <video 
+                                  ref={(el) => videoRefs.current[index] = el}
                                   controls 
                                   controlsList="nodownload"
                                   className="w-full h-full object-cover"
@@ -3006,6 +3027,13 @@ const Levels: React.FC = () => {
                                   <source src={video.url} type="video/mp4" />
                                   مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
                                 </video>
+                                <button
+                                  onClick={() => toggleFullscreen(index)}
+                                  className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white p-2 rounded-full border border-white/20 hover:bg-black/80 transition-all duration-300 hover:scale-110"
+                                  title="تمام صفحه"
+                                >
+                                  <Maximize2 size={16} />
+                                </button>
                         </div>
                       </div>
 
@@ -3031,6 +3059,7 @@ const Levels: React.FC = () => {
                           <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4">
                             <div className="aspect-video relative">
                               <video 
+                                ref={(el) => videoRefs.current[-1] = el}
                                 controls 
                                 controlsList="nodownload"
                                 className="w-full h-full object-cover"
@@ -3039,6 +3068,13 @@ const Levels: React.FC = () => {
                                 <source src={selectedStage.videoUrl} type="video/mp4" />
                                 مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
                               </video>
+                              <button
+                                onClick={() => toggleFullscreen(-1)}
+                                className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white p-2 rounded-full border border-white/20 hover:bg-black/80 transition-all duration-300 hover:scale-110"
+                                title="تمام صفحه"
+                              >
+                                <Maximize2 size={16} />
+                              </button>
                       </div>
                     </div>
 
