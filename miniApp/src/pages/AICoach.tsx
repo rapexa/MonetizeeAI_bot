@@ -208,10 +208,10 @@ const AICoach: React.FC = () => {
             {/* Settings Button */}
             <button
               onClick={() => setShowSettings(true)}
-              className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl transition-all duration-300 hover:scale-110 border border-white/30"
+              className="p-2 bg-gray-800/60 hover:bg-gray-700/60 backdrop-blur-sm rounded-xl transition-all duration-300 hover:scale-110 border border-gray-700/60"
               title="تنظیمات"
             >
-              <Settings size={20} className="text-white" />
+              <Settings size={20} className="text-gray-300" />
             </button>
           </div>
         </div>

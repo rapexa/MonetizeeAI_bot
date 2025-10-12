@@ -32,7 +32,7 @@ const COURSES: Record<string, Course> = {
     title: 'دوره طراحی سایت بدون کدنویسی',
     description: 'ساخت وب‌سایت مدرن با ابزارهای No-Code',
     sessions: [
-      { id: 's1', title: 'شروع سریع و اصول طراحی', duration: '09:30', src: 'https://www.w3schools.com/html/mov_bbb.mp4' },
+      { id: 's1', title: 'شروع سریع و اصول طراحی', duration: '09:30', src: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4' },
       { id: 's2', title: 'پیاده‌سازی صفحه فرود', duration: '11:05', src: 'https://www.w3schools.com/html/movie.mp4' },
       { id: 's3', title: 'اتصال فرم و اتوماسیون ساده', duration: '10:10', src: 'https://www.w3schools.com/html/mov_bbb.mp4' },
     ]

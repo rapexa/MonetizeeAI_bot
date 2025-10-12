@@ -575,9 +575,8 @@ const Tools: React.FC = () => {
               className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-yellow-500/50 shadow-lg relative overflow-hidden"
               style={{ backgroundColor: '#10091c' }}
             >
-              <div className="flex items-center justify-center gap-1">
-                <Trophy size={16} className="text-yellow-400 drop-shadow-lg" />
-                <div className="text-xs text-white font-medium transition-colors duration-300">دوره درآمد دلاری واقعی</div>
+              <div className="flex items-center justify-center">
+                <div className="text-sm text-white font-bold transition-colors duration-300">دوره درآمد دلاری واقعی</div>
               </div>
             </div>
 
@@ -587,9 +586,8 @@ const Tools: React.FC = () => {
               className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-rose-500/50 shadow-lg relative overflow-hidden"
               style={{ backgroundColor: '#10091c' }}
             >
-              <div className="flex items-center justify-center gap-1">
-                <Layers size={16} className="text-rose-400 drop-shadow-lg" />
-                <div className="text-xs text-white font-medium transition-colors duration-300">دوره طراحی سایت بدون کدنویسی</div>
+              <div className="flex items-center justify-center">
+                <div className="text-sm text-white font-bold transition-colors duration-300">دوره طراحی سایت بدون کدنویسی</div>
               </div>
             </div>
           </div>
