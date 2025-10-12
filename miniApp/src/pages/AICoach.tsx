@@ -207,11 +207,11 @@ const AICoach: React.FC = () => {
         {/* Main Content */}
         <div className="pt-24 max-w-4xl mx-auto p-6 pb-32">
           {/* Chat Messages */}
-          <div className="h-[calc(100vh-200px)] overflow-y-auto space-y-6">
+          <div className="h-[calc(100vh-200px)] overflow-y-auto space-y-1">
             {chatMessages.map((msg, index) => (
               <div
                 key={msg.id}
-                className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${msg.sender === 'user' ? 'justify-start' : 'justify-end'}`}
               >
                 {msg.sender === 'user' ? (
                   <div className="max-w-xs lg:max-w-md">
@@ -221,13 +221,15 @@ const AICoach: React.FC = () => {
                     <p className="text-xs opacity-70 mt-2 text-right px-2">{msg.timestamp}</p>
                   </div>
                 ) : (
-                  <AIMessage
-                    message={msg.text}
-                    timestamp={msg.timestamp}
-                    isLatest={index === chatMessages.length - 1}
-                    isNew={msg.isNew || false}
-                    onTypingComplete={scrollToBottom}
-                  />
+                  <div className="w-full">
+                    <AIMessage
+                      message={msg.text}
+                      timestamp={msg.timestamp}
+                      isLatest={index === chatMessages.length - 1}
+                      isNew={msg.isNew || false}
+                      onTypingComplete={scrollToBottom}
+                    />
+                  </div>
                 )}
               </div>
             ))}
