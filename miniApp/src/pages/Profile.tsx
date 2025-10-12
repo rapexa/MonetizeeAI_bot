@@ -111,8 +111,8 @@ const Profile: React.FC = () => {
     subscription: {
       plan: "پرو",
       status: "فعال",
-      startDate: "۲۵ دی ۱۴۰۲",
-      endDate: "۲۶ دی ۱۴۰۳",
+      startDate: "۱۴۰۴",
+      endDate: "نامحدود",
       autoRenew: "فعال"
     }
   };
@@ -228,7 +228,7 @@ const Profile: React.FC = () => {
 
   return (
     <div className="min-h-screen transition-colors duration-300 profile-container" style={{ backgroundColor: '#0e0817' }}>
-              <div className="pt-24 pb-12 p-4 space-y-6 max-w-md mx-auto">
+              <div className="pt-24 pb-12 p-4 space-y-8 max-w-md mx-auto">
         {/* Fixed Header */}
         <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
           <div className="flex items-center justify-between p-4 max-w-md mx-auto">
@@ -250,9 +250,9 @@ const Profile: React.FC = () => {
         </div>
 
         {/* Profile Card */}
-        <div className="backdrop-blur-xl rounded-2xl p-7 border border-gray-800/60 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1" style={{ backgroundColor: '#10091c' }}>
+        <div className="backdrop-blur-xl rounded-3xl p-8 border border-gray-700/60 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 group" style={{ backgroundColor: '#10091c' }}>
           <div className="flex items-center gap-4 mb-5">
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#2c189a] to-[#5a189a] shadow-xl border border-white/20">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#2c189a] to-[#5a189a] shadow-xl border border-white/20 group-hover:scale-110 transition-transform duration-300">
               <div className="scale-125 text-white">
                 <User size={24} />
               </div>
@@ -260,9 +260,6 @@ const Profile: React.FC = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm font-medium text-gray-400">پروفایل</span>
-                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                <div className="w-2 h-2 bg-white rounded-full"></div>
-                </div>
               </div>
               <h3 className="font-bold text-white text-lg leading-tight mb-1">{userProfile.name}</h3>
               <p className="text-sm text-[#5a189a] font-medium">سطح {userData.currentLevel}</p>
@@ -282,16 +279,16 @@ const Profile: React.FC = () => {
             
               <button 
                 onClick={handleEditProfile}
-            className="w-full mt-4 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white py-3 px-4 rounded-xl font-medium hover:from-[#1a0f5a] hover:to-[#4a0f7a] transition-all duration-300 shadow-lg hover:scale-105"
+            className="w-full mt-6 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white py-3 px-4 rounded-xl font-medium hover:from-[#1a0f5a] hover:to-[#4a0f7a] transition-all duration-300 shadow-lg hover:scale-105 hover:shadow-xl"
           >
             ویرایش پروفایل
               </button>
               </div>
 
         {/* Subscription Card */}
-        <div className="backdrop-blur-xl rounded-2xl p-7 border border-gray-800/60 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1" style={{ backgroundColor: '#10091c' }}>
+        <div className="backdrop-blur-xl rounded-3xl p-8 border border-gray-700/60 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 group" style={{ backgroundColor: '#10091c' }}>
           <div className="flex items-center gap-4 mb-5">
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-green-500 via-emerald-600 to-green-700 shadow-xl border border-white/20">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-[#2c189a] via-[#5a189a] to-[#7222F2] shadow-xl border border-white/20 group-hover:scale-110 transition-transform duration-300">
               <div className="scale-125 text-white">
                 <CreditCard size={24} />
               </div>
@@ -299,9 +296,6 @@ const Profile: React.FC = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm font-medium text-gray-400">اشتراک</span>
-                <div className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                </div>
               </div>
               <h3 className="font-bold text-white text-lg leading-tight mb-1">اشتراک {userProfile.subscription.plan}</h3>
               <p className="text-sm text-green-400 font-medium">وضعیت: {userProfile.subscription.status}</p>
@@ -325,7 +319,7 @@ const Profile: React.FC = () => {
           
           <button 
             onClick={handleSubscriptionManagement}
-            className="w-full mt-4 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white py-3 px-4 rounded-xl font-medium hover:from-[#1a0f5a] hover:to-[#4a0f7a] transition-all duration-300 shadow-lg hover:scale-105"
+            className="w-full mt-6 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white py-3 px-4 rounded-xl font-medium hover:from-[#1a0f5a] hover:to-[#4a0f7a] transition-all duration-300 shadow-lg hover:scale-105 hover:shadow-xl"
           >
             مدیریت اشتراک
           </button>
@@ -333,33 +327,29 @@ const Profile: React.FC = () => {
           
         {/* Team Message Card */}
         <div 
-          className="backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg mb-8 cursor-pointer hover:border-purple-500/30 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]" 
+          className="backdrop-blur-xl rounded-3xl p-8 border border-gray-700/60 shadow-lg mb-8 cursor-pointer hover:border-purple-500/30 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] group" 
           style={{ backgroundColor: '#10091c' }}
           onClick={() => window.open('https://t.me/sian_academy_support', '_blank')}
         >
           <div className="flex items-center gap-4 mb-5">
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#2c189a] to-[#5a189a] shadow-xl border border-white/20">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#2c189a] to-[#5a189a] shadow-xl border border-white/20 group-hover:scale-110 transition-transform duration-300">
               <div className="scale-125 text-white">
                 <MessageSquare size={24} />
               </div>
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-medium text-gray-400">پیام تیم</span>
-                <div className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                </div>
+                <span className="text-sm font-medium text-gray-400">پشتیبانی</span>
               </div>
-              <h3 className="font-bold text-white text-lg leading-tight mb-1">پیام تیم ما</h3>
+              <h3 className="font-bold text-white text-lg leading-tight mb-1">پشتیبانی</h3>
               <p className="text-sm font-medium" style={{ color: '#8B5CF6' }}>با عشق از تیم MonetizeAI</p>
             </div>
           </div>
-          <p className="text-sm text-gray-300 mb-4 line-clamp-2">
-            سلام! ما در MonetizeAI متعهد به موفقیت شما هستیم. اگر سوالی دارید یا به کمک نیاز دارید، تیم پشتیبانی ما آماده خدمت‌رسانی است.
+          <p className="text-sm text-gray-300 mb-4">
+            سلام! ما در MonetizeAI متعهد به موفقیت شما هستیم. اگر سوالی دارید یا به کمک نیاز دارید، تیم پشتیبانی ما آماده خدمت‌رسانی است. ما اینجا هستیم تا در هر مرحله از مسیر رشد کسب‌وکارتان همراه شما باشیم.
           </p>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-400">پشتیبانی 24/7</span>
-            <span className="font-medium" style={{ color: '#8B5CF6' }}>ارتباط با تیم →</span>
+          <div className="flex items-center justify-end text-sm">
+            <span className="font-medium" style={{ color: '#8B5CF6' }}>ارتباط با پشتیبانی →</span>
           </div>
           </div>
       </div>
@@ -367,87 +357,97 @@ const Profile: React.FC = () => {
       {/* Edit Profile Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
-          <div className="bg-gray-900/95 backdrop-blur-xl rounded-3xl w-full max-w-md max-h-[90vh] overflow-hidden border border-gray-800/60 shadow-2xl">
+          <div className="bg-gradient-to-br from-gray-900 to-black rounded-3xl w-full max-w-md max-h-[90vh] overflow-hidden border border-gray-700/50 shadow-2xl">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-800/60">
-              <h3 className="text-xl font-bold text-white">ویرایش پروفایل</h3>
-              <button 
-                onClick={handleCancelEdit}
-                className="p-2 hover:bg-gray-800/60 rounded-xl transition-colors duration-300"
-              >
-                <X size={20} className="text-gray-400" />
-              </button>
+            <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                    <User size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">ویرایش پروفایل</h3>
+                    <p className="text-sm text-white/70">اطلاعات شخصی خود را به‌روزرسانی کنید</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleCancelEdit}
+                  className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl transition-all duration-300 hover:scale-110 border border-white/30"
+                >
+                  <X size={20} className="text-white" />
+                </button>
+              </div>
             </div>
 
             {/* Form */}
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-5">
               {/* Username */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">نام کاربری</label>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300">نام کاربری</label>
                 <input
                   type="text"
                   value={editForm.username}
                   onChange={(e) => setEditForm({...editForm, username: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-800/60 border border-gray-700/60 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500/50 transition-colors"
+                  className="w-full px-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20 transition-all duration-300 text-base"
                   placeholder="نام کاربری خود را وارد کنید"
                 />
               </div>
 
               {/* Phone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-                  <Phone size={16} />
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300 flex items-center gap-2">
+                  <Phone size={16} className="text-purple-400" />
                   شماره تلفن
                 </label>
                 <input
                   type="tel"
                   value={editForm.phone}
                   onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-800/60 border border-gray-700/60 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500/50 transition-colors"
+                  className="w-full px-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20 transition-all duration-300 text-base"
                   placeholder="+98 912 345 6789"
                 />
               </div>
 
               {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-                  <Mail size={16} />
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300 flex items-center gap-2">
+                  <Mail size={16} className="text-purple-400" />
                   ایمیل
                 </label>
                 <input
                   type="email"
                   value={editForm.email}
                   onChange={(e) => setEditForm({...editForm, email: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-800/60 border border-gray-700/60 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500/50 transition-colors"
+                  className="w-full px-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20 transition-all duration-300 text-base"
                   placeholder="user@monetizeai.com"
                 />
               </div>
 
               {/* Income */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">درآمد ماهانه (تومان)</label>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300">درآمد ماهانه (تومان)</label>
                 <input
                   type="number"
                   value={editForm.income}
                   onChange={(e) => setEditForm({...editForm, income: parseInt(e.target.value) || 0})}
-                  className="w-full px-4 py-3 bg-gray-800/60 border border-gray-700/60 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500/50 transition-colors"
+                  className="w-full px-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20 transition-all duration-300 text-base"
                   placeholder="2450000"
                 />
               </div>
             </div>
 
             {/* Actions */}
-            <div className="p-6 border-t border-gray-800/60 flex gap-3">
+            <div className="p-6 border-t border-gray-700/50 flex gap-3">
               <button
                 onClick={handleCancelEdit}
-                className="flex-1 py-3 px-4 bg-gray-800/60 text-gray-300 rounded-xl font-medium hover:bg-gray-700/60 transition-all duration-300"
+                className="flex-1 py-3 px-4 bg-gray-800/40 text-gray-300 rounded-xl font-medium hover:bg-gray-700/50 transition-all duration-300 border border-gray-700/40"
               >
                 انصراف
               </button>
               <button
                 onClick={handleSaveProfile}
                 disabled={loading}
-                className="flex-1 py-3 px-4 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl font-medium hover:from-[#1a0f5a] hover:to-[#4a0f7a] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+                className="flex-1 py-3 px-4 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] shadow-lg"
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
