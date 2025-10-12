@@ -17,7 +17,17 @@ import {
   Award,
   Zap,
   BarChart,
-  Lightbulb
+  Lightbulb,
+  Instagram,
+  MessageSquare,
+  Trophy,
+  BookOpen,
+  Gift,
+  Users,
+  Video,
+  Clock,
+  BarChart3,
+  Presentation
 } from 'lucide-react';
 
 const SalesPathAI: React.FC = () => {
@@ -38,70 +48,172 @@ const SalesPathAI: React.FC = () => {
   const salesTemplates = [
     {
       id: 1,
-      title: 'مسیر فروش سریع ۷ روزه',
+      title: 'مسیر فروش ۷ روزه در اینستاگرام',
       channel: 'شبکه‌های اجتماعی',
-      description: 'فروش سریع از طریق محتوای جذاب و تعامل',
+      description: 'فروش سریع از طریق پست معرفی، استوری آموزشی و تعامل دایرکت',
       targetSales: '10-20 فروش',
       investment: 'کم (زیر 1 میلیون)',
       difficulty: 'آسان',
       timeline: '7 روز',
-      icon: Zap,
-      color: 'from-yellow-500 to-orange-600',
+      icon: Instagram,
+      color: 'from-pink-500 to-purple-600',
       dailyTasks: [
-        'روز ۱: ایجاد محتوای معرفی',
-        'روز ۲: تعامل با مخاطبان',
-        'روز ۳: ارائه پیشنهاد ویژه'
+        'روز 1: ساخت پست معرفی سرویس',
+        'روز 2: تعامل با فالوئرها',
+        'روز 3-7: استوری اعتمادساز + CTA فروش'
       ]
     },
     {
       id: 2,
-      title: 'استراتژی بازاریابی محتوا',
-      channel: 'وبلاگ + ایمیل',
-      description: 'جذب مشتری از طریق محتوای ارزشمند',
-      targetSales: '15-30 فروش',
-      investment: 'متوسط (2-5 میلیون)',
-      difficulty: 'متوسط',
-      timeline: '14 روز',
-      icon: MessageCircle,
-      color: 'from-blue-500 to-purple-600',
+      title: 'مسیر فروش با پیام شخصی (Smart DM Funnel)',
+      channel: 'واتساپ + اینستاگرام',
+      description: 'ارسال پیام‌های شخصی‌سازی‌شده به لیدهای هدف',
+      targetSales: '5-15 فروش',
+      investment: 'صفر',
+      difficulty: 'آسان',
+      timeline: '5-7 روز',
+      icon: MessageSquare,
+      color: 'from-green-500 to-emerald-600',
       dailyTasks: [
-        'انتشار محتوای آموزشی',
-        'ارسال ایمیل بازاریابی',
-        'پیگیری منظم مخاطبان'
+        'روز 1: جمع‌کردن 30 لید از کامنت‌ها',
+        'روز 2: ارسال پیام معرفی',
+        'روز 3-5: پاسخ و بستن فروش'
       ]
     },
     {
       id: 3,
-      title: 'کمپین تبلیغاتی پولی',
-      channel: 'تبلیغات آنلاین',
-      description: 'بازگشت سرمایه سریع با تبلیغات هدفمند',
-      targetSales: '50-100 فروش',
-      investment: 'بالا (10-20 میلیون)',
-      difficulty: 'سخت',
-      timeline: '10 روز',
-      icon: Megaphone,
-      color: 'from-green-500 to-teal-600',
+      title: 'مسیر فروش با چالش ۳ روزه (Challenge Funnel)',
+      channel: 'تلگرام + اینستاگرام',
+      description: 'جذب لید با چالش آموزشی کوتاه و تبدیل به خریدار',
+      targetSales: '15-30 فروش',
+      investment: 'کم (زیر 1 میلیون)',
+      difficulty: 'متوسط',
+      timeline: '7-10 روز',
+      icon: Trophy,
+      color: 'from-yellow-500 to-orange-600',
       dailyTasks: [
-        'بهینه‌سازی کمپین',
-        'تحلیل آمار فروش',
-        'تنظیم بودجه روزانه'
+        'روز 1-3: اجرای چالش',
+        'روز 4-6: ارسال تمرین‌ها و محتوای آموزشی',
+        'روز 7: پیشنهاد ویژه خرید'
       ]
     },
     {
       id: 4,
-      title: 'مسیر فروش VIP',
-      channel: 'ملاقات شخصی',
-      description: 'فروش محصولات پریمیوم به مشتریان خاص',
-      targetSales: '5-10 فروش',
-      investment: 'کم (500 هزار)',
+      title: 'مسیر فروش با محتوای آموزشی رایگان (Free Value Funnel)',
+      channel: 'بلاگ + اینستاگرام',
+      description: 'ارائه آموزش رایگان برای جذب اعتماد و فروش محصول اصلی',
+      targetSales: '10-25 فروش',
+      investment: 'کم',
       difficulty: 'متوسط',
-      timeline: '21 روز',
-      icon: Award,
+      timeline: '10 روز',
+      icon: BookOpen,
+      color: 'from-blue-500 to-cyan-600',
+      dailyTasks: [
+        'روز 1-3: ساخت پست آموزشی',
+        'روز 4-7: جمع‌کردن لیدها',
+        'روز 8-10: ارائه پیشنهاد خرید'
+      ]
+    },
+    {
+      id: 5,
+      title: 'مسیر فروش از طریق لندینگ و هدیه (Gift Landing Funnel)',
+      channel: 'وب + واتساپ',
+      description: 'فروش با ارائه یک فایل یا ابزار رایگان',
+      targetSales: '20 فروش',
+      investment: 'کم (زیر 500 هزار تومان)',
+      difficulty: 'آسان',
+      timeline: '7-10 روز',
+      icon: Gift,
       color: 'from-purple-500 to-pink-600',
       dailyTasks: [
-        'شناسایی مشتریان VIP',
-        'آماده‌سازی ارائه',
-        'پیگیری شخصی‌سازی'
+        'روز 1-2: ساخت فایل یا PDF هدیه',
+        'روز 3-5: تبلیغ لینک هدیه',
+        'روز 6-7: ارسال پیشنهاد محصول اصلی'
+      ]
+    },
+    {
+      id: 6,
+      title: 'مسیر فروش از طریق گروه‌سازی در تلگرام (Micro Community)',
+      channel: 'تلگرام',
+      description: 'ایجاد گروه کوچک آموزشی و فروش در پایان',
+      targetSales: '15-30 فروش',
+      investment: 'رایگان',
+      difficulty: 'متوسط',
+      timeline: '10-14 روز',
+      icon: Users,
+      color: 'from-teal-500 to-green-600',
+      dailyTasks: [
+        'روز 1-5: جذب اعضا',
+        'روز 6-10: آموزش روزانه',
+        'روز 11-14: معرفی سرویس اصلی'
+      ]
+    },
+    {
+      id: 7,
+      title: 'مسیر فروش با ویدیو معرفی محصول (Promo Video Funnel)',
+      channel: 'Reels + WhatsApp',
+      description: 'ساخت ویدیو معرفی جذاب و پخش در چند پلتفرم',
+      targetSales: '10-20 فروش',
+      investment: 'کم (500 هزار تومان)',
+      difficulty: 'آسان',
+      timeline: '7 روز',
+      icon: Video,
+      color: 'from-red-500 to-pink-600',
+      dailyTasks: [
+        'روز 1: ضبط ویدیو معرفی',
+        'روز 2-4: انتشار در 3 پلتفرم',
+        'روز 5-7: تعامل با کامنت‌ها و دایرکت‌ها'
+      ]
+    },
+    {
+      id: 8,
+      title: 'مسیر فروش از طریق تخفیف محدود زمانی (Limited Offer)',
+      channel: 'واتساپ + پیج فروش',
+      description: 'ایجاد حس فوریت با تخفیف 3 روزه',
+      targetSales: '20-40 فروش',
+      investment: 'رایگان',
+      difficulty: 'آسان',
+      timeline: '5-7 روز',
+      icon: Clock,
+      color: 'from-orange-500 to-red-600',
+      dailyTasks: [
+        'روز 1-2: ساخت پست "تخفیف ویژه"',
+        'روز 3-5: یادآوری و پیگیری',
+        'روز 6-7: اعلام "آخرین فرصت"'
+      ]
+    },
+    {
+      id: 9,
+      title: 'مسیر فروش با نظرسنجی و تعامل (Poll Funnel)',
+      channel: 'استوری + دایرکت',
+      description: 'جذب خریدار از طریق پرسش و پاسخ تعاملی',
+      targetSales: '5-10 فروش',
+      investment: 'صفر',
+      difficulty: 'آسان',
+      timeline: '5 روز',
+      icon: BarChart3,
+      color: 'from-indigo-500 to-purple-600',
+      dailyTasks: [
+        'روز 1: طراحی استوری نظرسنجی',
+        'روز 2-3: دایرکت به شرکت‌کنندگان',
+        'روز 4-5: ارائه پیشنهاد شخصی'
+      ]
+    },
+    {
+      id: 10,
+      title: 'مسیر فروش با وبینار کوچک (Mini Webinar Funnel)',
+      channel: 'تلگرام + لندینگ ساده',
+      description: 'برگزاری وبینار آموزشی 30 دقیقه‌ای و فروش در پایان',
+      targetSales: '30-50 فروش',
+      investment: 'کم (1 میلیون)',
+      difficulty: 'متوسط',
+      timeline: '10-14 روز',
+      icon: Presentation,
+      color: 'from-emerald-500 to-teal-600',
+      dailyTasks: [
+        'روز 1-5: جذب ثبت‌نامی',
+        'روز 6-7: اجرای وبینار',
+        'روز 8-10: ارسال پیشنهاد ویژه'
       ]
     }
   ];

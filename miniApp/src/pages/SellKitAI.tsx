@@ -16,7 +16,29 @@ import {
   BookOpen,
   Zap,
   Megaphone,
-  FileText
+  FileText,
+  Instagram,
+  Palette,
+  Bot,
+  User,
+  GraduationCap,
+  FileEdit,
+  BarChart3,
+  Monitor,
+  Lightbulb,
+  Calendar,
+  Briefcase,
+  CreditCard,
+  Target,
+  Video,
+  MessageSquare,
+  Search,
+  Mail,
+  TrendingUp,
+  FileCheck,
+  Eye,
+  PenTool,
+  School
 } from 'lucide-react';
 
 const SellKitAI: React.FC = () => {
@@ -33,51 +55,282 @@ const SellKitAI: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<'custom' | 'ready'>('custom');
   const [selectedProduct, setSelectedProduct] = React.useState<any>(null);
 
-  // Ready Products Database
+  // Ready Services Database
   const readyProducts = [
     {
       id: 1,
-      name: 'کورس آموزش دیجیتال مارکتینگ',
-      category: 'آموزش',
-      description: 'کورس جامع دیجیتال مارکتینگ برای مبتدیان',
-      targetAudience: 'کارآفرینان و بازاریابان',
-      price: '599,000 تومان',
-      benefits: ['یادگیری کامل SEO', 'مهارت‌های شبکه‌های اجتماعی', 'استراتژی‌های بازاریابی محتوا'],
-      icon: BookOpen,
-      color: 'from-blue-500 to-indigo-600'
+      name: 'سرویس تولید پست و کپشن اینستاگرام با AI',
+      category: 'بازاریابی',
+      description: 'تولید پست، کپشن، هشتگ و ایده روزانه برای پیج‌ها',
+      targetAudience: 'پیج‌های تجاری، کوچ‌ها، فروشگاه‌ها',
+      price: '399,000 تومان',
+      benefits: ['تولید روزانه محتوا', 'افزایش تعامل پیج'],
+      icon: Instagram,
+      color: 'from-pink-500 to-rose-600'
     },
     {
       id: 2,
-      name: 'اپلیکیشن مدیریت فیتنس',
-      category: 'سلامت',
-      description: 'اپ کامل برای مدیریت ورزش و تغذیه',
-      targetAudience: 'علاقه‌مندان به ورزش',
-      price: '199,000 تومان',
-      benefits: ['برنامه ورزشی شخصی', 'ردیابی کالری', 'مشاوره آنلاین'],
-      icon: Zap,
-      color: 'from-green-500 to-emerald-600'
+      name: 'سرویس طراحی برند (نام + لوگو + رنگ + شعار)',
+      category: 'برندینگ',
+      description: 'ساخت کامل هویت برند برای پیج یا بیزینس کوچک',
+      targetAudience: 'استارتاپ‌ها و فریلنسرها',
+      price: '799,000 تومان',
+      benefits: ['طراحی هویت بصری', 'برندبوک اختصاصی'],
+      icon: Palette,
+      color: 'from-purple-500 to-violet-600'
     },
     {
       id: 3,
-      name: 'قالب وبسایت فروشگاهی',
-      category: 'وب',
-      description: 'قالب حرفه‌ای فروشگاه آنلاین',
-      targetAudience: 'کسب‌وکارهای آنلاین',
+      name: 'ربات پاسخ خودکار دایرکت و واتساپ',
+      category: 'فروش',
+      description: 'ساخت ربات پیام‌رسان که پاسخ مشتری رو اتومات میده',
+      targetAudience: 'فروشنده‌های آنلاین',
       price: '299,000 تومان',
-      benefits: ['طراحی واکنش‌گرا', 'سیستم پرداخت', 'پنل مدیریت کامل'],
-      icon: Globe,
-              color: 'from-[#5a0ecc] to-violet-600'
+      benefits: ['پاسخ 24 ساعته', 'افزایش نرخ بستن فروش'],
+      icon: Bot,
+      color: 'from-emerald-500 to-teal-600'
     },
     {
       id: 4,
-      name: 'پکیج مشاوره کسب‌وکار',
-      category: 'خدمات',
-      description: 'مشاوره جامع راه‌اندازی کسب‌وکار',
-      targetAudience: 'استارتاپ‌ها',
-      price: '1,299,000 تومان',
-      benefits: ['تحلیل بازار', 'طرح کسب‌وکار', 'مشاوره مالی'],
-      icon: Layers,
+      name: 'سرویس رزومه و کاورلتر حرفه‌ای (ResumeX)',
+      category: 'شغلی',
+      description: 'ساخت رزومه، کاورلتر و پروفایل لینکدین حرفه‌ای',
+      targetAudience: 'کارجوها و دانشجوها',
+      price: '249,000 تومان',
+      benefits: ['طراحی مدرن رزومه', 'متن آماده مخصوص هر موقعیت'],
+      icon: User,
+      color: 'from-blue-500 to-indigo-600'
+    },
+    {
+      id: 5,
+      name: 'سرویس تولید محتوای آموزشی و پست اسلایدی',
+      category: 'محتوا',
+      description: 'تولید اسلاید آموزشی آماده انتشار برای پیج‌ها',
+      targetAudience: 'پیج‌های آموزشی و مربیان',
+      price: '499,000 تومان',
+      benefits: ['طراحی پست آماده', 'متن آموزشی دقیق'],
+      icon: GraduationCap,
+      color: 'from-green-500 to-emerald-600'
+    },
+    {
+      id: 6,
+      name: 'سرویس نوشتن صفحه فروش حرفه‌ای با AI',
+      category: 'فروش',
+      description: 'نوشتن متن جذاب برای لندینگ یا صفحه محصول',
+      targetAudience: 'سازندگان دوره، فروشگاه‌ها',
+      price: '699,000 تومان',
+      benefits: ['متن روان و قانع‌کننده', 'ساخت CTA هدفمند'],
+      icon: FileEdit,
       color: 'from-orange-500 to-red-600'
+    },
+    {
+      id: 7,
+      name: 'سرویس تحلیل و بهبود پیج اینستاگرام',
+      category: 'مارکتینگ',
+      description: 'بررسی پیج، پیشنهاد محتوا، کپشن و تقویم پست',
+      targetAudience: 'برندهای کوچک و فریلنسرها',
+      price: '349,000 تومان',
+      benefits: ['تحلیل کامل تعامل', 'برنامه محتوایی 14 روزه'],
+      icon: BarChart3,
+      color: 'from-cyan-500 to-blue-600'
+    },
+    {
+      id: 8,
+      name: 'سرویس ساخت لندینگ پیج محصول با AI',
+      category: 'طراحی وب',
+      description: 'ایجاد لندینگ پیج حرفه‌ای برای معرفی سرویس',
+      targetAudience: 'بیزینس‌های خدماتی',
+      price: '699,000 تومان',
+      benefits: ['طراحی ریسپانسیو', 'بهینه برای تبدیل فروش'],
+      icon: Monitor,
+      color: 'from-indigo-500 to-purple-600'
+    },
+    {
+      id: 9,
+      name: 'سرویس ساخت نام برند + دامنه پیشنهادی',
+      category: 'برندینگ',
+      description: 'پیشنهاد نام، دامنه و هویت اولیه برند',
+      targetAudience: 'کارآفرینان تازه‌کار',
+      price: '199,000 تومان',
+      benefits: ['پیشنهاد نام خلاق', 'بررسی دامنه آزاد'],
+      icon: Lightbulb,
+      color: 'from-yellow-500 to-orange-600'
+    },
+    {
+      id: 10,
+      name: 'دستیار نوشتن تبلیغات و متن‌های تبلیغاتی',
+      category: 'تبلیغات',
+      description: 'تولید متن تبلیغات، بنر، کپشن و ویدیو اد',
+      targetAudience: 'فروشگاه‌ها و آژانس‌ها',
+      price: '399,000 تومان',
+      benefits: ['متن فروش روان', 'افزایش CTR تبلیغات'],
+      icon: Megaphone,
+      color: 'from-red-500 to-pink-600'
+    },
+    {
+      id: 11,
+      name: 'پک ایده کسب‌وکارهای پول‌ساز با AI',
+      category: 'کارآفرینی',
+      description: 'مجموعه‌ای از ایده‌های تست‌شده با آموزش اجرا',
+      targetAudience: 'تازه‌کارها',
+      price: '299,000 تومان',
+      benefits: ['ایده واقعی + تمرین اجرا', 'مسیر قدم‌به‌قدم راه‌اندازی'],
+      icon: Briefcase,
+      color: 'from-slate-500 to-gray-600'
+    },
+    {
+      id: 12,
+      name: 'سرویس تولید تقویم محتوایی ماهانه',
+      category: 'بازاریابی محتوا',
+      description: 'AI تقویم پست، کپشن و ایده روزانه می‌سازه',
+      targetAudience: 'مدیران محتوا',
+      price: '449,000 تومان',
+      benefits: ['ایده روزانه 30 روزه', 'نظم در انتشار محتوا'],
+      icon: Calendar,
+      color: 'from-teal-500 to-green-600'
+    },
+    {
+      id: 13,
+      name: 'پلتفرم ساخت پروپوزال فریلنسری',
+      category: 'فریلنس',
+      description: 'نوشتن پیشنهاد همکاری و قیمت پروژه با AI',
+      targetAudience: 'فریلنسرها و آژانس‌ها',
+      price: '299,000 تومان',
+      benefits: ['پیشنهاد آماده', 'تنظیم بر اساس پروژه'],
+      icon: FileCheck,
+      color: 'from-blue-600 to-indigo-700'
+    },
+    {
+      id: 14,
+      name: 'سرویس طراحی لوگو و کارت ویزیت هوشمند',
+      category: 'گرافیک',
+      description: 'طراحی اتومات لوگو + کارت ویزیت بر اساس برند',
+      targetAudience: 'بیزینس‌های نوپا',
+      price: '249,000 تومان',
+      benefits: ['طراحی فوری', 'خروجی آماده چاپ'],
+      icon: CreditCard,
+      color: 'from-violet-500 to-purple-600'
+    },
+    {
+      id: 15,
+      name: 'ربات تولید ایده‌های تبلیغاتی و کمپین فروش',
+      category: 'مارکتینگ',
+      description: 'ایده‌سازی برای تبلیغات خلاقانه',
+      targetAudience: 'مدیران مارکتینگ',
+      price: '399,000 تومان',
+      benefits: ['ایده بنر و ویدیو', 'متن تبلیغ آماده'],
+      icon: Target,
+      color: 'from-rose-500 to-pink-600'
+    },
+    {
+      id: 16,
+      name: 'سرویس طراحی پست معرفی محصول',
+      category: 'طراحی / فروش',
+      description: 'طراحی و کپشن آماده برای معرفی محصول جدید',
+      targetAudience: 'فروشگاه‌ها',
+      price: '299,000 تومان',
+      benefits: ['طراحی چشمگیر', 'افزایش نرخ تبدیل'],
+      icon: ShoppingBag,
+      color: 'from-amber-500 to-yellow-600'
+    },
+    {
+      id: 17,
+      name: 'سرویس تولید گزارش عملکرد ماهانه برای بیزینس‌ها',
+      category: 'مدیریت',
+      description: 'ساخت گزارش فروش و رشد با طراحی حرفه‌ای',
+      targetAudience: 'مدیران استارتاپ‌ها',
+      price: '499,000 تومان',
+      benefits: ['نمودار رشد', 'گزارش PDF آماده'],
+      icon: TrendingUp,
+      color: 'from-green-600 to-emerald-700'
+    },
+    {
+      id: 18,
+      name: 'اپ ساخت ویدیوهای معرفی برند (AI Promo Video)',
+      category: 'ویدیو مارکتینگ',
+      description: 'تبدیل متن برند به ویدیوی معرفی کوتاه',
+      targetAudience: 'پیج‌ها و برندهای کوچک',
+      price: '599,000 تومان',
+      benefits: ['ساخت خودکار ویدیو', 'شخصی‌سازی رنگ و لوگو'],
+      icon: Video,
+      color: 'from-red-600 to-pink-700'
+    },
+    {
+      id: 19,
+      name: 'سرویس ساخت بایو حرفه‌ای برای اینستاگرام',
+      category: 'شبکه‌های اجتماعی',
+      description: 'نوشتن بایو هوشمند با لحن خاص برند',
+      targetAudience: 'کوچ‌ها، فروشنده‌ها',
+      price: '99,000 تومان',
+      benefits: ['بایو خلاق و هدفمند', 'پیشنهاد CTA بایو'],
+      icon: MessageSquare,
+      color: 'from-sky-500 to-blue-600'
+    },
+    {
+      id: 20,
+      name: 'پلتفرم تحلیل سایت و پیشنهاد بهبود سئو',
+      category: 'دیجیتال مارکتینگ',
+      description: 'تحلیل سایت و پیشنهاد کلمات کلیدی هدفمند',
+      targetAudience: 'وبمسترها',
+      price: '399,000 تومان',
+      benefits: ['نمره سئو', 'پیشنهاد بهبود عنوان‌ها'],
+      icon: Search,
+      color: 'from-indigo-600 to-purple-700'
+    },
+    {
+      id: 21,
+      name: 'سرویس تولید پست لینکدین برای متخصصان',
+      category: 'محتوا',
+      description: 'تولید متن‌های لینکدینی تخصصی و الهام‌بخش',
+      targetAudience: 'مدیران، متخصصان، کارجوها',
+      price: '249,000 تومان',
+      benefits: ['پست‌های تحلیلی', 'افزایش دیده‌شدن در لینکدین'],
+      icon: Globe,
+      color: 'from-blue-700 to-indigo-800'
+    },
+    {
+      id: 22,
+      name: 'سرویس ساخت ایمیل مارکتینگ با متن فروشنده‌ساز',
+      category: 'بازاریابی',
+      description: 'نوشتن متن‌های ایمیل حرفه‌ای برای جذب مشتری',
+      targetAudience: 'فروشگاه‌ها و برندها',
+      price: '399,000 تومان',
+      benefits: ['متن فروش با CTA', 'ساخت قالب ایمیل'],
+      icon: Mail,
+      color: 'from-orange-600 to-red-700'
+    },
+    {
+      id: 23,
+      name: 'سرویس طراحی پست‌های وایرال (Viral Post Maker)',
+      category: 'محتوا',
+      description: 'ایده‌سازی برای پست‌های وایرال و انگیزشی',
+      targetAudience: 'پیج‌های انگیزشی و بیزینسی',
+      price: '299,000 تومان',
+      benefits: ['ایده روزانه وایرال', 'طراحی اسلاید آماده'],
+      icon: Eye,
+      color: 'from-purple-600 to-violet-700'
+    },
+    {
+      id: 24,
+      name: 'سرویس تحلیل و بازنویسی کپشن برای افزایش فروش',
+      category: 'فروش / مارکتینگ',
+      description: 'بازنویسی کپشن‌ها برای نرخ تبدیل بالاتر',
+      targetAudience: 'پیج‌های فروش',
+      price: '249,000 تومان',
+      benefits: ['اصلاح لحن فروش', 'افزایش انگیزش خرید'],
+      icon: PenTool,
+      color: 'from-emerald-600 to-teal-700'
+    },
+    {
+      id: 25,
+      name: 'سرویس ساخت پکیج آموزشی دیجیتال',
+      category: 'آموزش',
+      description: 'AI کمک می‌کنه دوره آموزشی کاربر با ساختار حرفه‌ای طراحی بشه',
+      targetAudience: 'مدرسان و کوچ‌ها',
+      price: '699,000 تومان',
+      benefits: ['ساخت سرفصل خودکار', 'طراحی صفحه معرفی دوره'],
+      icon: School,
+      color: 'from-teal-600 to-green-700'
     }
   ];
 
@@ -218,7 +471,7 @@ const SellKitAI: React.FC = () => {
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              محصولات آماده
+              سرویس‌های آماده
             </button>
           </div>
         </div>
