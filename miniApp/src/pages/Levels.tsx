@@ -3021,7 +3021,7 @@ const Levels: React.FC = () => {
                                   ref={(el) => videoRefs.current[index] = el}
                                   controls 
                                   controlsList="nodownload"
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-contain"
                                   poster="/video-thumbnail.jpg"
                                 >
                                   <source src={video.url} type="video/mp4" />
@@ -3062,7 +3062,7 @@ const Levels: React.FC = () => {
                                 ref={(el) => videoRefs.current[-1] = el}
                                 controls 
                                 controlsList="nodownload"
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain"
                                 poster="/video-thumbnail.jpg"
                               >
                                 <source src={selectedStage.videoUrl} type="video/mp4" />
