@@ -40,9 +40,25 @@ const CoursePlayer: React.FC = () => {
   const navigate = useNavigate();
   const course = courseId ? COURSES[courseId] : undefined;
   const [current, setCurrent] = React.useState<Session | null>(course ? course.sessions[0] : null);
-  const [completed, setCompleted] = React.useState<Record<string, boolean>>({});
+  
+  // Load completed sessions from localStorage
+  const [completed, setCompleted] = React.useState<Record<string, boolean>>(() => {
+    if (courseId) {
+      const saved = localStorage.getItem(`course-completed-${courseId}`);
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  });
+  
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  // Save completed sessions to localStorage whenever it changes
+  React.useEffect(() => {
+    if (courseId) {
+      localStorage.setItem(`course-completed-${courseId}`, JSON.stringify(completed));
+    }
+  }, [completed, courseId]);
 
   React.useEffect(() => {
     if (course && (!current || !course.sessions.find(s => s.id === current.id))) {
