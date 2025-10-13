@@ -23,8 +23,6 @@ const COURSES: Record<string, Course> = {
     description: 'مسیر عملی درآمد ارزی با نمونه سناریو',
     sessions: [
       { id: 's1', title: 'معرفی و نقشه راه', duration: '08:12', src: 'https://www.w3schools.com/html/mov_bbb.mp4' },
-      { id: 's2', title: 'ستاپ حساب‌ها و ابزارها', duration: '12:47', src: 'https://www.w3schools.com/html/movie.mp4' },
-      { id: 's3', title: 'نمونه پروژه و ارسال پیشنهاد', duration: '14:20', src: 'https://www.w3schools.com/html/mov_bbb.mp4' },
     ]
   },
   'no-code-web-design': {
@@ -33,8 +31,6 @@ const COURSES: Record<string, Course> = {
     description: 'ساخت وب‌سایت مدرن با ابزارهای No-Code',
     sessions: [
       { id: 's1', title: 'شروع سریع و اصول طراحی', duration: '09:30', src: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4' },
-      { id: 's2', title: 'پیاده‌سازی صفحه فرود', duration: '11:05', src: 'https://www.w3schools.com/html/movie.mp4' },
-      { id: 's3', title: 'اتصال فرم و اتوماسیون ساده', duration: '10:10', src: 'https://www.w3schools.com/html/mov_bbb.mp4' },
     ]
   }
 };
