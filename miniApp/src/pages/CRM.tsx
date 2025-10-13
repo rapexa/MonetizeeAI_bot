@@ -23,6 +23,18 @@ type Lead = {
   upcoming?: Array<{ type: 'call' | 'whatsapp' | 'sms' | 'meeting'; due: string; text: string }>;
 };
 
+type Task = {
+  id: string;
+  title: string;
+  leadId?: string;
+  leadName?: string;
+  due: string; // ISO
+  status: 'pending' | 'done' | 'overdue';
+  note?: string;
+  type: 'call' | 'whatsapp' | 'sms' | 'meeting';
+  createdAt: string;
+};
+
 // No default data - start completely empty
 const mockLeads: Lead[] = [];
 
@@ -56,6 +68,12 @@ const CRM: React.FC = () => {
     return saved || '';
   });
 
+  // Load tasks from localStorage
+  const [allTasks, setAllTasks] = React.useState<Task[]>(() => {
+    const saved = localStorage.getItem('crm-tasks');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   // Save leads to localStorage whenever it changes
   React.useEffect(() => {
     localStorage.setItem('crm-leads', JSON.stringify(leads));
@@ -65,6 +83,11 @@ const CRM: React.FC = () => {
   React.useEffect(() => {
     localStorage.setItem('crm-custom-sales', customSalesAmount);
   }, [customSalesAmount]);
+
+  // Save tasks to localStorage whenever it changes
+  React.useEffect(() => {
+    localStorage.setItem('crm-tasks', JSON.stringify(allTasks));
+  }, [allTasks]);
 
   // Check for navigation state to set the correct tab
   React.useEffect(() => {
@@ -80,6 +103,23 @@ const CRM: React.FC = () => {
   const [showAdd, setShowAdd] = React.useState(false);
   const [newLead, setNewLead] = React.useState<{name: string; phone: string; email: string; country: string; estimatedValue: string; status: LeadStatus}>({
     name: '', phone: '', email: '', country: 'IR', estimatedValue: '', status: 'cold'
+  });
+
+  const [showAddTask, setShowAddTask] = React.useState(false);
+  const [newTask, setNewTask] = React.useState<{
+    title: string;
+    leadId: string;
+    due: string;
+    status: 'pending' | 'done' | 'overdue';
+    note: string;
+    type: 'call' | 'whatsapp' | 'sms' | 'meeting';
+  }>({
+    title: '',
+    leadId: '',
+    due: '',
+    status: 'pending',
+    note: '',
+    type: 'call'
   });
 
   const filteredLeads = leads.filter(l => {
@@ -139,6 +179,35 @@ const CRM: React.FC = () => {
     setNewLead({ name: '', phone: '', email: '', country: 'IR', estimatedValue: '', status: 'cold' });
   };
 
+  const addTask = () => {
+    if (!newTask.title || !newTask.due) return;
+    
+    const leadName = newTask.leadId ? leads.find(l => l.id === newTask.leadId)?.name : undefined;
+    
+    const created: Task = {
+      id: 'T-' + Math.floor(1000 + Math.random() * 9000).toString(),
+      title: newTask.title,
+      leadId: newTask.leadId || undefined,
+      leadName: leadName,
+      due: new Date(newTask.due).toISOString(),
+      status: newTask.status,
+      note: newTask.note || undefined,
+      type: newTask.type,
+      createdAt: new Date().toISOString()
+    };
+    
+    setAllTasks(prev => [created, ...prev]);
+    setShowAddTask(false);
+    setNewTask({
+      title: '',
+      leadId: '',
+      due: '',
+      status: 'pending',
+      note: '',
+      type: 'call'
+    });
+  };
+
   const addInteraction = (leadId: string, type: 'call' | 'whatsapp' | 'sms' | 'meeting', text: string) => {
     const ts = new Date().toLocaleString('fa-IR');
     setLeads(prev => prev.map(l => {
@@ -195,8 +264,10 @@ const CRM: React.FC = () => {
     if (window.confirm('آیا مطمئن هستید که می‌خواهید تمام داده‌های CRM را پاک کنید؟ این عمل قابل بازگشت نیست.')) {
       localStorage.removeItem('crm-leads');
       localStorage.removeItem('crm-custom-sales');
+      localStorage.removeItem('crm-tasks');
       setLeads([]);
       setCustomSalesAmount('');
+      setAllTasks([]);
     }
   };
 
@@ -204,6 +275,7 @@ const CRM: React.FC = () => {
     const data = {
       leads: leads,
       customSalesAmount: customSalesAmount,
+      tasks: allTasks,
       exportDate: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -232,6 +304,9 @@ const CRM: React.FC = () => {
               setLeads(data.leads);
               if (data.customSalesAmount) {
                 setCustomSalesAmount(data.customSalesAmount);
+              }
+              if (data.tasks && Array.isArray(data.tasks)) {
+                setAllTasks(data.tasks);
               }
               alert('داده‌ها با موفقیت وارد شدند!');
             } else {
@@ -524,10 +599,176 @@ const CRM: React.FC = () => {
         )}
 
         {selectedTab === 'tasks' && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-6">📝</div>
-            <h2 className="text-2xl font-bold text-white mb-4">وظایف و پیگیری‌ها</h2>
-            <p className="text-gray-400 mb-8">این بخش به زودی اضافه خواهد شد</p>
+          <>
+            {/* Add Task Button */}
+            <div className="mb-4 sm:mb-6">
+              <button 
+                onClick={() => setShowAddTask(true)} 
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-[#8A00FF] to-[#C738FF] border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition flex items-center justify-center gap-2"
+              >
+                <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> افزودن وظیفه جدید
+              </button>
+            </div>
+
+            {/* Tasks List */}
+            <div className="space-y-3 sm:space-y-4">
+              {allTasks.length === 0 ? (
+                <div className="text-center py-8 sm:py-12">
+                  <div className="text-gray-400 text-4xl sm:text-6xl mb-4">📝</div>
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">هنوز وظیفه‌ای اضافه نکرده‌اید</h3>
+                  <p className="text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">برای شروع، اولین وظیفه خود را اضافه کنید</p>
+                  <button 
+                    onClick={() => setShowAddTask(true)} 
+                    className="px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-[#8A00FF] to-[#C738FF] border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition flex items-center gap-2 mx-auto"
+                  >
+                    <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> افزودن اولین وظیفه
+                  </button>
+                </div>
+              ) : (
+                allTasks.map(task => (
+                  <div key={task.id} className="backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-700/60 shadow-lg relative overflow-hidden hover:scale-[1.01] transition-all" style={{ backgroundColor: '#10091c' }}>
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                          <span className="text-white text-base sm:text-lg font-bold truncate">{task.title}</span>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            task.status === 'pending' ? 'bg-yellow-600/20 text-yellow-300 border border-yellow-500/30' :
+                            task.status === 'done' ? 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/30' :
+                            'bg-red-600/20 text-red-300 border border-red-500/30'
+                          }`}>
+                            {task.status === 'pending' ? 'در انتظار' : 
+                             task.status === 'done' ? 'انجام شد' : 'عقب افتاده'}
+                          </span>
+                        </div>
+                        <div className="text-xs sm:text-sm text-gray-300 mb-1">
+                          {task.leadName ? `مربوط به: ${task.leadName}` : 'وظیفه عمومی'}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          موعد: {new Date(task.due).toLocaleString('fa-IR')}
+                        </div>
+                        {task.note && (
+                          <div className="text-xs text-gray-300 mt-2 p-2 bg-gray-800/40 rounded-lg">
+                            {task.note}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-left">
+                        <div className="text-xs text-gray-400 mb-1">
+                          {task.type === 'call' ? '📞 تماس' :
+                           task.type === 'whatsapp' ? '💬 واتساپ' :
+                           task.type === 'sms' ? '📱 پیامک' : '🤝 جلسه'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <button 
+                        onClick={() => {
+                          const updatedTasks = allTasks.map(t => 
+                            t.id === task.id 
+                              ? { ...t, status: (t.status === 'pending' ? 'done' : 'pending') as 'pending' | 'done' | 'overdue' }
+                              : t
+                          );
+                          setAllTasks(updatedTasks);
+                        }}
+                        className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-medium border border-white/10 hover:scale-[1.02] active:scale-[0.99] transition-all shadow-lg ${
+                          task.status === 'done' 
+                            ? 'bg-gray-600 text-gray-200' 
+                            : 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white'
+                        }`}
+                      >
+                        {task.status === 'done' ? 'بازگشت به انتظار' : 'انجام شد'}
+                      </button>
+                      <button 
+                        onClick={() => {
+                          const updatedTasks = allTasks.filter(t => t.id !== task.id);
+                          setAllTasks(updatedTasks);
+                        }}
+                        className="px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm border text-red-300 hover:scale-[1.02] active:scale-[0.99] transition backdrop-blur-xl border-red-500/60 shadow-lg" 
+                        style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
+                      >
+                        حذف
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Add Task Modal */}
+        {showAddTask && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+            <div className="w-full max-w-md backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+              <div className="p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-bold text-white mb-4 sm:mb-6">افزودن وظیفه جدید</h3>
+                
+                <div className="space-y-3 sm:space-y-4">
+                  <div>
+                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">عنوان وظیفه *</label>
+                    <input
+                      value={newTask.title}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 text-sm sm:text-base"
+                      placeholder="عنوان وظیفه"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">مربوط به مشتری</label>
+                    <select
+                      value={newTask.leadId}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, leadId: e.target.value }))}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
+                    >
+                      <option value="">وظیفه عمومی</option>
+                      {leads.map(lead => (
+                        <option key={lead.id} value={lead.id}>{lead.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">تاریخ و ساعت موعد *</label>
+                    <input
+                      type="datetime-local"
+                      value={newTask.due}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, due: e.target.value }))}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">نوع وظیفه</label>
+                    <select
+                      value={newTask.type}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, type: e.target.value as 'call' | 'whatsapp' | 'sms' | 'meeting' }))}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
+                    >
+                      <option value="call">📞 تماس</option>
+                      <option value="whatsapp">💬 واتساپ</option>
+                      <option value="sms">📱 پیامک</option>
+                      <option value="meeting">🤝 جلسه</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">یادداشت</label>
+                    <textarea
+                      value={newTask.note}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, note: e.target.value }))}
+                      className="w-full h-16 sm:h-20 px-3 sm:px-4 py-2 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 text-sm sm:text-base resize-none"
+                      placeholder="یادداشت اختیاری..."
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
+                  <button onClick={addTask} className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl text-xs sm:text-sm font-bold border border-white/10">افزودن</button>
+                  <button onClick={() => setShowAddTask(false)} className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-800/70 text-gray-200 rounded-xl text-xs sm:text-sm font-bold border border-gray-700/60">انصراف</button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
