@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  ArrowRight, Phone, MessageCircle, Send, Star, Calendar, 
-  MapPin, Mail, DollarSign, TrendingUp, Clock, CheckCircle,
-  X, Plus, Edit3, Trash2, Eye, Download, Copy, Save, PenLine
+  ArrowRight, Phone, MessageCircle, Send, Star, 
+  DollarSign, Clock, X, Plus, Edit3, Trash2, 
+  Copy, Save, PenLine, Mail
 } from 'lucide-react';
 
 type LeadStatus = 'cold' | 'warm' | 'hot';
@@ -41,7 +41,6 @@ const LeadProfile: React.FC = () => {
   const location = useLocation();
   const lead: Lead = location.state?.lead;
 
-  const [showAddNote, setShowAddNote] = React.useState(false);
   const [newNote, setNewNote] = React.useState('');
   const [isSavingNote, setIsSavingNote] = React.useState(false);
   const [noteSaved, setNoteSaved] = React.useState(false);
@@ -51,19 +50,58 @@ const LeadProfile: React.FC = () => {
   const [isEditing, setIsEditing] = React.useState(false);
   const [editedLead, setEditedLead] = React.useState(lead);
   const [editingTask, setEditingTask] = React.useState<number | null>(null);
-  // Convert lead.upcoming to Task format and add status
-  const initialTasks: Task[] = (lead.upcoming || []).map((task, index) => ({
-    id: `task-${lead.id}-${index}`,
-    title: task.text,
-    leadId: lead.id,
-    due: task.due,
-    status: 'pending' as TaskStatus,
-    type: task.type,
-    text: task.text
-  }));
   
-  const [tasks, setTasks] = React.useState<Task[]>(initialTasks);
-  const [notes, setNotes] = React.useState(lead.notes || []);
+  // Load tasks from localStorage
+  const [tasks, setTasks] = React.useState<Task[]>(() => {
+    if (!lead?.id) return [];
+    const saved = localStorage.getItem(`crm-lead-tasks-${lead.id}`);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    // Convert lead.upcoming to Task format and add status
+    return (lead.upcoming || []).map((task, index) => ({
+      id: `task-${lead.id}-${index}`,
+      title: task.text,
+      leadId: lead.id,
+      due: task.due,
+      status: 'pending' as TaskStatus,
+      type: task.type,
+      text: task.text
+    }));
+  });
+  
+  // Load notes from localStorage
+  const [notes, setNotes] = React.useState(() => {
+    if (!lead?.id) return [];
+    const saved = localStorage.getItem(`crm-lead-notes-${lead.id}`);
+    return saved ? JSON.parse(saved) : (lead?.notes || []);
+  });
+
+  // Save tasks to localStorage whenever it changes
+  React.useEffect(() => {
+    if (lead?.id) {
+      localStorage.setItem(`crm-lead-tasks-${lead.id}`, JSON.stringify(tasks));
+    }
+  }, [tasks, lead?.id]);
+
+  // Save notes to localStorage whenever it changes
+  React.useEffect(() => {
+    if (lead?.id) {
+      localStorage.setItem(`crm-lead-notes-${lead.id}`, JSON.stringify(notes));
+    }
+  }, [notes, lead?.id]);
+
+  // Save lead changes to localStorage
+  React.useEffect(() => {
+    if (lead?.id && editedLead) {
+      const savedLeads = localStorage.getItem('crm-leads');
+      if (savedLeads) {
+        const leads = JSON.parse(savedLeads);
+        const updatedLeads = leads.map((l: Lead) => l.id === lead.id ? editedLead : l);
+        localStorage.setItem('crm-leads', JSON.stringify(updatedLeads));
+      }
+    }
+  }, [editedLead, lead?.id]);
 
   if (!lead) {
     return (
@@ -224,7 +262,13 @@ const LeadProfile: React.FC = () => {
               {isEditing && (
                 <button 
                   onClick={() => {
-                    // Save changes logic here
+                    // Save changes to localStorage
+                    const savedLeads = localStorage.getItem('crm-leads');
+                    if (savedLeads) {
+                      const leads = JSON.parse(savedLeads);
+                      const updatedLeads = leads.map((l: Lead) => l.id === editedLead.id ? editedLead : l);
+                      localStorage.setItem('crm-leads', JSON.stringify(updatedLeads));
+                    }
                     setIsEditing(false);
                   }}
                   className="px-4 py-2 rounded-2xl text-sm bg-gradient-to-r from-[#8A00FF] to-[#C738FF] text-white border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition-all flex items-center gap-2"
@@ -435,7 +479,19 @@ const LeadProfile: React.FC = () => {
 
         {/* Notes */}
         <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 shadow-lg" style={{ backgroundColor: '#10091c' }}>
-          <h2 className="text-lg font-bold text-white mb-6">یادداشت</h2>
+          <h2 className="text-lg font-bold text-white mb-6">یادداشت‌ها</h2>
+          
+          {/* Display existing notes */}
+          {notes.length > 0 && (
+            <div className="space-y-4 mb-6">
+              {notes.map((note: { text: string; timestamp: string }, index: number) => (
+                <div key={index} className="p-4 rounded-2xl border border-gray-700/60 backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
+                  <p className="text-white text-sm mb-2">{note.text}</p>
+                  <p className="text-gray-400 text-xs">{note.timestamp}</p>
+                </div>
+              ))}
+            </div>
+          )}
           
           <div className="space-y-6">
             <div className="relative">
@@ -443,7 +499,7 @@ const LeadProfile: React.FC = () => {
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
                 className="w-full h-40 px-4 py-4 bg-gray-800/50 border border-gray-600/50 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent resize-none backdrop-blur-xl shadow-lg" 
-                placeholder="یادداشت خود را اینجا بنویسید..."
+                placeholder="یادداشت جدید خود را اینجا بنویسید..."
                 style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
               />
             </div>
@@ -458,8 +514,14 @@ const LeadProfile: React.FC = () => {
                   // Simulate saving delay
                   await new Promise(resolve => setTimeout(resolve, 1500));
                   
-                  // Save note logic here - this would save to the lead's note field
-                  console.log('Note saved:', newNote);
+                  // Add note to notes array
+                  const newNoteObj = {
+                    text: newNote.trim(),
+                    timestamp: new Date().toLocaleString('fa-IR')
+                  };
+                  
+                  setNotes((prev: { text: string; timestamp: string }[]) => [...prev, newNoteObj]);
+                  setNewNote('');
                   
                   setIsSavingNote(false);
                   setNoteSaved(true);
@@ -769,8 +831,18 @@ const LeadProfile: React.FC = () => {
                 </button>
                 <button 
                   onClick={() => {
-                    // Here you would typically call an API to delete the lead
-                    console.log('Deleting lead:', editedLead.id);
+                    // Delete lead from localStorage
+                    const savedLeads = localStorage.getItem('crm-leads');
+                    if (savedLeads) {
+                      const leads = JSON.parse(savedLeads);
+                      const updatedLeads = leads.filter((l: Lead) => l.id !== editedLead.id);
+                      localStorage.setItem('crm-leads', JSON.stringify(updatedLeads));
+                    }
+                    
+                    // Delete lead-specific data
+                    localStorage.removeItem(`crm-lead-tasks-${editedLead.id}`);
+                    localStorage.removeItem(`crm-lead-notes-${editedLead.id}`);
+                    
                     // Navigate back to CRM after deletion
                     navigate('/crm');
                   }}
