@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   Filter, Download, Plus, Search,
   MessageCircle,
@@ -53,7 +53,6 @@ const StatusBadge: React.FC<{ status: LeadStatus }> = ({ status }) => {
 
 const CRM: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [selectedTab, setSelectedTab] = React.useState<'overview' | 'leads' | 'tasks'>('overview');
   
@@ -89,12 +88,15 @@ const CRM: React.FC = () => {
     localStorage.setItem('crm-tasks', JSON.stringify(allTasks));
   }, [allTasks]);
 
-  // Check for navigation state to set the correct tab
+  // Sync showLead with leads when leads changes
   React.useEffect(() => {
-    if (location.state?.tab) {
-      setSelectedTab(location.state.tab);
+    if (showLead) {
+      const updatedLead = leads.find(l => l.id === showLead.id);
+      if (updatedLead) {
+        setShowLead(updatedLead);
+      }
     }
-  }, [location.state]);
+  }, [leads]);
 
   const [query, setQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | LeadStatus>('all');
@@ -210,28 +212,31 @@ const CRM: React.FC = () => {
 
   const addInteraction = (leadId: string, type: 'call' | 'whatsapp' | 'sms' | 'meeting', text: string) => {
     const ts = new Date().toLocaleString('fa-IR');
-    setLeads(prev => prev.map(l => {
-      if (l.id !== leadId) return l;
-      return {
-        ...l,
-        interactions: [...(l.interactions || []), { type, text, timestamp: ts }],
+    const updatedLead = leads.find(l => l.id === leadId);
+    if (updatedLead) {
+      const newLead = {
+        ...updatedLead,
+        interactions: [...(updatedLead.interactions || []), { type, text, timestamp: ts }],
         lastInteraction: 'همین حالا'
       };
-    }));
+      syncLeadWithState(newLead);
+    }
   };
 
   const updateLeadScore = (leadId: string, newScore: number) => {
-    setLeads(prev => prev.map(l => {
-      if (l.id !== leadId) return l;
-      return { ...l, score: newScore };
-    }));
+    const updatedLead = leads.find(l => l.id === leadId);
+    if (updatedLead) {
+      const newLead = { ...updatedLead, score: newScore };
+      syncLeadWithState(newLead);
+    }
   };
 
   const updateLeadValue = (leadId: string, newValue: number) => {
-    setLeads(prev => prev.map(l => {
-      if (l.id !== leadId) return l;
-      return { ...l, estimatedValue: newValue };
-    }));
+    const updatedLead = leads.find(l => l.id === leadId);
+    if (updatedLead) {
+      const newLead = { ...updatedLead, estimatedValue: newValue };
+      syncLeadWithState(newLead);
+    }
   };
 
   // Helper functions for communication
@@ -258,6 +263,12 @@ const CRM: React.FC = () => {
     if (phone) {
       navigator.clipboard.writeText(phone);
     }
+  };
+
+  // Sync showLead with leads state
+  const syncLeadWithState = (updatedLead: Lead) => {
+    setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
+    setShowLead(updatedLead);
   };
 
   const clearAllData = () => {
@@ -989,8 +1000,7 @@ const CRM: React.FC = () => {
                         lastInteraction: 'همین حالا'
                       }; 
                       setNote(''); 
-                      setLeads(prev => prev.map(l => l.id === updated.id ? updated : l)); 
-                      setShowLead(updated);
+                      syncLeadWithState(updated);
                     } 
                   }} className="px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl text-xs sm:text-sm font-bold border border-white/10">ذخیره یادداشت</button>
                   <button onClick={() => setShowLead(null)} className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-800/70 text-gray-200 rounded-xl text-xs sm:text-sm font-bold border border-gray-700/60">بستن</button>
