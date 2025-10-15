@@ -2209,8 +2209,18 @@ const Levels: React.FC = () => {
             "طراحی محتوا و CTA های مؤثر",
             "تنظیم tracking و آنالیتیکس"
           ],
-          videoTitle: "طراحی صفحه فرود حرفه‌ای",
-          videoDuration: "24:15"
+          videos: [
+            {
+              title: "طراحی صفحه فرود حرفه‌ای - قسمت 1",
+              duration: "41:41",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video1as15sth5.mp4"
+            },
+            {
+              title: "طراحی صفحه فرود حرفه‌ای - قسمت 2",
+              duration: "78:37",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video2as15sthe5.mp4"
+            }
+          ]
         },
         {
           id: 16,
@@ -2223,8 +2233,18 @@ const Levels: React.FC = () => {
             "اتصال به سیستم فروش",
             "تست کامل فرآیند پرداخت"
           ],
-          videoTitle: "راه‌اندازی سیستم پرداخت",
-          videoDuration: "18:30"
+          videos: [
+            {
+              title: "راه‌اندازی سیستم پرداخت - قسمت 1",
+              duration: "20:53",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video1as16sthe5+.mp4"
+            },
+            {
+              title: "راه‌اندازی سیستم پرداخت - قسمت 2",
+              duration: "3:59",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/vido2as16sthe4.mp4"
+            }
+          ]
         },
         {
           id: 17,
@@ -2237,8 +2257,13 @@ const Levels: React.FC = () => {
             "تنظیم ایمیل پشتیبانی حرفه‌ای",
             "ایجاد اولین کانال جذب مشتری"
           ],
-          videoTitle: "راه‌اندازی کانال‌های پشتیبانی",
-          videoDuration: "22:45"
+          videos: [
+            {
+              title: "راه‌اندازی کانال‌های پشتیبانی",
+              duration: "13:16",
+              url: "https://dl.sianmarketing.com/monetizeAIvideo/video1as17sthe5.mp4"
+            }
+          ]
         }
       ]
     },
