@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Filter, Download, Plus, Search,
-  MessageCircle,
-  Send, X, Phone, Upload, Copy
+  BarChart3, Users, Flame, TrendingUp, Filter, Download, Plus, Search,
+  MessageCircle, Star, Upload,
+  Send, X, Phone, Clock, Copy
 } from 'lucide-react';
 
 type LeadStatus = 'cold' | 'warm' | 'hot';
@@ -368,7 +368,7 @@ const CRM: React.FC = () => {
           <div className="flex gap-1 sm:gap-2">
             <button onClick={() => setSelectedTab('overview')} className={`flex-1 py-2 px-2 sm:px-3 rounded-xl border text-xs sm:text-sm ${selectedTab==='overview' ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>داشبورد</button>
             <button onClick={() => setSelectedTab('leads')} className={`flex-1 py-2 px-2 sm:px-3 rounded-xl border text-xs sm:text-sm ${selectedTab==='leads' ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>مدیریت لیدها</button>
-            <button onClick={() => setSelectedTab('tasks')} className={`flex-1 py-2 px-2 sm:px-3 rounded-xl border text-xs sm:text-sm ${selectedTab==='tasks' ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>وظایف</button>
+            <button onClick={() => setSelectedTab('tasks')} className={`flex-1 py-2 px-2 sm:px-3 rounded-xl border text-xs sm:text-sm ${selectedTab==='tasks' ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-800/60 border-gray-700/60 text-gray-300'}`}>وظایف و پیگیری</button>
           </div>
         </div>
       </div>
@@ -391,19 +391,86 @@ const CRM: React.FC = () => {
             ) : (
               <>
                 {/* Key Metrics */}
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   {/* فروش این ماه */}
                   <div 
-                    className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-600/5 to-transparent border border-emerald-500/20 p-3 sm:p-4"
+                    className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-600/5 to-transparent border border-emerald-500/20 p-4 cursor-pointer hover:border-emerald-500/40 transition-all duration-300"
                   >
-                    <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-emerald-500/10 rounded-full -translate-y-8 translate-x-8 sm:-translate-y-10 sm:translate-x-10"></div>
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full -translate-y-10 translate-x-10"></div>
                     <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-2 sm:mb-3">
+                      <div className="flex items-center justify-between mb-3">
                         <div className="text-emerald-300 text-xs font-medium">فروش این ماه</div>
-                        <div className="text-emerald-400 text-xs">💰</div>
+                        <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+                          <TrendingUp size={14} className="text-white" />
+                        </div>
                       </div>
-                      <div className="text-white font-bold text-sm sm:text-lg">{formatCurrency(summary.salesThisMonth)}</div>
-                      <div className="text-emerald-400 text-xs mt-1">+12% نسبت به ماه قبل</div>
+                      <div className="text-white font-bold text-lg mb-2">{formatCurrency(summary.salesThisMonth)}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-emerald-500/20 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: '75%' }}></div>
+                        </div>
+                        <span className="text-emerald-400 text-xs font-medium">+12%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* کل لیدها */}
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-blue-600/5 to-transparent border border-blue-500/20 p-4">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full -translate-y-10 translate-x-10"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-blue-300 text-xs font-medium">کل لیدها</div>
+                        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                          <Users size={14} className="text-white" />
+                        </div>
+                      </div>
+                      <div className="text-white font-bold text-lg mb-2">{summary.leadsCount}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-blue-500/20 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500 rounded-full transition-all duration-1000" style={{ width: '60%' }}></div>
+                        </div>
+                        <span className="text-blue-400 text-xs font-medium">+8%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* لیدهای داغ */}
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500/10 via-orange-600/5 to-transparent border border-orange-500/20 p-4">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-orange-500/10 rounded-full -translate-y-10 translate-x-10"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-orange-300 text-xs font-medium">لیدهای داغ</div>
+                        <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                          <Flame size={14} className="text-white" />
+                        </div>
+                      </div>
+                      <div className="text-white font-bold text-lg mb-2">{summary.hotLeads}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-orange-500/20 rounded-full overflow-hidden">
+                          <div className="h-full bg-orange-500 rounded-full transition-all duration-1000" style={{ width: '45%' }}></div>
+                        </div>
+                        <span className="text-orange-400 text-xs font-medium">{Math.round((summary.hotLeads / Math.max(summary.leadsCount,1)) * 100)}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* میانگین ارزش */}
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500/10 via-purple-600/5 to-transparent border border-purple-500/20 p-4">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/10 rounded-full -translate-y-10 translate-x-10"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-purple-300 text-xs font-medium">میانگین ارزش</div>
+                        <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                          <BarChart3 size={14} className="text-white" />
+                        </div>
+                      </div>
+                      <div className="text-white font-bold text-lg mb-2">{formatCurrency(summary.avgValue)}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-purple-500/20 rounded-full overflow-hidden">
+                          <div className="h-full bg-purple-500 rounded-full transition-all duration-1000" style={{ width: '80%' }}></div>
+                        </div>
+                        <span className="text-purple-400 text-xs font-medium">+15%</span>
+                      </div>
                     </div>
                   </div>
 
@@ -451,7 +518,7 @@ const CRM: React.FC = () => {
 
                 {/* Pipeline */}
                 <div className="backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
-                  <h3 className="text-base sm:text-lg font-bold text-white mb-4 sm:mb-6">Pipeline فروش</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-white mb-4 sm:mb-6">پایپلاین فروش</h3>
                   
                   <div className="space-y-2 sm:space-y-3">
                     {/* Cold Leads */}
@@ -504,6 +571,50 @@ const CRM: React.FC = () => {
                         <div className="text-xs text-gray-400">{Math.round((pipeline.hot / Math.max(summary.leadsCount,1)) * 100)}%</div>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Sales Chart */}
+                <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-bold text-white">روند فروش هفتگی</h3>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF]"></div>
+                      <span className="text-xs text-gray-300">آخرین ۷ روز</span>
+                    </div>
+                  </div>
+                  <MiniLineChart />
+                </div>
+
+                {/* Quick Actions */}
+                <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+                  <h3 className="text-lg font-bold text-white mb-4">عملیات سریع</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button 
+                      onClick={() => setSelectedTab('leads')}
+                      className="p-4 rounded-2xl border border-gray-700/60 hover:scale-[1.02] active:scale-[0.99] transition-all backdrop-blur-xl shadow-lg" 
+                      style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
+                    >
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                          <Users size={18} className="text-white" />
+                        </div>
+                        <span className="text-white text-sm font-medium">مدیریت لیدها</span>
+                      </div>
+                    </button>
+                    
+                    <button 
+                      onClick={() => setSelectedTab('tasks')}
+                      className="p-4 rounded-2xl border border-gray-700/60 hover:scale-[1.02] active:scale-[0.99] transition-all backdrop-blur-xl shadow-lg" 
+                      style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
+                    >
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                          <MessageCircle size={18} className="text-white" />
+                        </div>
+                        <span className="text-white text-sm font-medium">وظایف و پیگیری</span>
+                      </div>
+                    </button>
                   </div>
                 </div>
               </>
@@ -1011,6 +1122,205 @@ const CRM: React.FC = () => {
         )}
       </div>
     </div>
+  );
+};
+
+const MiniLineChart: React.FC = () => {
+  // Dual-series micro chart (no deps) – earlier simpler version
+  const labels = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+  const leads = [12, 18, 15, 22, 20, 28, 25];
+  const sales = [3, 5, 4, 9, 7, 12, 10];
+
+  const width = 280;
+  const height = 130;
+  const margin = { top: 10, right: 10, bottom: 24, left: 28 };
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const maxY = Math.max(...leads, ...sales);
+  const yMax = Math.ceil(maxY * 1.2) || 1;
+
+  const xAt = (i: number) => (i / (labels.length - 1)) * innerW + margin.left;
+  const yAt = (v: number) => margin.top + innerH - (v / yMax) * innerH;
+
+  const toPath = (arr: number[]) => arr
+    .map((v, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i)} ${yAt(v)}`)
+    .join(' ');
+
+  const leadsPath = toPath(leads);
+  const salesPath = toPath(sales);
+
+  const [hoverIdx, setHoverIdx] = React.useState<number | null>(null);
+  const [clickedIdx, setClickedIdx] = React.useState<number | null>(null);
+  
+  const handleMove: React.MouseEventHandler<SVGRectElement> = (e) => {
+    const rect = (e.target as SVGRectElement).getBoundingClientRect();
+    const x = e.clientX - rect.left - margin.left;
+    const step = innerW / (labels.length - 1);
+    const idx = Math.max(0, Math.min(labels.length - 1, Math.round(x / step)));
+    setHoverIdx(idx);
+  };
+  
+  const handleLeave = () => setHoverIdx(null);
+  
+  const handleClick: React.MouseEventHandler<SVGRectElement> = (e) => {
+    const rect = (e.target as SVGRectElement).getBoundingClientRect();
+    const x = e.clientX - rect.left - margin.left;
+    const step = innerW / (labels.length - 1);
+    const idx = Math.max(0, Math.min(labels.length - 1, Math.round(x / step)));
+    setClickedIdx(clickedIdx === idx ? null : idx);
+  };
+
+  const gridLines = 4;
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-36 select-none">
+
+      {/* Grid */}
+      {[...Array(gridLines + 1)].map((_, i) => {
+        const y = margin.top + (i / gridLines) * innerH;
+        const value = Math.round(yMax * (1 - i / gridLines));
+        return (
+          <g key={i}>
+            <line x1={margin.left} x2={width - margin.right} y1={y} y2={y} stroke="#374151" strokeOpacity={0.5} />
+            <text x={margin.left - 8} y={y + 3} fontSize={9} textAnchor="end" fill="#9CA3AF">{value}</text>
+          </g>
+        );
+      })}
+
+      {/* X axis labels */}
+      {labels.map((lbl, i) => (
+        <text key={lbl} x={xAt(i)} y={height - 6} fontSize={10} textAnchor="middle" fill="#9CA3AF">{lbl}</text>
+      ))}
+
+      {/* Lines only (no area fill) */}
+      <path d={leadsPath} fill="none" stroke="#7c3aed" strokeWidth={2.6} strokeLinecap="round" />
+      <path d={salesPath} fill="none" stroke="#22c55e" strokeWidth={2.6} strokeLinecap="round" />
+
+      {/* Points */}
+      {leads.map((v, i) => (
+        <circle 
+          key={`l-${i}`} 
+          cx={xAt(i)} 
+          cy={yAt(v)} 
+          r={clickedIdx === i ? 4.5 : hoverIdx === i ? 3.8 : 2.6} 
+          fill="#7c3aed" 
+          opacity={clickedIdx === i ? 1 : hoverIdx === i ? 1 : 0.95}
+          className="cursor-pointer transition-all duration-200"
+        />
+      ))}
+      {sales.map((v, i) => (
+        <circle 
+          key={`s-${i}`} 
+          cx={xAt(i)} 
+          cy={yAt(v)} 
+          r={clickedIdx === i ? 4.5 : hoverIdx === i ? 3.8 : 2.6} 
+          fill="#22c55e" 
+          opacity={clickedIdx === i ? 1 : hoverIdx === i ? 1 : 0.95}
+          className="cursor-pointer transition-all duration-200"
+        />
+      ))}
+
+      {/* Clicked point tooltip (persistent) */}
+      {clickedIdx !== null && (
+        <g>
+          <line x1={xAt(clickedIdx)} x2={xAt(clickedIdx)} y1={margin.top} y2={margin.top + innerH} stroke="#8B5CF6" strokeWidth={2} strokeDasharray="4 4" />
+          {(() => {
+            const x = xAt(clickedIdx);
+            const valueY = yAt(Math.max(leads[clickedIdx], sales[clickedIdx]));
+            const boxW = 140;
+            const boxH = 50;
+            const minX = margin.left;
+            const maxX = margin.left + innerW - boxW;
+            const minY = margin.top;
+            const maxY = margin.top + innerH - boxH;
+            let boxX = x - boxW / 2;
+            let boxY = valueY - boxH - 8;
+            if (boxY < minY) {
+              boxY = valueY + 8;
+            }
+            boxX = Math.max(minX, Math.min(maxX, boxX));
+            boxY = Math.max(minY, Math.min(maxY, boxY));
+            return (
+              <g>
+                <rect x={boxX} y={boxY} rx={12} ry={12} width={boxW} height={boxH} fill="#1e1b4b" stroke="#8B5CF6" strokeWidth={1.5} />
+                {(() => {
+                  const cx = boxX + boxW / 2;
+                  const y1 = boxY + 18;
+                  const y2 = boxY + 34;
+                  return (
+                    <>
+                      <text x={cx} y={y1} fontSize={11} textAnchor="middle" fill="#A78BFA" fontWeight="bold">
+                        {labels[clickedIdx]} - {leads[clickedIdx]} لید
+                      </text>
+                      <text x={cx} y={y2} fontSize={11} textAnchor="middle" fill="#10B981" fontWeight="bold">
+                        {sales[clickedIdx]} فروش
+                      </text>
+                    </>
+                  );
+                })()}
+              </g>
+            );
+          })()}
+        </g>
+      )}
+
+      {/* Hover crosshair and tooltip */}
+      {hoverIdx !== null && hoverIdx !== clickedIdx && (
+        <g>
+          <line x1={xAt(hoverIdx)} x2={xAt(hoverIdx)} y1={margin.top} y2={margin.top + innerH} stroke="#6B7280" strokeDasharray="3 3" />
+          {(() => {
+            const x = xAt(hoverIdx);
+            const valueY = yAt(Math.max(leads[hoverIdx], sales[hoverIdx]));
+            const boxW = 120;
+            const boxH = 46;
+            const minX = margin.left;
+            const maxX = margin.left + innerW - boxW;
+            const minY = margin.top;
+            const maxY = margin.top + innerH - boxH;
+            // try above the point first
+            let boxX = x - boxW / 2;
+            let boxY = valueY - boxH - 8;
+            // if exceeds top, flip below the point
+            if (boxY < minY) {
+              boxY = valueY + 8;
+            }
+            // final clamp to keep fully inside
+            boxX = Math.max(minX, Math.min(maxX, boxX));
+            boxY = Math.max(minY, Math.min(maxY, boxY));
+            return (
+              <g>
+                <rect x={boxX} y={boxY} rx={10} ry={10} width={boxW} height={boxH} fill="#0f172a" stroke="#334155" />
+                {(() => {
+                  const cx = boxX + boxW / 2;
+                  const y1 = boxY + 18;
+                  const y2 = boxY + 34;
+                  return (
+                    <g>
+                      <text direction="rtl" x={cx} y={y1} textAnchor="middle" fontSize={12} fill="#E5E7EB">{`لید: ${leads[hoverIdx]}`}</text>
+                      <text direction="rtl" x={cx} y={y2} textAnchor="middle" fontSize={12} fill="#E5E7EB">{`فروش: ${sales[hoverIdx]}`}</text>
+                    </g>
+                  );
+                })()}
+              </g>
+            );
+          })()}
+        </g>
+      )}
+
+      {/* Interaction overlay */}
+      <rect
+        x={margin.left}
+        y={margin.top}
+        width={innerW}
+        height={innerH}
+        fill="transparent"
+        onMouseMove={handleMove}
+        onMouseLeave={handleLeave}
+        onClick={handleClick}
+        className="cursor-pointer"
+      />
+    </svg>
   );
 };
 
