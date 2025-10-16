@@ -1140,55 +1140,28 @@ const CRM: React.FC = () => {
 };
 
 const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
-  // تابع تبدیل تاریخ میلادی به شمسی
-  const toJalali = (date: Date) => {
-    // ثابت‌های مورد نیاز برای تبدیل تاریخ
-    const breaks = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
-    
-    // محاسبه روز از ابتدای تاریخ میلادی
-    const gregorianYear = date.getFullYear();
-    const gregorianMonth = date.getMonth() + 1;
-    const gregorianDay = date.getDate();
-    
-    let jYear, jMonth, jDay;
-    let gregorianDayNo, jalaliDayNo;
-    let leap;
-    
-    let i;
-    
-    gregorianDayNo = 365 * gregorianYear + Math.floor((gregorianYear + 3) / 4) - Math.floor((gregorianYear + 99) / 100) + Math.floor((gregorianYear + 399) / 400);
-    
-    for (i = 0; i < gregorianMonth - 1; ++i) {
-      gregorianDayNo += [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][i + 1];
-    }
-    
-    if (gregorianMonth > 2 && ((gregorianYear % 4 === 0 && gregorianYear % 100 !== 0) || (gregorianYear % 400 === 0))) {
-      ++gregorianDayNo;
-    }
-    
-    gregorianDayNo += gregorianDay;
-    
-    jalaliDayNo = gregorianDayNo - 79;
-    
-    const jalaliNP = Math.floor(jalaliDayNo / 12053);
-    jalaliDayNo %= 12053;
-    
-    jYear = 979 + 33 * jalaliNP + 4 * Math.floor(jalaliDayNo / 1461);
-    jalaliDayNo %= 1461;
-    
-    if (jalaliDayNo >= 366) {
-      jYear += Math.floor((jalaliDayNo - 1) / 365);
-      jalaliDayNo = (jalaliDayNo - 1) % 365;
-    }
-    
-    for (i = 0; i < 11 && jalaliDayNo >= [0, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29][i]; ++i) {
-      jalaliDayNo -= [0, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29][i];
-    }
-    
-    jMonth = i;
-    jDay = jalaliDayNo + 1;
-    
-    return { year: jYear, month: jMonth, day: jDay };
+  // تابع تبدیل تاریخ میلادی به شمسی (دقیق‌تر)
+  const toJalali = (gy: number, gm: number, gd: number) => {
+    const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    let jy = (gy <= 1600) ? 0 : 979;
+    gy -= (gy <= 1600) ? 621 : 1600;
+    const gy2 = (gm > 2) ? (gy + 1) : gy;
+    let days = (365 * gy) + (parseInt(String((gy2 + 3) / 4))) - (parseInt(String((gy2 + 99) / 100))) +
+      (parseInt(String((gy2 + 399) / 400))) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * (parseInt(String(days / 12053)));
+    days %= 12053;
+    jy += 4 * (parseInt(String(days / 1461)));
+    days %= 1461;
+    jy += parseInt(String((days - 1) / 365));
+    if (days > 365) days = (days - 1) % 365;
+    const jm = (days < 186) ? 1 + parseInt(String(days / 31)) : 7 + parseInt(String((days - 186) / 30));
+    const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+    return { year: jy, month: jm, day: jd };
+  };
+  
+  // تبدیل تاریخ میلادی به شمسی با استفاده از آبجکت Date
+  const gregorianToJalali = (date: Date) => {
+    return toJalali(date.getFullYear(), date.getMonth() + 1, date.getDate());
   };
 
   // تولید تاریخ‌های 7 روز گذشته
@@ -1206,7 +1179,10 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
       const dayIndex = date.getDay(); // 0 یکشنبه تا 6 شنبه
       
       // تبدیل به تاریخ شمسی
-      const jalaliDate = toJalali(date);
+      const jalaliDate = gregorianToJalali(date);
+      
+      // نام‌های ماه‌های شمسی
+      const jalaliMonthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
       
       result.push({
         date: date.toISOString().split('T')[0], // فرمت YYYY-MM-DD برای مقایسه
@@ -1214,6 +1190,7 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
         fullDayName: persianDayNames[dayIndex], // نام کامل روز هفته به فارسی
         dayOfMonth: jalaliDate.day, // روز ماه شمسی
         jalaliMonth: jalaliDate.month, // ماه شمسی
+        jalaliMonthName: jalaliMonthNames[jalaliDate.month - 1], // نام ماه شمسی
         jalaliYear: jalaliDate.year // سال شمسی
       });
     }
@@ -1459,8 +1436,8 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
         </g>
       )}
 
-      {/* Hover crosshair and tooltip */}
-      {hoverIdx !== null && hoverIdx !== clickedIdx && (
+      {/* Hover crosshair and tooltip - فقط زمانی نمایش داده می‌شود که clickedIdx تنظیم نشده باشد */}
+      {hoverIdx !== null && clickedIdx === null && (
         <g>
           <line x1={xAt(hoverIdx)} x2={xAt(hoverIdx)} y1={margin.top} y2={margin.top + innerH} stroke="#6B7280" strokeDasharray="3 3" />
           {(() => {
