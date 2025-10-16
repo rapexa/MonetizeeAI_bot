@@ -51,6 +51,11 @@ const LeadProfile: React.FC = () => {
   const [editedLead, setEditedLead] = React.useState(lead);
   const [editingTask, setEditingTask] = React.useState<number | null>(null);
   
+  // state برای نمایش پاپ‌آپ شماره تلفن
+  const [showPhonePopup, setShowPhonePopup] = React.useState(false);
+  const [currentPhone, setCurrentPhone] = React.useState('');
+  const [popupType, setPopupType] = React.useState<'call' | 'sms' | ''>('');
+  
   // Load tasks from localStorage
   const [tasks, setTasks] = React.useState<Task[]>(() => {
     if (!lead?.id) return [];
@@ -141,11 +146,12 @@ const LeadProfile: React.FC = () => {
     }
   };
 
-  const callNumber = (phone?: string) => {
-    if (!phone) return;
-    
-    // حذف کاراکترهای غیر عددی و اضافه کردن کد کشور اگر با صفر شروع شود
+  // تابع فرمت‌دهی شماره تلفن
+  const formatPhoneNumber = (phone: string) => {
+    // حذف کاراکترهای غیر عددی
     const cleanPhone = phone.replace(/\D/g, '');
+    
+    // فرمت‌دهی بر اساس الگوی شروع شماره
     const formattedPhone = cleanPhone.startsWith('0') 
       ? `+98${cleanPhone.substring(1)}` 
       : cleanPhone.startsWith('98') 
@@ -154,8 +160,80 @@ const LeadProfile: React.FC = () => {
           ? cleanPhone 
           : `+98${cleanPhone}`;
     
-    // استفاده از href به جای window.open برای سازگاری بیشتر با مینی‌اپ تلگرام
-    window.location.href = `tel:${formattedPhone}`;
+    return formattedPhone;
+  };
+  
+  // تابع کپی کردن متن به کلیپ‌بورد
+  // تابع کپی کردن متن به کلیپ‌بورد با نمایش پیام تأیید سازگار با موبایل
+  const [showCopyMessage, setShowCopyMessage] = React.useState(false);
+  
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        // به جای alert از یک پیام موقت استفاده می‌کنیم
+        setShowCopyMessage(true);
+        setTimeout(() => {
+          setShowCopyMessage(false);
+        }, 2000);
+      })
+      .catch(err => {
+        console.error('خطا در کپی کردن: ', err);
+        // در صورت خطا، از روش فالبک استفاده می‌کنیم
+        try {
+          // ایجاد یک المان textarea موقت
+          const textArea = document.createElement('textarea');
+          textArea.value = text;
+          textArea.style.position = 'fixed';
+          textArea.style.top = '0';
+          textArea.style.left = '0';
+          textArea.style.width = '2em';
+          textArea.style.height = '2em';
+          textArea.style.padding = '0';
+          textArea.style.border = 'none';
+          textArea.style.outline = 'none';
+          textArea.style.boxShadow = 'none';
+          textArea.style.background = 'transparent';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          
+          // سعی می‌کنیم با استفاده از document.execCommand کپی کنیم
+          const successful = document.execCommand('copy');
+          if (successful) {
+            setShowCopyMessage(true);
+            setTimeout(() => {
+              setShowCopyMessage(false);
+            }, 2000);
+          }
+          
+          // حذف المان موقت
+          document.body.removeChild(textArea);
+        } catch (e) {
+          console.error('خطا در روش فالبک کپی: ', e);
+        }
+      });
+  };
+
+  const callNumber = (phone?: string) => {
+    if (!phone) return;
+    
+    // فرمت‌دهی شماره تلفن
+    const formattedPhone = formatPhoneNumber(phone);
+    
+    try {
+      // ابتدا تلاش می‌کنیم با لینک تلفن باز کنیم
+      window.location.href = `tel:${formattedPhone}`;
+      
+      // همزمان پاپ‌آپ را هم نمایش می‌دهیم
+      setCurrentPhone(formattedPhone);
+      setPopupType('call');
+      setShowPhonePopup(true);
+    } catch (error) {
+      // اگر لینک کار نکرد، فقط پاپ‌آپ را نمایش می‌دهیم
+      setCurrentPhone(formattedPhone);
+      setPopupType('call');
+      setShowPhonePopup(true);
+    }
     
     // لاگ برای دیباگ
     console.log(`تماس با شماره: ${formattedPhone}`);
@@ -164,19 +242,24 @@ const LeadProfile: React.FC = () => {
   const smsNumber = (phone?: string, message: string = "سلام، از مانیتایز AI تماس می‌گیرم.") => {
     if (!phone) return;
     
-    // حذف کاراکترهای غیر عددی و اضافه کردن کد کشور اگر با صفر شروع شود
-    const cleanPhone = phone.replace(/\D/g, '');
-    const formattedPhone = cleanPhone.startsWith('0') 
-      ? `+98${cleanPhone.substring(1)}` 
-      : cleanPhone.startsWith('98') 
-        ? `+${cleanPhone}` 
-        : cleanPhone.startsWith('+98') 
-          ? cleanPhone 
-          : `+98${cleanPhone}`;
+    // فرمت‌دهی شماره تلفن
+    const formattedPhone = formatPhoneNumber(phone);
     
-    // استفاده از href به جای window.open برای سازگاری بیشتر با مینی‌اپ تلگرام
-    const encodedMessage = encodeURIComponent(message);
-    window.location.href = `sms:${formattedPhone}?body=${encodedMessage}`;
+    try {
+      // ابتدا تلاش می‌کنیم با لینک پیامک باز کنیم
+      const encodedMessage = encodeURIComponent(message);
+      window.location.href = `sms:${formattedPhone}?body=${encodedMessage}`;
+      
+      // همزمان پاپ‌آپ را هم نمایش می‌دهیم
+      setCurrentPhone(formattedPhone);
+      setPopupType('sms');
+      setShowPhonePopup(true);
+    } catch (error) {
+      // اگر لینک کار نکرد، فقط پاپ‌آپ را نمایش می‌دهیم
+      setCurrentPhone(formattedPhone);
+      setPopupType('sms');
+      setShowPhonePopup(true);
+    }
     
     // لاگ برای دیباگ
     console.log(`ارسال پیامک به شماره: ${formattedPhone}`);
@@ -206,8 +289,19 @@ const LeadProfile: React.FC = () => {
     console.log(`ارسال پیام واتساپ به شماره: ${formattedPhone}`);
   };
 
+  // استایل برای انیمیشن fadeInOut
+  const fadeInOutStyle = `
+    @keyframes fadeInOut {
+      0% { opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+  `;
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#10091c' }}>
+      <style>{fadeInOutStyle}</style>
       {/* Header */}
       <div className="sticky top-0 z-40 backdrop-blur-xl border-b border-gray-700/50" style={{ backgroundColor: 'rgba(16, 9, 28, 0.8)' }}>
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -904,6 +998,76 @@ const LeadProfile: React.FC = () => {
                   حذف لید
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Phone Number Popup - بهینه‌سازی شده برای موبایل */}
+      {showPhonePopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowPhonePopup(false)}>
+          <div className="w-full max-w-[95%] sm:max-w-md p-4 sm:p-6 rounded-2xl sm:rounded-3xl backdrop-blur-xl border border-gray-700/60 shadow-lg" 
+               style={{ backgroundColor: 'rgba(16, 9, 28, 0.95)' }}
+               onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg sm:text-xl font-bold text-white">
+                {popupType === 'call' ? 'تماس با شماره' : 'ارسال پیامک به شماره'}
+              </h3>
+              <button 
+                onClick={() => setShowPhonePopup(false)}
+                className="p-1.5 sm:p-2 rounded-full hover:bg-gray-800/50 transition"
+              >
+                <X size={18} className="text-gray-300" />
+              </button>
+            </div>
+            
+            <div className="bg-gray-800/50 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6 flex items-center justify-between relative">
+              <p className="text-base sm:text-lg font-mono text-white dir-ltr overflow-auto">{currentPhone}</p>
+              <button 
+                onClick={() => copyToClipboard(currentPhone)}
+                className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 transition flex-shrink-0 ml-2"
+                title="کپی شماره"
+              >
+                <Copy size={18} className="text-blue-300" />
+              </button>
+              
+              {/* پیام تأیید کپی */}
+              {showCopyMessage && (
+                <div className="absolute top-full right-0 mt-1 bg-green-600 text-white text-xs px-2 py-1 rounded-md" 
+                     style={{
+                       animation: 'fadeInOut 2s ease-in-out',
+                       opacity: 1
+                     }}
+                >
+                  شماره کپی شد ✓
+                </div>
+              )}
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              {popupType === 'call' ? (
+                <a 
+                  href={`tel:${currentPhone}`}
+                  className="w-full sm:flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-white bg-green-600 hover:bg-green-700 transition flex items-center justify-center gap-2 mb-2 sm:mb-0"
+                >
+                  <Phone size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="text-sm sm:text-base">تماس</span>
+                </a>
+              ) : (
+                <a 
+                  href={`sms:${currentPhone}`}
+                  className="w-full sm:flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-white bg-blue-600 hover:bg-blue-700 transition flex items-center justify-center gap-2 mb-2 sm:mb-0"
+                >
+                  <MessageCircle size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="text-sm sm:text-base">پیامک</span>
+                </a>
+              )}
+              <button 
+                onClick={() => setShowPhonePopup(false)}
+                className="w-full sm:flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border border-gray-700/60 text-gray-300 hover:bg-gray-800/50 transition text-sm sm:text-base"
+              >
+                بستن
+              </button>
             </div>
           </div>
         </div>
