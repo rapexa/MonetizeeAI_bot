@@ -594,7 +594,7 @@ const CRM: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-[#22c55e]"></div>
-                      <span className="text-xs text-gray-300">فروش (میلیون تومان)</span>
+                      <span className="text-xs text-gray-300">تعداد فروش</span>
                     </div>
                   </div>
                   <MiniLineChart leads={leads} />
@@ -1140,6 +1140,57 @@ const CRM: React.FC = () => {
 };
 
 const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
+  // تابع تبدیل تاریخ میلادی به شمسی
+  const toJalali = (date: Date) => {
+    // ثابت‌های مورد نیاز برای تبدیل تاریخ
+    const breaks = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
+    
+    // محاسبه روز از ابتدای تاریخ میلادی
+    const gregorianYear = date.getFullYear();
+    const gregorianMonth = date.getMonth() + 1;
+    const gregorianDay = date.getDate();
+    
+    let jYear, jMonth, jDay;
+    let gregorianDayNo, jalaliDayNo;
+    let leap;
+    
+    let i;
+    
+    gregorianDayNo = 365 * gregorianYear + Math.floor((gregorianYear + 3) / 4) - Math.floor((gregorianYear + 99) / 100) + Math.floor((gregorianYear + 399) / 400);
+    
+    for (i = 0; i < gregorianMonth - 1; ++i) {
+      gregorianDayNo += [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][i + 1];
+    }
+    
+    if (gregorianMonth > 2 && ((gregorianYear % 4 === 0 && gregorianYear % 100 !== 0) || (gregorianYear % 400 === 0))) {
+      ++gregorianDayNo;
+    }
+    
+    gregorianDayNo += gregorianDay;
+    
+    jalaliDayNo = gregorianDayNo - 79;
+    
+    const jalaliNP = Math.floor(jalaliDayNo / 12053);
+    jalaliDayNo %= 12053;
+    
+    jYear = 979 + 33 * jalaliNP + 4 * Math.floor(jalaliDayNo / 1461);
+    jalaliDayNo %= 1461;
+    
+    if (jalaliDayNo >= 366) {
+      jYear += Math.floor((jalaliDayNo - 1) / 365);
+      jalaliDayNo = (jalaliDayNo - 1) % 365;
+    }
+    
+    for (i = 0; i < 11 && jalaliDayNo >= [0, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29][i]; ++i) {
+      jalaliDayNo -= [0, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29][i];
+    }
+    
+    jMonth = i;
+    jDay = jalaliDayNo + 1;
+    
+    return { year: jYear, month: jMonth, day: jDay };
+  };
+
   // تولید تاریخ‌های 7 روز گذشته
   const getLast7Days = () => {
     const result = [];
@@ -1154,11 +1205,16 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
       date.setDate(date.getDate() - i);
       const dayIndex = date.getDay(); // 0 یکشنبه تا 6 شنبه
       
+      // تبدیل به تاریخ شمسی
+      const jalaliDate = toJalali(date);
+      
       result.push({
-        date: date.toISOString().split('T')[0], // فرمت YYYY-MM-DD
+        date: date.toISOString().split('T')[0], // فرمت YYYY-MM-DD برای مقایسه
         dayName: shortPersianDayNames[dayIndex], // نام کوتاه روز هفته به فارسی
         fullDayName: persianDayNames[dayIndex], // نام کامل روز هفته به فارسی
-        dayOfMonth: date.getDate() // روز ماه
+        dayOfMonth: jalaliDate.day, // روز ماه شمسی
+        jalaliMonth: jalaliDate.month, // ماه شمسی
+        jalaliYear: jalaliDate.year // سال شمسی
       });
     }
     return result;
@@ -1174,8 +1230,19 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
     return leads.filter(lead => lead.lastInteraction.startsWith(day.date)).length;
   });
 
-  // محاسبه میزان فروش هر روز (بر اساس لیدهای تبدیل شده در آن روز)
+  // محاسبه تعداد فروش‌های هر روز (تعداد لیدهای تبدیل شده در آن روز)
   const dailySalesData = last7Days.map(day => {
+    const dailyConvertedLeads = leads.filter(lead => 
+      lead.status === 'converted' && 
+      lead.lastInteraction.startsWith(day.date)
+    );
+    
+    // تعداد لیدهای تبدیل شده را برمی‌گرداند (به جای مقدار فروش)
+    return dailyConvertedLeads.length;
+  });
+  
+  // محاسبه مقدار فروش هر روز (برای نمایش در دیباگ)
+  const dailySalesAmountData = last7Days.map(day => {
     const dailyConvertedLeads = leads.filter(lead => 
       lead.status === 'converted' && 
       lead.lastInteraction.startsWith(day.date)
@@ -1197,9 +1264,15 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
     totalLeads: leads.length,
     convertedLeads: leads.filter(l => l.status === 'converted').length,
     leadDates: leads.slice(0, 3).map(l => l.lastInteraction), // نمونه تاریخ‌های چند لید اول
-    last7DaysFormat: last7Days.map(d => d.date), // فرمت تاریخ‌های 7 روز اخیر
+    last7Days: last7Days.map(d => ({
+      date: d.date,
+      jalaliDate: `${d.jalaliYear}/${d.jalaliMonth}/${d.dayOfMonth}`,
+      dayName: d.dayName,
+      fullDayName: d.fullDayName
+    })), // اطلاعات 7 روز اخیر با تاریخ شمسی
     newLeadsData, // تعداد لیدهای جدید در هر روز
-    dailySalesData, // مقدار فروش در هر روز
+    dailySalesData, // تعداد فروش در هر روز
+    dailySalesAmountData, // مقدار فروش در هر روز (میلیون تومان)
     hasData // آیا داده‌ای برای نمایش وجود دارد؟
   };
   
@@ -1277,12 +1350,19 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
   
   const handleLeave = () => setHoverIdx(null);
   
+  // کلیک روی نقطه: اگر روی نقطه‌ای که قبلاً انتخاب شده کلیک کنیم، tooltip حذف می‌شود
   const handleClick: React.MouseEventHandler<SVGRectElement> = (e) => {
     const rect = (e.target as SVGRectElement).getBoundingClientRect();
     const x = e.clientX - rect.left - margin.left;
     const step = innerW / (labels.length - 1);
     const idx = Math.max(0, Math.min(labels.length - 1, Math.round(x / step)));
-    setClickedIdx(clickedIdx === idx ? null : idx);
+    
+    // اگر روی نقطه‌ای که قبلاً انتخاب شده کلیک کنیم، tooltip حذف می‌شود
+    if (clickedIdx === idx) {
+      setClickedIdx(null);
+    } else {
+      setClickedIdx(idx);
+    }
   };
 
   const gridLines = 4;
@@ -1368,7 +1448,7 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
                         {last7Days[clickedIdx].fullDayName} {last7Days[clickedIdx].dayOfMonth} - {newLeads[clickedIdx]} لید جدید
                       </text>
                       <text x={cx} y={y2} fontSize={11} textAnchor="middle" fill="#10B981" fontWeight="bold">
-                        {dailySales[clickedIdx]} میلیون فروش
+                        {dailySales[clickedIdx]} فروش
                       </text>
                     </>
                   );
@@ -1412,7 +1492,7 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
                   return (
                     <g>
                       <text direction="rtl" x={cx} y={y1} textAnchor="middle" fontSize={12} fill="#E5E7EB">{`${last7Days[hoverIdx].dayName} ${last7Days[hoverIdx].dayOfMonth} - لید جدید: ${newLeads[hoverIdx]}`}</text>
-                      <text direction="rtl" x={cx} y={y2} textAnchor="middle" fontSize={12} fill="#E5E7EB">{`فروش: ${dailySales[hoverIdx]} میلیون`}</text>
+                      <text direction="rtl" x={cx} y={y2} textAnchor="middle" fontSize={12} fill="#E5E7EB">{`تعداد فروش: ${dailySales[hoverIdx]}`}</text>
                     </g>
                   );
                 })()}
