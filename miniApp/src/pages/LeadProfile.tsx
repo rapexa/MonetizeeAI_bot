@@ -142,18 +142,68 @@ const LeadProfile: React.FC = () => {
   };
 
   const callNumber = (phone?: string) => {
-    if (phone) window.open(`tel:${phone}`, '_self');
+    if (!phone) return;
+    
+    // حذف کاراکترهای غیر عددی و اضافه کردن کد کشور اگر با صفر شروع شود
+    const cleanPhone = phone.replace(/\D/g, '');
+    const formattedPhone = cleanPhone.startsWith('0') 
+      ? `+98${cleanPhone.substring(1)}` 
+      : cleanPhone.startsWith('98') 
+        ? `+${cleanPhone}` 
+        : cleanPhone.startsWith('+98') 
+          ? cleanPhone 
+          : `+98${cleanPhone}`;
+    
+    // استفاده از href به جای window.open برای سازگاری بیشتر با مینی‌اپ تلگرام
+    window.location.href = `tel:${formattedPhone}`;
+    
+    // لاگ برای دیباگ
+    console.log(`تماس با شماره: ${formattedPhone}`);
   };
 
-  const smsNumber = (phone?: string) => {
-    if (phone) window.open(`sms:${phone}`, '_self');
+  const smsNumber = (phone?: string, message: string = "سلام، از مانیتایز AI تماس می‌گیرم.") => {
+    if (!phone) return;
+    
+    // حذف کاراکترهای غیر عددی و اضافه کردن کد کشور اگر با صفر شروع شود
+    const cleanPhone = phone.replace(/\D/g, '');
+    const formattedPhone = cleanPhone.startsWith('0') 
+      ? `+98${cleanPhone.substring(1)}` 
+      : cleanPhone.startsWith('98') 
+        ? `+${cleanPhone}` 
+        : cleanPhone.startsWith('+98') 
+          ? cleanPhone 
+          : `+98${cleanPhone}`;
+    
+    // استفاده از href به جای window.open برای سازگاری بیشتر با مینی‌اپ تلگرام
+    const encodedMessage = encodeURIComponent(message);
+    window.location.href = `sms:${formattedPhone}?body=${encodedMessage}`;
+    
+    // لاگ برای دیباگ
+    console.log(`ارسال پیامک به شماره: ${formattedPhone}`);
   };
 
   const openWhatsApp = (text: string, phone?: string) => {
+    if (!phone) return;
+    
     const msg = encodeURIComponent(text);
-    const number = phone ? phone.replace(/^0/, '98') : '';
-    const url = number ? `https://wa.me/${number}?text=${msg}` : `https://wa.me/?text=${msg}`;
-    window.open(url, '_blank');
+    
+    // حذف کاراکترهای غیر عددی و اضافه کردن کد کشور اگر با صفر شروع شود
+    const cleanPhone = phone.replace(/\D/g, '');
+    const formattedPhone = cleanPhone.startsWith('0') 
+      ? `98${cleanPhone.substring(1)}` 
+      : cleanPhone.startsWith('98') 
+        ? cleanPhone 
+        : cleanPhone.startsWith('+98') 
+          ? cleanPhone.substring(1) 
+          : `98${cleanPhone}`;
+    
+    const url = `https://wa.me/${formattedPhone}?text=${msg}`;
+    
+    // استفاده از window.location.href به جای window.open برای سازگاری بیشتر با مینی‌اپ تلگرام
+    window.location.href = url;
+    
+    // لاگ برای دیباگ
+    console.log(`ارسال پیام واتساپ به شماره: ${formattedPhone}`);
   };
 
   return (
@@ -232,7 +282,7 @@ const LeadProfile: React.FC = () => {
               <span className="text-sm font-medium">واتساپ</span>
             </button>
             <button 
-              onClick={() => smsNumber(editedLead.phone)}
+              onClick={() => smsNumber(editedLead.phone, `سلام ${editedLead.name} عزیز! پیگیری از مانیتایز AI`)}
               className="p-4 rounded-2xl text-white flex flex-col items-center gap-3 border border-gray-700/60 hover:scale-[1.02] active:scale-[0.99] transition-all backdrop-blur-xl shadow-lg" 
               style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
             >
