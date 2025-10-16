@@ -473,52 +473,17 @@ const CRM: React.FC = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* تعداد لیدها */}
-                  <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500/10 via-blue-600/5 to-transparent border border-blue-500/20 p-3 sm:p-4">
-                    <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-blue-500/10 rounded-full -translate-y-8 translate-x-8 sm:-translate-y-10 sm:translate-x-10"></div>
-                    <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-2 sm:mb-3">
-                        <div className="text-blue-300 text-xs font-medium">تعداد لیدها</div>
-                        <div className="text-blue-400 text-xs">👥</div>
-                      </div>
-                      <div className="text-white font-bold text-sm sm:text-lg">{summary.leadsCount}</div>
-                      <div className="text-blue-400 text-xs mt-1">+3 این هفته</div>
-                    </div>
-                  </div>
-
-                  {/* لیدهای آماده خرید */}
-                  <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-orange-500/10 via-orange-600/5 to-transparent border border-orange-500/20 p-3 sm:p-4">
-                    <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-orange-500/10 rounded-full -translate-y-8 translate-x-8 sm:-translate-y-10 sm:translate-x-10"></div>
-                    <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-2 sm:mb-3">
-                        <div className="text-orange-300 text-xs font-medium">آماده خرید</div>
-                        <div className="text-orange-400 text-xs">🚀</div>
-                      </div>
-                      <div className="text-white font-bold text-sm sm:text-lg">{summary.hotLeads}</div>
-                      <div className="text-orange-400 text-xs mt-1">
-                        <span className="text-orange-400 text-xs font-medium">{Math.round((summary.hotLeads / Math.max(summary.leadsCount,1)) * 100)}%</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* میانگین ارزش */}
-                  <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-500/10 via-purple-600/5 to-transparent border border-purple-500/20 p-3 sm:p-4">
-                    <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-purple-500/10 rounded-full -translate-y-8 translate-x-8 sm:-translate-y-10 sm:translate-x-10"></div>
-                    <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-2 sm:mb-3">
-                        <div className="text-purple-300 text-xs font-medium">میانگین ارزش</div>
-                        <div className="text-purple-400 text-xs">💎</div>
-                      </div>
-                      <div className="text-white font-bold text-sm sm:text-lg">{formatCurrency(summary.avgValue)}</div>
-                      <div className="text-purple-400 text-xs mt-1">+8% نسبت به قبل</div>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Pipeline */}
                 <div className="backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
-                  <h3 className="text-base sm:text-lg font-bold text-white mb-4 sm:mb-6">پایپلاین فروش</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base sm:text-lg font-bold text-white">پایپلاین فروش</h3>
+                  <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF]"></div>
+                    <span className="text-xs text-gray-300">وضعیت فعلی</span>
+                  </div>
+                </div>
                   
                   <div className="space-y-2 sm:space-y-3">
                     {/* Cold Leads */}
