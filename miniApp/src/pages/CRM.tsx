@@ -648,10 +648,26 @@ const CRM: React.FC = () => {
                 <Search size={16} className="text-gray-300 sm:w-[18px] sm:h-[18px]" />
                 <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="جستجو (نام، ایمیل، شماره)" className="flex-1 bg-transparent text-sm sm:text-base text-white placeholder-gray-400 outline-none" />
               </div>
-              <button onClick={() => setStatusFilter(s => s==='all' ? 'hot' : s==='hot' ? 'warm' : s==='warm' ? 'cold' : 'all')} className="px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl border border-gray-700/60 text-xs sm:text-sm text-gray-200 flex items-center gap-1 sm:gap-2 hover:scale-[1.02] active:scale-[0.99] transition backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
+              <button onClick={() => setStatusFilter(s => {
+                if (s === 'all') return 'hot';
+                if (s === 'hot') return 'warm';
+                if (s === 'warm') return 'cold';
+                if (s === 'cold') return 'converted';
+                return 'all';
+              })} className="px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl border border-gray-700/60 text-xs sm:text-sm text-gray-200 flex items-center gap-1 sm:gap-2 hover:scale-[1.02] active:scale-[0.99] transition backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
                 <Filter size={14} className="sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">{statusFilter==='all' ? 'همه' : statusFilter==='hot' ? 'آماده' : statusFilter==='warm' ? 'نیمه‌گرم' : 'سرد'}</span>
-                <span className="sm:hidden">{statusFilter==='all' ? 'همه' : statusFilter==='hot' ? 'آماده' : statusFilter==='warm' ? 'گرم' : 'سرد'}</span>
+                <span className="hidden sm:inline">
+                  {statusFilter === 'all' ? 'همه' : 
+                   statusFilter === 'hot' ? 'آماده' : 
+                   statusFilter === 'warm' ? 'نیمه‌گرم' : 
+                   statusFilter === 'converted' ? 'تبدیل شده' : 'سرد'}
+                </span>
+                <span className="sm:hidden">
+                  {statusFilter === 'all' ? 'همه' : 
+                   statusFilter === 'hot' ? 'آماده' : 
+                   statusFilter === 'warm' ? 'گرم' : 
+                   statusFilter === 'converted' ? 'تبدیل شده' : 'سرد'}
+                </span>
               </button>
             </div>
 
@@ -971,6 +987,7 @@ const CRM: React.FC = () => {
                       <option value="cold">سرد</option>
                       <option value="warm">نیمه‌گرم</option>
                       <option value="hot">آماده خرید</option>
+                      <option value="converted">تبدیل شده</option>
                     </select>
                   </div>
                 </div>

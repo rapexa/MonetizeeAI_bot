@@ -183,6 +183,7 @@ const LeadProfile: React.FC = () => {
                   <option value="cold">سرد</option>
                   <option value="warm">نیمه‌گرم</option>
                   <option value="hot">آماده خرید</option>
+                  <option value="converted">تبدیل شده</option>
                 </select>
               ) : (
                 <span className={`px-4 py-2 rounded-2xl text-sm border backdrop-blur-xl shadow-lg ${getStatusColor(editedLead.status)}`}>
