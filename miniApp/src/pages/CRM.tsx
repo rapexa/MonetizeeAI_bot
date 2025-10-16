@@ -57,10 +57,25 @@ const CRM: React.FC = () => {
 
   const [selectedTab, setSelectedTab] = React.useState<'overview' | 'leads' | 'tasks'>('overview');
   
+  // تابع کمکی برای تبدیل تاریخ‌های قدیمی به فرمت ISO
+  const convertOldDates = (oldLeads: Lead[]): Lead[] => {
+    return oldLeads.map(lead => {
+      // اگر lastInteraction فرمت ISO نباشد (با - شروع نشود)، آن را به امروز تبدیل می‌کنیم
+      if (!lead.lastInteraction.includes('-')) {
+        return {
+          ...lead,
+          lastInteraction: new Date().toISOString()
+        };
+      }
+      return lead;
+    });
+  };
+
   // Load leads from localStorage
   const [leads, setLeads] = React.useState<Lead[]>(() => {
     const saved = localStorage.getItem('crm-leads');
-    return saved ? JSON.parse(saved) : mockLeads;
+    // تبدیل تاریخ‌های قدیمی به فرمت جدید
+    return saved ? convertOldDates(JSON.parse(saved)) : mockLeads;
   });
   
   const [customSalesAmount, setCustomSalesAmount] = React.useState(() => {
@@ -167,6 +182,8 @@ const CRM: React.FC = () => {
 
   const addLead = () => {
     if (!newLead.name || (!newLead.phone && !newLead.email)) return;
+    // استفاده از تاریخ امروز به فرمت ISO
+    const today = new Date().toISOString();
     const created: Lead = {
       id: 'L-' + Math.floor(1000 + Math.random() * 9000).toString(),
       name: newLead.name,
@@ -174,7 +191,7 @@ const CRM: React.FC = () => {
       email: newLead.email || undefined,
       country: newLead.country || 'IR',
       status: newLead.status,
-      lastInteraction: 'همین حالا',
+      lastInteraction: today, // ذخیره تاریخ به فرمت ISO
       estimatedValue: parseInt(newLead.estimatedValue || '0') || 0,
       score: 3,
       notes: [],
@@ -222,7 +239,7 @@ const CRM: React.FC = () => {
       const newLead = {
         ...updatedLead,
         interactions: [...(updatedLead.interactions || []), { type, text, timestamp: ts }],
-        lastInteraction: 'همین حالا'
+        lastInteraction: new Date().toISOString()
       };
       syncLeadWithState(newLead);
     }
@@ -695,7 +712,7 @@ const CRM: React.FC = () => {
                           <StatusBadge status={lead.status} />
                         </div>
                         <div className="text-xs sm:text-sm text-gray-300 mb-1 truncate">{lead.phone || lead.email}</div>
-                        <div className="text-xs text-gray-400">آخرین تعامل: {lead.lastInteraction}</div>
+                        <div className="text-xs text-gray-400">آخرین تعامل: {new Date(lead.lastInteraction).toLocaleDateString('fa-IR')}</div>
                       </div>
                       <div className="text-left">
                         <div className="text-white font-bold text-sm sm:text-lg">{formatCurrency(lead.estimatedValue)}</div>
@@ -1105,7 +1122,7 @@ const CRM: React.FC = () => {
                       const updated = { 
                         ...showLead, 
                         notes: [...(showLead.notes || []), { text: note.trim(), timestamp: ts }],
-                        lastInteraction: 'همین حالا'
+                        lastInteraction: new Date().toISOString()
                       }; 
                       setNote(''); 
                       syncLeadWithState(updated);
@@ -1174,6 +1191,18 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
   const newLeads = hasData ? newLeadsData : [0, 0, 0, 0, 0, 0, 0];
   const dailySales = hasData ? dailySalesData : [0, 0, 0, 0, 0, 0, 0];
   
+  // اطلاعات دیباگ برای بررسی مشکل
+  const debugInfo = {
+    hasLeads: leads.length > 0,
+    totalLeads: leads.length,
+    convertedLeads: leads.filter(l => l.status === 'converted').length,
+    leadDates: leads.slice(0, 3).map(l => l.lastInteraction), // نمونه تاریخ‌های چند لید اول
+    last7DaysFormat: last7Days.map(d => d.date), // فرمت تاریخ‌های 7 روز اخیر
+    newLeadsData, // تعداد لیدهای جدید در هر روز
+    dailySalesData, // مقدار فروش در هر روز
+    hasData // آیا داده‌ای برای نمایش وجود دارد؟
+  };
+  
   // نمایش پیام اگر هیچ داده‌ای وجود نداشت
   if (!hasData && leads.length > 0) {
     return (
@@ -1184,6 +1213,12 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
         </svg>
         <p className="text-sm">هنوز آماری برای نمایش وجود ندارد</p>
         <p className="text-xs mt-1">با افزودن لید و ثبت فروش، آمار نمایش داده خواهد شد</p>
+        <details className="mt-2 text-left text-xs opacity-70">
+          <summary>اطلاعات دیباگ</summary>
+          <pre className="text-left p-2 bg-gray-800 rounded overflow-auto max-h-40 mt-1" style={{direction: 'ltr'}}>
+            {JSON.stringify(debugInfo, null, 2)}
+          </pre>
+        </details>
       </div>
     );
   }
@@ -1200,6 +1235,12 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
         </svg>
         <p className="text-sm">هنوز هیچ لیدی اضافه نشده است</p>
         <p className="text-xs mt-1">برای شروع، لید جدیدی اضافه کنید</p>
+        <details className="mt-2 text-left text-xs opacity-70">
+          <summary>اطلاعات دیباگ</summary>
+          <pre className="text-left p-2 bg-gray-800 rounded overflow-auto max-h-40 mt-1" style={{direction: 'ltr'}}>
+            {JSON.stringify(debugInfo, null, 2)}
+          </pre>
+        </details>
       </div>
     );
   }
