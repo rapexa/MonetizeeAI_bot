@@ -41,7 +41,7 @@ const LeadProfile: React.FC = () => {
   const location = useLocation();
   const lead: Lead = location.state?.lead;
 
-  const [newNote, setNewNote] = React.useState('');
+  const [currentNote, setCurrentNote] = React.useState('');
   const [isSavingNote, setIsSavingNote] = React.useState(false);
   const [noteSaved, setNoteSaved] = React.useState(false);
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
@@ -81,6 +81,13 @@ const LeadProfile: React.FC = () => {
     const saved = localStorage.getItem(`crm-lead-notes-${lead.id}`);
     return saved ? JSON.parse(saved) : (lead?.notes || []);
   });
+  
+  // Set initial note content from the latest note (if exists)
+  React.useEffect(() => {
+    if (notes.length > 0) {
+      setCurrentNote(notes[notes.length - 1].text);
+    }
+  }, []);
 
   // Save tasks to localStorage whenever it changes
   React.useEffect(() => {
@@ -624,36 +631,31 @@ const LeadProfile: React.FC = () => {
           </div>
         </div>
 
-        {/* Notes */}
+        {/* Notes - Single Editable Field */}
         <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 shadow-lg" style={{ backgroundColor: '#10091c' }}>
-          <h2 className="text-lg font-bold text-white mb-6">یادداشت‌ها</h2>
-          
-          {/* Display existing notes */}
-          {notes.length > 0 && (
-            <div className="space-y-4 mb-6">
-              {notes.map((note: { text: string; timestamp: string }, index: number) => (
-                <div key={index} className="p-4 rounded-2xl border border-gray-700/60 backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
-                  <p className="text-white text-sm mb-2">{note.text}</p>
-                  <p className="text-gray-400 text-xs">{note.timestamp}</p>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-bold text-white">یادداشت</h2>
+            {notes.length > 0 && (
+              <div className="text-xs text-gray-400">
+                آخرین بروزرسانی: {notes[notes.length - 1]?.timestamp || ''}
+              </div>
+            )}
+          </div>
           
           <div className="space-y-6">
             <div className="relative">
               <textarea 
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
+                value={currentNote}
+                onChange={(e) => setCurrentNote(e.target.value)}
                 className="w-full h-40 px-4 py-4 bg-gray-800/50 border border-gray-600/50 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent resize-none backdrop-blur-xl shadow-lg" 
-                placeholder="یادداشت جدید خود را اینجا بنویسید..."
+                placeholder={notes.length > 0 ? "یادداشت خود را ویرایش کنید..." : "یادداشت خود را اینجا بنویسید..."}
                 style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
               />
             </div>
             <div className="flex justify-end">
               <button 
                 onClick={async () => {
-                  if (!newNote.trim()) return;
+                  if (!currentNote.trim()) return;
                   
                   setIsSavingNote(true);
                   setNoteSaved(false);
@@ -661,14 +663,14 @@ const LeadProfile: React.FC = () => {
                   // Simulate saving delay
                   await new Promise(resolve => setTimeout(resolve, 1500));
                   
-                  // Add note to notes array
-                  const newNoteObj = {
-                    text: newNote.trim(),
+                  // Create or update note
+                  const noteObj = {
+                    text: currentNote.trim(),
                     timestamp: new Date().toLocaleString('fa-IR')
                   };
                   
-                  setNotes((prev: { text: string; timestamp: string }[]) => [...prev, newNoteObj]);
-                  setNewNote('');
+                  // Replace existing note or add new one
+                  setNotes([noteObj]);
                   
                   setIsSavingNote(false);
                   setNoteSaved(true);
@@ -678,7 +680,7 @@ const LeadProfile: React.FC = () => {
                     setNoteSaved(false);
                   }, 2000);
                 }}
-                disabled={isSavingNote || !newNote.trim()}
+                disabled={isSavingNote || !currentNote.trim()}
                 className={`px-8 py-3 rounded-2xl text-sm font-medium transition-all duration-300 ${
                   noteSaved 
                     ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.35)] scale-105' 
