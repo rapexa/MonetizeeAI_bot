@@ -6,7 +6,7 @@ import {
   X, Plus, Edit3, Trash2, Eye, Download, Copy, Save, PenLine
 } from 'lucide-react';
 
-type LeadStatus = 'cold' | 'warm' | 'hot';
+type LeadStatus = 'cold' | 'warm' | 'hot' | 'converted';
 
 type TaskStatus = 'pending' | 'done' | 'overdue';
 type Task = {
@@ -128,6 +128,7 @@ const LeadProfile: React.FC = () => {
       case 'hot': return 'text-emerald-300 bg-emerald-600/20 border-emerald-500/30';
       case 'warm': return 'text-yellow-300 bg-yellow-600/20 border-yellow-500/30';
       case 'cold': return 'text-gray-300 bg-gray-700/40 border-gray-600/50';
+      case 'converted': return 'text-blue-300 bg-blue-600/20 border-blue-500/30';
     }
   };
 
@@ -136,6 +137,7 @@ const LeadProfile: React.FC = () => {
       case 'hot': return 'آماده خرید';
       case 'warm': return 'نیمه‌گرم';
       case 'cold': return 'سرد';
+      case 'converted': return 'تبدیل شده';
     }
   };
 

@@ -6,7 +6,7 @@ import {
   Send, X, Phone, Clock, Copy
 } from 'lucide-react';
 
-type LeadStatus = 'cold' | 'warm' | 'hot';
+type LeadStatus = 'cold' | 'warm' | 'hot' | 'converted';
 
 type Lead = {
   id: string;
@@ -44,7 +44,8 @@ const StatusBadge: React.FC<{ status: LeadStatus }> = ({ status }) => {
   const conf = {
     cold: { text: 'سرد', cls: 'text-gray-300 bg-gray-700/40 border-gray-600/50' },
     warm: { text: 'نیمه‌گرم', cls: 'text-yellow-300 bg-yellow-600/20 border-yellow-500/30' },
-    hot: { text: 'آماده خرید', cls: 'text-emerald-300 bg-emerald-600/20 border-emerald-500/30' }
+    hot: { text: 'آماده خرید', cls: 'text-emerald-300 bg-emerald-600/20 border-emerald-500/30' },
+    converted: { text: 'تبدیل شده', cls: 'text-blue-300 bg-blue-600/20 border-blue-500/30' }
   }[status];
   return (
     <span className={`px-2 py-1 rounded-full text-xs border ${conf.cls}`}>{conf.text}</span>
@@ -133,7 +134,9 @@ const CRM: React.FC = () => {
   const summary = React.useMemo(() => {
     const leadsCount = leads.length;
     const hotLeads = leads.filter(l => l.status === 'hot');
-    const calculatedSales = hotLeads.reduce((acc, l) => acc + (l.estimatedValue || 0), 0);
+    const convertedLeads = leads.filter(l => l.status === 'converted');
+    // استفاده از لیدهای تبدیل شده به جای لیدهای داغ برای محاسبه فروش
+    const calculatedSales = convertedLeads.reduce((acc, l) => acc + (l.estimatedValue || 0), 0);
     const salesThisMonth = customSalesAmount ? parseInt(customSalesAmount.replace(/,/g, '')) || calculatedSales : calculatedSales;
     const avgValue = leadsCount ? Math.round(leads.reduce((a, l) => a + (l.estimatedValue || 0), 0) / leadsCount) : 0;
     return {
@@ -141,6 +144,7 @@ const CRM: React.FC = () => {
       leadsCount,
       newToday: 0,
       hotLeads: hotLeads.length,
+      convertedLeads: convertedLeads.length,
       avgValue
     };
   }, [leads, customSalesAmount]);
@@ -149,12 +153,13 @@ const CRM: React.FC = () => {
     cold: leads.filter(l => l.status === 'cold').length,
     warm: leads.filter(l => l.status === 'warm').length,
     hot: leads.filter(l => l.status === 'hot').length,
+    converted: leads.filter(l => l.status === 'converted').length,
   }), [leads]);
 
   const changeStatus = (leadId: string) => {
     setLeads(prev => prev.map(l => {
       if (l.id !== leadId) return l;
-      const order: LeadStatus[] = ['cold', 'warm', 'hot'];
+      const order: LeadStatus[] = ['cold', 'warm', 'hot', 'converted'];
       const idx = order.indexOf(l.status);
       return { ...l, status: order[(idx + 1) % order.length] };
     }));
@@ -536,19 +541,46 @@ const CRM: React.FC = () => {
                         <div className="text-xs text-gray-400">{Math.round((pipeline.hot / Math.max(summary.leadsCount,1)) * 100)}%</div>
                       </div>
                     </div>
+                    
+                    {/* Converted Leads */}
+                    <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-700/60 backdrop-blur-xl" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-blue-600/30 flex items-center justify-center">
+                          <span className="text-blue-300 text-xs sm:text-sm">💰</span>
+                        </div>
+                        <div>
+                          <div className="text-white font-bold text-xs sm:text-sm">لیدهای تبدیل شده</div>
+                          <div className="text-gray-400 text-xs">فروش موفق</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-white font-bold text-sm sm:text-lg">{pipeline.converted}</div>
+                        <div className="text-xs text-gray-400">{Math.round((pipeline.converted / Math.max(summary.leadsCount,1)) * 100)}%</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 {/* Sales Chart */}
                 <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-bold text-white">روند فروش هفتگی</h3>
+                    <h3 className="text-lg font-bold text-white">روند فروش و لیدهای جدید</h3>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF]"></div>
                       <span className="text-xs text-gray-300">آخرین ۷ روز</span>
                     </div>
                   </div>
-                  <MiniLineChart />
+                  <div className="flex items-center justify-center gap-6 mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-[#7c3aed]"></div>
+                      <span className="text-xs text-gray-300">لیدهای جدید</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-[#22c55e]"></div>
+                      <span className="text-xs text-gray-300">فروش (میلیون تومان)</span>
+                    </div>
+                  </div>
+                  <MiniLineChart leads={leads} />
                 </div>
 
                 {/* Quick Actions */}
@@ -1090,11 +1122,87 @@ const CRM: React.FC = () => {
   );
 };
 
-const MiniLineChart: React.FC = () => {
-  // Dual-series micro chart (no deps) – earlier simpler version
-  const labels = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
-  const leads = [12, 18, 15, 22, 20, 28, 25];
-  const sales = [3, 5, 4, 9, 7, 12, 10];
+const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
+  // تولید تاریخ‌های 7 روز گذشته
+  const getLast7Days = () => {
+    const result = [];
+    // روزهای هفته در تقویم شمسی: شنبه (6)، یکشنبه (0)، دوشنبه (1)، سه‌شنبه (2)، چهارشنبه (3)، پنج‌شنبه (4)، جمعه (5)
+    // ترتیب روزها در تقویم میلادی: یکشنبه (0)، دوشنبه (1)، سه‌شنبه (2)، چهارشنبه (3)، پنج‌شنبه (4)، جمعه (5)، شنبه (6)
+    const persianDayNames = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
+    const shortPersianDayNames = ['ی', 'د', 'س', 'چ', 'پ', 'ج', 'ش'];
+    
+    // تاریخ‌های 7 روز گذشته را به ترتیب از قدیمی به جدید محاسبه می‌کنیم
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dayIndex = date.getDay(); // 0 یکشنبه تا 6 شنبه
+      
+      result.push({
+        date: date.toISOString().split('T')[0], // فرمت YYYY-MM-DD
+        dayName: shortPersianDayNames[dayIndex], // نام کوتاه روز هفته به فارسی
+        fullDayName: persianDayNames[dayIndex], // نام کامل روز هفته به فارسی
+        dayOfMonth: date.getDate() // روز ماه
+      });
+    }
+    return result;
+  };
+
+  const last7Days = getLast7Days();
+  // نمایش روز ماه و نام روز هفته با هم
+  const labels = last7Days.map(d => `${d.dayName} ${d.dayOfMonth}`);
+
+  // محاسبه تعداد لیدهای جدید در هر روز
+  const newLeadsData = last7Days.map(day => {
+    // فرض می‌کنیم که فیلد lastInteraction تاریخ ایجاد لید است
+    return leads.filter(lead => lead.lastInteraction.startsWith(day.date)).length;
+  });
+
+  // محاسبه میزان فروش هر روز (بر اساس لیدهای تبدیل شده در آن روز)
+  const dailySalesData = last7Days.map(day => {
+    const dailyConvertedLeads = leads.filter(lead => 
+      lead.status === 'converted' && 
+      lead.lastInteraction.startsWith(day.date)
+    );
+    
+    return dailyConvertedLeads.reduce((total, lead) => total + (lead.estimatedValue || 0), 0) / 1000000; // تبدیل به میلیون تومان
+  });
+
+  // اگر همه مقادیر صفر بودند، نمودار خالی است
+  const hasData = newLeadsData.some(value => value > 0) || dailySalesData.some(value => value > 0);
+  
+  // استفاده از داده‌های واقعی یا آرایه‌های خالی در صورت نبود داده
+  const newLeads = hasData ? newLeadsData : [0, 0, 0, 0, 0, 0, 0];
+  const dailySales = hasData ? dailySalesData : [0, 0, 0, 0, 0, 0, 0];
+  
+  // نمایش پیام اگر هیچ داده‌ای وجود نداشت
+  if (!hasData && leads.length > 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[130px] text-gray-400">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 opacity-50">
+          <path d="M3 3v18h18"/>
+          <path d="m19 9-5 5-4-4-3 3"/>
+        </svg>
+        <p className="text-sm">هنوز آماری برای نمایش وجود ندارد</p>
+        <p className="text-xs mt-1">با افزودن لید و ثبت فروش، آمار نمایش داده خواهد شد</p>
+      </div>
+    );
+  }
+  
+  // نمایش پیام اگر هیچ لیدی وجود نداشت
+  if (leads.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[130px] text-gray-400">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 opacity-50">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <p className="text-sm">هنوز هیچ لیدی اضافه نشده است</p>
+        <p className="text-xs mt-1">برای شروع، لید جدیدی اضافه کنید</p>
+      </div>
+    );
+  }
 
   const width = 280;
   const height = 130;
@@ -1102,7 +1210,7 @@ const MiniLineChart: React.FC = () => {
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
 
-  const maxY = Math.max(...leads, ...sales);
+  const maxY = Math.max(...newLeads, ...dailySales);
   const yMax = Math.ceil(maxY * 1.2) || 1;
 
   const xAt = (i: number) => (i / (labels.length - 1)) * innerW + margin.left;
@@ -1112,8 +1220,8 @@ const MiniLineChart: React.FC = () => {
     .map((v, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i)} ${yAt(v)}`)
     .join(' ');
 
-  const leadsPath = toPath(leads);
-  const salesPath = toPath(sales);
+  const leadsPath = toPath(newLeads);
+  const salesPath = toPath(dailySales);
 
   const [hoverIdx, setHoverIdx] = React.useState<number | null>(null);
   const [clickedIdx, setClickedIdx] = React.useState<number | null>(null);
@@ -1159,11 +1267,11 @@ const MiniLineChart: React.FC = () => {
       ))}
 
       {/* Lines only (no area fill) */}
-      <path d={leadsPath} fill="none" stroke="#7c3aed" strokeWidth={2.6} strokeLinecap="round" />
-      <path d={salesPath} fill="none" stroke="#22c55e" strokeWidth={2.6} strokeLinecap="round" />
+      <path d={leadsPath} fill="none" stroke="#7c3aed" strokeWidth={2.6} strokeLinecap="round" /> {/* تعداد لیدها - بنفش */}
+      <path d={salesPath} fill="none" stroke="#22c55e" strokeWidth={2.6} strokeLinecap="round" /> {/* میزان فروش - سبز */}
 
       {/* Points */}
-      {leads.map((v, i) => (
+      {newLeads.map((v, i) => (
         <circle 
           key={`l-${i}`} 
           cx={xAt(i)} 
@@ -1174,7 +1282,7 @@ const MiniLineChart: React.FC = () => {
           className="cursor-pointer transition-all duration-200"
         />
       ))}
-      {sales.map((v, i) => (
+      {dailySales.map((v, i) => (
         <circle 
           key={`s-${i}`} 
           cx={xAt(i)} 
@@ -1192,7 +1300,7 @@ const MiniLineChart: React.FC = () => {
           <line x1={xAt(clickedIdx)} x2={xAt(clickedIdx)} y1={margin.top} y2={margin.top + innerH} stroke="#8B5CF6" strokeWidth={2} strokeDasharray="4 4" />
           {(() => {
             const x = xAt(clickedIdx);
-            const valueY = yAt(Math.max(leads[clickedIdx], sales[clickedIdx]));
+            const valueY = yAt(Math.max(newLeads[clickedIdx], dailySales[clickedIdx]));
             const boxW = 140;
             const boxH = 50;
             const minX = margin.left;
@@ -1216,10 +1324,10 @@ const MiniLineChart: React.FC = () => {
                   return (
                     <>
                       <text x={cx} y={y1} fontSize={11} textAnchor="middle" fill="#A78BFA" fontWeight="bold">
-                        {labels[clickedIdx]} - {leads[clickedIdx]} لید
+                        {last7Days[clickedIdx].fullDayName} {last7Days[clickedIdx].dayOfMonth} - {newLeads[clickedIdx]} لید جدید
                       </text>
                       <text x={cx} y={y2} fontSize={11} textAnchor="middle" fill="#10B981" fontWeight="bold">
-                        {sales[clickedIdx]} فروش
+                        {dailySales[clickedIdx]} میلیون فروش
                       </text>
                     </>
                   );
@@ -1236,7 +1344,7 @@ const MiniLineChart: React.FC = () => {
           <line x1={xAt(hoverIdx)} x2={xAt(hoverIdx)} y1={margin.top} y2={margin.top + innerH} stroke="#6B7280" strokeDasharray="3 3" />
           {(() => {
             const x = xAt(hoverIdx);
-            const valueY = yAt(Math.max(leads[hoverIdx], sales[hoverIdx]));
+            const valueY = yAt(Math.max(newLeads[hoverIdx], dailySales[hoverIdx]));
             const boxW = 120;
             const boxH = 46;
             const minX = margin.left;
@@ -1262,8 +1370,8 @@ const MiniLineChart: React.FC = () => {
                   const y2 = boxY + 34;
                   return (
                     <g>
-                      <text direction="rtl" x={cx} y={y1} textAnchor="middle" fontSize={12} fill="#E5E7EB">{`لید: ${leads[hoverIdx]}`}</text>
-                      <text direction="rtl" x={cx} y={y2} textAnchor="middle" fontSize={12} fill="#E5E7EB">{`فروش: ${sales[hoverIdx]}`}</text>
+                      <text direction="rtl" x={cx} y={y1} textAnchor="middle" fontSize={12} fill="#E5E7EB">{`${last7Days[hoverIdx].dayName} ${last7Days[hoverIdx].dayOfMonth} - لید جدید: ${newLeads[hoverIdx]}`}</text>
+                      <text direction="rtl" x={cx} y={y2} textAnchor="middle" fontSize={12} fill="#E5E7EB">{`فروش: ${dailySales[hoverIdx]} میلیون`}</text>
                     </g>
                   );
                 })()}
