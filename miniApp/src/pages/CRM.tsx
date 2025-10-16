@@ -150,17 +150,22 @@ const CRM: React.FC = () => {
     const leadsCount = leads.length;
     const hotLeads = leads.filter(l => l.status === 'hot');
     const convertedLeads = leads.filter(l => l.status === 'converted');
+    
     // استفاده از لیدهای تبدیل شده به جای لیدهای داغ برای محاسبه فروش
     const calculatedSales = convertedLeads.reduce((acc, l) => acc + (l.estimatedValue || 0), 0);
     const salesThisMonth = customSalesAmount ? parseInt(customSalesAmount.replace(/,/g, '')) || calculatedSales : calculatedSales;
-    const avgValue = leadsCount ? Math.round(leads.reduce((a, l) => a + (l.estimatedValue || 0), 0) / leadsCount) : 0;
+    
+    // جمع ارزش همه لیدها به جز لیدهای تبدیل شده
+    const nonConvertedLeads = leads.filter(l => l.status !== 'converted');
+    const totalLeadValue = nonConvertedLeads.reduce((acc, l) => acc + (l.estimatedValue || 0), 0);
+    
     return {
       salesThisMonth,
       leadsCount,
       newToday: 0,
       hotLeads: hotLeads.length,
       convertedLeads: convertedLeads.length,
-      avgValue
+      totalLeadValue // جمع ارزش لیدها به جای میانگین ارزش
     };
   }, [leads, customSalesAmount]);
 
@@ -476,17 +481,17 @@ const CRM: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* میانگین ارزش */}
+                  {/* جمع ارزش لیدها */}
                   <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500/10 via-purple-600/5 to-transparent border border-purple-500/20 p-4">
                     <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/10 rounded-full -translate-y-10 translate-x-10"></div>
                     <div className="relative z-10">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="text-purple-300 text-xs font-medium">میانگین ارزش</div>
+                        <div className="text-purple-300 text-xs font-medium">جمع ارزش لیدها</div>
                         <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
                           <BarChart3 size={14} className="text-white" />
                         </div>
                       </div>
-                      <div className="text-white font-bold text-lg mb-2">{formatCurrency(summary.avgValue)}</div>
+                      <div className="text-white font-bold text-lg mb-2">{formatCurrency(summary.totalLeadValue)}</div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 bg-purple-500/20 rounded-full overflow-hidden">
                           <div className="h-full bg-purple-500 rounded-full transition-all duration-1000" style={{ width: '80%' }}></div>
