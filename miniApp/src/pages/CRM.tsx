@@ -1314,20 +1314,29 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
   const leadsPath = toPath(newLeads);
   const salesPath = toPath(dailySales);
 
-  const [hoverIdx, setHoverIdx] = React.useState<number | null>(null);
-  const [clickedIdx, setClickedIdx] = React.useState<number | null>(null);
+  // فقط یک حالت برای نمایش tooltip داریم - یا hover یا click
+  const [activeIdx, setActiveIdx] = React.useState<number | null>(null);
+  // آیا tooltip در حالت کلیک شده است یا hover
+  const [isLocked, setIsLocked] = React.useState<boolean>(false);
   
   const handleMove: React.MouseEventHandler<SVGRectElement> = (e) => {
+    // اگر tooltip قفل شده باشد (کلیک شده باشد)، با حرکت موس تغییر نمی‌کند
+    if (isLocked) return;
+    
     const rect = (e.target as SVGRectElement).getBoundingClientRect();
     const x = e.clientX - rect.left - margin.left;
     const step = innerW / (labels.length - 1);
     const idx = Math.max(0, Math.min(labels.length - 1, Math.round(x / step)));
-    setHoverIdx(idx);
+    setActiveIdx(idx);
   };
   
-  const handleLeave = () => setHoverIdx(null);
+  const handleLeave = () => {
+    // اگر tooltip قفل شده باشد (کلیک شده باشد)، با خارج شدن موس حذف نمی‌شود
+    if (isLocked) return;
+    setActiveIdx(null);
+  };
   
-  // کلیک روی نقطه: اگر روی نقطه‌ای که قبلاً انتخاب شده کلیک کنیم، tooltip حذف می‌شود
+  // کلیک روی نقطه: tooltip را قفل می‌کند یا باز می‌کند
   const handleClick: React.MouseEventHandler<SVGRectElement> = (e) => {
     const rect = (e.target as SVGRectElement).getBoundingClientRect();
     const x = e.clientX - rect.left - margin.left;
@@ -1335,10 +1344,13 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
     const idx = Math.max(0, Math.min(labels.length - 1, Math.round(x / step)));
     
     // اگر روی نقطه‌ای که قبلاً انتخاب شده کلیک کنیم، tooltip حذف می‌شود
-    if (clickedIdx === idx) {
-      setClickedIdx(null);
+    if (isLocked && activeIdx === idx) {
+      setIsLocked(false);
+      setActiveIdx(null);
     } else {
-      setClickedIdx(idx);
+      // در غیر این صورت، tooltip را قفل می‌کنیم
+      setIsLocked(true);
+      setActiveIdx(idx);
     }
   };
 
@@ -1374,9 +1386,9 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
           key={`l-${i}`} 
           cx={xAt(i)} 
           cy={yAt(v)} 
-          r={clickedIdx === i ? 4.5 : hoverIdx === i ? 3.8 : 2.6} 
+          r={activeIdx === i ? 4.5 : 2.6} 
           fill="#7c3aed" 
-          opacity={clickedIdx === i ? 1 : hoverIdx === i ? 1 : 0.95}
+          opacity={activeIdx === i ? 1 : 0.95}
           className="cursor-pointer transition-all duration-200"
         />
       ))}
@@ -1385,93 +1397,99 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
           key={`s-${i}`} 
           cx={xAt(i)} 
           cy={yAt(v)} 
-          r={clickedIdx === i ? 4.5 : hoverIdx === i ? 3.8 : 2.6} 
+          r={activeIdx === i ? 4.5 : 2.6} 
           fill="#22c55e" 
-          opacity={clickedIdx === i ? 1 : hoverIdx === i ? 1 : 0.95}
+          opacity={activeIdx === i ? 1 : 0.95}
           className="cursor-pointer transition-all duration-200"
         />
       ))}
 
-      {/* Clicked point tooltip (persistent) */}
-      {clickedIdx !== null && (
+      {/* فقط یک tooltip برای هر دو حالت hover و click */}
+      {activeIdx !== null && (
         <g>
-          <line x1={xAt(clickedIdx)} x2={xAt(clickedIdx)} y1={margin.top} y2={margin.top + innerH} stroke="#8B5CF6" strokeWidth={2} strokeDasharray="4 4" />
+          {/* خط عمودی با استایل متفاوت بسته به حالت قفل */}
+          <line 
+            x1={xAt(activeIdx)} 
+            x2={xAt(activeIdx)} 
+            y1={margin.top} 
+            y2={margin.top + innerH} 
+            stroke={isLocked ? "#8B5CF6" : "#6B7280"} 
+            strokeWidth={isLocked ? 2 : 1} 
+            strokeDasharray={isLocked ? "4 4" : "3 3"} 
+          />
+          
           {(() => {
-            const x = xAt(clickedIdx);
-            const valueY = yAt(Math.max(newLeads[clickedIdx], dailySales[clickedIdx]));
-            const boxW = 140;
-            const boxH = 50;
+            const x = xAt(activeIdx);
+            const valueY = yAt(Math.max(newLeads[activeIdx], dailySales[activeIdx]));
+            
+            // اندازه tooltip بسته به حالت قفل
+            const boxW = isLocked ? 140 : 120;
+            const boxH = isLocked ? 50 : 46;
+            
             const minX = margin.left;
             const maxX = margin.left + innerW - boxW;
             const minY = margin.top;
             const maxY = margin.top + innerH - boxH;
+            
+            // موقعیت tooltip
             let boxX = x - boxW / 2;
             let boxY = valueY - boxH - 8;
+            
+            // اگر از بالای نمودار بیرون بزند، زیر نقطه نمایش داده شود
             if (boxY < minY) {
               boxY = valueY + 8;
             }
+            
+            // محدود کردن موقعیت tooltip به داخل نمودار
             boxX = Math.max(minX, Math.min(maxX, boxX));
             boxY = Math.max(minY, Math.min(maxY, boxY));
+            
             return (
               <g>
-                <rect x={boxX} y={boxY} rx={12} ry={12} width={boxW} height={boxH} fill="#1e1b4b" stroke="#8B5CF6" strokeWidth={1.5} />
+                {/* پس‌زمینه tooltip با استایل متفاوت بسته به حالت قفل */}
+                <rect 
+                  x={boxX} 
+                  y={boxY} 
+                  rx={isLocked ? 12 : 10} 
+                  ry={isLocked ? 12 : 10} 
+                  width={boxW} 
+                  height={boxH} 
+                  fill={isLocked ? "#1e1b4b" : "#0f172a"} 
+                  stroke={isLocked ? "#8B5CF6" : "#334155"} 
+                  strokeWidth={isLocked ? 1.5 : 1} 
+                />
+                
+                {/* محتوای tooltip */}
                 {(() => {
                   const cx = boxX + boxW / 2;
                   const y1 = boxY + 18;
                   const y2 = boxY + 34;
-                  return (
-                    <>
-                      <text x={cx} y={y1} fontSize={11} textAnchor="middle" fill="#A78BFA" fontWeight="bold">
-                        {last7Days[clickedIdx].fullDayName} {last7Days[clickedIdx].dayOfMonth} - {newLeads[clickedIdx]} لید جدید
-                      </text>
-                      <text x={cx} y={y2} fontSize={11} textAnchor="middle" fill="#10B981" fontWeight="bold">
-                        {dailySales[clickedIdx]} فروش
-                      </text>
-                    </>
-                  );
-                })()}
-              </g>
-            );
-          })()}
-        </g>
-      )}
-
-      {/* Hover crosshair and tooltip - فقط زمانی نمایش داده می‌شود که clickedIdx تنظیم نشده باشد */}
-      {hoverIdx !== null && clickedIdx === null && (
-        <g>
-          <line x1={xAt(hoverIdx)} x2={xAt(hoverIdx)} y1={margin.top} y2={margin.top + innerH} stroke="#6B7280" strokeDasharray="3 3" />
-          {(() => {
-            const x = xAt(hoverIdx);
-            const valueY = yAt(Math.max(newLeads[hoverIdx], dailySales[hoverIdx]));
-            const boxW = 120;
-            const boxH = 46;
-            const minX = margin.left;
-            const maxX = margin.left + innerW - boxW;
-            const minY = margin.top;
-            const maxY = margin.top + innerH - boxH;
-            // try above the point first
-            let boxX = x - boxW / 2;
-            let boxY = valueY - boxH - 8;
-            // if exceeds top, flip below the point
-            if (boxY < minY) {
-              boxY = valueY + 8;
-            }
-            // final clamp to keep fully inside
-            boxX = Math.max(minX, Math.min(maxX, boxX));
-            boxY = Math.max(minY, Math.min(maxY, boxY));
-            return (
-              <g>
-                <rect x={boxX} y={boxY} rx={10} ry={10} width={boxW} height={boxH} fill="#0f172a" stroke="#334155" />
-                {(() => {
-                  const cx = boxX + boxW / 2;
-                  const y1 = boxY + 18;
-                  const y2 = boxY + 34;
-                  return (
-                    <g>
-                      <text direction="rtl" x={cx} y={y1} textAnchor="middle" fontSize={12} fill="#E5E7EB">{`${last7Days[hoverIdx].dayName} ${last7Days[hoverIdx].dayOfMonth} - لید جدید: ${newLeads[hoverIdx]}`}</text>
-                      <text direction="rtl" x={cx} y={y2} textAnchor="middle" fontSize={12} fill="#E5E7EB">{`تعداد فروش: ${dailySales[hoverIdx]}`}</text>
-                    </g>
-                  );
+                  
+                  if (isLocked) {
+                    // حالت کلیک شده
+                    return (
+                      <>
+                        <text x={cx} y={y1} fontSize={11} textAnchor="middle" fill="#A78BFA" fontWeight="bold">
+                          {last7Days[activeIdx].fullDayName} {last7Days[activeIdx].dayOfMonth} - {newLeads[activeIdx]} لید جدید
+                        </text>
+                        <text x={cx} y={y2} fontSize={11} textAnchor="middle" fill="#10B981" fontWeight="bold">
+                          {dailySales[activeIdx]} فروش
+                        </text>
+                      </>
+                    );
+                  } else {
+                    // حالت hover
+                    return (
+                      <>
+                        <text direction="rtl" x={cx} y={y1} textAnchor="middle" fontSize={12} fill="#E5E7EB">
+                          {`${last7Days[activeIdx].dayName} ${last7Days[activeIdx].dayOfMonth} - لید جدید: ${newLeads[activeIdx]}`}
+                        </text>
+                        <text direction="rtl" x={cx} y={y2} textAnchor="middle" fontSize={12} fill="#E5E7EB">
+                          {`تعداد فروش: ${dailySales[activeIdx]}`}
+                        </text>
+                      </>
+                    );
+                  }
                 })()}
               </g>
             );
