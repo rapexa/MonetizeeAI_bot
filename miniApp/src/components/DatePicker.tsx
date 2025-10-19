@@ -10,6 +10,47 @@ interface DatePickerProps {
   style?: React.CSSProperties;
 }
 
+// تابع تبدیل میلادی به شمسی
+const toJalali = (date: Date) => {
+  let gy = date.getFullYear();
+  const gm = date.getMonth() + 1;
+  const gd = date.getDate();
+  
+  const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+  let jy = gy <= 1600 ? 0 : 979;
+  gy -= gy <= 1600 ? 621 : 1600;
+  const gy2 = gm > 2 ? gy + 1 : gy;
+  let days = 365 * gy + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+  jy += 33 * Math.floor(days / 12053);
+  days %= 12053;
+  jy += 4 * Math.floor(days / 1461);
+  days %= 1461;
+  jy += Math.floor((days - 1) / 365);
+  if (days > 365) days = (days - 1) % 365;
+  const jm = days < 186 ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+  const jd = 1 + (days < 186 ? days % 31 : (days - 186) % 30);
+  
+  return { year: jy, month: jm, day: jd };
+};
+
+// تابع تبدیل شمسی به میلادی
+const toGregorian = (jy: number, jm: number, jd: number) => {
+  jy += 1595;
+  const days = -355668 + (365 * jy) + Math.floor(jy / 33) * 8 + Math.floor(((jy % 33) + 3) / 4) + jd + (jm < 7 ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
+  const gy = 400 * Math.floor(days / 146097);
+  const days2 = days % 146097;
+  const gy2 = 100 * Math.floor(days2 / 36524);
+  const days3 = days2 % 36524;
+  const gy3 = 4 * Math.floor(days3 / 1461);
+  const days4 = days3 % 1461;
+  const gy4 = Math.floor((days4 + 3) / 4);
+  const gy5 = gy + gy2 + gy3 + gy4;
+  const gm = Math.floor((days4 - gy4 * 4) / 31) + 1;
+  const gd = (days4 - gy4 * 4) % 31 + 1;
+  
+  return new Date(gy5, gm - 1, gd);
+};
+
 const DatePicker: React.FC<DatePickerProps> = ({
   value,
   onChange,
@@ -21,6 +62,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [customHour, setCustomHour] = useState<string>('');
+  const [customMinute, setCustomMinute] = useState<string>('');
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,6 +73,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
         if (!isNaN(date.getTime())) {
           setSelectedDate(date);
           setSelectedTime(date.toTimeString().slice(0, 5));
+          setCustomHour(date.getHours().toString().padStart(2, '0'));
+          setCustomMinute(date.getMinutes().toString().padStart(2, '0'));
         }
       } catch (error) {
         console.error('Invalid date value');
@@ -38,6 +83,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
       const today = new Date();
       setSelectedDate(today);
       setSelectedTime(today.toTimeString().slice(0, 5));
+      setCustomHour(today.getHours().toString().padStart(2, '0'));
+      setCustomMinute(today.getMinutes().toString().padStart(2, '0'));
     }
   }, [value, isOpen, selectedDate]);
 
@@ -60,13 +107,9 @@ const DatePicker: React.FC<DatePickerProps> = ({
       try {
         const date = new Date(value);
         if (!isNaN(date.getTime())) {
-          return date.toLocaleString('fa-IR', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-          });
+          const jalali = toJalali(date);
+          const time = date.toTimeString().slice(0, 5);
+          return `${jalali.year}/${jalali.month.toString().padStart(2, '0')}/${jalali.day.toString().padStart(2, '0')} - ${time}`;
         }
       } catch (error) {
         return value;
@@ -95,34 +138,55 @@ const DatePicker: React.FC<DatePickerProps> = ({
     }
   };
 
+  const handleCustomTimeChange = () => {
+    if (customHour && customMinute && selectedDate) {
+      const hour = parseInt(customHour);
+      const minute = parseInt(customMinute);
+      if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+        const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        setSelectedTime(timeStr);
+        const newDate = new Date(selectedDate);
+        newDate.setHours(hour, minute);
+        onChange(newDate.toISOString());
+      }
+    }
+  };
+
   const generateCalendarDays = () => {
     if (!selectedDate) return [];
     
-    const year = selectedDate.getFullYear();
-    const month = selectedDate.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
-
+    const jalali = toJalali(selectedDate);
+    const year = jalali.year;
+    const month = jalali.month;
+    
+    // محاسبه تعداد روزهای ماه شمسی
+    const daysInMonth = month <= 6 ? 31 : month <= 11 ? 30 : 29;
+    
+    // محاسبه روز اول ماه
+    const firstDayDate = toGregorian(year, month, 1);
+    const startingDayOfWeek = firstDayDate.getDay();
+    
     const days = [];
     
-    // Add empty cells for days before the first day of the month
+    // اضافه کردن سلول‌های خالی برای روزهای قبل از اول ماه
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(<div key={`empty-${i}`} className="h-10"></div>);
     }
     
-    // Add days of the month
+    // اضافه کردن روزهای ماه
     for (let day = 1; day <= daysInMonth; day++) {
-      const isSelected = selectedDate && selectedDate.getDate() === day;
-      const isToday = new Date().getDate() === day && 
-                     new Date().getMonth() === month && 
-                     new Date().getFullYear() === year;
+      const isSelected = selectedDate && toJalali(selectedDate).day === day;
+      const today = new Date();
+      const todayJalali = toJalali(today);
+      const isToday = todayJalali.year === year && todayJalali.month === month && todayJalali.day === day;
       
       days.push(
         <button
           key={day}
-          onClick={() => handleDateSelect(new Date(year, month, day))}
+          onClick={() => {
+            const newDate = toGregorian(year, month, day);
+            handleDateSelect(newDate);
+          }}
           className={`relative h-10 w-10 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-110 date-picker-day ${
             isSelected 
               ? 'selected bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50' 
@@ -152,12 +216,27 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const navigateMonth = (direction: 'prev' | 'next') => {
     if (!selectedDate) return;
     
-    const newDate = new Date(selectedDate);
+    const jalali = toJalali(selectedDate);
+    let newYear = jalali.year;
+    let newMonth = jalali.month;
+    
     if (direction === 'prev') {
-      newDate.setMonth(newDate.getMonth() - 1);
+      if (newMonth === 1) {
+        newMonth = 12;
+        newYear--;
+      } else {
+        newMonth--;
+      }
     } else {
-      newDate.setMonth(newDate.getMonth() + 1);
+      if (newMonth === 12) {
+        newMonth = 1;
+        newYear++;
+      } else {
+        newMonth++;
+      }
     }
+    
+    const newDate = toGregorian(newYear, newMonth, 1);
     setSelectedDate(newDate);
   };
 
@@ -227,10 +306,10 @@ const DatePicker: React.FC<DatePickerProps> = ({
             </button>
             <div className="text-center">
               <h3 className="gradient-text font-bold text-lg">
-                {selectedDate ? monthNames[selectedDate.getMonth()] : monthNames[new Date().getMonth()]}
+                {selectedDate ? monthNames[toJalali(selectedDate).month - 1] : monthNames[toJalali(new Date()).month - 1]}
               </h3>
               <p className="text-gray-400 text-sm">
-                {selectedDate ? selectedDate.getFullYear() : new Date().getFullYear()}
+                {selectedDate ? toJalali(selectedDate).year : toJalali(new Date()).year}
               </p>
             </div>
             <button
@@ -258,6 +337,40 @@ const DatePicker: React.FC<DatePickerProps> = ({
                 <Clock className="w-5 h-5 text-purple-400" />
                 <h4 className="text-white font-semibold">انتخاب ساعت</h4>
               </div>
+              
+              {/* Custom Time Input */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="text-gray-300 text-sm">ساعت:</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="23"
+                    value={customHour}
+                    onChange={(e) => setCustomHour(e.target.value.padStart(2, '0'))}
+                    className="w-16 px-2 py-1 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white text-center text-sm"
+                    placeholder="00"
+                  />
+                  <span className="text-gray-400">:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={customMinute}
+                    onChange={(e) => setCustomMinute(e.target.value.padStart(2, '0'))}
+                    className="w-16 px-2 py-1 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white text-center text-sm"
+                    placeholder="00"
+                  />
+                  <button
+                    onClick={handleCustomTimeChange}
+                    className="px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
+                  >
+                    اعمال
+                  </button>
+                </div>
+              </div>
+              
+              {/* Quick Time Slots */}
               <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
                 {getTimeSlots()}
               </div>
@@ -271,6 +384,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
                 const today = new Date();
                 setSelectedDate(today);
                 setSelectedTime(today.toTimeString().slice(0, 5));
+                setCustomHour(today.getHours().toString().padStart(2, '0'));
+                setCustomMinute(today.getMinutes().toString().padStart(2, '0'));
                 onChange(today.toISOString());
                 setIsOpen(false);
                 setShowTimePicker(false);
