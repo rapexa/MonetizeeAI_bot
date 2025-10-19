@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   BarChart3, Users, Flame, TrendingUp, Filter, Download, Plus, Search,
   MessageCircle, Star, Upload,
-  Send, X, Phone, Clock, Copy
+  Send, X, Phone, Clock, Copy, Edit3, Trash2
 } from 'lucide-react';
 
 type LeadStatus = 'cold' | 'warm' | 'hot' | 'converted';
@@ -139,6 +139,48 @@ const CRM: React.FC = () => {
     note: '',
     type: 'call'
   });
+  
+  // Task filter
+  const [taskFilter, setTaskFilter] = React.useState<'all' | 'pending' | 'done' | 'overdue'>('all');
+  
+  // Task being edited
+  const [editTask, setEditTask] = React.useState<Task | null>(null);
+  
+  // Status chip style
+  const statusChip = (status: string) => {
+    return status === 'pending' 
+      ? 'bg-purple-600/20 text-purple-200 border-purple-500/30' 
+      : status === 'done' 
+      ? 'bg-green-600/20 text-green-200 border-green-500/30' 
+      : 'bg-red-600/20 text-red-200 border-red-500/30';
+  };
+  
+  // Toggle task status
+  const toggleTask = (taskId: string) => {
+    const updatedTasks = allTasks.map(t => 
+      t.id === taskId 
+        ? { ...t, status: (t.status === 'done' ? 'pending' : 'done') as 'pending' | 'done' | 'overdue' }
+        : t
+    );
+    setAllTasks(updatedTasks);
+  };
+  
+  // Filtered and sorted tasks
+  const filteredTasks = React.useMemo(() => {
+    return allTasks
+      .filter(t => taskFilter === 'all' || t.status === taskFilter)
+      .sort((a, b) => {
+        // Sort by status (pending first, then overdue, then done)
+        if (a.status !== b.status) {
+          if (a.status === 'pending') return -1;
+          if (b.status === 'pending') return 1;
+          if (a.status === 'overdue') return -1;
+          if (b.status === 'overdue') return 1;
+        }
+        // Then sort by due date (most recent first)
+        return new Date(b.due).getTime() - new Date(a.due).getTime();
+      });
+  }, [allTasks, taskFilter]);
 
   const filteredLeads = leads.filter(l => {
     const matchesQuery = !query || l.name.includes(query) || l.phone?.includes(query) || l.email?.includes(query);
@@ -756,101 +798,109 @@ const CRM: React.FC = () => {
         )}
 
         {selectedTab === 'tasks' && (
-          <>
-            {/* Add Task Button */}
-            <div className="mb-4 sm:mb-6">
-              <button 
-                onClick={() => setShowAddTask(true)} 
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-[#8A00FF] to-[#C738FF] border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition flex items-center justify-center gap-2"
-              >
-                <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> افزودن وظیفه جدید
-              </button>
+          <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+            {/* Header */}
+            <div className="mb-8">
+              <div className="text-center mb-6">
+                <h3 className="text-white text-xl font-bold mb-2">وظایف و پیگیری‌ها</h3>
+                <div className="text-sm text-gray-300 max-w-xs mx-auto leading-relaxed">مدیریت کارهای روزانه، تماس‌ها و پیگیری‌های فروش</div>
+              </div>
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  onClick={() => setShowAddTask(true)}
+                  className="px-6 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-[#8A00FF] to-[#C738FF] border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition flex items-center gap-2"
+                >
+                  <Plus size={18} /> افزودن
+                </button>
+                <button
+                  onClick={() => setTaskFilter(f => f==='all' ? 'pending' : f==='pending' ? 'done' : f==='done' ? 'overdue' : 'all')}
+                  className="px-4 py-3 rounded-2xl text-sm border text-gray-200 hover:scale-[1.02] active:scale-[0.99] transition backdrop-blur-xl border-gray-700/60 shadow-lg flex items-center gap-2" 
+                  style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
+                  title="چرخه بین فیلترها"
+                >
+                  <Filter size={16} /> فیلتر
+                </button>
+              </div>
             </div>
 
-            {/* Tasks List */}
-            <div className="space-y-3 sm:space-y-4">
-              {allTasks.length === 0 ? (
-                <div className="text-center py-8 sm:py-12">
-                  <div className="text-gray-400 text-4xl sm:text-6xl mb-4">📝</div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">هنوز وظیفه‌ای اضافه نکرده‌اید</h3>
-                  <p className="text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">برای شروع، اولین وظیفه خود را اضافه کنید</p>
-                  <button 
-                    onClick={() => setShowAddTask(true)} 
-                    className="px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-[#8A00FF] to-[#C738FF] border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition flex items-center gap-2 mx-auto"
-                  >
-                    <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> افزودن اولین وظیفه
-                  </button>
+            {/* Status Tabs */}
+            <div className="grid grid-cols-4 gap-3 mb-6">
+              {(['all','pending','done','overdue'] as const).map(k => (
+                <button 
+                  key={k} 
+                  onClick={() => setTaskFilter(k)} 
+                  className={`py-3 rounded-2xl text-sm font-medium border transition-all ${
+                    taskFilter===k 
+                      ? 'bg-white/10 border-white/20 text-white shadow-lg' 
+                      : 'bg-gray-800/60 border-gray-700/60 text-gray-300 hover:scale-[1.02] active:scale-[0.99]'
+                  }`}
+                >
+                  {k==='all'?'همه':k==='pending'?'در انتظار':k==='done'?'انجام شد':'عقب‌افتاده'}
+                </button>
+              ))}
+            </div>
+
+            {/* Task List */}
+            <div className="space-y-4">
+              {filteredTasks.length === 0 ? (
+                <div className="text-center text-gray-400 py-12">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center mx-auto mb-4">
+                    <Clock size={24} className="text-gray-500" />
+                  </div>
+                  <p className="text-base">موردی یافت نشد</p>
+                  <p className="text-sm text-gray-500 mt-1">برای شروع، یک وظیفه جدید اضافه کنید</p>
                 </div>
               ) : (
-                allTasks.map(task => (
-                  <div key={task.id} className="backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-700/60 shadow-lg relative overflow-hidden hover:scale-[1.01] transition-all" style={{ backgroundColor: '#10091c' }}>
-                    <div className="flex items-center justify-between mb-3 sm:mb-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                          <span className="text-white text-base sm:text-lg font-bold truncate">{task.title}</span>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            task.status === 'pending' ? 'bg-yellow-600/20 text-yellow-300 border border-yellow-500/30' :
-                            task.status === 'done' ? 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/30' :
-                            'bg-red-600/20 text-red-300 border border-red-500/30'
-                          }`}>
-                            {task.status === 'pending' ? 'در انتظار' : 
-                             task.status === 'done' ? 'انجام شد' : 'عقب افتاده'}
-                          </span>
-                        </div>
-                        <div className="text-xs sm:text-sm text-gray-300 mb-1">
-                          {task.leadName ? `مربوط به: ${task.leadName}` : 'وظیفه عمومی'}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          موعد: {new Date(task.due).toLocaleString('fa-IR')}
-                        </div>
-                        {task.note && (
-                          <div className="text-xs text-gray-300 mt-2 p-2 bg-gray-800/40 rounded-lg">
-                            {task.note}
-                          </div>
-                        )}
+                filteredTasks.map(task => (
+                  <label key={task.id} className="flex items-center gap-4 p-4 rounded-2xl border border-gray-700/60 hover:scale-[1.01] hover:border-purple-400/40 transition cursor-pointer backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
+                    <input type="checkbox" checked={task.status==='done'} onChange={() => toggleTask(task.id)} className="w-5 h-5 rounded border-gray-600 bg-gray-800/60 text-emerald-500 focus:ring-emerald-500" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="truncate text-white text-base font-bold">{task.title}</div>
+                        <span className={`px-3 py-1 text-xs rounded-full border whitespace-nowrap backdrop-blur-xl shadow-lg ${statusChip(task.status)}`}>{task.status==='pending'?'در انتظار':task.status==='done'?'انجام شد':'عقب‌افتاده'}</span>
                       </div>
-                      <div className="text-left">
-                        <div className="text-xs text-gray-400 mb-1">
-                          {task.type === 'call' ? '📞 تماس' :
-                           task.type === 'whatsapp' ? '💬 واتساپ' :
-                           task.type === 'sms' ? '📱 پیامک' : '🤝 جلسه'}
-                        </div>
+                      <div className="flex items-center gap-3 mt-2 text-sm text-gray-300">
+                        {task.leadName && <span className="truncate font-medium">{task.leadName}</span>}
+                        <span className="px-2 py-1 rounded-lg bg-gradient-to-r from-[#8A00FF]/20 to-[#C738FF]/20 text-purple-200 border border-purple-500/30 backdrop-blur-xl text-xs">
+                          {new Date(task.due).toLocaleString('fa-IR')}
+                        </span>
                       </div>
+                      {task.note && (
+                        <div className="text-xs text-gray-300 mt-2 p-2 bg-gray-800/40 rounded-lg">
+                          {task.note}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex flex-col gap-2">
                       <button 
-                        onClick={() => {
-                          const updatedTasks = allTasks.map(t => 
-                            t.id === task.id 
-                              ? { ...t, status: (t.status === 'pending' ? 'done' : 'pending') as 'pending' | 'done' | 'overdue' }
-                              : t
-                          );
-                          setAllTasks(updatedTasks);
-                        }}
-                        className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-medium border border-white/10 hover:scale-[1.02] active:scale-[0.99] transition-all shadow-lg ${
-                          task.status === 'done' 
-                            ? 'bg-gray-600 text-gray-200' 
-                            : 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white'
-                        }`}
-                      >
-                        {task.status === 'done' ? 'بازگشت به انتظار' : 'انجام شد'}
-                      </button>
-                      <button 
-                        onClick={() => {
-                          const updatedTasks = allTasks.filter(t => t.id !== task.id);
-                          setAllTasks(updatedTasks);
-                        }}
-                        className="px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm border text-red-300 hover:scale-[1.02] active:scale-[0.99] transition backdrop-blur-xl border-red-500/60 shadow-lg" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setEditTask(task);
+                        }} 
+                        className="p-2 rounded-xl hover:scale-[1.05] active:scale-[0.95] transition-all backdrop-blur-xl border border-gray-700/60" 
                         style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
                       >
-                        حذف
+                        <Edit3 size={16} className="text-gray-300" />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const updatedTasks = allTasks.filter(t => t.id !== task.id);
+                          setAllTasks(updatedTasks);
+                        }} 
+                        className="p-2 rounded-xl hover:scale-[1.05] active:scale-[0.95] transition-all backdrop-blur-xl border border-red-700/40" 
+                        style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
+                      >
+                        <Trash2 size={16} className="text-red-300" />
                       </button>
                     </div>
-                  </div>
+                  </label>
                 ))
               )}
             </div>
-          </>
+          </div>
         )}
 
         {/* Add Task Modal */}
@@ -923,6 +973,111 @@ const CRM: React.FC = () => {
                 <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
                   <button onClick={addTask} className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl text-xs sm:text-sm font-bold border border-white/10">افزودن</button>
                   <button onClick={() => setShowAddTask(false)} className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-800/70 text-gray-200 rounded-xl text-xs sm:text-sm font-bold border border-gray-700/60">انصراف</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Edit Task Modal */}
+        {editTask && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+            <div className="w-full max-w-md backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+              <div className="p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-bold text-white mb-4 sm:mb-6">ویرایش وظیفه</h3>
+                
+                <div className="space-y-3 sm:space-y-4">
+                  <div>
+                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">عنوان وظیفه *</label>
+                    <input
+                      value={editTask.title}
+                      onChange={(e) => setEditTask({...editTask, title: e.target.value})}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 text-sm sm:text-base"
+                      placeholder="عنوان وظیفه"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">مربوط به مشتری</label>
+                    <select
+                      value={editTask.leadId || ''}
+                      onChange={(e) => {
+                        const leadId = e.target.value;
+                        const leadName = leadId ? leads.find(l => l.id === leadId)?.name : undefined;
+                        setEditTask({...editTask, leadId, leadName});
+                      }}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
+                    >
+                      <option value="">وظیفه عمومی</option>
+                      {leads.map(lead => (
+                        <option key={lead.id} value={lead.id}>{lead.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">تاریخ و ساعت موعد *</label>
+                    <input
+                      type="datetime-local"
+                      value={new Date(editTask.due).toISOString().slice(0, 16)}
+                      onChange={(e) => setEditTask({...editTask, due: new Date(e.target.value).toISOString()})}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">نوع وظیفه</label>
+                    <select
+                      value={editTask.type || 'call'}
+                      onChange={(e) => setEditTask({...editTask, type: e.target.value as 'call' | 'whatsapp' | 'sms' | 'meeting'})}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
+                    >
+                      <option value="call">📞 تماس</option>
+                      <option value="whatsapp">💬 واتساپ</option>
+                      <option value="sms">📱 پیامک</option>
+                      <option value="meeting">🤝 جلسه</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">وضعیت</label>
+                    <select
+                      value={editTask.status}
+                      onChange={(e) => setEditTask({...editTask, status: e.target.value as 'pending' | 'done' | 'overdue'})}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
+                    >
+                      <option value="pending">در انتظار</option>
+                      <option value="done">انجام شد</option>
+                      <option value="overdue">عقب افتاده</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">یادداشت</label>
+                    <textarea
+                      value={editTask.note || ''}
+                      onChange={(e) => setEditTask({...editTask, note: e.target.value})}
+                      className="w-full h-16 sm:h-20 px-3 sm:px-4 py-2 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 text-sm sm:text-base resize-none"
+                      placeholder="یادداشت اختیاری..."
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
+                  <button 
+                    onClick={() => {
+                      const updatedTasks = allTasks.map(t => t.id === editTask.id ? editTask : t);
+                      setAllTasks(updatedTasks);
+                      setEditTask(null);
+                    }} 
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl text-xs sm:text-sm font-bold border border-white/10">
+                    ذخیره تغییرات
+                  </button>
+                  <button 
+                    onClick={() => setEditTask(null)} 
+                    className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-800/70 text-gray-200 rounded-xl text-xs sm:text-sm font-bold border border-gray-700/60">
+                    انصراف
+                  </button>
                 </div>
               </div>
             </div>
