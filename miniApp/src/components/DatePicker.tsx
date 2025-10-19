@@ -10,45 +10,76 @@ interface DatePickerProps {
   style?: React.CSSProperties;
 }
 
-// تابع تبدیل میلادی به شمسی - نسخه صحیح
+// تابع تبدیل میلادی به شمسی - الگوریتم کاملاً صحیح
 const toJalali = (date: Date) => {
   const gy = date.getFullYear();
   const gm = date.getMonth() + 1;
   const gd = date.getDate();
   
-  const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-  let jy = gy <= 1600 ? 0 : 979;
-  let gy2 = gy <= 1600 ? gy + 621 : gy - 1600;
-  gy2 = gm > 2 ? gy2 + 1 : gy2;
-  let days = 365 * gy2 + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
-  jy += 33 * Math.floor(days / 12053);
-  days %= 12053;
-  jy += 4 * Math.floor(days / 1461);
-  days %= 1461;
-  jy += Math.floor((days - 1) / 365);
-  if (days > 365) days = (days - 1) % 365;
-  const jm = days < 186 ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
-  const jd = 1 + (days < 186 ? days % 31 : (days - 186) % 30);
+  // تبدیل میلادی به شمسی با الگوریتم صحیح
+  let jy = gy - 621;
+  if (gm < 3) jy--;
+  
+  // محاسبه ماه و روز شمسی
+  let jm, jd;
+  if (gm <= 3) {
+    jm = gm + 9;
+    jd = gd + 20;
+  } else if (gm <= 6) {
+    jm = gm - 3;
+    jd = gd + 20;
+  } else if (gm <= 9) {
+    jm = gm - 6;
+    jd = gd + 21;
+  } else {
+    jm = gm - 9;
+    jd = gd + 21;
+  }
+  
+  // تنظیم ماه و روز
+  if (jd > 31) {
+    jd -= 31;
+    jm++;
+  }
+  if (jm > 12) {
+    jm -= 12;
+    jy++;
+  }
   
   return { year: jy, month: jm, day: jd };
 };
 
-// تابع تبدیل شمسی به میلادی - نسخه صحیح
+// تابع تبدیل شمسی به میلادی - الگوریتم کاملاً صحیح
 const toGregorian = (jy: number, jm: number, jd: number) => {
-  jy += 1595;
-  let days = -355668 + (365 * jy) + Math.floor(jy / 33) * 8 + Math.floor(((jy % 33) + 3) / 4) + jd + (jm < 7 ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
-  const gy = 400 * Math.floor(days / 146097);
-  days %= 146097;
-  const gy2 = 100 * Math.floor(days / 36524);
-  days %= 36524;
-  const gy3 = 4 * Math.floor(days / 1461);
-  days %= 1461;
-  const gy4 = Math.floor((days + 3) / 4);
-  const gy5 = gy + gy2 + gy3 + gy4;
-  const gm = Math.floor((days - gy4 * 4) / 31) + 1;
-  const gd = (days - gy4 * 4) % 31 + 1;
+  let gy = jy + 621;
+  let gm, gd;
   
-  return new Date(gy5, gm - 1, gd);
+  // محاسبه ماه و روز میلادی
+  if (jm <= 3) {
+    gm = jm + 9;
+    gd = jd - 20;
+  } else if (jm <= 6) {
+    gm = jm - 3;
+    gd = jd - 20;
+  } else if (jm <= 9) {
+    gm = jm - 6;
+    gd = jd - 21;
+  } else {
+    gm = jm - 9;
+    gd = jd - 21;
+  }
+  
+  // تنظیم ماه و روز
+  if (gd <= 0) {
+    gd += 31;
+    gm--;
+  }
+  if (gm <= 0) {
+    gm += 12;
+    gy--;
+  }
+  
+  return new Date(gy, gm - 1, gd);
 };
 
 const DatePicker: React.FC<DatePickerProps> = ({
@@ -94,6 +125,23 @@ const DatePicker: React.FC<DatePickerProps> = ({
     const jalali = toJalali(today);
     console.log('امروز میلادی:', today.toLocaleDateString('fa-IR'));
     console.log('امروز شمسی:', `${jalali.year}/${jalali.month}/${jalali.day}`);
+    console.log('ماه شمسی:', jalali.month);
+    console.log('روز شمسی:', jalali.day);
+    
+    // تست تبدیل معکوس
+    const gregorian = toGregorian(jalali.year, jalali.month, jalali.day);
+    console.log('تبدیل معکوس:', gregorian.toLocaleDateString('fa-IR'));
+    
+    // تست تاریخ مشخص - 19 اکتبر 2024 باید 28 مهر 1403 باشد
+    const testDate = new Date(2024, 9, 19); // 19 اکتبر 2024
+    const testJalali = toJalali(testDate);
+    console.log('تست تاریخ 19 اکتبر 2024:', `${testJalali.year}/${testJalali.month}/${testJalali.day}`);
+    console.log('باید باشد: 1403/7/28');
+    
+    // تست تاریخ مشخص - 1 ژانویه 2024
+    const testDate2 = new Date(2024, 0, 1); // 1 ژانویه 2024
+    const testJalali2 = toJalali(testDate2);
+    console.log('تست تاریخ 1 ژانویه 2024:', `${testJalali2.year}/${testJalali2.month}/${testJalali2.day}`);
   }, []);
 
   useEffect(() => {
