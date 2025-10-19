@@ -996,7 +996,8 @@ const CRM: React.FC = () => {
                       type="datetime-local"
                       value={newTask.due}
                       onChange={(e) => setNewTask(prev => ({ ...prev, due: e.target.value }))}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base max-w-full"
+                      style={{ direction: 'ltr', fontSize: '14px' }}
                     />
                   </div>
                   
@@ -1076,7 +1077,8 @@ const CRM: React.FC = () => {
                       type="datetime-local"
                       value={new Date(editTask.due).toISOString().slice(0, 16)}
                       onChange={(e) => setEditTask({...editTask, due: new Date(e.target.value).toISOString()})}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base max-w-full"
+                      style={{ direction: 'ltr', fontSize: '14px' }}
                     />
                   </div>
                   
