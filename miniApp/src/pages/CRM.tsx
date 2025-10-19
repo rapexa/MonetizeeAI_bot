@@ -900,6 +900,61 @@ const CRM: React.FC = () => {
                 ))
               )}
             </div>
+            
+            {/* Task Summary */}
+            <div className="mt-6 p-6 rounded-2xl border border-gray-700/60 backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-white">خلاصه وظایف</h3>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF] shadow-lg"></div>
+                  <span className="text-sm text-gray-300 font-medium">
+                    {allTasks.length ? Math.round((allTasks.filter(t => t.status === 'done').length / allTasks.length) * 100) : 0}% تکمیل
+                  </span>
+                </div>
+              </div>
+              
+              {/* Stats Grid */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="text-center p-4 rounded-2xl border border-gray-700/60 backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
+                  <div className="text-2xl font-bold text-white">{allTasks.length}</div>
+                  <div className="text-sm text-gray-300 mt-1">کل وظایف</div>
+                </div>
+                <div className="text-center p-4 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 backdrop-blur-xl shadow-lg">
+                  <div className="text-2xl font-bold text-emerald-300">{allTasks.filter(t => t.status === 'done').length}</div>
+                  <div className="text-sm text-emerald-400 mt-1">انجام شده</div>
+                </div>
+                <div className="text-center p-4 rounded-2xl bg-amber-600/20 border border-amber-500/30 backdrop-blur-xl shadow-lg">
+                  <div className="text-2xl font-bold text-amber-300">{allTasks.filter(t => t.status === 'pending' || t.status === 'overdue').length}</div>
+                  <div className="text-sm text-amber-400 mt-1">باقی‌مانده</div>
+                </div>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="mb-6">
+                <div className="h-3 rounded-full bg-gray-700/50 overflow-hidden backdrop-blur-xl">
+                  <div 
+                    className="h-full bg-gradient-to-r from-[#8A00FF] to-[#C738FF] transition-all duration-500 ease-out shadow-lg" 
+                    style={{ width: `${allTasks.length ? Math.round((allTasks.filter(t => t.status === 'done').length / allTasks.length) * 100) : 0}%` }} 
+                  />
+                </div>
+              </div>
+              
+              {/* Status Message */}
+              <div className="text-center">
+                {allTasks.filter(t => t.status === 'done').length >= allTasks.length && allTasks.length > 0 ? (
+                  <div className="text-sm text-emerald-300 font-medium">🎉 همه وظایف انجام شدند!</div>
+                ) : allTasks.length === 0 ? (
+                  <div className="text-sm text-gray-400">هیچ وظیفه‌ای تعریف نشده</div>
+                ) : (
+                  <div className="text-sm text-gray-300">
+                    {allTasks.filter(t => t.status === 'pending' || t.status === 'overdue').length > 0 ? 
+                      `${allTasks.filter(t => t.status === 'pending' || t.status === 'overdue').length} وظیفه باقی‌مانده` : 
+                      'همه وظایف انجام شدند'}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
