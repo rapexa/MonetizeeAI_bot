@@ -971,7 +971,7 @@ const CRM: React.FC = () => {
               </div>
               
               {/* Content */}
-              <div className="p-4 space-y-4 max-h-[50vh] overflow-y-scroll modal-scrollbar">
+              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-scroll modal-scrollbar">
                   <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
                     <input
@@ -1067,7 +1067,7 @@ const CRM: React.FC = () => {
               </div>
               
               {/* Content */}
-              <div className="p-4 space-y-4 max-h-[50vh] overflow-y-scroll modal-scrollbar">
+              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-scroll modal-scrollbar">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
                   <input 
@@ -1139,9 +1139,8 @@ const CRM: React.FC = () => {
                     placeholder="یادداشت (اختیاری)"
                   />
                 </div>
-                </div>
-                
               </div>
+            </div>
               
               {/* Footer */}
               <div className="flex gap-3 p-4 border-t border-gray-700/50 bg-gray-900/50">
