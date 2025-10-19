@@ -1265,7 +1265,7 @@ const CRM: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-3 sm:p-4 space-y-4 sm:space-y-5 overflow-y-auto flex-1 pb-20 sm:pb-24">
+              <div className="p-3 sm:p-4 space-y-4 sm:space-y-5 overflow-y-auto flex-1 pb-20 sm:pb-24 modal-scrollbar">
                 {/* Quick actions row */}
                 <div className="grid grid-cols-4 gap-1 sm:gap-2">
                   <button onClick={() => {
@@ -1310,7 +1310,7 @@ const CRM: React.FC = () => {
                     <div className="space-y-2">
                       <h4 className="text-xs sm:text-sm font-bold text-white">تاریخچه تعاملات:</h4>
                       <div className="bg-gray-800/40 border border-gray-700/60 rounded-xl p-2 sm:p-3">
-                        <div className="space-y-2 max-h-24 sm:max-h-32 overflow-y-auto">
+                        <div className="space-y-2 max-h-24 sm:max-h-32 overflow-y-auto modal-scrollbar">
                           {[...showLead.interactions].reverse().map((interaction, i) => (
                             <div key={i} className="text-xs text-gray-300 border-b border-gray-700/30 pb-2">
                               <div className="flex items-center gap-2 mb-1">
@@ -1339,7 +1339,7 @@ const CRM: React.FC = () => {
                     <div className="space-y-2">
                       <h4 className="text-xs sm:text-sm font-bold text-white">یادداشت‌های قبلی:</h4>
                       <div className="bg-gray-800/40 border border-gray-700/60 rounded-xl p-2 sm:p-3">
-                        <div className="space-y-2 max-h-24 sm:max-h-32 overflow-y-auto">
+                        <div className="space-y-2 max-h-24 sm:max-h-32 overflow-y-auto modal-scrollbar">
                           {[...showLead.notes].reverse().map((n, i) => (
                             <div key={i} className="text-xs text-gray-300 border-b border-gray-700/30 pb-2">
                               <div className="text-gray-400 mb-1">{n.timestamp}</div>
@@ -1538,7 +1538,7 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
         <p className="text-xs mt-1">با افزودن لید و ثبت فروش، آمار نمایش داده خواهد شد</p>
         <details className="mt-2 text-left text-xs opacity-70">
           <summary>اطلاعات دیباگ</summary>
-          <pre className="text-left p-2 bg-gray-800 rounded overflow-auto max-h-40 mt-1" style={{direction: 'ltr'}}>
+          <pre className="text-left p-2 bg-gray-800 rounded overflow-auto max-h-40 mt-1 modal-scrollbar" style={{direction: 'ltr'}}>
             {JSON.stringify(debugInfo, null, 2)}
           </pre>
         </details>
@@ -1560,7 +1560,7 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
         <p className="text-xs mt-1">برای شروع، لید جدیدی اضافه کنید</p>
         <details className="mt-2 text-left text-xs opacity-70">
           <summary>اطلاعات دیباگ</summary>
-          <pre className="text-left p-2 bg-gray-800 rounded overflow-auto max-h-40 mt-1" style={{direction: 'ltr'}}>
+          <pre className="text-left p-2 bg-gray-800 rounded overflow-auto max-h-40 mt-1 modal-scrollbar" style={{direction: 'ltr'}}>
             {JSON.stringify(debugInfo, null, 2)}
           </pre>
         </details>
