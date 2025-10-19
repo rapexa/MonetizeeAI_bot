@@ -1055,8 +1055,7 @@ const CRM: React.FC = () => {
         {editTask && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-start justify-center pt-8 p-6">
             <div className="w-full max-w-md backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl" style={{ backgroundColor: '#10091c' }}>
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
+              <div className="flex items-center justify-between p-4 border-b border-gray-700/60">
                 <h3 className="text-lg font-bold text-white">ویرایش وظیفه</h3>
                 <button 
                   onClick={() => setEditTask(null)} 
@@ -1065,20 +1064,17 @@ const CRM: React.FC = () => {
                   <X size={18} className="text-gray-400" />
                 </button>
               </div>
-              
-              {/* Content */}
-              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-scroll modal-scrollbar">
+              <div className="p-4 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
                   <input 
-                    type="text"
-                    value={editTask.title} 
-                    onChange={(e) => setEditTask(prev => prev ? { ...prev, title: e.target.value } : prev)} 
+                    type="text" 
+                    value={editTask.title || ''}
+                    onChange={(e) => setEditTask(prev => prev ? { ...prev, title: e.target.value } : prev)}
                     className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent" 
                     placeholder="عنوان وظیفه را وارد کنید"
                   />
                 </div>
-                  
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">مرتبط با لید</label>
                   <select 
@@ -1092,22 +1088,20 @@ const CRM: React.FC = () => {
                     ))}
                   </select>
                 </div>
-                  
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">تاریخ و ساعت</label>
                   <DatePicker
-                    value={editTask.due}
+                    value={editTask.due || ''}
                     onChange={(date) => setEditTask(prev => prev ? {...prev, due: date} : prev)}
                     className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent max-w-full"
                     style={{ direction: 'ltr', fontSize: '14px' }}
                   />
                 </div>
-                  
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">نوع وظیفه</label>
                   <select 
-                    value={editTask.type || 'call'} 
-                    onChange={(e) => setEditTask(prev => prev ? { ...prev, type: e.target.value as any } : prev)} 
+                    value={editTask.type || 'call'}
+                    onChange={(e) => setEditTask(prev => prev ? { ...prev, type: e.target.value as any } : prev)}
                     className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
                   >
                     <option value="call">تماس</option>
@@ -1116,60 +1110,56 @@ const CRM: React.FC = () => {
                     <option value="meeting">جلسه</option>
                   </select>
                 </div>
-                  
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">وضعیت</label>
                   <select 
-                    value={editTask.status} 
-                    onChange={(e) => setEditTask(prev => prev ? { ...prev, status: e.target.value as any } : prev)} 
+                    value={editTask.status || 'pending'}
+                    onChange={(e) => setEditTask(prev => prev ? { ...prev, status: e.target.value as any } : prev)}
                     className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
                   >
                     <option value="pending">در انتظار</option>
                     <option value="done">انجام شد</option>
-                    <option value="overdue">عقب‌افتاده</option>
+                    <option value="overdue">عقب افتاده</option>
                   </select>
                 </div>
-                  
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">یادداشت</label>
                   <textarea 
-                    value={editTask.note || ''} 
-                    onChange={(e) => setEditTask(prev => prev ? { ...prev, note: e.target.value } : prev)} 
+                    value={editTask.note || ''}
+                    onChange={(e) => setEditTask(prev => prev ? { ...prev, note: e.target.value } : prev)}
                     className="w-full h-20 px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent resize-none" 
                     placeholder="یادداشت (اختیاری)"
                   />
                 </div>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => {
+                      if (!editTask) return;
+                      setAllTasks(prev => prev.filter(t => t.id !== editTask.id));
+                      setEditTask(null);
+                    }} 
+                    className="px-4 py-2 bg-red-600/80 hover:bg-red-600 text-white rounded-xl font-medium transition-colors"
+                  >
+                    حذف
+                  </button>
+                  <button 
+                    onClick={() => setEditTask(null)} 
+                    className="flex-1 px-4 py-2 bg-gray-700/50 hover:bg-gray-700 text-gray-200 rounded-xl font-medium transition-colors"
+                  >
+                    انصراف
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (!editTask) return;
+                      setAllTasks(prev => prev.map(t => t.id === editTask.id ? editTask : t));
+                      setEditTask(null);
+                    }} 
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-[#8A00FF] to-[#C738FF] text-white rounded-xl font-medium shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition-all"
+                  >
+                    ذخیره
+                  </button>
+                </div>
               </div>
-            </div>
-              
-              {/* Footer */}
-              <div className="flex gap-3 p-4 border-t border-gray-700/50 bg-gray-900/50">
-                <button 
-                  onClick={() => {
-                    if (!editTask) return;
-                    setAllTasks(prev => prev.filter(t => t.id !== editTask.id));
-                    setEditTask(null);
-                  }} 
-                  className="px-6 py-3 bg-red-600/80 hover:bg-red-600 text-white rounded-xl font-medium transition-colors"
-                >
-                  حذف
-                </button>
-                <button 
-                  onClick={() => setEditTask(null)} 
-                  className="px-6 py-3 bg-gray-700/50 hover:bg-gray-700 text-gray-200 rounded-xl font-medium transition-colors"
-                >
-                  انصراف
-                </button>
-                <button 
-                  onClick={() => {
-                    if (!editTask) return;
-                    setAllTasks(prev => prev.map(t => t.id === editTask.id ? editTask : t));
-                    setEditTask(null);
-                  }} 
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-[#8A00FF] to-[#C738FF] text-white rounded-xl font-medium shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition-all"
-                >
-                  ذخیره تغییرات
-                </button>
             </div>
           </div>
         )}
