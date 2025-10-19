@@ -957,7 +957,7 @@ const CRM: React.FC = () => {
 
         {/* Add Task Modal */}
         {showAddTask && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-start justify-center pt-8 p-6">
             <div className="w-full max-w-md backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl" style={{ backgroundColor: '#10091c' }}>
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
@@ -1054,7 +1054,7 @@ const CRM: React.FC = () => {
         {/* Edit Task Modal */}
         {editTask && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-start justify-center pt-8 p-6">
-            <div className="w-full max-w-md backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+            <div className="w-full max-w-md backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl" style={{ backgroundColor: '#10091c' }}>
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
                 <h3 className="text-lg font-bold text-white">ویرایش وظیفه</h3>
