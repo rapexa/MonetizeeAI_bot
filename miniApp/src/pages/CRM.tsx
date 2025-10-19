@@ -976,7 +976,7 @@ const CRM: React.FC = () => {
               </div>
               
               {/* Content */}
-              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto modal-scrollbar">
+              <div className="p-4 space-y-4 max-h-[50vh] overflow-y-scroll modal-scrollbar">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
                   <input 
@@ -1072,7 +1072,7 @@ const CRM: React.FC = () => {
               </div>
               
               {/* Content */}
-              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto modal-scrollbar">
+              <div className="p-4 space-y-4 max-h-[50vh] overflow-y-scroll modal-scrollbar">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
                   <input 

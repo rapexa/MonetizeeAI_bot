@@ -35,6 +35,11 @@
   background: rgba(139, 92, 246, 0.7);
 }
 
+/* Force scrollbar to always show */
+.modal-scrollbar {
+  overflow-y: scroll !important;
+}
+
 @keyframes slideInFromBottom {
   from {
     opacity: 0;
