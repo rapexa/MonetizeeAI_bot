@@ -10,45 +10,76 @@ interface DatePickerProps {
   style?: React.CSSProperties;
 }
 
-// تابع تبدیل میلادی به شمسی
+// تابع تبدیل میلادی به شمسی - نسخه ساده‌تر
 const toJalali = (date: Date) => {
-  let gy = date.getFullYear();
+  const gy = date.getFullYear();
   const gm = date.getMonth() + 1;
   const gd = date.getDate();
   
-  const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-  let jy = gy <= 1600 ? 0 : 979;
-  gy -= gy <= 1600 ? 621 : 1600;
-  const gy2 = gm > 2 ? gy + 1 : gy;
-  let days = 365 * gy + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
-  jy += 33 * Math.floor(days / 12053);
-  days %= 12053;
-  jy += 4 * Math.floor(days / 1461);
-  days %= 1461;
-  jy += Math.floor((days - 1) / 365);
-  if (days > 365) days = (days - 1) % 365;
-  const jm = days < 186 ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
-  const jd = 1 + (days < 186 ? days % 31 : (days - 186) % 30);
+  // تبدیل ساده میلادی به شمسی
+  let jy = gy - 621;
+  if (gm < 3) jy--;
+  
+  // محاسبه ماه و روز شمسی
+  let jm, jd;
+  if (gm <= 3) {
+    jm = gm + 9;
+    jd = gd + 20;
+  } else if (gm <= 6) {
+    jm = gm - 3;
+    jd = gd + 20;
+  } else if (gm <= 9) {
+    jm = gm - 6;
+    jd = gd + 21;
+  } else {
+    jm = gm - 9;
+    jd = gd + 21;
+  }
+  
+  // تنظیم ماه و روز
+  if (jd > 31) {
+    jd -= 31;
+    jm++;
+  }
+  if (jm > 12) {
+    jm -= 12;
+    jy++;
+  }
   
   return { year: jy, month: jm, day: jd };
 };
 
-// تابع تبدیل شمسی به میلادی
+// تابع تبدیل شمسی به میلادی - نسخه ساده‌تر
 const toGregorian = (jy: number, jm: number, jd: number) => {
-  jy += 1595;
-  const days = -355668 + (365 * jy) + Math.floor(jy / 33) * 8 + Math.floor(((jy % 33) + 3) / 4) + jd + (jm < 7 ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
-  const gy = 400 * Math.floor(days / 146097);
-  const days2 = days % 146097;
-  const gy2 = 100 * Math.floor(days2 / 36524);
-  const days3 = days2 % 36524;
-  const gy3 = 4 * Math.floor(days3 / 1461);
-  const days4 = days3 % 1461;
-  const gy4 = Math.floor((days4 + 3) / 4);
-  const gy5 = gy + gy2 + gy3 + gy4;
-  const gm = Math.floor((days4 - gy4 * 4) / 31) + 1;
-  const gd = (days4 - gy4 * 4) % 31 + 1;
+  let gy = jy + 621;
+  let gm, gd;
   
-  return new Date(gy5, gm - 1, gd);
+  // محاسبه ماه و روز میلادی
+  if (jm <= 3) {
+    gm = jm + 9;
+    gd = jd - 20;
+  } else if (jm <= 6) {
+    gm = jm - 3;
+    gd = jd - 20;
+  } else if (jm <= 9) {
+    gm = jm - 6;
+    gd = jd - 21;
+  } else {
+    gm = jm - 9;
+    gd = jd - 21;
+  }
+  
+  // تنظیم ماه و روز
+  if (gd <= 0) {
+    gd += 31;
+    gm--;
+  }
+  if (gm <= 0) {
+    gm += 12;
+    gy--;
+  }
+  
+  return new Date(gy, gm - 1, gd);
 };
 
 const DatePicker: React.FC<DatePickerProps> = ({
@@ -175,7 +206,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
     
     // اضافه کردن روزهای ماه
     for (let day = 1; day <= daysInMonth; day++) {
-      const isSelected = selectedDate && toJalali(selectedDate).day === day;
+      const isSelected = selectedDate && toJalali(selectedDate).day === day && toJalali(selectedDate).month === month && toJalali(selectedDate).year === year;
       const today = new Date();
       const todayJalali = toJalali(today);
       const isToday = todayJalali.year === year && todayJalali.month === month && todayJalali.day === day;
@@ -347,7 +378,12 @@ const DatePicker: React.FC<DatePickerProps> = ({
                     min="0"
                     max="23"
                     value={customHour}
-                    onChange={(e) => setCustomHour(e.target.value.padStart(2, '0'))}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || (parseInt(val) >= 0 && parseInt(val) <= 23)) {
+                        setCustomHour(val);
+                      }
+                    }}
                     className="w-16 px-2 py-1 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white text-center text-sm"
                     placeholder="00"
                   />
@@ -357,7 +393,12 @@ const DatePicker: React.FC<DatePickerProps> = ({
                     min="0"
                     max="59"
                     value={customMinute}
-                    onChange={(e) => setCustomMinute(e.target.value.padStart(2, '0'))}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || (parseInt(val) >= 0 && parseInt(val) <= 59)) {
+                        setCustomMinute(val);
+                      }
+                    }}
                     className="w-16 px-2 py-1 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white text-center text-sm"
                     placeholder="00"
                   />
