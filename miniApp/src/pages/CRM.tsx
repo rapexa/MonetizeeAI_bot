@@ -72,7 +72,7 @@ const CRM: React.FC = () => {
       return lead;
     });
   };
-
+  
   // Load leads from localStorage
   const [leads, setLeads] = React.useState<Lead[]>(() => {
     const saved = localStorage.getItem('crm-leads');
@@ -473,7 +473,7 @@ const CRM: React.FC = () => {
                         <div className="text-emerald-300 text-xs font-medium">فروش این ماه</div>
                         <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
                           <TrendingUp size={14} className="text-white" />
-                        </div>
+                      </div>
                       </div>
                       <div className="text-white font-bold text-lg mb-2">{formatCurrency(summary.salesThisMonth)}</div>
                       <div className="flex items-center gap-2">
@@ -493,7 +493,7 @@ const CRM: React.FC = () => {
                         <div className="text-blue-300 text-xs font-medium">کل لیدها</div>
                         <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
                           <Users size={14} className="text-white" />
-                        </div>
+                      </div>
                       </div>
                       <div className="text-white font-bold text-lg mb-2">{summary.leadsCount}</div>
                       <div className="flex items-center gap-2">
@@ -513,7 +513,7 @@ const CRM: React.FC = () => {
                         <div className="text-orange-300 text-xs font-medium">لیدهای داغ</div>
                         <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
                           <Flame size={14} className="text-white" />
-                        </div>
+                      </div>
                       </div>
                       <div className="text-white font-bold text-lg mb-2">{summary.hotLeads}</div>
                       <div className="flex items-center gap-2">
@@ -533,8 +533,8 @@ const CRM: React.FC = () => {
                         <div className="text-purple-300 text-xs font-medium">جمع ارزش لیدها</div>
                         <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
                           <BarChart3 size={14} className="text-white" />
-                        </div>
                       </div>
+                    </div>
                       <div className="text-white font-bold text-lg mb-2">{formatCurrency(summary.totalLeadValue)}</div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 bg-purple-500/20 rounded-full overflow-hidden">
@@ -808,8 +808,8 @@ const CRM: React.FC = () => {
                 <div className="text-sm text-gray-300 max-w-xs mx-auto leading-relaxed">مدیریت کارهای روزانه، تماس‌ها و پیگیری‌های فروش</div>
               </div>
               <div className="flex items-center justify-center gap-4">
-                <button
-                  onClick={() => setShowAddTask(true)}
+              <button 
+                onClick={() => setShowAddTask(true)} 
                   className="px-6 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-[#8A00FF] to-[#C738FF] border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition flex items-center gap-2"
                 >
                   <Plus size={18} /> افزودن
@@ -821,14 +821,14 @@ const CRM: React.FC = () => {
                   title="چرخه بین فیلترها"
                 >
                   <Filter size={16} /> فیلتر
-                </button>
+              </button>
               </div>
             </div>
 
             {/* Status Tabs */}
             <div className="grid grid-cols-4 gap-3 mb-6">
               {(['all','pending','done','overdue'] as const).map(k => (
-                <button 
+                  <button 
                   key={k} 
                   onClick={() => setTaskFilter(k)} 
                   className={`py-3 rounded-2xl text-sm font-medium border transition-all ${
@@ -838,9 +838,9 @@ const CRM: React.FC = () => {
                   }`}
                 >
                   {k==='all'?'همه':k==='pending'?'در انتظار':k==='done'?'انجام شد':'عقب‌افتاده'}
-                </button>
+                  </button>
               ))}
-            </div>
+                </div>
 
             {/* Task List */}
             <div className="space-y-4">
@@ -848,31 +848,25 @@ const CRM: React.FC = () => {
                 <div className="text-center text-gray-400 py-12">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center mx-auto mb-4">
                     <Clock size={24} className="text-gray-500" />
-                  </div>
+                        </div>
                   <p className="text-base">موردی یافت نشد</p>
                   <p className="text-sm text-gray-500 mt-1">برای شروع، یک وظیفه جدید اضافه کنید</p>
-                </div>
+                        </div>
               ) : (
                 filteredTasks.map(task => (
                   <label key={task.id} className="flex items-center gap-4 p-4 rounded-2xl border border-gray-700/60 hover:scale-[1.01] hover:border-purple-400/40 transition cursor-pointer backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
                     <input type="checkbox" checked={task.status==='done'} onChange={() => toggleTask(task.id)} className="w-5 h-5 rounded border-gray-600 bg-gray-800/60 text-emerald-500 focus:ring-emerald-500" />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center justify-between gap-3 mb-2">
                         <div className="truncate text-white text-base font-bold">{task.title}</div>
-                        <span className={`px-3 py-1 text-xs rounded-full border whitespace-nowrap backdrop-blur-xl shadow-lg ${statusChip(task.status)}`}>{task.status==='pending'?'در انتظار':task.status==='done'?'انجام شد':'عقب‌افتاده'}</span>
-                      </div>
-                      <div className="flex items-center gap-3 mt-2 text-sm text-gray-300">
-                        {task.leadName && <span className="truncate font-medium">{task.leadName}</span>}
+                        </div>
+                      <div className="flex items-center justify-between gap-3 text-sm text-gray-300">
                         <span className="px-2 py-1 rounded-lg bg-gradient-to-r from-[#8A00FF]/20 to-[#C738FF]/20 text-purple-200 border border-purple-500/30 backdrop-blur-xl text-xs">
                           {new Date(task.due).toLocaleString('fa-IR')}
                         </span>
+                        <span className={`px-3 py-1 text-xs rounded-full border whitespace-nowrap backdrop-blur-xl shadow-lg ${statusChip(task.status)}`}>{task.status==='pending'?'در انتظار':task.status==='done'?'انجام شد':'عقب‌افتاده'}</span>
+                          </div>
                       </div>
-                      {task.note && (
-                        <div className="text-xs text-gray-300 mt-2 p-2 bg-gray-800/40 rounded-lg">
-                          {task.note}
-                        </div>
-                      )}
-                    </div>
                     <div className="flex flex-col gap-2">
                       <button 
                         onClick={(e) => {
@@ -891,7 +885,7 @@ const CRM: React.FC = () => {
                           e.stopPropagation();
                           const updatedTasks = allTasks.filter(t => t.id !== task.id);
                           setAllTasks(updatedTasks);
-                        }} 
+                        }}
                         className="p-2 rounded-xl hover:scale-[1.05] active:scale-[0.95] transition-all backdrop-blur-xl border border-red-700/40" 
                         style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
                       >
@@ -977,32 +971,32 @@ const CRM: React.FC = () => {
               
               {/* Content */}
               <div className="p-4 space-y-4 max-h-[50vh] overflow-y-scroll modal-scrollbar">
-                <div>
+                  <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
-                  <input 
+                    <input
                     type="text"
-                    value={newTask.title} 
-                    onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))} 
+                      value={newTask.title}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
                     className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent" 
                     placeholder="عنوان وظیفه را وارد کنید"
-                  />
-                </div>
-                
-                <div>
+                    />
+                  </div>
+                  
+                  <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">مرتبط با لید</label>
-                  <select 
+                    <select
                     value={newTask.leadId || ''} 
-                    onChange={(e) => setNewTask(prev => ({ ...prev, leadId: e.target.value }))} 
+                      onChange={(e) => setNewTask(prev => ({ ...prev, leadId: e.target.value }))}
                     className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
                   >
                     <option value="">- انتخاب کنید -</option>
                     {leads.map(l => (
                       <option key={l.id} value={l.id}>{l.name}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">تاریخ و ساعت</label>
                     <DatePicker
                       value={newTask.due}
@@ -1010,12 +1004,12 @@ const CRM: React.FC = () => {
                       className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent max-w-full"
                       style={{ direction: 'ltr', fontSize: '14px' }}
                     />
-                </div>
-                
-                <div>
+                  </div>
+                  
+                  <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">نوع وظیفه</label>
-                  <select 
-                    value={newTask.type}
+                    <select
+                      value={newTask.type}
                     onChange={(e) => setNewTask(prev => ({ ...prev, type: e.target.value as any }))}
                     className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
                   >
@@ -1023,20 +1017,20 @@ const CRM: React.FC = () => {
                     <option value="whatsapp">واتساپ</option>
                     <option value="sms">پیامک</option>
                     <option value="meeting">جلسه</option>
-                  </select>
+                    </select>
+                  </div>
+                  
+                  <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">یادداشت</label>
+                    <textarea
+                    value={newTask.note || ''} 
+                      onChange={(e) => setNewTask(prev => ({ ...prev, note: e.target.value }))}
+                    className="w-full h-24 px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent resize-none" 
+                      placeholder="یادداشت اختیاری..."
+                    />
+                  </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">یادداشت</label>
-                  <textarea 
-                    value={newTask.note || ''} 
-                    onChange={(e) => setNewTask(prev => ({ ...prev, note: e.target.value }))} 
-                    className="w-full h-24 px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent resize-none" 
-                    placeholder="یادداشت اختیاری..."
-                  />
-                </div>
-              </div>
-              
               {/* Footer */}
               <div className="flex gap-3 p-4 border-t border-gray-700/50 bg-gray-900/50">
                 <button 
@@ -1051,8 +1045,8 @@ const CRM: React.FC = () => {
                 >
                   ذخیره وظیفه
                 </button>
+                </div>
               </div>
-            </div>
           </div>
         )}
         
@@ -1140,8 +1134,8 @@ const CRM: React.FC = () => {
                   <textarea 
                     value={editTask.note || ''} 
                     onChange={(e) => setEditTask(prev => prev ? { ...prev, note: e.target.value } : prev)} 
-                    className="w-full h-24 px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent resize-none" 
-                    placeholder="یادداشت اختیاری..."
+                    className="w-full h-20 px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent resize-none" 
+                    placeholder="یادداشت (اختیاری)"
                   />
                 </div>
                 </div>
@@ -1176,8 +1170,8 @@ const CRM: React.FC = () => {
                 >
                   ذخیره تغییرات
                 </button>
-              </div>
             </div>
+          </div>
         )}
 
         {/* Add Lead Modal */}
