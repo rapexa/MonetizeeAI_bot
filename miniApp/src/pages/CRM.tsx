@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BarChart3, Users, Flame, TrendingUp, Filter, Download, Plus, Search,
-  MessageCircle, Star, Upload,
+  MessageCircle, Upload,
   Send, X, Phone, Clock, Copy, Edit3, Trash2
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
@@ -961,76 +961,96 @@ const CRM: React.FC = () => {
 
         {/* Add Task Modal */}
         {showAddTask && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-            <div className="w-full max-w-md backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden" style={{ backgroundColor: '#10091c' }}>
-              <div className="p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg font-bold text-white mb-4 sm:mb-6">افزودن وظیفه جدید</h3>
-                
-                <div className="space-y-3 sm:space-y-4">
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">عنوان وظیفه *</label>
-                    <input
-                      value={newTask.title}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 text-sm sm:text-base"
-                      placeholder="عنوان وظیفه"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">مربوط به مشتری</label>
-                    <select
-                      value={newTask.leadId}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, leadId: e.target.value }))}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
-                    >
-                      <option value="">وظیفه عمومی</option>
-                      {leads.map(lead => (
-                        <option key={lead.id} value={lead.id}>{lead.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">تاریخ و ساعت موعد *</label>
-                    <DatePicker
-                      value={newTask.due}
-                      onChange={(date) => setNewTask(prev => ({ ...prev, due: date }))}
-                      placeholder="mm/dd/yyyy -:--"
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base max-w-full"
-                      style={{ direction: 'ltr', fontSize: '14px' }}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">نوع وظیفه</label>
-                    <select
-                      value={newTask.type}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, type: e.target.value as 'call' | 'whatsapp' | 'sms' | 'meeting' }))}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
-                    >
-                      <option value="call">📞 تماس</option>
-                      <option value="whatsapp">💬 واتساپ</option>
-                      <option value="sms">📱 پیامک</option>
-                      <option value="meeting">🤝 جلسه</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">یادداشت</label>
-                    <textarea
-                      value={newTask.note}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, note: e.target.value }))}
-                      className="w-full h-16 sm:h-20 px-3 sm:px-4 py-2 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 text-sm sm:text-base resize-none"
-                      placeholder="یادداشت اختیاری..."
-                    />
-                  </div>
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-start justify-center pt-8 p-6">
+            <div className="w-full max-w-md backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
+                <h3 className="text-lg font-bold text-white">افزودن وظیفه</h3>
+                <button 
+                  onClick={() => setShowAddTask(false)} 
+                  className="p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
+                >
+                  <X size={18} className="text-gray-400" />
+                </button>
+              </div>
+              
+              {/* Content */}
+              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
+                  <input 
+                    type="text"
+                    value={newTask.title} 
+                    onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))} 
+                    className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent" 
+                    placeholder="عنوان وظیفه را وارد کنید"
+                  />
                 </div>
                 
-                <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
-                  <button onClick={addTask} className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl text-xs sm:text-sm font-bold border border-white/10">افزودن</button>
-                  <button onClick={() => setShowAddTask(false)} className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-800/70 text-gray-200 rounded-xl text-xs sm:text-sm font-bold border border-gray-700/60">انصراف</button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">مرتبط با لید</label>
+                  <select 
+                    value={newTask.leadId || ''} 
+                    onChange={(e) => setNewTask(prev => ({ ...prev, leadId: e.target.value }))} 
+                    className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
+                  >
+                    <option value="">- انتخاب کنید -</option>
+                    {leads.map(l => (
+                      <option key={l.id} value={l.id}>{l.name}</option>
+                    ))}
+                  </select>
                 </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">تاریخ و ساعت</label>
+                  <DatePicker
+                    value={newTask.due}
+                    onChange={(date) => setNewTask(prev => ({ ...prev, due: date }))}
+                    placeholder="mm/dd/yyyy -:--"
+                    className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent max-w-full"
+                    style={{ direction: 'ltr', fontSize: '14px' }}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">نوع وظیفه</label>
+                  <select 
+                    value={newTask.type}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, type: e.target.value as any }))}
+                    className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
+                  >
+                    <option value="call">تماس</option>
+                    <option value="whatsapp">واتساپ</option>
+                    <option value="sms">پیامک</option>
+                    <option value="meeting">جلسه</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">یادداشت</label>
+                  <textarea 
+                    value={newTask.note || ''} 
+                    onChange={(e) => setNewTask(prev => ({ ...prev, note: e.target.value }))} 
+                    className="w-full h-24 px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent resize-none" 
+                    placeholder="یادداشت اختیاری..."
+                  />
+                </div>
+              </div>
+              
+              {/* Footer */}
+              <div className="flex gap-3 p-4 border-t border-gray-700/50 bg-gray-900/50">
+                <button 
+                  onClick={() => setShowAddTask(false)} 
+                  className="flex-1 px-6 py-3 bg-gray-700/50 hover:bg-gray-700 text-gray-200 rounded-xl font-medium transition-colors"
+                >
+                  انصراف
+                </button>
+                <button 
+                  onClick={addTask} 
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-[#8A00FF] to-[#C738FF] text-white rounded-xl font-medium shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition-all"
+                >
+                  ذخیره وظیفه
+                </button>
               </div>
             </div>
           </div>
@@ -1038,108 +1058,127 @@ const CRM: React.FC = () => {
         
         {/* Edit Task Modal */}
         {editTask && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-            <div className="w-full max-w-md backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden" style={{ backgroundColor: '#10091c' }}>
-              <div className="p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg font-bold text-white mb-4 sm:mb-6">ویرایش وظیفه</h3>
-                
-                <div className="space-y-3 sm:space-y-4">
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">عنوان وظیفه *</label>
-                    <input
-                      value={editTask.title}
-                      onChange={(e) => setEditTask({...editTask, title: e.target.value})}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 text-sm sm:text-base"
-                      placeholder="عنوان وظیفه"
-                    />
-                  </div>
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-start justify-center pt-8 p-6">
+            <div className="w-full max-w-md backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
+                <h3 className="text-lg font-bold text-white">ویرایش وظیفه</h3>
+                <button 
+                  onClick={() => setEditTask(null)} 
+                  className="p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
+                >
+                  <X size={18} className="text-gray-400" />
+                </button>
+              </div>
+              
+              {/* Content */}
+              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
+                  <input 
+                    type="text"
+                    value={editTask.title} 
+                    onChange={(e) => setEditTask(prev => prev ? { ...prev, title: e.target.value } : prev)} 
+                    className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent" 
+                    placeholder="عنوان وظیفه را وارد کنید"
+                  />
+                </div>
                   
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">مربوط به مشتری</label>
-                    <select
-                      value={editTask.leadId || ''}
-                      onChange={(e) => {
-                        const leadId = e.target.value;
-                        const leadName = leadId ? leads.find(l => l.id === leadId)?.name : undefined;
-                        setEditTask({...editTask, leadId, leadName});
-                      }}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
-                    >
-                      <option value="">وظیفه عمومی</option>
-                      {leads.map(lead => (
-                        <option key={lead.id} value={lead.id}>{lead.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">مرتبط با لید</label>
+                  <select 
+                    value={editTask.leadId || ''} 
+                    onChange={(e) => setEditTask(prev => prev ? { ...prev, leadId: e.target.value } : prev)} 
+                    className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
+                  >
+                    <option value="">- انتخاب کنید -</option>
+                    {leads.map(l => (
+                      <option key={l.id} value={l.id}>{l.name}</option>
+                    ))}
+                  </select>
+                </div>
                   
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">تاریخ و ساعت موعد *</label>
-                    <DatePicker
-                      value={editTask.due}
-                      onChange={(date) => setEditTask({...editTask, due: date})}
-                      placeholder="mm/dd/yyyy -:--"
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base max-w-full"
-                      style={{ direction: 'ltr', fontSize: '14px' }}
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">تاریخ و ساعت</label>
+                  <DatePicker
+                    value={editTask.due}
+                    onChange={(date) => setEditTask(prev => prev ? {...prev, due: date} : prev)}
+                    placeholder="mm/dd/yyyy -:--"
+                    className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent max-w-full"
+                    style={{ direction: 'ltr', fontSize: '14px' }}
+                  />
+                </div>
                   
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">نوع وظیفه</label>
-                    <select
-                      value={editTask.type || 'call'}
-                      onChange={(e) => setEditTask({...editTask, type: e.target.value as 'call' | 'whatsapp' | 'sms' | 'meeting'})}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
-                    >
-                      <option value="call">📞 تماس</option>
-                      <option value="whatsapp">💬 واتساپ</option>
-                      <option value="sms">📱 پیامک</option>
-                      <option value="meeting">🤝 جلسه</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">نوع وظیفه</label>
+                  <select 
+                    value={editTask.type || 'call'} 
+                    onChange={(e) => setEditTask(prev => prev ? { ...prev, type: e.target.value as any } : prev)} 
+                    className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
+                  >
+                    <option value="call">تماس</option>
+                    <option value="whatsapp">واتساپ</option>
+                    <option value="sms">پیامک</option>
+                    <option value="meeting">جلسه</option>
+                  </select>
+                </div>
                   
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">وضعیت</label>
-                    <select
-                      value={editTask.status}
-                      onChange={(e) => setEditTask({...editTask, status: e.target.value as 'pending' | 'done' | 'overdue'})}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base"
-                    >
-                      <option value="pending">در انتظار</option>
-                      <option value="done">انجام شد</option>
-                      <option value="overdue">عقب افتاده</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">وضعیت</label>
+                  <select 
+                    value={editTask.status} 
+                    onChange={(e) => setEditTask(prev => prev ? { ...prev, status: e.target.value as any } : prev)} 
+                    className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
+                  >
+                    <option value="pending">در انتظار</option>
+                    <option value="done">انجام شد</option>
+                    <option value="overdue">عقب‌افتاده</option>
+                  </select>
+                </div>
                   
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-300 mb-2 block">یادداشت</label>
-                    <textarea
-                      value={editTask.note || ''}
-                      onChange={(e) => setEditTask({...editTask, note: e.target.value})}
-                      className="w-full h-16 sm:h-20 px-3 sm:px-4 py-2 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 text-sm sm:text-base resize-none"
-                      placeholder="یادداشت اختیاری..."
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">یادداشت</label>
+                  <textarea 
+                    value={editTask.note || ''} 
+                    onChange={(e) => setEditTask(prev => prev ? { ...prev, note: e.target.value } : prev)} 
+                    className="w-full h-24 px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent resize-none" 
+                    placeholder="یادداشت اختیاری..."
+                  />
+                </div>
                 </div>
                 
-                <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
-                  <button 
-                    onClick={() => {
-                      const updatedTasks = allTasks.map(t => t.id === editTask.id ? editTask : t);
-                      setAllTasks(updatedTasks);
-                      setEditTask(null);
-                    }} 
-                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-xl text-xs sm:text-sm font-bold border border-white/10">
-                    ذخیره تغییرات
-                  </button>
-                  <button 
-                    onClick={() => setEditTask(null)} 
-                    className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-800/70 text-gray-200 rounded-xl text-xs sm:text-sm font-bold border border-gray-700/60">
-                    انصراف
-                  </button>
-                </div>
+              </div>
+              
+              {/* Footer */}
+              <div className="flex gap-3 p-4 border-t border-gray-700/50 bg-gray-900/50">
+                <button 
+                  onClick={() => {
+                    if (!editTask) return;
+                    setAllTasks(prev => prev.filter(t => t.id !== editTask.id));
+                    setEditTask(null);
+                  }} 
+                  className="px-6 py-3 bg-red-600/80 hover:bg-red-600 text-white rounded-xl font-medium transition-colors"
+                >
+                  حذف
+                </button>
+                <button 
+                  onClick={() => setEditTask(null)} 
+                  className="px-6 py-3 bg-gray-700/50 hover:bg-gray-700 text-gray-200 rounded-xl font-medium transition-colors"
+                >
+                  انصراف
+                </button>
+                <button 
+                  onClick={() => {
+                    if (!editTask) return;
+                    setAllTasks(prev => prev.map(t => t.id === editTask.id ? editTask : t));
+                    setEditTask(null);
+                  }} 
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-[#8A00FF] to-[#C738FF] text-white rounded-xl font-medium shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition-all"
+                >
+                  ذخیره تغییرات
+                </button>
               </div>
             </div>
-          </div>
         )}
 
         {/* Add Lead Modal */}

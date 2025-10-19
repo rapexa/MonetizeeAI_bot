@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  ArrowRight, Phone, MessageCircle, Send, Star, Calendar, 
-  MapPin, Mail, DollarSign, TrendingUp, Clock, CheckCircle,
-  X, Plus, Edit3, Trash2, Eye, Download, Copy, Save, PenLine, Filter
+  ArrowRight, Phone, MessageCircle, Send, Star, 
+  Mail, DollarSign, Clock,
+  X, Plus, Edit3, Trash2, Copy, Save, PenLine, Filter
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
@@ -822,7 +822,7 @@ const LeadProfile: React.FC = () => {
                 <X size={18} className="text-gray-400" />
               </button>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
                 <input 
@@ -877,37 +877,39 @@ const LeadProfile: React.FC = () => {
                   placeholder="یادداشت اختیاری..."
                 />
               </div>
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => setShowAddTask(false)} 
-                  className="flex-1 px-4 py-2 bg-gray-700/50 hover:bg-gray-700 text-gray-200 rounded-xl font-medium transition-colors"
-                >
-                  انصراف
-                </button>
-                <button 
-                  onClick={() => {
-                    if (newTask.title.trim() && newTask.due) {
-                      const newTaskObj: Task = {
-                        id: `task-${lead.id}-${Date.now()}`,
-                        title: newTask.title.trim(),
-                        leadId: lead.id,
-                        leadName: lead.name,
-                        due: new Date(newTask.due).toISOString(),
-                        status: newTask.status,
-                        note: newTask.note,
-                        type: newTask.type,
-                        text: newTask.title.trim()
-                      };
-                      setTasks(prev => [...prev, newTaskObj]);
-                      setShowAddTask(false);
-                      setNewTask({ title: '', due: '', status: 'pending', note: '', type: 'call' });
-                    }
-                  }} 
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#8A00FF] to-[#C738FF] text-white rounded-xl font-medium shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition-all"
-                >
-                  ذخیره
-                </button>
-              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="flex gap-3 p-4 border-t border-gray-700/50 bg-gray-900/50">
+              <button 
+                onClick={() => setShowAddTask(false)} 
+                className="flex-1 px-6 py-3 bg-gray-700/50 hover:bg-gray-700 text-gray-200 rounded-xl font-medium transition-colors"
+              >
+                انصراف
+              </button>
+              <button 
+                onClick={() => {
+                  if (newTask.title.trim() && newTask.due) {
+                    const newTaskObj: Task = {
+                      id: `task-${lead.id}-${Date.now()}`,
+                      title: newTask.title.trim(),
+                      leadId: lead.id,
+                      leadName: lead.name,
+                      due: new Date(newTask.due).toISOString(),
+                      status: newTask.status,
+                      note: newTask.note,
+                      type: newTask.type,
+                      text: newTask.title.trim()
+                    };
+                    setTasks(prev => [...prev, newTaskObj]);
+                    setShowAddTask(false);
+                    setNewTask({ title: '', due: '', status: 'pending', note: '', type: 'call' });
+                  }
+                }} 
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-[#8A00FF] to-[#C738FF] text-white rounded-xl font-medium shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition-all"
+              >
+                ذخیره وظیفه
+              </button>
             </div>
           </div>
         </div>
@@ -926,7 +928,7 @@ const LeadProfile: React.FC = () => {
                 <X size={18} className="text-gray-400" />
               </button>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
                 <input 
@@ -1001,30 +1003,32 @@ const LeadProfile: React.FC = () => {
                   placeholder="یادداشت (اختیاری)"
                 />
               </div>
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => {
-                    const updatedTasks = tasks.filter((_, index) => index !== editingTask);
-                    setTasks(updatedTasks);
-                    setEditingTask(null);
-                  }} 
-                  className="px-4 py-2 bg-red-600/80 hover:bg-red-600 text-white rounded-xl font-medium transition-colors"
-                >
-                  حذف
-                </button>
-                <button 
-                  onClick={() => setEditingTask(null)} 
-                  className="flex-1 px-4 py-2 bg-gray-700/50 hover:bg-gray-700 text-gray-200 rounded-xl font-medium transition-colors"
-                >
-                  انصراف
-                </button>
-                <button 
-                  onClick={() => setEditingTask(null)} 
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#8A00FF] to-[#C738FF] text-white rounded-xl font-medium shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition-all"
-                >
-                  ذخیره
-                </button>
-              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="flex gap-3 p-4 border-t border-gray-700/50 bg-gray-900/50">
+              <button 
+                onClick={() => {
+                  const updatedTasks = tasks.filter((_, index) => index !== editingTask);
+                  setTasks(updatedTasks);
+                  setEditingTask(null);
+                }} 
+                className="px-6 py-3 bg-red-600/80 hover:bg-red-600 text-white rounded-xl font-medium transition-colors"
+              >
+                حذف
+              </button>
+              <button 
+                onClick={() => setEditingTask(null)} 
+                className="px-6 py-3 bg-gray-700/50 hover:bg-gray-700 text-gray-200 rounded-xl font-medium transition-colors"
+              >
+                انصراف
+              </button>
+              <button 
+                onClick={() => setEditingTask(null)} 
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-[#8A00FF] to-[#C738FF] text-white rounded-xl font-medium shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition-all"
+              >
+                ذخیره تغییرات
+              </button>
             </div>
           </div>
         </div>
