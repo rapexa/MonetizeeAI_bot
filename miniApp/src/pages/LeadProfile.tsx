@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowRight, Phone, MessageCircle, Send, Star, Calendar, 
   MapPin, Mail, DollarSign, TrendingUp, Clock, CheckCircle,
-  X, Plus, Edit3, Trash2, Eye, Download, Copy, Save, PenLine
+  X, Plus, Edit3, Trash2, Eye, Download, Copy, Save, PenLine, Filter
 } from 'lucide-react';
 
 type LeadStatus = 'cold' | 'warm' | 'hot' | 'converted';
@@ -13,6 +13,7 @@ type Task = {
   id: string;
   title: string;
   leadId?: string;
+  leadName?: string;
   due: string; // ISO
   status: TaskStatus;
   note?: string;
@@ -50,24 +51,49 @@ const LeadProfile: React.FC = () => {
   const [isEditing, setIsEditing] = React.useState(false);
   const [editedLead, setEditedLead] = React.useState(lead);
   const [editingTask, setEditingTask] = React.useState<number | null>(null);
+  const [taskFilter, setTaskFilter] = React.useState<'all' | 'pending' | 'done' | 'overdue'>('all');
   
   // state برای نمایش پاپ‌آپ شماره تلفن
   const [showPhonePopup, setShowPhonePopup] = React.useState(false);
   const [currentPhone, setCurrentPhone] = React.useState('');
   const [popupType, setPopupType] = React.useState<'call' | 'sms' | ''>('');
   
-  // Load tasks from localStorage
+  // Load tasks from localStorage - both global and lead-specific tasks
   const [tasks, setTasks] = React.useState<Task[]>(() => {
     if (!lead?.id) return [];
-    const saved = localStorage.getItem(`crm-lead-tasks-${lead.id}`);
-    if (saved) {
-      return JSON.parse(saved);
+    
+    // Load all tasks from global storage
+    const allTasksSaved = localStorage.getItem('crm-tasks');
+    const allTasks = allTasksSaved ? JSON.parse(allTasksSaved) : [];
+    
+    // Filter tasks for this lead
+    const leadTasks = allTasks.filter((task: Task) => task.leadId === lead.id);
+    
+    // If we have tasks for this lead, return them
+    if (leadTasks.length > 0) {
+      return leadTasks;
     }
+    
+    // Check for legacy lead-specific tasks
+    const legacySaved = localStorage.getItem(`crm-lead-tasks-${lead.id}`);
+    if (legacySaved) {
+      const legacyTasks = JSON.parse(legacySaved);
+      // Ensure all tasks have proper IDs and leadId
+      const updatedLegacyTasks = legacyTasks.map((task: Task, index: number) => ({
+        ...task,
+        id: task.id || `task-${lead.id}-${index}`,
+        leadId: lead.id,
+        leadName: lead.name
+      }));
+      return updatedLegacyTasks;
+    }
+    
     // Convert lead.upcoming to Task format and add status
     return (lead.upcoming || []).map((task, index) => ({
-      id: `task-${lead.id}-${index}`,
+      id: `task-${lead.id}-${Date.now()}-${index}`,
       title: task.text,
       leadId: lead.id,
+      leadName: lead.name,
       due: task.due,
       status: 'pending' as TaskStatus,
       type: task.type,
@@ -89,9 +115,23 @@ const LeadProfile: React.FC = () => {
     }
   }, []);
 
-  // Save tasks to localStorage whenever it changes
+  // Save tasks to localStorage whenever it changes - update global tasks
   React.useEffect(() => {
     if (lead?.id) {
+      // Get all tasks
+      const allTasksSaved = localStorage.getItem('crm-tasks');
+      const allTasks = allTasksSaved ? JSON.parse(allTasksSaved) : [];
+      
+      // Remove tasks for this lead
+      const otherTasks = allTasks.filter((task: Task) => task.leadId !== lead.id);
+      
+      // Add current tasks for this lead
+      const updatedTasks = [...otherTasks, ...tasks];
+      
+      // Save back to global storage
+      localStorage.setItem('crm-tasks', JSON.stringify(updatedTasks));
+      
+      // For backward compatibility, also save to lead-specific storage
       localStorage.setItem(`crm-lead-tasks-${lead.id}`, JSON.stringify(tasks));
     }
   }, [tasks, lead?.id]);
@@ -114,6 +154,42 @@ const LeadProfile: React.FC = () => {
       }
     }
   }, [editedLead, lead?.id]);
+  
+  // Toggle task status
+  const toggleTask = (index: number) => {
+    const updatedTasks = [...tasks];
+    updatedTasks[index] = { 
+      ...updatedTasks[index], 
+      status: updatedTasks[index].status === 'done' ? 'pending' : 'done' 
+    };
+    setTasks(updatedTasks);
+  };
+  
+  // Status chip style
+  const statusChip = (status: string) => {
+    return status === 'pending' 
+      ? 'bg-purple-600/20 text-purple-200 border-purple-500/30' 
+      : status === 'done' 
+      ? 'bg-green-600/20 text-green-200 border-green-500/30' 
+      : 'bg-red-600/20 text-red-200 border-red-500/30';
+  };
+  
+  // Filtered and sorted tasks
+  const sortedTasks = React.useMemo(() => {
+    return tasks
+      .filter(t => taskFilter === 'all' || t.status === taskFilter)
+      .sort((a, b) => {
+        // Sort by status (pending first, then overdue, then done)
+        if (a.status !== b.status) {
+          if (a.status === 'pending') return -1;
+          if (b.status === 'pending') return 1;
+          if (a.status === 'overdue') return -1;
+          if (b.status === 'overdue') return 1;
+        }
+        // Then sort by due date (most recent first)
+        return new Date(b.due).getTime() - new Date(a.due).getTime();
+      });
+  }, [tasks, taskFilter]);
 
   if (!lead) {
     return (
@@ -578,53 +654,73 @@ const LeadProfile: React.FC = () => {
         </div>
 
         {/* Tasks Management */}
-        <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 shadow-lg" style={{ backgroundColor: '#10091c' }}>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-white">وظایف و پیگیری‌ها</h2>
-            <button 
-              onClick={() => setShowAddTask(true)}
-              className="px-4 py-2 rounded-2xl text-sm bg-gradient-to-r from-[#8A00FF] to-[#C738FF] text-white border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition-all flex items-center gap-2"
-            >
-              <Plus size={16} />
-              افزودن وظیفه
-            </button>
+        <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+          {/* Header */}
+          <div className="mb-8">
+            <div className="text-center mb-6">
+              <h3 className="text-white text-xl font-bold mb-2">وظایف و پیگیری‌ها</h3>
+              <div className="text-sm text-gray-300 max-w-xs mx-auto leading-relaxed">مدیریت کارهای روزانه، تماس‌ها و پیگیری‌های فروش</div>
+            </div>
+            <div className="flex items-center justify-center gap-4">
+              <button
+                onClick={() => setShowAddTask(true)}
+                className="px-6 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-[#8A00FF] to-[#C738FF] border border-white/10 shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition flex items-center gap-2"
+              >
+                <Plus size={18} /> افزودن
+              </button>
+              <button
+                onClick={() => setTaskFilter(f => f==='all' ? 'pending' : f==='pending' ? 'done' : f==='done' ? 'overdue' : 'all')}
+                className="px-4 py-3 rounded-2xl text-sm border text-gray-200 hover:scale-[1.02] active:scale-[0.99] transition backdrop-blur-xl border-gray-700/60 shadow-lg flex items-center gap-2" 
+                style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
+                title="چرخه بین فیلترها"
+              >
+                <Filter size={16} /> فیلتر
+              </button>
+            </div>
           </div>
+
+          {/* Status Tabs */}
+          <div className="grid grid-cols-4 gap-3 mb-6">
+            {(['all','pending','done','overdue'] as const).map(k => (
+              <button 
+                key={k} 
+                onClick={() => setTaskFilter(k)} 
+                className={`py-3 rounded-2xl text-sm font-medium border transition-all ${
+                  taskFilter===k 
+                    ? 'bg-white/10 border-white/20 text-white shadow-lg' 
+                    : 'bg-gray-800/60 border-gray-700/60 text-gray-300 hover:scale-[1.02] active:scale-[0.99]'
+                }`}
+              >
+                {k==='all'?'همه':k==='pending'?'در انتظار':k==='done'?'انجام شد':'عقب‌افتاده'}
+              </button>
+            ))}
+          </div>
+
+          {/* Task List */}
           <div className="space-y-4">
-            {tasks.length > 0 ? (
-              tasks.map((task, index) => (
-                <div key={index} className="flex items-center gap-4 p-4 rounded-2xl border border-gray-700/60 backdrop-blur-xl shadow-lg hover:scale-[1.01] transition-all" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}>
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#8A00FF] to-[#C738FF] flex items-center justify-center">
-                    <Clock size={18} className="text-white" />
+            {sortedTasks.map((t, index) => (
+              <label key={index} className="flex items-center gap-4 p-4 rounded-2xl border border-gray-700/60 hover:scale-[1.01] hover:border-purple-400/40 transition cursor-pointer backdrop-blur-xl shadow-lg" style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }} onClick={(e)=>{ if((e.target as HTMLElement).tagName.toLowerCase()==='input') return; setEditingTask(index); }}>
+                <input type="checkbox" checked={t.status==='done'} onChange={() => toggleTask(index)} className="w-5 h-5 rounded border-gray-600 bg-gray-800/60 text-emerald-500 focus:ring-emerald-500" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="truncate text-white text-base font-bold">{t.title || t.text}</div>
+                    <span className={`px-3 py-1 text-xs rounded-full border whitespace-nowrap backdrop-blur-xl shadow-lg ${statusChip(t.status)}`}>{t.status==='pending'?'در انتظار':t.status==='done'?'انجام شد':'عقب‌افتاده'}</span>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-base text-white font-medium">{task.title || task.text}</p>
-                    <p className="text-sm text-gray-300 mt-1">{new Date(task.due).toLocaleString('fa-IR')}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 text-xs rounded-full border backdrop-blur-xl shadow-lg ${
-                      task.status === 'pending' ? 'bg-purple-600/20 text-purple-200 border-purple-500/30' :
-                      task.status === 'done' ? 'bg-green-600/20 text-green-200 border-green-500/30' :
-                      'bg-red-600/20 text-red-200 border-red-500/30'
-                    }`}>
-                      {task.status === 'pending' ? 'در انتظار' : 
-                       task.status === 'done' ? 'انجام شد' : 'عقب افتاده'}
+                  <div className="flex items-center gap-3 mt-2 text-sm text-gray-300">
+                    <span className="truncate font-medium">{lead?.name || ''}</span>
+                    <span className="px-2 py-1 rounded-lg bg-gradient-to-r from-[#8A00FF]/20 to-[#C738FF]/20 text-purple-200 border border-purple-500/30 backdrop-blur-xl text-xs">
+                      {new Date(t.due).toLocaleString('fa-IR')}
                     </span>
-                    <button 
-                      onClick={() => setEditingTask(index)}
-                      className="p-2 rounded-xl hover:scale-[1.05] active:scale-[0.95] transition-all backdrop-blur-xl border border-gray-700/60" 
-                      style={{ backgroundColor: 'rgba(16, 9, 28, 0.6)' }}
-                    >
-                      <Edit3 size={16} className="text-gray-300" />
-                    </button>
                   </div>
                 </div>
-              ))
-            ) : (
+              </label>
+            ))}
+            {sortedTasks.length===0 && (
               <div className="text-center text-gray-400 py-12">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center mx-auto mb-4">
                   <Clock size={24} className="text-gray-500" />
                 </div>
-                <p className="text-base">هیچ وظیفه‌ای ثبت نشده است</p>
+                <p className="text-base">موردی یافت نشد</p>
                 <p className="text-sm text-gray-500 mt-1">برای شروع، یک وظیفه جدید اضافه کنید</p>
               </div>
             )}
@@ -793,6 +889,7 @@ const LeadProfile: React.FC = () => {
                         id: `task-${lead.id}-${Date.now()}`,
                         title: newTask.title.trim(),
                         leadId: lead.id,
+                        leadName: lead.name,
                         due: new Date(newTask.due).toISOString(),
                         status: newTask.status,
                         note: newTask.note,
