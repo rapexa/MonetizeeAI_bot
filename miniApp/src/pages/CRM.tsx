@@ -5,6 +5,7 @@ import {
   MessageCircle, Star, Upload,
   Send, X, Phone, Clock, Copy, Edit3, Trash2
 } from 'lucide-react';
+import DatePicker from '../components/DatePicker';
 
 type LeadStatus = 'cold' | 'warm' | 'hot' | 'converted';
 
@@ -992,31 +993,11 @@ const CRM: React.FC = () => {
                   
                   <div>
                     <label className="text-xs sm:text-sm text-gray-300 mb-2 block">تاریخ و ساعت موعد *</label>
-                    <input
-                      type="text"
-                      value={newTask.due ? new Date(newTask.due).toLocaleString('fa-IR', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      }) : ''}
-                      onChange={(e) => {
-                        // Parse Persian date format and convert to ISO
-                        const dateStr = e.target.value;
-                        if (dateStr) {
-                          try {
-                            const date = new Date(dateStr);
-                            if (!isNaN(date.getTime())) {
-                              setNewTask(prev => ({ ...prev, due: date.toISOString() }));
-                            }
-                          } catch (error) {
-                            console.error('Invalid date format');
-                          }
-                        }
-                      }}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base max-w-full"
+                    <DatePicker
+                      value={newTask.due}
+                      onChange={(date) => setNewTask(prev => ({ ...prev, due: date }))}
                       placeholder="mm/dd/yyyy -:--"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base max-w-full"
                       style={{ direction: 'ltr', fontSize: '14px' }}
                     />
                   </div>
@@ -1093,30 +1074,11 @@ const CRM: React.FC = () => {
                   
                   <div>
                     <label className="text-xs sm:text-sm text-gray-300 mb-2 block">تاریخ و ساعت موعد *</label>
-                    <input
-                      type="text"
-                      value={editTask.due ? new Date(editTask.due).toLocaleString('fa-IR', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      }) : ''}
-                      onChange={(e) => {
-                        const dateStr = e.target.value;
-                        if (dateStr) {
-                          try {
-                            const date = new Date(dateStr);
-                            if (!isNaN(date.getTime())) {
-                              setEditTask({...editTask, due: date.toISOString()});
-                            }
-                          } catch (error) {
-                            console.error('Invalid date format');
-                          }
-                        }
-                      }}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base max-w-full"
+                    <DatePicker
+                      value={editTask.due}
+                      onChange={(date) => setEditTask({...editTask, due: date})}
                       placeholder="mm/dd/yyyy -:--"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-sm sm:text-base max-w-full"
                       style={{ direction: 'ltr', fontSize: '14px' }}
                     />
                   </div>

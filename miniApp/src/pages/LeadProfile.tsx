@@ -5,6 +5,7 @@ import {
   MapPin, Mail, DollarSign, TrendingUp, Clock, CheckCircle,
   X, Plus, Edit3, Trash2, Eye, Download, Copy, Save, PenLine, Filter
 } from 'lucide-react';
+import DatePicker from '../components/DatePicker';
 
 type LeadStatus = 'cold' | 'warm' | 'hot' | 'converted';
 
@@ -834,30 +835,11 @@ const LeadProfile: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">تاریخ و ساعت</label>
-                <input 
-                  type="text" 
-                  value={newTask.due ? new Date(newTask.due).toLocaleString('fa-IR', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  }) : ''}
-                  onChange={(e) => {
-                    const dateStr = e.target.value;
-                    if (dateStr) {
-                      try {
-                        const date = new Date(dateStr);
-                        if (!isNaN(date.getTime())) {
-                          setNewTask(prev => ({ ...prev, due: date.toISOString() }));
-                        }
-                      } catch (error) {
-                        console.error('Invalid date format');
-                      }
-                    }
-                  }}
-                  className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent max-w-full" 
+                <DatePicker
+                  value={newTask.due}
+                  onChange={(date) => setNewTask(prev => ({ ...prev, due: date }))}
                   placeholder="mm/dd/yyyy -:--"
+                  className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent max-w-full"
                   style={{ direction: 'ltr', fontSize: '14px' }}
                 />
               </div>
@@ -961,32 +943,15 @@ const LeadProfile: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">تاریخ و ساعت</label>
-                <input 
-                  type="text" 
-                  value={tasks[editingTask]?.due ? new Date(tasks[editingTask].due).toLocaleString('fa-IR', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  }) : ''}
-                  onChange={(e) => {
-                    const dateStr = e.target.value;
-                    if (dateStr) {
-                      try {
-                        const date = new Date(dateStr);
-                        if (!isNaN(date.getTime())) {
-                          const updatedTasks = [...tasks];
-                          updatedTasks[editingTask] = { ...updatedTasks[editingTask], due: date.toISOString() };
-                          setTasks(updatedTasks);
-                        }
-                      } catch (error) {
-                        console.error('Invalid date format');
-                      }
-                    }
+                <DatePicker
+                  value={tasks[editingTask]?.due || ''}
+                  onChange={(date) => {
+                    const updatedTasks = [...tasks];
+                    updatedTasks[editingTask] = { ...updatedTasks[editingTask], due: date };
+                    setTasks(updatedTasks);
                   }}
-                  className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent max-w-full" 
                   placeholder="mm/dd/yyyy -:--"
+                  className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent max-w-full"
                   style={{ direction: 'ltr', fontSize: '14px' }}
                 />
               </div>
