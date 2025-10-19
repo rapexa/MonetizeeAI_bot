@@ -13,7 +13,7 @@ interface DatePickerProps {
 const DatePicker: React.FC<DatePickerProps> = ({
   value,
   onChange,
-  placeholder = "mm/dd/yyyy -:--",
+  placeholder = "",
   className = "",
   style = {}
 }) => {

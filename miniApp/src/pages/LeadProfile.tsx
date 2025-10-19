@@ -6,6 +6,7 @@ import {
   X, Plus, Edit3, Trash2, Copy, Save, PenLine, Filter
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
+import '../components/DatePicker.css';
 
 type LeadStatus = 'cold' | 'warm' | 'hot' | 'converted';
 
@@ -822,7 +823,7 @@ const LeadProfile: React.FC = () => {
                 <X size={18} className="text-gray-400" />
               </button>
             </div>
-            <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto modal-scrollbar">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
                 <input 
@@ -838,7 +839,6 @@ const LeadProfile: React.FC = () => {
                 <DatePicker
                   value={newTask.due}
                   onChange={(date) => setNewTask(prev => ({ ...prev, due: date }))}
-                  placeholder="mm/dd/yyyy -:--"
                   className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent max-w-full"
                   style={{ direction: 'ltr', fontSize: '14px' }}
                 />
@@ -928,7 +928,7 @@ const LeadProfile: React.FC = () => {
                 <X size={18} className="text-gray-400" />
               </button>
             </div>
-            <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto modal-scrollbar">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
                 <input 
@@ -952,7 +952,6 @@ const LeadProfile: React.FC = () => {
                     updatedTasks[editingTask] = { ...updatedTasks[editingTask], due: date };
                     setTasks(updatedTasks);
                   }}
-                  placeholder="mm/dd/yyyy -:--"
                   className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent max-w-full"
                   style={{ direction: 'ltr', fontSize: '14px' }}
                 />

@@ -6,6 +6,7 @@ import {
   Send, X, Phone, Clock, Copy, Edit3, Trash2
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
+import '../components/DatePicker.css';
 
 type LeadStatus = 'cold' | 'warm' | 'hot' | 'converted';
 
@@ -975,7 +976,7 @@ const CRM: React.FC = () => {
               </div>
               
               {/* Content */}
-              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto modal-scrollbar">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
                   <input 
@@ -1003,13 +1004,12 @@ const CRM: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">تاریخ و ساعت</label>
-                  <DatePicker
-                    value={newTask.due}
-                    onChange={(date) => setNewTask(prev => ({ ...prev, due: date }))}
-                    placeholder="mm/dd/yyyy -:--"
-                    className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent max-w-full"
-                    style={{ direction: 'ltr', fontSize: '14px' }}
-                  />
+                    <DatePicker
+                      value={newTask.due}
+                      onChange={(date) => setNewTask(prev => ({ ...prev, due: date }))}
+                      className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent max-w-full"
+                      style={{ direction: 'ltr', fontSize: '14px' }}
+                    />
                 </div>
                 
                 <div>
@@ -1072,7 +1072,7 @@ const CRM: React.FC = () => {
               </div>
               
               {/* Content */}
-              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto modal-scrollbar">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
                   <input 
@@ -1103,7 +1103,6 @@ const CRM: React.FC = () => {
                   <DatePicker
                     value={editTask.due}
                     onChange={(date) => setEditTask(prev => prev ? {...prev, due: date} : prev)}
-                    placeholder="mm/dd/yyyy -:--"
                     className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent max-w-full"
                     style={{ direction: 'ltr', fontSize: '14px' }}
                   />

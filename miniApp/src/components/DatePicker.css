@@ -10,6 +10,31 @@
   }
 }
 
+/* Custom Scrollbar for Modals */
+.modal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.5) rgba(31, 41, 55, 0.3);
+}
+
+.modal-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-scrollbar::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.3);
+  border-radius: 4px;
+}
+
+.modal-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.5);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.modal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.7);
+}
+
 @keyframes slideInFromBottom {
   from {
     opacity: 0;
