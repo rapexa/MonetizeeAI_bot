@@ -958,9 +958,8 @@ const CRM: React.FC = () => {
         {/* Add Task Modal */}
         {showAddTask && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-start justify-center pt-8 p-6">
-            <div className="w-full max-w-md backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl" style={{ backgroundColor: '#10091c' }}>
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
+            <div className="w-full max-w-md backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+              <div className="flex items-center justify-between p-4 border-b border-gray-700/60">
                 <h3 className="text-lg font-bold text-white">افزودن وظیفه</h3>
                 <button 
                   onClick={() => setShowAddTask(false)} 
@@ -969,9 +968,7 @@ const CRM: React.FC = () => {
                   <X size={18} className="text-gray-400" />
                 </button>
               </div>
-              
-              {/* Content */}
-              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-scroll modal-scrollbar">
+              <div className="p-4 space-y-4 max-h-[50vh] overflow-y-scroll modal-scrollbar">
                   <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
                     <input
@@ -1054,7 +1051,7 @@ const CRM: React.FC = () => {
         {/* Edit Task Modal */}
         {editTask && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-start justify-center pt-8 p-6">
-            <div className="w-full max-w-md backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl" style={{ backgroundColor: '#10091c' }}>
+            <div className="w-full max-w-md backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden" style={{ backgroundColor: '#10091c' }}>
               <div className="flex items-center justify-between p-4 border-b border-gray-700/60">
                 <h3 className="text-lg font-bold text-white">ویرایش وظیفه</h3>
                 <button 
@@ -1064,7 +1061,7 @@ const CRM: React.FC = () => {
                   <X size={18} className="text-gray-400" />
                 </button>
               </div>
-              <div className="p-4 space-y-4">
+              <div className="p-4 space-y-4 max-h-[50vh] overflow-y-scroll modal-scrollbar">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">عنوان وظیفه</label>
                   <input 
@@ -1131,34 +1128,36 @@ const CRM: React.FC = () => {
                     placeholder="یادداشت (اختیاری)"
                   />
                 </div>
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => {
-                      if (!editTask) return;
-                      setAllTasks(prev => prev.filter(t => t.id !== editTask.id));
-                      setEditTask(null);
-                    }} 
-                    className="px-4 py-2 bg-red-600/80 hover:bg-red-600 text-white rounded-xl font-medium transition-colors"
-                  >
-                    حذف
-                  </button>
-                  <button 
-                    onClick={() => setEditTask(null)} 
-                    className="flex-1 px-4 py-2 bg-gray-700/50 hover:bg-gray-700 text-gray-200 rounded-xl font-medium transition-colors"
-                  >
-                    انصراف
-                  </button>
-                  <button 
-                    onClick={() => {
-                      if (!editTask) return;
-                      setAllTasks(prev => prev.map(t => t.id === editTask.id ? editTask : t));
-                      setEditTask(null);
-                    }} 
-                    className="flex-1 px-4 py-2 bg-gradient-to-r from-[#8A00FF] to-[#C738FF] text-white rounded-xl font-medium shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition-all"
-                  >
-                    ذخیره
-                  </button>
-                </div>
+              </div>
+              
+              {/* Footer */}
+              <div className="flex gap-3 p-4 border-t border-gray-700/50 bg-gray-900/50">
+                <button 
+                  onClick={() => {
+                    if (!editTask) return;
+                    setAllTasks(prev => prev.filter(t => t.id !== editTask.id));
+                    setEditTask(null);
+                  }} 
+                  className="px-6 py-3 bg-red-600/80 hover:bg-red-600 text-white rounded-xl font-medium transition-colors"
+                >
+                  حذف
+                </button>
+                <button 
+                  onClick={() => setEditTask(null)} 
+                  className="px-6 py-3 bg-gray-700/50 hover:bg-gray-700 text-gray-200 rounded-xl font-medium transition-colors"
+                >
+                  انصراف
+                </button>
+                <button 
+                  onClick={() => {
+                    if (!editTask) return;
+                    setAllTasks(prev => prev.map(t => t.id === editTask.id ? editTask : t));
+                    setEditTask(null);
+                  }} 
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-[#8A00FF] to-[#C738FF] text-white rounded-xl font-medium shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:shadow-[0_0_28px_rgba(199,56,255,0.45)] hover:scale-[1.02] active:scale-[0.99] transition-all"
+                >
+                  ذخیره تغییرات
+                </button>
               </div>
             </div>
           </div>
