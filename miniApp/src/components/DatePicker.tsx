@@ -10,76 +10,45 @@ interface DatePickerProps {
   style?: React.CSSProperties;
 }
 
-// تابع تبدیل میلادی به شمسی - نسخه ساده‌تر
+// تابع تبدیل میلادی به شمسی - نسخه صحیح
 const toJalali = (date: Date) => {
   const gy = date.getFullYear();
   const gm = date.getMonth() + 1;
   const gd = date.getDate();
   
-  // تبدیل ساده میلادی به شمسی
-  let jy = gy - 621;
-  if (gm < 3) jy--;
-  
-  // محاسبه ماه و روز شمسی
-  let jm, jd;
-  if (gm <= 3) {
-    jm = gm + 9;
-    jd = gd + 20;
-  } else if (gm <= 6) {
-    jm = gm - 3;
-    jd = gd + 20;
-  } else if (gm <= 9) {
-    jm = gm - 6;
-    jd = gd + 21;
-  } else {
-    jm = gm - 9;
-    jd = gd + 21;
-  }
-  
-  // تنظیم ماه و روز
-  if (jd > 31) {
-    jd -= 31;
-    jm++;
-  }
-  if (jm > 12) {
-    jm -= 12;
-    jy++;
-  }
+  const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+  let jy = gy <= 1600 ? 0 : 979;
+  let gy2 = gy <= 1600 ? gy + 621 : gy - 1600;
+  gy2 = gm > 2 ? gy2 + 1 : gy2;
+  let days = 365 * gy2 + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+  jy += 33 * Math.floor(days / 12053);
+  days %= 12053;
+  jy += 4 * Math.floor(days / 1461);
+  days %= 1461;
+  jy += Math.floor((days - 1) / 365);
+  if (days > 365) days = (days - 1) % 365;
+  const jm = days < 186 ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+  const jd = 1 + (days < 186 ? days % 31 : (days - 186) % 30);
   
   return { year: jy, month: jm, day: jd };
 };
 
-// تابع تبدیل شمسی به میلادی - نسخه ساده‌تر
+// تابع تبدیل شمسی به میلادی - نسخه صحیح
 const toGregorian = (jy: number, jm: number, jd: number) => {
-  let gy = jy + 621;
-  let gm, gd;
+  jy += 1595;
+  let days = -355668 + (365 * jy) + Math.floor(jy / 33) * 8 + Math.floor(((jy % 33) + 3) / 4) + jd + (jm < 7 ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
+  const gy = 400 * Math.floor(days / 146097);
+  days %= 146097;
+  const gy2 = 100 * Math.floor(days / 36524);
+  days %= 36524;
+  const gy3 = 4 * Math.floor(days / 1461);
+  days %= 1461;
+  const gy4 = Math.floor((days + 3) / 4);
+  const gy5 = gy + gy2 + gy3 + gy4;
+  const gm = Math.floor((days - gy4 * 4) / 31) + 1;
+  const gd = (days - gy4 * 4) % 31 + 1;
   
-  // محاسبه ماه و روز میلادی
-  if (jm <= 3) {
-    gm = jm + 9;
-    gd = jd - 20;
-  } else if (jm <= 6) {
-    gm = jm - 3;
-    gd = jd - 20;
-  } else if (jm <= 9) {
-    gm = jm - 6;
-    gd = jd - 21;
-  } else {
-    gm = jm - 9;
-    gd = jd - 21;
-  }
-  
-  // تنظیم ماه و روز
-  if (gd <= 0) {
-    gd += 31;
-    gm--;
-  }
-  if (gm <= 0) {
-    gm += 12;
-    gy--;
-  }
-  
-  return new Date(gy, gm - 1, gd);
+  return new Date(gy5, gm - 1, gd);
 };
 
 const DatePicker: React.FC<DatePickerProps> = ({
@@ -119,6 +88,14 @@ const DatePicker: React.FC<DatePickerProps> = ({
     }
   }, [value, isOpen, selectedDate]);
 
+  // تست برای بررسی تاریخ امروز
+  useEffect(() => {
+    const today = new Date();
+    const jalali = toJalali(today);
+    console.log('امروز میلادی:', today.toLocaleDateString('fa-IR'));
+    console.log('امروز شمسی:', `${jalali.year}/${jalali.month}/${jalali.day}`);
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -139,8 +116,9 @@ const DatePicker: React.FC<DatePickerProps> = ({
         const date = new Date(value);
         if (!isNaN(date.getTime())) {
           const jalali = toJalali(date);
-          const time = date.toTimeString().slice(0, 5);
-          return `${jalali.year}/${jalali.month.toString().padStart(2, '0')}/${jalali.day.toString().padStart(2, '0')} - ${time}`;
+          const hours = date.getHours().toString().padStart(2, '0');
+          const minutes = date.getMinutes().toString().padStart(2, '0');
+          return `${jalali.year}/${jalali.month.toString().padStart(2, '0')}/${jalali.day.toString().padStart(2, '0')} - ${hours}:${minutes}`;
         }
       } catch (error) {
         return value;
@@ -154,7 +132,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
     const time = selectedTime || '12:00';
     const [hours, minutes] = time.split(':');
     const newDate = new Date(date);
-    newDate.setHours(parseInt(hours), parseInt(minutes));
+    newDate.setHours(parseInt(hours), parseInt(minutes), 0, 0); // اضافه کردن ثانیه و میلی‌ثانیه
     onChange(newDate.toISOString());
     setShowTimePicker(true);
   };
@@ -164,7 +142,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
     if (selectedDate) {
       const [hours, minutes] = time.split(':');
       const newDate = new Date(selectedDate);
-      newDate.setHours(parseInt(hours), parseInt(minutes));
+      newDate.setHours(parseInt(hours), parseInt(minutes), 0, 0); // اضافه کردن ثانیه و میلی‌ثانیه
       onChange(newDate.toISOString());
     }
   };
@@ -177,7 +155,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
         const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         setSelectedTime(timeStr);
         const newDate = new Date(selectedDate);
-        newDate.setHours(hour, minute);
+        newDate.setHours(hour, minute, 0, 0); // اضافه کردن ثانیه و میلی‌ثانیه
         onChange(newDate.toISOString());
       }
     }
@@ -190,8 +168,16 @@ const DatePicker: React.FC<DatePickerProps> = ({
     const year = jalali.year;
     const month = jalali.month;
     
-    // محاسبه تعداد روزهای ماه شمسی
-    const daysInMonth = month <= 6 ? 31 : month <= 11 ? 30 : 29;
+    // محاسبه تعداد روزهای ماه شمسی - نسخه صحیح
+    let daysInMonth;
+    if (month <= 6) {
+      daysInMonth = 31;
+    } else if (month <= 11) {
+      daysInMonth = 30;
+    } else {
+      // اسفند - بررسی سال کبیسه
+      daysInMonth = ((year % 4) === 3) ? 30 : 29;
+    }
     
     // محاسبه روز اول ماه
     const firstDayDate = toGregorian(year, month, 1);
