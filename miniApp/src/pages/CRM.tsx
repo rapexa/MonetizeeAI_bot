@@ -860,14 +860,14 @@ const CRM: React.FC = () => {
                       <div className="flex items-center justify-between gap-3 mb-2">
                         <div className="truncate text-white text-base font-bold">{task.title}</div>
                         <span className={`px-3 py-1 text-xs rounded-full border whitespace-nowrap backdrop-blur-xl shadow-lg ${statusChip(task.status)}`}>{task.status==='pending'?'در انتظار':task.status==='done'?'انجام شد':'عقب‌افتاده'}</span>
-                      </div>
+                        </div>
                       <div className="flex items-center justify-between gap-3 text-sm text-gray-300">
                         {task.leadName && <span className="truncate font-medium">{task.leadName}</span>}
                         <span className="px-2 py-1 rounded-lg bg-gradient-to-r from-[#8A00FF]/20 to-[#C738FF]/20 text-purple-200 border border-purple-500/30 backdrop-blur-xl text-xs">
                           {new Date(task.due).toLocaleDateString('fa-IR')}
                         </span>
+                          </div>
                       </div>
-                    </div>
                     <div className="flex flex-col gap-2">
                       <button 
                         onClick={(e) => {

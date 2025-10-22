@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Play, Clock, CheckCircle2, ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
+import { /* Clock, */ CheckCircle2, ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
 
 type Session = {
   id: string;
@@ -22,7 +22,16 @@ const COURSES: Record<string, Course> = {
     title: 'دوره درآمد دلاری واقعی',
     description: 'مسیر عملی درآمد ارزی با نمونه سناریو',
     sessions: [
-      { id: 's1', title: 'معرفی و نقشه راه', duration: '08:12', src: 'https://www.w3schools.com/html/mov_bbb.mp4' },
+      { id: 's1', title: 'قسمت اول', duration: '00:00', src: 'https://dl.sianmarketing.com/dollardore/dollar1.mp4' },
+      { id: 's2', title: 'قسمت دوم', duration: '00:00', src: 'https://dl.sianmarketing.com/dollardore/dollar2.mp4' },
+      { id: 's3', title: 'قسمت سوم', duration: '00:00', src: 'https://dl.sianmarketing.com/dollardore/dollar3.mp4' },
+      { id: 's4', title: 'قسمت چهارم', duration: '00:00', src: 'https://dl.sianmarketing.com/dollardore/dollar4.mp4' },
+      { id: 's5', title: 'قسمت پنجم', duration: '00:00', src: 'https://dl.sianmarketing.com/dollardore/dollar5.mp4' },
+      { id: 's6', title: 'قسمت ششم', duration: '00:00', src: 'https://dl.sianmarketing.com/dollardore/dollar6.mp4' },
+      { id: 's7', title: 'قسمت هفتم', duration: '00:00', src: 'https://dl.sianmarketing.com/dollardore/dollar7.mp4' },
+      { id: 's8', title: 'قسمت هشتم', duration: '00:00', src: 'https://dl.sianmarketing.com/dollardore/dollar8.mp4' },
+      { id: 's9', title: 'قسمت نهم', duration: '00:00', src: 'https://dl.sianmarketing.com/dollardore/dollar9.mp4' },
+      { id: 's10', title: 'قسمت دهم', duration: '00:00', src: 'https://dl.sianmarketing.com/dollardore/dollar10.mp4' },
     ]
   },
   'no-code-web-design': {
@@ -30,7 +39,19 @@ const COURSES: Record<string, Course> = {
     title: 'دوره طراحی سایت بدون کدنویسی',
     description: 'ساخت وب‌سایت مدرن با ابزارهای No-Code',
     sessions: [
-      { id: 's1', title: 'شروع سریع و اصول طراحی', duration: '09:30', src: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4' },
+      { id: 's1', title: 'قسمت اول', duration: '00:00', src: 'https://dl.sianmarketing.com/saitedore/Site1.mp4' },
+      { id: 's2', title: 'قسمت دوم', duration: '00:00', src: 'https://dl.sianmarketing.com/saitedore/Site2.mp4' },
+      { id: 's3', title: 'قسمت سوم', duration: '00:00', src: 'https://dl.sianmarketing.com/saitedore/Site3as1.mp4' },
+      { id: 's4', title: 'قسمت چهارم', duration: '00:00', src: 'https://dl.sianmarketing.com/saitedore/Site3as2.mp4' },
+      { id: 's5', title: 'قسمت پنجم', duration: '00:00', src: 'https://dl.sianmarketing.com/saitedore/Site4.mp4' },
+      { id: 's6', title: 'قسمت ششم', duration: '00:00', src: 'https://dl.sianmarketing.com/saitedore/Site5.mp4' },
+      { id: 's7', title: 'قسمت هفتم', duration: '00:00', src: 'https://dl.sianmarketing.com/saitedore/Site6.mp4' },
+      { id: 's8', title: 'قسمت هشتم', duration: '00:00', src: 'https://dl.sianmarketing.com/saitedore/Site7.mp4' },
+      { id: 's9', title: 'قسمت نهم', duration: '00:00', src: 'https://dl.sianmarketing.com/saitedore/Site8.mp4' },
+      { id: 's10', title: 'قسمت دهم', duration: '00:00', src: 'https://dl.sianmarketing.com/saitedore/Site9.mp4' },
+      { id: 's11', title: 'قسمت یازدهم', duration: '00:00', src: 'https://dl.sianmarketing.com/saitedore/Site10.mp4' },
+      { id: 's12', title: 'قسمت دوازدهم', duration: '00:00', src: 'https://dl.sianmarketing.com/saitedore/Site11.mp4' },
+      { id: 's13', title: 'قسمت سیزدهم', duration: '00:00', src: 'https://dl.sianmarketing.com/saitedore/Site12.mp4' },
     ]
   }
 };
@@ -144,10 +165,10 @@ const CoursePlayer: React.FC = () => {
             <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full border border-white/20">
               {current?.title}
             </div>
-            <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full border border-white/20 flex items-center gap-1">
+            {/* <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full border border-white/20 flex items-center gap-1">
               <Clock size={12} />
               {current?.duration}
-            </div>
+            </div> */}
             <button
               onClick={toggleFullscreen}
               className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white p-2 rounded-full border border-white/20 hover:bg-black/80 transition-all duration-300 hover:scale-110"
@@ -223,8 +244,8 @@ const CoursePlayer: React.FC = () => {
                         {s.title}
                   </div>
                       <div className="flex items-center gap-2 text-sm text-gray-400">
-                        <Clock size={14} />
-                        <span>{s.duration}</span>
+                        {/* <Clock size={14} />
+                        <span>{s.duration}</span> */}
                         {isActive && (
                           <span className="px-2 py-1 bg-[#8A00FF]/20 text-[#8A00FF] rounded-full text-xs font-medium">
                             در حال پخش
