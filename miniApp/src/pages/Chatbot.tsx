@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Send, Wifi, WifiOff, Brain, X, Sparkles } from 'lucide-react';
+import { ArrowRight, Send, Wifi, WifiOff, Brain, X, Sparkles, Crown } from 'lucide-react';
 import apiService from '../services/api';
 import { useAutoScroll } from '../hooks/useAutoScroll';
 import AIMessage from '../components/AIMessage';
@@ -15,7 +15,7 @@ interface Message {
 }
 
 const Chatbot: React.FC = () => {
-  const { isOnline, userData, isAPIConnected } = useApp();
+  const { isOnline, userData, isAPIConnected, isSubscriptionExpired } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -30,6 +30,25 @@ const Chatbot: React.FC = () => {
     'تحلیل پیشرفت من',
     'راهنمای شروع'
   ];
+
+  // Check if user can use chat
+  const canUseChat = () => {
+    // If subscription expired, no access
+    if (isSubscriptionExpired()) {
+      return false;
+    }
+    if (userData.subscriptionType === 'paid') {
+      return true;
+    }
+    if (userData.subscriptionType === 'free_trial') {
+      return (userData.chatMessagesUsed || 0) < 1; // Only 1 message per day for free trial users
+    }
+    // For users without subscription type (legacy), also allow 1 message
+    if (!userData.subscriptionType || userData.subscriptionType === 'none') {
+      return (userData.chatMessagesUsed || 0) < 1;
+    }
+    return false;
+  };
 
   // Initialize Telegram WebApp
   useEffect(() => {
@@ -125,6 +144,12 @@ const Chatbot: React.FC = () => {
 
   const handleSend = async () => {
     if (!inputValue.trim() || !isOnline) return;
+
+    // Check subscription limits
+    if (!canUseChat()) {
+      alert('🔒 شما به محدودیت پیام روزانه رسیده‌اید. امروز یک پیام ارسال کردید. برای استفاده بیشتر، اشتراک پولی تهیه کنید.');
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now(),
@@ -337,6 +362,23 @@ const Chatbot: React.FC = () => {
 
       {/* Input Area */}
       <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-4 backdrop-blur-xl rounded-3xl border border-gray-700/60 p-7 shadow-lg transition-all duration-500 pb-safe-area-inset-bottom z-40" style={{ backgroundColor: 'rgb(16, 9, 28)' }}>
+        {/* Subscription limit warning */}
+        {!canUseChat() && (
+          <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
+                <Crown className="w-4 h-4 text-red-400" />
+              </div>
+              <div>
+                <h4 className="text-red-400 font-bold text-sm mb-1">محدودیت اشتراک</h4>
+                <p className="text-red-300 text-xs">
+                  شما امروز یک پیام ارسال کرده‌اید. برای استفاده بیشتر، اشتراک پولی تهیه کنید.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="flex gap-3 items-center">
           <input
             type="text"

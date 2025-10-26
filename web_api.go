@@ -582,7 +582,7 @@ func handleChatRequest(c *gin.Context) {
 	if !user.CanUseChat() {
 		c.JSON(http.StatusForbidden, APIResponse{
 			Success: false,
-			Error:   "شما به محدودیت پیام‌های چت رسیده‌اید. برای استفاده بیشتر، اشتراک پولی تهیه کنید.",
+			Error:   "شما به محدودیت پیام روزانه رسیده‌اید. امروز یک پیام ارسال کردید. برای استفاده بیشتر، اشتراک پولی تهیه کنید.",
 		})
 		return
 	}
@@ -590,10 +590,12 @@ func handleChatRequest(c *gin.Context) {
 	// Get response from ChatGPT
 	response := handleChatGPTMessageAPI(&user, requestData.Message)
 
-	// Increment chat message count for free trial users
-	if user.SubscriptionType == "free_trial" {
+	// Increment chat message count for free trial users and users without subscription type
+	if user.SubscriptionType == "free_trial" || user.SubscriptionType == "none" || user.SubscriptionType == "" {
 		user.ChatMessagesUsed++
-		db.Save(&user)
+		if err := db.Save(&user).Error; err != nil {
+			logger.Error("Failed to increment chat messages used", zap.Error(err))
+		}
 	}
 
 	// Save chat message to database
