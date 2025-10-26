@@ -591,9 +591,12 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 	case "start_free_trial":
 		// Start free trial
 		user.StartFreeTrial()
+		user.IsVerified = true // Mark user as verified so they can use the bot
 		db.Save(&user)
 
+		// Send main menu keyboard to user
 		msg := tgbotapi.NewMessage(userID, "🎉 تبریک! اشتراک رایگان شما فعال شد!\n\n⏰ مدت: 3 روز\n📅 انقضا: "+user.SubscriptionExpiry.Format("2006-01-02 15:04")+"\n\n✅ حالا می‌توانید از تمام امکانات استفاده کنید\n\n⚠️ یادآوری محدودیت‌ها:\n• حداکثر 5 پیام چت در روز\n• فقط 3 قسمت اول هر دوره\n\nبرای دسترسی کامل، اشتراک پولی تهیه کنید.")
+		msg.ReplyMarkup = getMainMenuKeyboard()
 		bot.Send(msg)
 
 	case "decline_trial":
