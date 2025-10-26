@@ -34,7 +34,11 @@ const AICoach: React.FC = () => {
       return true;
     }
     if (userData.subscriptionType === 'free_trial') {
-      return (userData.chatMessagesUsed || 0) < 5;
+      return (userData.chatMessagesUsed || 0) < 1; // Only 1 message per day for free trial users
+    }
+    // For users without subscription type (legacy), also allow 1 message
+    if (!userData.subscriptionType || userData.subscriptionType === 'none') {
+      return (userData.chatMessagesUsed || 0) < 1;
     }
     return false;
   };
@@ -132,7 +136,7 @@ const AICoach: React.FC = () => {
 
     // Check subscription limits
     if (!canUseChat()) {
-      alert('🔒 شما به محدودیت پیام‌های چت رسیده‌اید. برای استفاده بیشتر، اشتراک پولی تهیه کنید.');
+      alert('🔒 شما به محدودیت پیام روزانه رسیده‌اید. امروز یک پیام ارسال کردید. برای استفاده بیشتر، اشتراک پولی تهیه کنید.');
       return;
     }
 
@@ -321,7 +325,7 @@ const AICoach: React.FC = () => {
                     <div>
                       <h4 className="text-red-400 font-bold text-sm mb-1">محدودیت اشتراک</h4>
                       <p className="text-red-300 text-xs">
-                        شما به محدودیت پیام‌های چت رسیده‌اید. برای استفاده بیشتر، اشتراک پولی تهیه کنید.
+                        شما امروز یک پیام ارسال کرده‌اید. برای استفاده بیشتر، اشتراک پولی تهیه کنید.
                       </p>
                     </div>
                   </div>

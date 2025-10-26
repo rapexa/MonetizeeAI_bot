@@ -175,8 +175,10 @@ const Levels: React.FC = () => {
         return true;
       }
       
-      // If user has free trial, they can access first 3 stages
-      if (userData.subscriptionType === 'free_trial') {
+      // For free trial users AND users without subscription (legacy/none): only first 3 stages
+      if (userData.subscriptionType === 'free_trial' || 
+          !userData.subscriptionType || 
+          userData.subscriptionType === 'none') {
         return stageId <= 3;
       }
       
@@ -2879,7 +2881,10 @@ const Levels: React.FC = () => {
                         if (userData.subscriptionType === 'paid') {
                           return true;
                         }
-                        if (userData.subscriptionType === 'free_trial') {
+                        // For free trial users AND users without subscription (legacy/none): only first 3 stages
+                        if (userData.subscriptionType === 'free_trial' || 
+                            !userData.subscriptionType || 
+                            userData.subscriptionType === 'none') {
                           return stage.id <= 3;
                         }
                         return false;
