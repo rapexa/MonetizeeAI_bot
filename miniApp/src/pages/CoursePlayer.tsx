@@ -101,7 +101,14 @@ const CoursePlayer: React.FC = () => {
 
   React.useEffect(() => {
     if (course && (!current || !course.sessions.find(s => s.id === current.id))) {
-      setCurrent(course.sessions[0]);
+      // Check if user can access the first session
+      const canAccess = canAccessSession(0);
+      if (canAccess) {
+        setCurrent(course.sessions[0]);
+      } else {
+        // User can't access, set to null or show error
+        setCurrent(null);
+      }
     }
   }, [courseId]);
 
@@ -166,20 +173,31 @@ const CoursePlayer: React.FC = () => {
         {/* Video Player Card */}
         <div className={`backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'shadow-2xl' : ''}`} style={{ backgroundColor: '#10091c' }}>
           <div className="relative">
-            <video
-              ref={videoRef}
-              key={current?.id}
-              controls
-              playsInline
-              className={`w-full bg-black transition-all duration-300 ${isFullscreen ? 'h-96' : 'h-52'}`}
-              controlsList="nodownload"
-              disablePictureInPicture
-              // @ts-ignore - non-standard but supported in Chromium
-              disableRemotePlayback
-              onContextMenu={(e) => e.preventDefault()}
-            >
-              <source src={current?.src} type="video/mp4" />
-            </video>
+            {/* Check if user can access current session */}
+            {current && canAccessSession(course.sessions.findIndex(s => s.id === current.id)) ? (
+              <video
+                ref={videoRef}
+                key={current?.id}
+                controls
+                playsInline
+                className={`w-full bg-black transition-all duration-300 ${isFullscreen ? 'h-96' : 'h-52'}`}
+                controlsList="nodownload"
+                disablePictureInPicture
+                // @ts-ignore - non-standard but supported in Chromium
+                disableRemotePlayback
+                onContextMenu={(e) => e.preventDefault()}
+              >
+                <source src={current?.src} type="video/mp4" />
+              </video>
+            ) : (
+              <div className="w-full bg-black flex items-center justify-center text-white text-center p-8 h-52">
+                <div>
+                  <Lock size={48} className="mx-auto mb-4 text-gray-400" />
+                  <p className="text-lg font-bold mb-2">این قسمت قفل است</p>
+                  <p className="text-sm text-gray-400">برای مشاهده این قسمت، اشتراک پولی تهیه کنید.</p>
+                </div>
+              </div>
+            )}
             <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full border border-white/20">
               {current?.title}
             </div>
