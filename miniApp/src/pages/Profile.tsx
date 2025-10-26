@@ -113,16 +113,14 @@ const Profile: React.FC = () => {
         return {
           plan: "مادام‌العمر",
           status: "فعال",
-          endDate: "نامحدود",
-          autoRenew: "غیرفعال"
+          endDate: "نامحدود"
         };
       } else {
         const expiryDate = new Date(userData.subscriptionExpiry);
         return {
           plan: "پرو",
           status: "فعال",
-          endDate: expiryDate.toLocaleDateString('fa-IR'),
-          autoRenew: "فعال"
+          endDate: expiryDate.toLocaleDateString('fa-IR')
         };
       }
     } else if (userData.subscriptionType === 'free_trial') {
@@ -130,15 +128,13 @@ const Profile: React.FC = () => {
       return {
         plan: "اشتراک رایگان",
         status: "فعال",
-        endDate: expiryDate ? expiryDate.toLocaleDateString('fa-IR') : "-",
-        autoRenew: "غیرفعال"
+        endDate: expiryDate ? expiryDate.toLocaleDateString('fa-IR') : "-"
       };
     } else {
       return {
         plan: "بدون اشتراک",
         status: "غیرفعال",
-        endDate: "-",
-        autoRenew: "غیرفعال"
+        endDate: "-"
       };
     }
   };
@@ -343,14 +339,6 @@ const Profile: React.FC = () => {
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-400">تاریخ انقضا:</span>
               <span className="text-white font-medium">{userProfile.subscription.endDate}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-400">تمدید خودکار:</span>
-              <span className={`font-medium ${
-                userProfile.subscription.autoRenew === "فعال" ? "text-green-400" : "text-gray-400"
-              }`}>
-                {userProfile.subscription.autoRenew}
-              </span>
             </div>
           </div>
           
@@ -712,7 +700,7 @@ const Profile: React.FC = () => {
                     onClick={handleSupportClick}
                     className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl shadow-[#5A189A]/25"
                   >
-                    �� شروع مشاوره رایگان
+                    شروع مشاوره رایگان
                   </button>
                 </div>
               </div>
