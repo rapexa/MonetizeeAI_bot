@@ -592,7 +592,12 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 		// Start free trial
 		user.StartFreeTrial()
 		user.IsVerified = true // Mark user as verified so they can use the bot
-		db.Save(&user)
+		user.IsActive = true   // Ensure user is active
+		if err := db.Save(&user).Error; err != nil {
+			logger.Error("Failed to save user with free trial", zap.Error(err), zap.Int64("user_id", userID))
+			sendMessage(userID, "❌ خطا در فعال‌سازی اشتراک رایگان. لطفا دوباره تلاش کنید.")
+			return
+		}
 
 		// Send main menu keyboard to user
 		msg := tgbotapi.NewMessage(userID, "🎉 تبریک! اشتراک رایگان شما فعال شد!\n\n⏰ مدت: 3 روز\n📅 انقضا: "+user.SubscriptionExpiry.Format("2006-01-02 15:04")+"\n\n✅ حالا می‌توانید از تمام امکانات استفاده کنید\n\n⚠️ یادآوری محدودیت‌ها:\n• حداکثر 5 پیام چت در روز\n• فقط 3 قسمت اول هر دوره\n\nبرای دسترسی کامل، اشتراک پولی تهیه کنید.")
