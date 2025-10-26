@@ -438,6 +438,15 @@ func processUserInput(input string, user *User) string {
 		return ""
 	}
 
+	// If user has no subscription and not in license entry mode, redirect them
+	if !user.IsVerified && state != StateWaitingForLicense && state != StateWaitingForName && state != StateWaitingForPhone {
+		// User is not verified and not in any input state, this shouldn't happen but handle gracefully
+		if len(input) > 0 && input != "/start" {
+			// If user sends any text that's not /start and is not in proper state, ignore it or reset state
+			return ""
+		}
+	}
+
 	switch state {
 	case StateWaitingForLicense:
 		if strings.TrimSpace(input) == "" {

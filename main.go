@@ -281,9 +281,9 @@ func handleMessage(update tgbotapi.Update) {
 		user = getUserOrCreate(update.Message.From)
 	}
 
-	// Block access until user is verified
-	if !user.IsVerified {
-		// Only allow license/name input, do not show main menu or process other commands
+	// Block access until user is verified (unless they have free trial)
+	if !user.IsVerified && !user.HasActiveSubscription() {
+		// Only allow license/name/phone input, do not show main menu or process other commands
 		processUserInput(update.Message.Text, user)
 		return
 	}
@@ -306,8 +306,8 @@ func handleMessage(update tgbotapi.Update) {
 	if update.Message.IsCommand() {
 		switch update.Message.Command() {
 		case "start":
-			// Only send welcome message if user already exists
-			if !isNewUser(update.Message.From.ID) {
+			// Only send welcome message if user already exists and is verified
+			if !isNewUser(update.Message.From.ID) && user.IsVerified {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "به ربات MONETIZE AI🥇 خوش آمدید! من دستیار هوشمند شما هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
 				msg.ReplyMarkup = getMainMenuKeyboard()
 				bot.Send(msg)
