@@ -13,8 +13,15 @@ const START_REFFER = "@sian_academy_support"
 
 // Subscription limits
 const FREE_TRIAL_DURATION = 3 * 24 * time.Hour // 3 days
-const FREE_TRIAL_CHAT_LIMIT = 5                // 5 chat messages
+const FREE_TRIAL_CHAT_LIMIT = 1                // 1 chat message per day for free trial users
 const FREE_TRIAL_COURSE_LIMIT = 3              // 3 course sessions
+
+// LastChatReset tracks when chat limits were last reset (for daily reset)
+type LastChatReset struct {
+	gorm.Model
+	TelegramID int64
+	LastReset  time.Time
+}
 
 // User represents a Telegram user in our system
 type User struct {

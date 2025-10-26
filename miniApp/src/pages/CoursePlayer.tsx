@@ -83,9 +83,15 @@ const CoursePlayer: React.FC = () => {
       return true;
     }
     
-    // If user has free trial, they can access first 3 sessions
+    // If user has free trial, they can access first 3 sessions (index 0, 1, 2)
     if (userData.subscriptionType === 'free_trial') {
-      return sessionIndex < 3;
+      const canAccess = sessionIndex < 3;
+      return canAccess;
+    }
+    
+    // Legacy users (verified but no subscription type set) - limit to first 3 sessions too
+    if (userData.subscriptionType === 'none' || !userData.subscriptionType) {
+      return sessionIndex < 3; // Legacy users also limited to first 3 sessions
     }
     
     // If user has no subscription, they can't access any sessions
@@ -101,14 +107,8 @@ const CoursePlayer: React.FC = () => {
 
   React.useEffect(() => {
     if (course && (!current || !course.sessions.find(s => s.id === current.id))) {
-      // Check if user can access the first session
-      const canAccess = canAccessSession(0);
-      if (canAccess) {
-        setCurrent(course.sessions[0]);
-      } else {
-        // User can't access, set to null or show error
-        setCurrent(null);
-      }
+      // Always set first session for display (limitation checked when accessing content)
+      setCurrent(course.sessions[0]);
     }
   }, [courseId]);
 

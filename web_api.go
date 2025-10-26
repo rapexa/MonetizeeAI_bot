@@ -107,16 +107,21 @@ type APIResponse struct {
 }
 
 type UserInfoResponse struct {
-	TelegramID     int64  `json:"telegram_id"`
-	Username       string `json:"username"`
-	FirstName      string `json:"first_name"`
-	LastName       string `json:"last_name"`
-	CurrentSession int    `json:"current_session"`
-	IsVerified     bool   `json:"is_verified"`
-	IsActive       bool   `json:"is_active"`
-	Level          int    `json:"level"`
-	Progress       int    `json:"progress"`
-	CompletedTasks int    `json:"completed_tasks"`
+	TelegramID         int64      `json:"telegram_id"`
+	Username           string     `json:"username"`
+	FirstName          string     `json:"first_name"`
+	LastName           string     `json:"last_name"`
+	CurrentSession     int        `json:"current_session"`
+	IsVerified         bool       `json:"is_verified"`
+	IsActive           bool       `json:"is_active"`
+	Level              int        `json:"level"`
+	Progress           int        `json:"progress"`
+	CompletedTasks     int        `json:"completed_tasks"`
+	SubscriptionType   string     `json:"subscription_type"`
+	SubscriptionExpiry *time.Time `json:"subscription_expiry,omitempty"`
+	FreeTrialUsed      bool       `json:"free_trial_used"`
+	ChatMessagesUsed   int        `json:"chat_messages_used"`
+	CourseSessionsUsed int        `json:"course_sessions_used"`
 }
 
 type SessionInfoResponse struct {
@@ -291,16 +296,21 @@ func authenticateTelegramUser(c *gin.Context) {
 	progress := GetUserProgress(completedSessions)
 
 	userInfo := UserInfoResponse{
-		TelegramID:     user.TelegramID,
-		Username:       user.Username,
-		FirstName:      user.FirstName,
-		LastName:       user.LastName,
-		CurrentSession: user.CurrentSession,
-		IsVerified:     user.IsVerified,
-		IsActive:       user.IsActive,
-		Level:          userLevel.Level,
-		Progress:       progress,
-		CompletedTasks: completedSessions,
+		TelegramID:         user.TelegramID,
+		Username:           user.Username,
+		FirstName:          user.FirstName,
+		LastName:           user.LastName,
+		CurrentSession:     user.CurrentSession,
+		IsVerified:         user.IsVerified,
+		IsActive:           user.IsActive,
+		Level:              userLevel.Level,
+		Progress:           progress,
+		CompletedTasks:     completedSessions,
+		SubscriptionType:   user.SubscriptionType,
+		SubscriptionExpiry: user.SubscriptionExpiry,
+		FreeTrialUsed:      user.FreeTrialUsed,
+		ChatMessagesUsed:   user.ChatMessagesUsed,
+		CourseSessionsUsed: user.CourseSessionsUsed,
 	}
 
 	c.JSON(http.StatusOK, APIResponse{
@@ -335,16 +345,21 @@ func getUserInfo(c *gin.Context) {
 	progress := GetUserProgress(completedSessions)
 
 	userInfo := UserInfoResponse{
-		TelegramID:     user.TelegramID,
-		Username:       user.Username,
-		FirstName:      user.FirstName,
-		LastName:       user.LastName,
-		CurrentSession: user.CurrentSession,
-		IsVerified:     user.IsVerified,
-		IsActive:       user.IsActive,
-		Level:          userLevel.Level,
-		Progress:       progress,
-		CompletedTasks: completedSessions,
+		TelegramID:         user.TelegramID,
+		Username:           user.Username,
+		FirstName:          user.FirstName,
+		LastName:           user.LastName,
+		CurrentSession:     user.CurrentSession,
+		IsVerified:         user.IsVerified,
+		IsActive:           user.IsActive,
+		Level:              userLevel.Level,
+		Progress:           progress,
+		CompletedTasks:     completedSessions,
+		SubscriptionType:   user.SubscriptionType,
+		SubscriptionExpiry: user.SubscriptionExpiry,
+		FreeTrialUsed:      user.FreeTrialUsed,
+		ChatMessagesUsed:   user.ChatMessagesUsed,
+		CourseSessionsUsed: user.CourseSessionsUsed,
 	}
 
 	c.JSON(http.StatusOK, APIResponse{
