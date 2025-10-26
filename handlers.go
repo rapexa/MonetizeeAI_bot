@@ -452,12 +452,6 @@ func processUserInput(input string, user *User) string {
 		if strings.TrimSpace(input) == "" {
 			return ""
 		}
-		// License must be 64 characters (adjust if needed)
-		if len(input) != 64 {
-			msg := tgbotapi.NewMessage(user.TelegramID, "لطفا فقط کد لایسنس معتبر را کپی کنید و  وارد کنید.")
-			bot.Send(msg)
-			return ""
-		}
 		if input == "5a7474e6746067c57382ac1727a400fa65b7398a3774c3b19272916549c93a8d" {
 			user.License = input
 			userStates[user.TelegramID] = StateWaitingForName
@@ -465,7 +459,7 @@ func processUserInput(input string, user *User) string {
 			bot.Send(msg)
 			return ""
 		} else {
-			msg := tgbotapi.NewMessage(user.TelegramID, "✅ از منو پایین: لطفا روی گزینه ارسال لایسنس کلیک کنید.")
+			msg := tgbotapi.NewMessage(user.TelegramID, "لطفا فقط کد لایسنس معتبر را کپی کنید و  وارد کنید.\n\n✅ از منو پایین: لطفا روی گزینه ارسال لایسنس کلیک کنید.")
 			bot.Send(msg)
 			return ""
 		}
