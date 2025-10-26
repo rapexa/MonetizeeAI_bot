@@ -163,10 +163,30 @@ const Levels: React.FC = () => {
     return {};
   });
 
-  // Helper function to get stage status based on user progress
+  // Helper function to get stage status based on user progress and subscription
   const getStageStatus = (stageId: number): 'locked' | 'available' | 'in_progress' | 'completed' => {
     const currentSession = userData.currentSession || 1;
     const completedStages = currentSession - 1;
+    
+    // Check subscription limits
+    const canAccessStage = () => {
+      // If user has paid subscription, they can access all stages
+      if (userData.subscriptionType === 'paid') {
+        return true;
+      }
+      
+      // If user has free trial, they can access first 3 stages
+      if (userData.subscriptionType === 'free_trial') {
+        return stageId <= 3;
+      }
+      
+      // If user has no subscription, they can't access any stages
+      return false;
+    };
+    
+    if (!canAccessStage()) {
+      return 'locked';
+    }
     
     if (stageId <= completedStages) {
       return 'completed';
@@ -2854,11 +2874,25 @@ const Levels: React.FC = () => {
                   <div
                     key={stage.id}
                     onClick={() => {
-                      if (passedStages.has(stage.id)) {
+                      // Check subscription limits
+                      const canAccessStage = () => {
+                        if (userData.subscriptionType === 'paid') {
+                          return true;
+                        }
+                        if (userData.subscriptionType === 'free_trial') {
+                          return stage.id <= 3;
+                        }
+                        return false;
+                      };
+                      
+                      if (passedStages.has(stage.id) && canAccessStage()) {
                         setSelectedStage(stage);
                         setViewMode('stage-detail');
                         // Scroll to top when opening stage detail
                         window.scrollTo({ top: 0, behavior: 'smooth' });
+                      } else if (!canAccessStage()) {
+                        // Show subscription limit message
+                        alert('🔒 این مرحله نیاز به اشتراک پولی دارد. برای دسترسی کامل، اشتراک پولی تهیه کنید.');
                       }
                     }}
                     className={`group relative overflow-hidden rounded-xl border transition-all duration-300 ${

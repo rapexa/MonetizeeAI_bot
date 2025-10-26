@@ -3,11 +3,35 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, Wrench, Rocket, Package, Search, Map, ExternalLink, Sparkles, Brain, Target, Users, BarChart3, Globe, Zap, Shield, Clock,
   Palette, FileText, Image, Layers, PenTool, Eye, TrendingUp, Activity, BarChart, PieChart, LineChart, Mail, MessageSquare, ShoppingCart, CreditCard, DollarSign,
-  Settings, Calendar, FolderOpen, Cloud, Link, Workflow, Cpu, Database, Server, Network, Zap as ZapIcon, GitBranch, GitCommit, GitPullRequest, Trophy, X
+  Settings, Calendar, FolderOpen, Cloud, Link, Workflow, Cpu, Database, Server, Network, Zap as ZapIcon, GitBranch, GitCommit, GitPullRequest, Trophy, X, Crown
 } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
 const Tools: React.FC = () => {
   const navigate = useNavigate();
+  const { userData } = useApp();
+
+  // Check if user can access AI tools
+  const canAccessAITools = () => {
+    if (userData.subscriptionType === 'paid') {
+      return true;
+    }
+    if (userData.subscriptionType === 'free_trial') {
+      return false; // AI tools are NOT available in free trial
+    }
+    return false;
+  };
+
+  // Check if user can access CRM
+  const canAccessCRM = () => {
+    if (userData.subscriptionType === 'paid') {
+      return true;
+    }
+    if (userData.subscriptionType === 'free_trial') {
+      return false; // CRM is NOT available in free trial
+    }
+    return false;
+  };
 
   const internalTools = [
     {
@@ -476,6 +500,23 @@ const Tools: React.FC = () => {
 
   return (
     <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
+      {/* Subscription limit warning */}
+      {!canAccessAITools() && (
+        <div className="fixed top-16 left-4 right-4 z-40 p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
+              <Crown className="w-4 h-4 text-red-400" />
+            </div>
+            <div>
+              <h4 className="text-red-400 font-bold text-sm mb-1">محدودیت اشتراک</h4>
+              <p className="text-red-300 text-xs">
+                برای دسترسی به ابزارهای هوش مصنوعی، اشتراک پولی تهیه کنید.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Fixed Header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
         <div className="flex items-center justify-between p-4 max-w-md mx-auto">
@@ -513,8 +554,18 @@ const Tools: React.FC = () => {
               return (
                 <div
                   key={tool.id}
-                  onClick={() => navigate(tool.path)}
-                  className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden"
+                  onClick={() => {
+                    if (canAccessAITools()) {
+                      navigate(tool.path);
+                    } else {
+                      alert('🔒 برای دسترسی به ابزارهای هوش مصنوعی، اشتراک پولی تهیه کنید.');
+                    }
+                  }}
+                  className={`text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden ${
+                    canAccessAITools() 
+                      ? 'cursor-pointer hover:shadow-xl hover:scale-105' 
+                      : 'opacity-50 cursor-not-allowed grayscale blur-sm'
+                  }`}
                   style={{ backgroundColor: '#10091c' }}
                 >
                   <div className="flex items-center justify-center mb-1">
@@ -523,10 +574,14 @@ const Tools: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-                    <Icon size={16} className={tool.title.includes('سازنده') ? 'text-blue-500 drop-shadow-lg' : 
-                                                 tool.title.includes('کیت') ? 'text-green-500 drop-shadow-lg' :
-                                                 tool.title.includes('یابنده') ? 'text-orange-500 drop-shadow-lg' :
-                                                 tool.title.includes('مسیر') ? 'text-purple-500 drop-shadow-lg' : 'text-white'} />
+                    {!canAccessAITools() ? (
+                      <Crown size={16} className="text-red-400" />
+                    ) : (
+                      <Icon size={16} className={tool.title.includes('سازنده') ? 'text-blue-500 drop-shadow-lg' : 
+                                                   tool.title.includes('کیت') ? 'text-green-500 drop-shadow-lg' :
+                                                   tool.title.includes('یابنده') ? 'text-orange-500 drop-shadow-lg' :
+                                                   tool.title.includes('مسیر') ? 'text-purple-500 drop-shadow-lg' : 'text-white'} />
+                    )}
                     <span className={tool.title.includes('سازنده') ? 'text-blue-500 drop-shadow-lg' : 
                                        tool.title.includes('کیت') ? 'text-green-500 drop-shadow-lg' :
                                        tool.title.includes('یابنده') ? 'text-orange-500 drop-shadow-lg' :
@@ -544,15 +599,29 @@ const Tools: React.FC = () => {
 
           {/* Large Sales Management System Card - below all small buttons */}
           <div 
-            className="mt-3 text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden"
+            className={`mt-3 text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden ${
+              canAccessCRM() 
+                ? 'cursor-pointer hover:shadow-xl hover:scale-105' 
+                : 'opacity-50 cursor-not-allowed grayscale blur-sm'
+            }`}
             style={{ backgroundColor: '#10091c' }}
-            onClick={() => navigate('/crm')}
+            onClick={() => {
+              if (canAccessCRM()) {
+                navigate('/crm');
+              } else {
+                alert('🔒 برای دسترسی به CRM، اشتراک پولی تهیه کنید.');
+              }
+            }}
           >
             <div className="flex items-center justify-center mb-1">
               <div className="text-xs text-white font-medium transition-colors duration-300">سیستم مدیریت فروش</div>
             </div>
             <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-              <BarChart3 size={16} className="text-green-500 drop-shadow-lg" />
+              {!canAccessCRM() ? (
+                <Crown size={16} className="text-red-400" />
+              ) : (
+                <BarChart3 size={16} className="text-green-500 drop-shadow-lg" />
+              )}
               <span className="text-green-500 drop-shadow-lg">مدیریت فروش</span>
             </div>
           </div>

@@ -288,6 +288,20 @@ func handleMessage(update tgbotapi.Update) {
 		return
 	}
 
+	// Check if subscription has expired and is not in license entry mode
+	state, _ := userStates[user.TelegramID]
+	if !user.HasActiveSubscription() && state != StateWaitingForLicense {
+		// If user tries to use any command except license entry, send message
+		if update.Message.IsCommand() && update.Message.Command() != "start" {
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID,
+				"⚠️ اشتراک شما به پایان رسید!\n\n"+
+					"🔒 برای استفاده از امکانات ربات، لطفا اشتراک ماهیانه خریداری کنید یا لایسنس خود را وارد کنید.")
+			msg.ReplyMarkup = getExpiredSubscriptionKeyboard()
+			bot.Send(msg)
+			return
+		}
+	}
+
 	// Handle commands
 	if update.Message.IsCommand() {
 		switch update.Message.Command() {

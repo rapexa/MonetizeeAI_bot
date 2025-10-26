@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { /* Clock, */ CheckCircle2, ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
+import { /* Clock, */ CheckCircle2, ArrowLeft, Maximize2, Minimize2, Lock } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
 type Session = {
   id: string;
@@ -59,6 +60,7 @@ const COURSES: Record<string, Course> = {
 const CoursePlayer: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const { userData } = useApp();
   const course = courseId ? COURSES[courseId] : undefined;
   const [current, setCurrent] = React.useState<Session | null>(course ? course.sessions[0] : null);
   
@@ -73,6 +75,22 @@ const CoursePlayer: React.FC = () => {
   
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  // Check if user can access session
+  const canAccessSession = (sessionIndex: number) => {
+    // If user has paid subscription, they can access all sessions
+    if (userData.subscriptionType === 'paid') {
+      return true;
+    }
+    
+    // If user has free trial, they can access first 3 sessions
+    if (userData.subscriptionType === 'free_trial') {
+      return sessionIndex < 3;
+    }
+    
+    // If user has no subscription, they can't access any sessions
+    return false;
+  };
 
   // Save completed sessions to localStorage whenever it changes
   React.useEffect(() => {
@@ -214,14 +232,20 @@ const CoursePlayer: React.FC = () => {
           {course.sessions.map((s, idx) => {
             const isActive = current?.id === s.id;
             const isDone = completed[s.id];
+            const canAccess = canAccessSession(idx);
             return (
               <button
                 key={s.id}
-                onClick={() => setCurrent(s)}
-                  className={`w-full p-4 rounded-2xl border transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] ${
+                onClick={() => canAccess ? setCurrent(s) : null}
+                disabled={!canAccess}
+                  className={`w-full p-4 rounded-2xl border transition-all duration-300 ${
+                    canAccess ? 'hover:scale-[1.01] active:scale-[0.99]' : 'opacity-50 cursor-not-allowed'
+                  } ${
                     isActive 
                       ? 'bg-gradient-to-r from-[#8A00FF]/20 to-[#C738FF]/20 border-[#8A00FF]/50 shadow-[0_0_20px_rgba(139,0,255,0.2)]' 
-                      : 'bg-gray-800/40 border-gray-700/60 hover:border-gray-600/60'
+                      : canAccess
+                        ? 'bg-gray-800/40 border-gray-700/60 hover:border-gray-600/60'
+                        : 'bg-gray-800/20 border-gray-700/30'
                   }`}
                 >
                   <div className="flex items-center gap-4">
@@ -230,9 +254,13 @@ const CoursePlayer: React.FC = () => {
                         ? 'bg-gradient-to-br from-[#8A00FF] to-[#C738FF] shadow-lg' 
                         : isDone 
                           ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' 
-                          : 'bg-gray-700/60'
+                          : !canAccess
+                            ? 'bg-gray-600/40'
+                            : 'bg-gray-700/60'
                     }`}>
-                      {isDone ? (
+                      {!canAccess ? (
+                        <Lock size={20} className="text-gray-400" />
+                      ) : isDone ? (
                         <CheckCircle2 size={20} className="text-white" />
                       ) : (
                         <span className="text-white font-bold text-sm">{idx + 1}</span>
@@ -246,7 +274,12 @@ const CoursePlayer: React.FC = () => {
                       <div className="flex items-center gap-2 text-sm text-gray-400">
                         {/* <Clock size={14} />
                         <span>{s.duration}</span> */}
-                        {isActive && (
+                        {!canAccess && (
+                          <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-medium">
+                            🔒 نیاز به اشتراک پولی
+                          </span>
+                        )}
+                        {isActive && canAccess && (
                           <span className="px-2 py-1 bg-[#8A00FF]/20 text-[#8A00FF] rounded-full text-xs font-medium">
                             در حال پخش
                           </span>

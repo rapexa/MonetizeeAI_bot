@@ -24,10 +24,14 @@ var userStates = make(map[int64]string)
 var chatRateLimits = make(map[int64]time.Time)
 var chatMessageCounts = make(map[int64]int)
 
+// Track subscription expiry notifications sent to users
+var subscriptionExpiryNotificationsSent = make(map[int64]bool)
+
 const (
-	StateWaitingForLicense = "waiting_for_license"
-	StateWaitingForName    = "waiting_for_name"
-	StateWaitingForPhone   = "waiting_for_phone"
+	StateWaitingForLicense       = "waiting_for_license"
+	StateWaitingForName          = "waiting_for_name"
+	StateWaitingForPhone         = "waiting_for_phone"
+	StateWaitingForLicenseChoice = "waiting_for_license_choice"
 
 	// 🔒 SECURITY: Rate limiting constants
 	MaxChatMessagesPerMinute = 3
@@ -269,6 +273,69 @@ func sendBulkSMSWithStatus(to []string, text string) (string, error) {
 	return apiResponse.Status, nil
 }
 
+// checkSubscriptionExpiry checks if subscription has expired and sends notification
+func checkSubscriptionExpiry(user *User) {
+	// Check if subscription has expired
+	if user.SubscriptionType == "free_trial" && user.SubscriptionExpiry != nil {
+		if time.Now().After(*user.SubscriptionExpiry) {
+			// Subscription has expired and notification not sent yet
+			if !subscriptionExpiryNotificationsSent[user.TelegramID] {
+				// Send expiry notification
+				msg := tgbotapi.NewMessage(user.TelegramID,
+					"⚠️ اشتراک رایگان شما به پایان رسید!\n\n"+
+						"🔒 متأسفانه دیگر نمی‌توانید از امکانات ربات استفاده کنید.\n\n"+
+						"✅ برای ادامه استفاده از امکانات ربات:\n\n"+
+						"📱 لطفا وارد مینی اپ شوید و اشتراک ماهیانه خریداری کنید\n"+
+						"🔐 یا لایسنس خود را وارد کنید")
+
+				// Create keyboard with miniapp button and license entry
+				keyboard := tgbotapi.NewInlineKeyboardMarkup(
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonURL("📱 ورود به مینی اپ", "https://t.me/sianmarketing_bot/miniapp"),
+					),
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("🔐 ورود لایسنس", "enter_license"),
+					),
+				)
+				msg.ReplyMarkup = keyboard
+				bot.Send(msg)
+
+				// Mark notification as sent
+				subscriptionExpiryNotificationsSent[user.TelegramID] = true
+			}
+		}
+	}
+
+	// Check if paid license has expired
+	if user.SubscriptionType == "paid" && user.SubscriptionExpiry != nil && time.Now().After(*user.SubscriptionExpiry) {
+		// Paid license has expired and notification not sent yet
+		if !subscriptionExpiryNotificationsSent[user.TelegramID] {
+			// Send expiry notification
+			msg := tgbotapi.NewMessage(user.TelegramID,
+				"⚠️ اشتراک پولی شما به پایان رسید!\n\n"+
+					"🔒 متأسفانه دیگر نمی‌توانید از امکانات ربات استفاده کنید.\n\n"+
+					"✅ برای ادامه استفاده از امکانات ربات:\n\n"+
+					"📱 لطفا وارد مینی اپ شوید و اشتراک ماهیانه خریداری کنید\n"+
+					"🔐 یا لایسنس خود را وارد کنید")
+
+			// Create keyboard with miniapp button and license entry
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonURL("📱 ورود به مینی اپ", "https://t.me/sianmarketing_bot/miniapp"),
+				),
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("🔐 ورود لایسنس", "enter_license"),
+				),
+			)
+			msg.ReplyMarkup = keyboard
+			bot.Send(msg)
+
+			// Mark notification as sent
+			subscriptionExpiryNotificationsSent[user.TelegramID] = true
+		}
+	}
+}
+
 func getUserOrCreate(from *tgbotapi.User) *User {
 	// First check if user is admin
 	var admin Admin
@@ -318,8 +385,17 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 		voice.Caption = "🧠 این ویس رو با دقت گوش بده؛ اینجا نقطه شروع یه مسیر جدیه…\n\n👇 بعد از گوش دادن، برو سراغ مرحله ۱\nجایی که اولین قدم مسیر درآمد دلاری با هوش مصنوعی رو برمی‌داری 🚀"
 		bot.Send(voice)
 
-		// Send license request message
-		msg := tgbotapi.NewMessage(user.TelegramID, "👋 به ربات MONETIZE AI🥇 خوش آمدید!\n\nلطفا لایسنس خود را وارد کنید:")
+		// Send welcome message with license choice
+		msg := tgbotapi.NewMessage(user.TelegramID, "👋 به ربات MONETIZE AI🥇 خوش آمدید!\n\nآیا لایسنس دارید؟")
+
+		// Create inline keyboard for license choice
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("✅ بله، لایسنس دارم", "has_license"),
+				tgbotapi.NewInlineKeyboardButtonData("❌ خیر، لایسنس ندارم", "no_license"),
+			),
+		)
+		msg.ReplyMarkup = keyboard
 		bot.Send(msg)
 		return &user
 	}
@@ -331,6 +407,9 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 		bot.Send(msg)
 		return &user
 	}
+
+	// Check if subscription has expired
+	checkSubscriptionExpiry(&user)
 
 	return &user
 }
@@ -987,6 +1066,20 @@ func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 
 	keyboard := tgbotapi.ReplyKeyboardMarkup{
 		Keyboard:        rows,
+		ResizeKeyboard:  true,
+		OneTimeKeyboard: false,
+	}
+	return keyboard
+}
+
+// getExpiredSubscriptionKeyboard returns keyboard for users with expired subscription
+func getExpiredSubscriptionKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	keyboard := tgbotapi.ReplyKeyboardMarkup{
+		Keyboard: [][]tgbotapi.KeyboardButton{
+			{
+				tgbotapi.NewKeyboardButton("🔐 ورود لایسنس"),
+			},
+		},
 		ResizeKeyboard:  true,
 		OneTimeKeyboard: false,
 	}

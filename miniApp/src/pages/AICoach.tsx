@@ -9,7 +9,7 @@ import { useAutoScroll } from '../hooks/useAutoScroll';
 const AICoach: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAPIConnected } = useApp();
+  const { isAPIConnected, userData, isSubscriptionExpired } = useApp();
   const [message, setMessage] = useState('');
   const [isEditingPrompt, setIsEditingPrompt] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,6 +23,21 @@ const AICoach: React.FC = () => {
     isNew?: boolean;
   }>>([]);
   const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
+
+  // Check if user can use chat
+  const canUseChat = () => {
+    // If subscription expired, no access
+    if (isSubscriptionExpired()) {
+      return false;
+    }
+    if (userData.subscriptionType === 'paid') {
+      return true;
+    }
+    if (userData.subscriptionType === 'free_trial') {
+      return (userData.chatMessagesUsed || 0) < 5;
+    }
+    return false;
+  };
 
   // Load chat history on component mount
   React.useEffect(() => {
@@ -114,6 +129,12 @@ const AICoach: React.FC = () => {
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
+
+    // Check subscription limits
+    if (!canUseChat()) {
+      alert('🔒 شما به محدودیت پیام‌های چت رسیده‌اید. برای استفاده بیشتر، اشتراک پولی تهیه کنید.');
+      return;
+    }
 
     const newMessage = {
       id: chatMessages.length + 1,
@@ -290,6 +311,23 @@ const AICoach: React.FC = () => {
             </div>
           ) : (
             <>
+              {/* Subscription limit warning */}
+              {!canUseChat() && (
+                <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
+                      <Crown className="w-4 h-4 text-red-400" />
+                    </div>
+                    <div>
+                      <h4 className="text-red-400 font-bold text-sm mb-1">محدودیت اشتراک</h4>
+                      <p className="text-red-300 text-xs">
+                        شما به محدودیت پیام‌های چت رسیده‌اید. برای استفاده بیشتر، اشتراک پولی تهیه کنید.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="flex gap-3 items-center">
                 <input
                   type="text"

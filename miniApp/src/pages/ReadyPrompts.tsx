@@ -5,8 +5,10 @@ import {
   Search, 
   Sparkles,
   ArrowLeft,
-  X
+  X,
+  Crown
 } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
 interface Prompt {
   id: string;
@@ -26,11 +28,23 @@ interface PromptCategory {
 const ReadyPrompts: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { userData } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('levels');
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [showLevelSelector, setShowLevelSelector] = useState(false);
+
+  // Check if user can access prompts
+  const canAccessPrompts = () => {
+    if (userData.subscriptionType === 'paid') {
+      return true;
+    }
+    if (userData.subscriptionType === 'free_trial') {
+      return false; // Prompts are NOT available in free trial
+    }
+    return false;
+  };
 
   // Handle URL parameters for stage selection
   useEffect(() => {
@@ -440,6 +454,23 @@ const ReadyPrompts: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
+      {/* Subscription limit warning */}
+      {!canAccessPrompts() && (
+        <div className="fixed top-16 left-4 right-4 z-40 p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
+              <Crown className="w-4 h-4 text-red-400" />
+            </div>
+            <div>
+              <h4 className="text-red-400 font-bold text-sm mb-1">محدودیت اشتراک</h4>
+              <p className="text-red-300 text-xs">
+                برای دسترسی به پرامت‌ها، اشتراک پولی تهیه کنید.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900/30 via-black to-gray-900/30"></div>
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-gray-800/10 via-transparent to-transparent"></div>
@@ -618,13 +649,27 @@ const ReadyPrompts: React.FC = () => {
                 {filteredPrompts.map((prompt) => (
                   <div
                     key={prompt.id}
-                    className="backdrop-blur-xl rounded-3xl p-6 border border-gray-800/60 hover:border-orange-500/50 transition-all duration-300 hover:scale-[1.02] cursor-pointer group"
+                    className={`backdrop-blur-xl rounded-3xl p-6 border border-gray-800/60 transition-all duration-300 ${
+                      canAccessPrompts() 
+                        ? 'hover:border-orange-500/50 hover:scale-[1.02] cursor-pointer group' 
+                        : 'opacity-50 cursor-not-allowed grayscale blur-sm'
+                    }`}
                 style={{ backgroundColor: '#0A111C' }}
-                    onClick={() => setSelectedPrompt(prompt)}
+                    onClick={() => {
+                      if (canAccessPrompts()) {
+                        setSelectedPrompt(prompt);
+                      } else {
+                        alert('🔒 برای دسترسی به پرامت‌ها، اشتراک پولی تهیه کنید.');
+                      }
+                    }}
                   >
                     <div className="flex items-start gap-4 mb-4">
                       <div className={`w-12 h-12 bg-gradient-to-br ${promptCategories[selectedCategory].color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                        <Sparkles size={24} className="text-white" />
+                        {!canAccessPrompts() ? (
+                          <Crown size={24} className="text-red-400" />
+                        ) : (
+                          <Sparkles size={24} className="text-white" />
+                        )}
                       </div>
                       <div className="flex-1">
                         <h3 className="text-lg font-bold text-white mb-1">{prompt.title}</h3>

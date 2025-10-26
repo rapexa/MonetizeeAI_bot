@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { 
   BarChart3, Users, Flame, TrendingUp, Filter, Download, Plus, Search,
   MessageCircle, Upload,
-  Send, X, Phone, Clock, Copy, Edit3, Trash2
+  Send, X, Phone, Clock, Copy, Edit3, Trash2, Crown
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 import '../components/DatePicker.css';
+import { useApp } from '../context/AppContext';
 
 type LeadStatus = 'cold' | 'warm' | 'hot' | 'converted';
 
@@ -56,8 +57,20 @@ const StatusBadge: React.FC<{ status: LeadStatus }> = ({ status }) => {
 
 const CRM: React.FC = () => {
   const navigate = useNavigate();
+  const { userData } = useApp();
 
   const [selectedTab, setSelectedTab] = React.useState<'overview' | 'leads' | 'tasks'>('overview');
+  
+  // Check if user can access CRM features
+  const canAccessCRM = () => {
+    if (userData.subscriptionType === 'paid') {
+      return true;
+    }
+    if (userData.subscriptionType === 'free_trial') {
+      return false; // CRM is NOT available in free trial
+    }
+    return false;
+  };
   
   // تابع کمکی برای تبدیل تاریخ‌های قدیمی به فرمت ISO
   const convertOldDates = (oldLeads: Lead[]): Lead[] => {
@@ -418,6 +431,23 @@ const CRM: React.FC = () => {
 
   return (
     <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
+      {/* Subscription limit warning */}
+      {!canAccessCRM() && (
+        <div className="fixed top-16 left-4 right-4 z-40 p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
+              <Crown className="w-4 h-4 text-red-400" />
+            </div>
+            <div>
+              <h4 className="text-red-400 font-bold text-sm mb-1">محدودیت اشتراک</h4>
+              <p className="text-red-300 text-xs">
+                برای دسترسی به CRM، اشتراک پولی تهیه کنید.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
         <div className="flex items-center justify-between p-3 sm:p-4 mx-auto max-w-md">

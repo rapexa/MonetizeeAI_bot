@@ -21,6 +21,12 @@ interface UserData {
   isVerified?: boolean;
   isActive?: boolean;
   currentSession?: number;
+  // Subscription fields
+  subscriptionType?: string;
+  subscriptionExpiry?: string;
+  freeTrialUsed?: boolean;
+  chatMessagesUsed?: number;
+  courseSessionsUsed?: number;
 }
 
 interface AppContextType {
@@ -34,6 +40,7 @@ interface AppContextType {
   telegramIdError: string | null;
   syncWithAPI: () => Promise<void>;
   refreshUserData: () => Promise<void>;
+  isSubscriptionExpired: () => boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -126,6 +133,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           completedTasks: userInfo.completed_tasks,
           progressOverall: userInfo.progress,
           
+          // Subscription fields
+          subscriptionType: userInfo.subscription_type,
+          subscriptionExpiry: userInfo.subscription_expiry,
+          freeTrialUsed: userInfo.free_trial_used,
+          chatMessagesUsed: userInfo.chat_messages_used,
+          courseSessionsUsed: userInfo.course_sessions_used,
+          
           // Update progress with API data if available
           ...(progressResponse.success && progressResponse.data ? {
             currentLevel: progressResponse.data.current_level,
@@ -198,6 +212,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           completedTasks: userInfo.completed_tasks,
           progressOverall: userInfo.progress,
           
+          // Subscription fields
+          subscriptionType: userInfo.subscription_type,
+          subscriptionExpiry: userInfo.subscription_expiry,
+          freeTrialUsed: userInfo.free_trial_used,
+          chatMessagesUsed: userInfo.chat_messages_used,
+          courseSessionsUsed: userInfo.course_sessions_used,
+          
           // Update progress with API data if available
           ...(progressResponse.success && progressResponse.data ? {
             currentLevel: progressResponse.data.current_level,
@@ -221,6 +242,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (error) {
       console.error('Error refreshing user data:', error);
     }
+  };
+
+  // Check if subscription has expired
+  const isSubscriptionExpired = (): boolean => {
+    // Legacy users: If IsVerified is true and no subscription type is set, treat as lifetime license
+    if (userData.isVerified && (!userData.subscriptionType || userData.subscriptionType === 'none')) {
+      return false; // Old verified users never expire
+    }
+    
+    // If user has lifetime license (no expiry), they never expire
+    if (userData.subscriptionType === 'paid' && !userData.subscriptionExpiry) {
+      return false; // Lifetime license never expires
+    }
+    
+    // Check if paid subscription with expiry date has expired
+    if (userData.subscriptionType === 'paid' && userData.subscriptionExpiry) {
+      const expiryDate = new Date(userData.subscriptionExpiry);
+      return new Date() > expiryDate;
+    }
+    
+    // Check if free trial has expired
+    if (userData.subscriptionType === 'free_trial' && userData.subscriptionExpiry) {
+      const expiryDate = new Date(userData.subscriptionExpiry);
+      return new Date() > expiryDate;
+    }
+    
+    // If no subscription or subscription type is none, consider it as expired
+    if (!userData.subscriptionType || userData.subscriptionType === 'none') {
+      return true;
+    }
+    
+    return false;
   };
 
   useEffect(() => {
@@ -260,7 +313,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       hasRealData,
       telegramIdError,
       syncWithAPI,
-      refreshUserData
+      refreshUserData,
+      isSubscriptionExpired
     }}>
       {children}
     </AppContext.Provider>

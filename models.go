@@ -11,6 +11,11 @@ const SUPPORT_NUMBER = "@sian_academy_support"
 const BUY_GPT_LINK = "@sian_academy_support"
 const START_REFFER = "@sian_academy_support"
 
+// Subscription limits
+const FREE_TRIAL_DURATION = 3 * 24 * time.Hour // 3 days
+const FREE_TRIAL_CHAT_LIMIT = 5                // 5 chat messages
+const FREE_TRIAL_COURSE_LIMIT = 3              // 3 course sessions
+
 // User represents a Telegram user in our system
 type User struct {
 	gorm.Model
@@ -29,6 +34,13 @@ type User struct {
 
 	// Profile fields for miniApp
 	MonthlyIncome int64 `json:"monthly_income" gorm:"default:0"` // در تومان
+
+	// Subscription fields
+	SubscriptionType   string `gorm:"default:'none'"` // none, free_trial, paid
+	SubscriptionExpiry *time.Time
+	FreeTrialUsed      bool `gorm:"default:false"`
+	ChatMessagesUsed   int  `gorm:"default:0"` // تعداد پیام‌های چت استفاده شده
+	CourseSessionsUsed int  `gorm:"default:0"` // تعداد جلسات دوره استفاده شده
 }
 
 // Admin represents a system administrator
@@ -201,4 +213,47 @@ type LicenseVerification struct {
 	ApprovedBy *uint
 	ApprovedAt *time.Time
 	Admin      Admin `gorm:"foreignKey:ApprovedBy"`
+}
+
+// Subscription helper functions
+func (u *User) HasActiveSubscription() bool {
+	// Legacy users: If IsVerified is true and no subscription type is set, treat as lifetime license
+	if u.IsVerified && (u.SubscriptionType == "" || u.SubscriptionType == "none") {
+		return true // Old verified users have lifetime access
+	}
+
+	if u.SubscriptionType == "paid" {
+		// For paid subscription, check if it's lifetime (no expiry) or not expired yet
+		if u.SubscriptionExpiry == nil {
+			return true // Lifetime license
+		}
+		return time.Now().Before(*u.SubscriptionExpiry)
+	}
+	if u.SubscriptionType == "free_trial" && u.SubscriptionExpiry != nil {
+		return time.Now().Before(*u.SubscriptionExpiry)
+	}
+	return false
+}
+
+func (u *User) CanUseChat() bool {
+	if u.HasActiveSubscription() {
+		return true
+	}
+	return u.ChatMessagesUsed < FREE_TRIAL_CHAT_LIMIT
+}
+
+func (u *User) CanAccessCourseSession(sessionNumber int) bool {
+	if u.HasActiveSubscription() {
+		return true
+	}
+	return sessionNumber <= FREE_TRIAL_COURSE_LIMIT
+}
+
+func (u *User) StartFreeTrial() {
+	expiry := time.Now().Add(FREE_TRIAL_DURATION)
+	u.SubscriptionType = "free_trial"
+	u.SubscriptionExpiry = &expiry
+	u.FreeTrialUsed = true
+	u.ChatMessagesUsed = 0
+	u.CourseSessionsUsed = 0
 }

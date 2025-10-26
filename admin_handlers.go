@@ -369,6 +369,13 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	callback := update.CallbackQuery
 	data := callback.Data
 
+	// Check if it's a user callback (not admin)
+	if strings.HasPrefix(data, "has_license") || strings.HasPrefix(data, "no_license") || strings.HasPrefix(data, "start_free_trial") || data == "enter_license" {
+		handleUserCallbackQuery(update)
+		bot.Send(tgbotapi.NewCallback(callback.ID, "✅ عملیات با موفقیت انجام شد"))
+		return
+	}
+
 	// Get admin
 	admin := getAdminByTelegramID(callback.From.ID)
 	if admin == nil {
@@ -545,6 +552,61 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	// Answer callback query to remove loading state
 	callbackConfig := tgbotapi.NewCallback(callback.ID, "")
 	bot.Request(callbackConfig)
+}
+
+// handleUserCallbackQuery processes callback queries from regular users
+func handleUserCallbackQuery(update tgbotapi.Update) {
+	callback := update.CallbackQuery
+	data := callback.Data
+	userID := callback.From.ID
+
+	// Get user
+	var user User
+	result := db.Where("telegram_id = ?", userID).First(&user)
+	if result.Error != nil {
+		logger.Error("Failed to find user for callback", zap.Error(result.Error), zap.Int64("user_id", userID))
+		return
+	}
+
+	switch data {
+	case "has_license":
+		// User has license, ask for license input
+		userStates[userID] = StateWaitingForLicense
+		msg := tgbotapi.NewMessage(userID, "✅ لطفا لایسنس خود را وارد کنید:")
+		bot.Send(msg)
+
+	case "no_license":
+		// User doesn't have license, offer free trial
+		msg := tgbotapi.NewMessage(userID, "🎉 عالی! ما یک پیشنهاد ویژه برای شما داریم:\n\n🆓 اشتراک رایگان 3 روزه\n\n✅ دسترسی کامل به تمام امکانات\n✅ چت با هوش مصنوعی\n✅ دوره‌های آموزشی\n✅ ابزارهای کسب‌وکار\n\n⚠️ محدودیت‌ها:\n• حداکثر 5 پیام چت در روز\n• فقط 3 قسمت اول هر دوره\n\nآیا می‌خواهید اشتراک رایگان را شروع کنید؟")
+
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🚀 بله، شروع کنم", "start_free_trial"),
+				tgbotapi.NewInlineKeyboardButtonData("❌ نه، ممنون", "decline_trial"),
+			),
+		)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
+
+	case "start_free_trial":
+		// Start free trial
+		user.StartFreeTrial()
+		db.Save(&user)
+
+		msg := tgbotapi.NewMessage(userID, "🎉 تبریک! اشتراک رایگان شما فعال شد!\n\n⏰ مدت: 3 روز\n📅 انقضا: "+user.SubscriptionExpiry.Format("2006-01-02 15:04")+"\n\n✅ حالا می‌توانید از تمام امکانات استفاده کنید\n\n⚠️ یادآوری محدودیت‌ها:\n• حداکثر 5 پیام چت در روز\n• فقط 3 قسمت اول هر دوره\n\nبرای دسترسی کامل، اشتراک پولی تهیه کنید.")
+		bot.Send(msg)
+
+	case "decline_trial":
+		msg := tgbotapi.NewMessage(userID, "متوجه شدم. اگر در آینده تصمیم گرفتید، می‌توانید با ارسال /start دوباره شروع کنید.")
+		bot.Send(msg)
+
+	case "enter_license":
+		// User wants to enter license
+		userStates[userID] = StateWaitingForLicense
+		msg := tgbotapi.NewMessage(userID, "✅ لطفا لایسنس خود را وارد کنید:")
+		msg.ReplyMarkup = getExpiredSubscriptionKeyboard()
+		bot.Send(msg)
+	}
 }
 
 // getAdminByTelegramID returns admin by telegram ID
@@ -1164,8 +1226,10 @@ func handleLicenseVerification(admin *Admin, data string) {
 			return
 		}
 
-		// Update user
+		// Update user with unlimited license (lifetime)
 		verification.User.IsVerified = true
+		verification.User.SubscriptionType = "paid"
+		verification.User.SubscriptionExpiry = nil // No expiry for lifetime license
 		if err := db.Save(&verification.User).Error; err != nil {
 			sendMessage(admin.TelegramID, "❌ خطا در به‌روزرسانی کاربر")
 			return
@@ -1175,7 +1239,7 @@ func handleLicenseVerification(admin *Admin, data string) {
 		sendMessage(admin.TelegramID, "✅ درخواست با موفقیت تایید شد")
 
 		// Send success message to user
-		msg := tgbotapi.NewMessage(verification.User.TelegramID, "✅ درخواست شما تایید شد!\n\nبه ربات MONETIZE AI🥇 خوش آمدید! من دستیار هوشمند شما هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
+		msg := tgbotapi.NewMessage(verification.User.TelegramID, "✅ درخواست شما تایید شد!\n\n🎉 به ربات MONETIZE AI🥇 خوش آمدید!\n\n🔥 لایسنس شما فعال شد (مادام‌العمر)\n\n✅ دسترسی کامل و نامحدود به تمام امکانات\n✅ چت با هوش مصنوعی بدون محدودیت\n✅ دوره‌های آموزشی کامل\n✅ ابزارهای کسب‌وکار\n✅ CRM و پرامت‌ها\n\nمن دستیار هوشمند شما هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
 		msg.ReplyMarkup = getMainMenuKeyboard()
 		bot.Send(msg)
 		// Send session 1 info

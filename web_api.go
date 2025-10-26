@@ -563,8 +563,23 @@ func handleChatRequest(c *gin.Context) {
 		return
 	}
 
+	// Check subscription limits
+	if !user.CanUseChat() {
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   "شما به محدودیت پیام‌های چت رسیده‌اید. برای استفاده بیشتر، اشتراک پولی تهیه کنید.",
+		})
+		return
+	}
+
 	// Get response from ChatGPT
 	response := handleChatGPTMessageAPI(&user, requestData.Message)
+
+	// Increment chat message count for free trial users
+	if user.SubscriptionType == "free_trial" {
+		user.ChatMessagesUsed++
+		db.Save(&user)
+	}
 
 	// Save chat message to database
 	chatMessage := ChatMessage{
