@@ -106,15 +106,46 @@ const Profile: React.FC = () => {
     }
   ];
 
+  // Get subscription info from userData
+  const getSubscriptionInfo = () => {
+    if (userData.subscriptionType === 'paid') {
+      if (!userData.subscriptionExpiry) {
+        return {
+          plan: "مادام‌العمر",
+          status: "فعال",
+          endDate: "نامحدود",
+          autoRenew: "غیرفعال"
+        };
+      } else {
+        const expiryDate = new Date(userData.subscriptionExpiry);
+        return {
+          plan: "پرو",
+          status: "فعال",
+          endDate: expiryDate.toLocaleDateString('fa-IR'),
+          autoRenew: "فعال"
+        };
+      }
+    } else if (userData.subscriptionType === 'free_trial') {
+      const expiryDate = userData.subscriptionExpiry ? new Date(userData.subscriptionExpiry) : null;
+      return {
+        plan: "اشتراک رایگان",
+        status: "فعال",
+        endDate: expiryDate ? expiryDate.toLocaleDateString('fa-IR') : "-",
+        autoRenew: "غیرفعال"
+      };
+    } else {
+      return {
+        plan: "بدون اشتراک",
+        status: "غیرفعال",
+        endDate: "-",
+        autoRenew: "غیرفعال"
+      };
+    }
+  };
+
   const userProfile = {
     name: userData.username || userData.firstName || "کاربر MonetizeAI",
-    subscription: {
-      plan: "پرو",
-      status: "فعال",
-      startDate: "۱۴۰۴",
-      endDate: "نامحدود",
-      autoRenew: "فعال"
-    }
+    subscription: getSubscriptionInfo()
   };
 
   const handleSubscriptionManagement = () => {
@@ -129,8 +160,8 @@ const Profile: React.FC = () => {
 
   const handleSupportClick = () => {
     setShowSubscriptionModal(false);
-    // هدایت به صفحه پشتیبانی یا باز کردن چت
-    navigate('/ai-coach');
+    // Open Telegram support
+    window.open('https://t.me/sian_academy_support', '_blank');
   };
 
   const handlePlanSelection = (planId: string) => {
@@ -298,22 +329,28 @@ const Profile: React.FC = () => {
                 <span className="text-sm font-medium text-gray-400">اشتراک</span>
               </div>
               <h3 className="font-bold text-white text-lg leading-tight mb-1">اشتراک {userProfile.subscription.plan}</h3>
-              <p className="text-sm text-green-400 font-medium">وضعیت: {userProfile.subscription.status}</p>
+              <p className={`text-sm font-medium ${
+                userProfile.subscription.status === "فعال" ? "text-green-400" : 
+                userProfile.subscription.status === "غیرفعال" ? "text-red-400" : 
+                "text-yellow-400"
+              }`}>
+                وضعیت: {userProfile.subscription.status}
+              </p>
             </div>
           </div>
           
           <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-400">تاریخ شروع:</span>
-              <span className="text-white font-medium">{userProfile.subscription.startDate}</span>
-            </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-400">تاریخ انقضا:</span>
               <span className="text-white font-medium">{userProfile.subscription.endDate}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-400">تمدید خودکار:</span>
-              <span className="font-medium text-green-400">{userProfile.subscription.autoRenew}</span>
+              <span className={`font-medium ${
+                userProfile.subscription.autoRenew === "فعال" ? "text-green-400" : "text-gray-400"
+              }`}>
+                {userProfile.subscription.autoRenew}
+              </span>
             </div>
           </div>
           
