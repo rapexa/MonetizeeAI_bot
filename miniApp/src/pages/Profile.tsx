@@ -860,8 +860,20 @@ const Profile: React.FC = () => {
               {/* Info Message */}
               {selectedPaymentMethod === 'online' && (
                 <div className="backdrop-blur-xl rounded-2xl p-4 border border-blue-500/30 shadow-lg mb-4" style={{ backgroundColor: '#10091c' }}>
-                  <p className="text-blue-400 text-sm text-center">
-                    💡 بعد از تکمیل پرداخت در صفحه جدید، می‌توانید به این صفحه برگردید
+                  <p className="text-blue-400 text-sm text-center mb-2">
+                    💡 پس از تکمیل پرداخت در صفحه جدید، می‌توانید به این صفحه برگردید
+                  </p>
+                  <p className="text-gray-400 text-xs text-center">
+                    پس از پرداخت، رسید را به{' '}
+                    <a 
+                      href="https://t.me/sian_academy_support" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 underline"
+                    >
+                      پشتیبانی تلگرام
+                    </a>
+                    {' '}ارسال کنید
                   </p>
                 </div>
               )}
