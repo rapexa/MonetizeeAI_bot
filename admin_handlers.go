@@ -547,11 +547,11 @@ func handleCallbackQuery(update tgbotapi.Update) {
 		handleUnbanUser(admin, param)
 
 	case "manage_subs":
-		if len(parts) >= 3 {
+		if len(parts) >= 2 {
 			subAction := parts[1]
 			if subAction == "search" {
 				msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی تلگرام یا نام کاربری را وارد کنید:")
-				msg.ReplyMarkup = tgbotapi.ForceReply{}
+				msg.ReplyMarkup = tgbotapi.ForceReply{ForceReply: true, Selective: false}
 				bot.Send(msg)
 				adminStates[admin.TelegramID] = StateWaitingForSubsUser
 			} else if subAction == "list" {
@@ -1901,7 +1901,7 @@ func handleChangePlan(admin *Admin, planType string, userIDStr string) {
 // handleSubsList shows list of recent subscriptions
 func handleSubsList(admin *Admin) {
 	var users []User
-	db.Where("subscription_type != ? AND subscription_type != ?", "", "none").Order("updated_at desc").Limit(10).Find(&users)
+	db.Where("subscription_type != ? AND subscription_type != ? AND subscription_type IS NOT NULL", "", "none").Order("updated_at desc").Limit(10).Find(&users)
 
 	if len(users) == 0 {
 		sendMessage(admin.TelegramID, "📊 هیچ اشتراک فعالی یافت نشد")
@@ -1911,6 +1911,29 @@ func handleSubsList(admin *Admin) {
 	response := "📊 لیست آخرین اشتراک‌ها:\n\n"
 	for _, user := range users {
 		var expiryInfo string
+		var planDisplayName string
+
+		// Determine plan display name
+		if user.PlanName != "" {
+			switch user.PlanName {
+			case "ultimate":
+				planDisplayName = "👑 Ultimate (مادام‌العمر)"
+			case "starter":
+				planDisplayName = "🚀 Starter"
+			case "pro":
+				planDisplayName = "⚡ Pro"
+			case "free_trial":
+				planDisplayName = "🎁 Free Trial"
+			default:
+				planDisplayName = user.PlanName
+			}
+		} else if user.SubscriptionType == "paid" {
+			// Legacy users without plan_name
+			planDisplayName = "⭐ Legacy Premium"
+		} else {
+			planDisplayName = user.SubscriptionType
+		}
+
 		if user.SubscriptionExpiry == nil {
 			expiryInfo = "⭐ مادام‌العمر"
 		} else if time.Now().After(*user.SubscriptionExpiry) {
@@ -1920,7 +1943,7 @@ func handleSubsList(admin *Admin) {
 		}
 
 		response += fmt.Sprintf("👤 %s (%d)\n📊 %s\n⏰ %s\n\n",
-			user.Username, user.TelegramID, user.SubscriptionType, expiryInfo)
+			user.Username, user.TelegramID, planDisplayName, expiryInfo)
 	}
 
 	sendMessage(admin.TelegramID, response)
