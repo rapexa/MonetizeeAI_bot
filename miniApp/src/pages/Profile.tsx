@@ -857,6 +857,15 @@ const Profile: React.FC = () => {
                 </div>
               )}
 
+              {/* Info Message */}
+              {selectedPaymentMethod === 'online' && (
+                <div className="backdrop-blur-xl rounded-2xl p-4 border border-blue-500/30 shadow-lg mb-4" style={{ backgroundColor: '#10091c' }}>
+                  <p className="text-blue-400 text-sm text-center">
+                    💡 بعد از تکمیل پرداخت در صفحه جدید، می‌توانید به این صفحه برگردید
+                  </p>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="space-y-3">
                 {selectedPaymentMethod === 'online' ? (
@@ -872,9 +881,8 @@ const Profile: React.FC = () => {
                       const paymentLink = paymentLinks[selectedPlan];
                       
                       if (paymentLink) {
-                        // Open payment page in new tab
+                        // Open payment page in new tab (modal stays open)
                         window.open(paymentLink, '_blank');
-                        setShowCheckoutModal(false);
                       } else {
                         alert('لینک پرداخت یافت نشد!');
                       }
