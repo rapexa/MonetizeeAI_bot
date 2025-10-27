@@ -161,25 +161,10 @@ const Profile: React.FC = () => {
   };
 
   const handlePlanSelection = (planId: string) => {
-    // Map plan IDs to payment links
-    const paymentLinks: { [key: string]: string } = {
-      'starter': 'https://zarinp.al/752552',
-      'pro': 'https://zarinp.al/752556',
-      'ultimate': 'https://zarinp.al/752558'
-    };
-    
-    // Get the payment link for the selected plan
-    const paymentLink = paymentLinks[planId];
-    
-    if (paymentLink) {
-      // Redirect to payment page
-      window.open(paymentLink, '_blank');
-      setShowSubscriptionModal(false);
-    } else {
-      // Fallback to checkout modal for unknown plans
-      setShowCheckoutModal(true);
-      setSelectedPlan(planId);
-    }
+    // Close subscription modal and open checkout modal
+    setShowSubscriptionModal(false);
+    setShowCheckoutModal(true);
+    setSelectedPlan(planId);
   };
 
   // Load profile data on component mount
