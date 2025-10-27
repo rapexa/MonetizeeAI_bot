@@ -161,9 +161,25 @@ const Profile: React.FC = () => {
   };
 
   const handlePlanSelection = (planId: string) => {
-    setShowSubscriptionModal(false);
-    setShowCheckoutModal(true);
-    setSelectedPlan(planId);
+    // Map plan IDs to payment links
+    const paymentLinks: { [key: string]: string } = {
+      'starter': 'https://zarinp.al/752552',
+      'pro': 'https://zarinp.al/752556',
+      'ultimate': 'https://zarinp.al/752558'
+    };
+    
+    // Get the payment link for the selected plan
+    const paymentLink = paymentLinks[planId];
+    
+    if (paymentLink) {
+      // Redirect to payment page
+      window.open(paymentLink, '_blank');
+      setShowSubscriptionModal(false);
+    } else {
+      // Fallback to checkout modal for unknown plans
+      setShowCheckoutModal(true);
+      setSelectedPlan(planId);
+    }
   };
 
   // Load profile data on component mount
@@ -861,9 +877,22 @@ const Profile: React.FC = () => {
                 {selectedPaymentMethod === 'online' ? (
                   <button 
                     onClick={() => {
-                      // اینجا منطق پرداخت آنلاین را اضافه کنید
-                      alert('پرداخت با موفقیت انجام شد!');
-                      setShowCheckoutModal(false);
+                      // Get payment link for selected plan
+                      const paymentLinks: { [key: string]: string } = {
+                        'starter': 'https://zarinp.al/752552',
+                        'pro': 'https://zarinp.al/752556',
+                        'ultimate': 'https://zarinp.al/752558'
+                      };
+                      
+                      const paymentLink = paymentLinks[selectedPlan];
+                      
+                      if (paymentLink) {
+                        // Open payment page in new tab
+                        window.open(paymentLink, '_blank');
+                        setShowCheckoutModal(false);
+                      } else {
+                        alert('لینک پرداخت یافت نشد!');
+                      }
                     }}
                     className="w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-xl bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 shadow-[#5A189A]/25"
                     >
