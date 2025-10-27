@@ -208,6 +208,11 @@ func handleMessage(update tgbotapi.Update) {
 				response := handleSMSBroadcastMessage(admin, update.Message.Text)
 				sendMessage(admin.TelegramID, response)
 				return
+
+			case StateWaitingForSubsUser:
+				handleSubsSearch(admin, update.Message.Text)
+				delete(adminStates, admin.TelegramID)
+				return
 			}
 
 			// Handle states with parameters
@@ -256,6 +261,9 @@ func handleMessage(update tgbotapi.Update) {
 		case "🔒 امنیت مینی اپ":
 			response := handleMiniAppSecurity(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
+			return
+		case "💎 مدیریت اشتراک‌ها":
+			handleManageSubscriptions(admin)
 			return
 		}
 

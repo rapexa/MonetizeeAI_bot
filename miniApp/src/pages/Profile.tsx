@@ -108,26 +108,62 @@ const Profile: React.FC = () => {
 
   // Get subscription info from userData
   const getSubscriptionInfo = () => {
+    // اول PlanName رو چک کنیم (دقیق‌تره)
+    if (userData.planName && userData.planName !== "") {
+      const expiryDate = userData.subscriptionExpiry ? new Date(userData.subscriptionExpiry) : null;
+      const isExpired = expiryDate && new Date() > expiryDate;
+      
+      switch (userData.planName) {
+        case "ultimate":
+          return {
+            plan: "Ultimate (مادام‌العمر)",
+            status: "فعال",
+            endDate: "نامحدود"
+          };
+        case "starter":
+          return {
+            plan: "Starter (ماهانه)",
+            status: isExpired ? "منقضی شده" : "فعال",
+            endDate: expiryDate ? expiryDate.toLocaleDateString('fa-IR') : "-"
+          };
+        case "pro":
+          return {
+            plan: "Pro (شش‌ماهه)",
+            status: isExpired ? "منقضی شده" : "فعال",
+            endDate: expiryDate ? expiryDate.toLocaleDateString('fa-IR') : "-"
+          };
+        case "free_trial":
+          return {
+            plan: "اشتراک رایگان (3 روزه)",
+            status: isExpired ? "منقضی شده" : "فعال",
+            endDate: expiryDate ? expiryDate.toLocaleDateString('fa-IR') : "-"
+          };
+      }
+    }
+    
+    // اگر PlanName نداشت، از SubscriptionType استفاده کنیم (legacy users)
     if (userData.subscriptionType === 'paid') {
       if (!userData.subscriptionExpiry) {
         return {
-          plan: "مادام‌العمر",
+          plan: "Ultimate (مادام‌العمر)",
           status: "فعال",
           endDate: "نامحدود"
         };
       } else {
         const expiryDate = new Date(userData.subscriptionExpiry);
+        const isExpired = new Date() > expiryDate;
         return {
-          plan: "پرو",
-          status: "فعال",
+          plan: "اشتراک پولی",
+          status: isExpired ? "منقضی شده" : "فعال",
           endDate: expiryDate.toLocaleDateString('fa-IR')
         };
       }
     } else if (userData.subscriptionType === 'free_trial') {
       const expiryDate = userData.subscriptionExpiry ? new Date(userData.subscriptionExpiry) : null;
+      const isExpired = expiryDate && new Date() > expiryDate;
       return {
-        plan: "اشتراک رایگان",
-        status: "فعال",
+        plan: "اشتراک رایگان (3 روزه)",
+        status: isExpired ? "منقضی شده" : "فعال",
         endDate: expiryDate ? expiryDate.toLocaleDateString('fa-IR') : "-"
       };
     } else {

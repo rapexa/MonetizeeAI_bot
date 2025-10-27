@@ -29,6 +29,7 @@ const (
 	StateConfirmBroadcast       = "confirm_broadcast"
 	StateWaitingForSMSBroadcast = "waiting_for_sms_broadcast"
 	StateConfirmSMSBroadcast    = "confirm_sms_broadcast"
+	StateWaitingForSubsUser     = "waiting_for_subs_user"
 )
 
 // Add this with other model definitions at the top of the file
@@ -544,6 +545,26 @@ func handleCallbackQuery(update tgbotapi.Update) {
 
 	case "unban":
 		handleUnbanUser(admin, param)
+
+	case "manage_subs":
+		if len(parts) >= 3 {
+			subAction := parts[1]
+			if subAction == "search" {
+				msg := tgbotapi.NewMessage(admin.TelegramID, "🔍 لطفا آیدی تلگرام یا نام کاربری را وارد کنید:")
+				msg.ReplyMarkup = tgbotapi.ForceReply{}
+				bot.Send(msg)
+				adminStates[admin.TelegramID] = StateWaitingForSubsUser
+			} else if subAction == "list" {
+				handleSubsList(admin)
+			}
+		}
+
+	case "change_plan":
+		if len(parts) >= 3 {
+			planType := parts[1]
+			userID := parts[2]
+			handleChangePlan(admin, planType, userID)
+		}
 
 	default:
 		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")
@@ -1237,6 +1258,7 @@ func handleLicenseVerification(admin *Admin, data string) {
 		// Update user with unlimited license (lifetime)
 		verification.User.IsVerified = true
 		verification.User.SubscriptionType = "paid"
+		verification.User.PlanName = "ultimate"
 		verification.User.SubscriptionExpiry = nil // No expiry for lifetime license
 		if err := db.Save(&verification.User).Error; err != nil {
 			sendMessage(admin.TelegramID, "❌ خطا در به‌روزرسانی کاربر")
@@ -1654,4 +1676,252 @@ func handleMiniAppSecurity(admin *Admin, args []string) string {
 	default:
 		return "❌ دستور نامعتبر. از `/miniapp_security` برای راهنما استفاده کنید."
 	}
+}
+
+// handleManageSubscriptions shows subscription management menu
+func handleManageSubscriptions(admin *Admin) {
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("🔍 جستجوی کاربر برای تغییر اشتراک", "manage_subs:search"),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("📊 لیست آخرین اشتراک‌ها", "manage_subs:list"),
+		),
+	)
+	msg := tgbotapi.NewMessage(admin.TelegramID, "💎 مدیریت اشتراک‌های کاربران:\n\n"+
+		"از گزینه‌های زیر استفاده کنید:\n"+
+		"🔍 جستجوی کاربر برای تغییر یا مشاهده اشتراک\n"+
+		"📊 مشاهده لیست آخرین اشتراک‌ها")
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+}
+
+// handleSubsSearch searches for user and shows subscription management options
+func handleSubsSearch(admin *Admin, query string) {
+	var user User
+	var searchErr error
+
+	// Try to parse as user ID first
+	userID, err := strconv.ParseInt(query, 10, 64)
+	if err == nil {
+		// Search by Telegram ID
+		searchErr = db.Where("telegram_id = ?", userID).First(&user).Error
+	} else {
+		// Search by username
+		searchErr = db.Where("username LIKE ?", "%"+query+"%").First(&user).Error
+	}
+
+	if searchErr != nil {
+		sendMessage(admin.TelegramID, "❌ کاربر یافت نشد")
+		return
+	}
+
+	// Get subscription info
+	var subscriptionInfo string
+	var planDisplayName string
+
+	// Determine plan display name
+	if user.PlanName != "" {
+		switch user.PlanName {
+		case "starter":
+			planDisplayName = "Starter (ماهانه)"
+		case "pro":
+			planDisplayName = "Pro (شش‌ماهه)"
+		case "ultimate":
+			planDisplayName = "Ultimate (مادام‌العمر)"
+		case "free_trial":
+			planDisplayName = "Free Trial (3 روزه)"
+		default:
+			planDisplayName = user.PlanName
+		}
+	} else {
+		planDisplayName = user.SubscriptionType
+	}
+
+	if user.SubscriptionExpiry == nil {
+		if user.SubscriptionType == "paid" {
+			subscriptionInfo = "⭐ اشتراک دائمی (مادام‌العمر)"
+		} else {
+			subscriptionInfo = "🔓 بدون اشتراک"
+		}
+	} else {
+		subExpiry := *user.SubscriptionExpiry
+		if subExpiry.IsZero() || subExpiry.After(time.Now().AddDate(100, 0, 0)) {
+			subscriptionInfo = "⭐ اشتراک دائمی (مادام‌العمر)"
+		} else if subExpiry.Before(time.Now()) {
+			subscriptionInfo = fmt.Sprintf("❌ منقضی شده - %s", subExpiry.Format("2006-01-02"))
+		} else {
+			subscriptionInfo = fmt.Sprintf("✅ فعال تا %s", subExpiry.Format("2006-01-02 15:04"))
+		}
+	}
+
+	response := fmt.Sprintf("👤 اطلاعات کاربر:\n\n"+
+		"🆔 آیدی تلگرام: %d\n"+
+		"👤 نام کاربری: %s\n"+
+		"📅 تاریخ عضویت: %s\n\n"+
+		"💎 وضعیت اشتراک:\n%s\n\n"+
+		"📊 نوع اشتراک: %s\n\n"+
+		"👇 پلن جدید را انتخاب کنید:",
+		user.TelegramID,
+		user.Username,
+		user.CreatedAt.Format("2006-01-02 15:04"),
+		subscriptionInfo,
+		planDisplayName)
+
+	// Create action buttons for subscription plans
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("🎁 اشتراک رایگان (3 روز)", fmt.Sprintf("change_plan:free:%d", user.TelegramID)),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("🚀 Starter (1 ماهه)", fmt.Sprintf("change_plan:starter:%d", user.TelegramID)),
+			tgbotapi.NewInlineKeyboardButtonData("⚡ Pro (6 ماهه)", fmt.Sprintf("change_plan:pro:%d", user.TelegramID)),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("👑 Ultimate (مادام‌العمر)", fmt.Sprintf("change_plan:ultimate:%d", user.TelegramID)),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("❌ حذف اشتراک", fmt.Sprintf("change_plan:remove:%d", user.TelegramID)),
+		),
+	)
+
+	msg := tgbotapi.NewMessage(admin.TelegramID, response)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
+}
+
+// handleChangePlan processes plan change actions
+func handleChangePlan(admin *Admin, planType string, userIDStr string) {
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		sendMessage(admin.TelegramID, "❌ آیدی کاربر نامعتبر")
+		return
+	}
+
+	var user User
+	if err := db.Where("telegram_id = ?", userID).First(&user).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ کاربر یافت نشد")
+		return
+	}
+
+	var days int
+	var message string
+
+	switch planType {
+	case "starter":
+		days = 30
+		message = "🚀 اشتراک Starter (1 ماهه) فعال شد!"
+	case "pro":
+		days = 180
+		message = "⚡ اشتراک Pro (6 ماهه) فعال شد!"
+	case "ultimate", "lifetime":
+		days = 999999 // Lifetime
+		if planType == "ultimate" {
+			message = "👑 اشتراک Ultimate (مادام‌العمر) فعال شد!"
+		} else {
+			message = "⭐ اشتراک دائمی (مادام‌العمر) فعال شد!"
+		}
+	case "free":
+		days = 3
+		message = "🎁 اشتراک رایگان (3 روزه) فعال شد!"
+	case "remove":
+		user.SubscriptionType = ""
+		user.SubscriptionExpiry = nil
+		user.IsVerified = false
+		if err := db.Save(&user).Error; err != nil {
+			sendMessage(admin.TelegramID, "❌ خطا در حذف اشتراک")
+			return
+		}
+		sendMessage(admin.TelegramID, fmt.Sprintf("✅ اشتراک کاربر %s حذف شد", user.Username))
+
+		// Notify user
+		userMsg := tgbotapi.NewMessage(user.TelegramID, "⚠️ اشتراک شما متوقف شده است.\n\nلطفا اشتراک جدید تهیه کنید.")
+		bot.Send(userMsg)
+		return
+	default:
+		sendMessage(admin.TelegramID, "❌ عملیات نامعتبر")
+		return
+	}
+
+	// Update user subscription
+	if days == 999999 {
+		// Lifetime subscription
+		user.SubscriptionType = "paid"
+		user.PlanName = "ultimate"
+		user.SubscriptionExpiry = nil
+		user.IsVerified = true
+	} else if planType == "free" {
+		// Free Trial - 3 days
+		expiry := time.Now().AddDate(0, 0, days)
+		user.SubscriptionType = "free_trial"
+		user.PlanName = "free_trial"
+		user.SubscriptionExpiry = &expiry
+		user.FreeTrialUsed = true
+		user.IsVerified = true
+	} else {
+		// Paid subscriptions (Starter, Pro)
+		expiry := time.Now().AddDate(0, 0, days)
+		user.SubscriptionType = "paid"
+		user.PlanName = planType // "starter" یا "pro"
+		user.SubscriptionExpiry = &expiry
+		user.IsVerified = true
+	}
+	user.IsActive = true
+
+	if err := db.Save(&user).Error; err != nil {
+		sendMessage(admin.TelegramID, "❌ خطا در به‌روزرسانی اشتراک")
+		return
+	}
+
+	// Notify admin
+	sendMessage(admin.TelegramID, fmt.Sprintf("✅ %s\n\n👤 کاربر: %s (%d)", message, user.Username, user.TelegramID))
+
+	// Notify user
+	var expiryMsg string
+	if days == 999999 {
+		expiryMsg = "🕒 مادام‌العمر"
+	} else {
+		expiryMsg = fmt.Sprintf("🕒 تا %s", user.SubscriptionExpiry.Format("2006-01-02 15:04"))
+	}
+
+	userNotification := fmt.Sprintf("✅ %s\n\n"+
+		"📊 نوع اشتراک: %s\n"+
+		"%s\n\n"+
+		"🎉 دسترسی کامل به تمام امکانات فعال شد!",
+		message, planType, expiryMsg)
+
+	userMsg := tgbotapi.NewMessage(user.TelegramID, userNotification)
+	userMsg.ReplyMarkup = getMainMenuKeyboard()
+	bot.Send(userMsg)
+
+	// Log admin action
+	logAdminAction(admin, "change_subscription", fmt.Sprintf("تغییر اشتراک به %s برای کاربر %s", planType, user.Username), "user", user.ID)
+}
+
+// handleSubsList shows list of recent subscriptions
+func handleSubsList(admin *Admin) {
+	var users []User
+	db.Where("subscription_type != ? AND subscription_type != ?", "", "none").Order("updated_at desc").Limit(10).Find(&users)
+
+	if len(users) == 0 {
+		sendMessage(admin.TelegramID, "📊 هیچ اشتراک فعالی یافت نشد")
+		return
+	}
+
+	response := "📊 لیست آخرین اشتراک‌ها:\n\n"
+	for _, user := range users {
+		var expiryInfo string
+		if user.SubscriptionExpiry == nil {
+			expiryInfo = "⭐ مادام‌العمر"
+		} else if time.Now().After(*user.SubscriptionExpiry) {
+			expiryInfo = "❌ منقضی شده"
+		} else {
+			expiryInfo = user.SubscriptionExpiry.Format("2006-01-02")
+		}
+
+		response += fmt.Sprintf("👤 %s (%d)\n📊 %s\n⏰ %s\n\n",
+			user.Username, user.TelegramID, user.SubscriptionType, expiryInfo)
+	}
+
+	sendMessage(admin.TelegramID, response)
 }

@@ -118,6 +118,7 @@ type UserInfoResponse struct {
 	Progress           int        `json:"progress"`
 	CompletedTasks     int        `json:"completed_tasks"`
 	SubscriptionType   string     `json:"subscription_type"`
+	PlanName           string     `json:"plan_name"`
 	SubscriptionExpiry *time.Time `json:"subscription_expiry,omitempty"`
 	FreeTrialUsed      bool       `json:"free_trial_used"`
 	ChatMessagesUsed   int        `json:"chat_messages_used"`
@@ -307,6 +308,7 @@ func authenticateTelegramUser(c *gin.Context) {
 		Progress:           progress,
 		CompletedTasks:     completedSessions,
 		SubscriptionType:   user.SubscriptionType,
+		PlanName:           user.PlanName,
 		SubscriptionExpiry: user.SubscriptionExpiry,
 		FreeTrialUsed:      user.FreeTrialUsed,
 		ChatMessagesUsed:   user.ChatMessagesUsed,
@@ -356,6 +358,7 @@ func getUserInfo(c *gin.Context) {
 		Progress:           progress,
 		CompletedTasks:     completedSessions,
 		SubscriptionType:   user.SubscriptionType,
+		PlanName:           user.PlanName,
 		SubscriptionExpiry: user.SubscriptionExpiry,
 		FreeTrialUsed:      user.FreeTrialUsed,
 		ChatMessagesUsed:   user.ChatMessagesUsed,

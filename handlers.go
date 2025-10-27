@@ -368,12 +368,14 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 	if result.Error == gorm.ErrRecordNotFound {
 		// Create new user
 		user = User{
-			TelegramID:     from.ID,
-			Username:       from.UserName,
-			FirstName:      from.FirstName,
-			LastName:       from.LastName,
-			CurrentSession: 1,
-			IsVerified:     false,
+			TelegramID:       from.ID,
+			Username:         from.UserName,
+			FirstName:        from.FirstName,
+			LastName:         from.LastName,
+			CurrentSession:   1,
+			IsVerified:       false,
+			SubscriptionType: "none",
+			PlanName:         "",
 		}
 		db.Create(&user)
 
@@ -1334,6 +1336,7 @@ func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
 		),
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("📲 ارسال پیامک همگانی"),
+			tgbotapi.NewKeyboardButton("💎 مدیریت اشتراک‌ها"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("🔒 امنیت مینی اپ"),

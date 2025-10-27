@@ -45,9 +45,10 @@ type User struct {
 	// Subscription fields
 	SubscriptionType   string `gorm:"default:'none'"` // none, free_trial, paid
 	SubscriptionExpiry *time.Time
-	FreeTrialUsed      bool `gorm:"default:false"`
-	ChatMessagesUsed   int  `gorm:"default:0"` // تعداد پیام‌های چت استفاده شده
-	CourseSessionsUsed int  `gorm:"default:0"` // تعداد جلسات دوره استفاده شده
+	PlanName           string `gorm:"default:''"` // نام پلن: starter, pro, ultimate, free_trial, lifetime
+	FreeTrialUsed      bool   `gorm:"default:false"`
+	ChatMessagesUsed   int    `gorm:"default:0"` // تعداد پیام‌های چت استفاده شده
+	CourseSessionsUsed int    `gorm:"default:0"` // تعداد جلسات دوره استفاده شده
 }
 
 // Admin represents a system administrator
@@ -259,6 +260,7 @@ func (u *User) CanAccessCourseSession(sessionNumber int) bool {
 func (u *User) StartFreeTrial() {
 	expiry := time.Now().Add(FREE_TRIAL_DURATION)
 	u.SubscriptionType = "free_trial"
+	u.PlanName = "free_trial"
 	u.SubscriptionExpiry = &expiry
 	u.FreeTrialUsed = true
 	u.ChatMessagesUsed = 0

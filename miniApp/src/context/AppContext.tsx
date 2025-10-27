@@ -23,6 +23,7 @@ interface UserData {
   currentSession?: number;
   // Subscription fields
   subscriptionType?: string;
+  planName?: string;
   subscriptionExpiry?: string;
   freeTrialUsed?: boolean;
   chatMessagesUsed?: number;
@@ -135,6 +136,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           
           // Subscription fields
           subscriptionType: userInfo.subscription_type,
+          planName: userInfo.plan_name,
           subscriptionExpiry: userInfo.subscription_expiry,
           freeTrialUsed: userInfo.free_trial_used,
           chatMessagesUsed: userInfo.chat_messages_used,
@@ -214,6 +216,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           
           // Subscription fields
           subscriptionType: userInfo.subscription_type,
+          planName: userInfo.plan_name,
           subscriptionExpiry: userInfo.subscription_expiry,
           freeTrialUsed: userInfo.free_trial_used,
           chatMessagesUsed: userInfo.chat_messages_used,
