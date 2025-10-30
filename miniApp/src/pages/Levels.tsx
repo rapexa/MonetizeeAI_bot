@@ -34,7 +34,8 @@ import {
   Award,
   Maximize2,
   RefreshCw,
-  MessageCircle
+  MessageCircle,
+  Crown
 } from 'lucide-react';
 
 interface Video {
@@ -106,6 +107,7 @@ const Levels: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string, isNew?: boolean}>>([]);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [showSubscriptionCard, setShowSubscriptionCard] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
   const chatContainerRef = React.useRef<HTMLDivElement>(null);
@@ -2898,7 +2900,7 @@ const Levels: React.FC = () => {
                         // Scroll to top when opening stage detail
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       } else if (!canAccessStage()) {
-                        setIsSubscriptionModalOpen(true);
+                        setShowSubscriptionCard(true);
                       }
                     }}
                     className={`group relative overflow-hidden rounded-xl border transition-all duration-300 ${
@@ -3966,6 +3968,31 @@ const Levels: React.FC = () => {
 
       </div>
       
+      {/* Subscription inline card (like ReadyPrompts) */}
+      {showSubscriptionCard && (
+        <div className="fixed top-16 left-4 right-4 z-40 p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
+              <Crown className="w-4 h-4 text-red-400" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-red-400 font-bold text-sm mb-1">محدودیت اشتراک</h4>
+              <p className="text-red-300 text-xs whitespace-pre-line">
+{`🔒 ادامه‌ی این مسیر فقط برای کاربران ویژه بازه
+
+📌 با اشتراک ویژه، تمام مراحل ساخت بیزینس آنلاینت باز میشه`}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/profile')}
+              className="ml-3 shrink-0 px-3 py-2 rounded-lg text-white text-xs bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90"
+            >
+              🔓 فعـال‌سازی اشتراک ویـژه
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Subscription Required Modal */}
       {isSubscriptionModalOpen && (
         <SubscriptionModal
