@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import apiService from '../services/api';
@@ -4000,7 +4001,7 @@ const Levels: React.FC = () => {
       </div>
       
       {/* Subscription required modal */}
-      {showSubscriptionPrompt && (
+      {showSubscriptionPrompt && createPortal(
         <div className="fixed inset-0 z-[999999] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
           <div className="w-full max-w-md backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden" style={{ backgroundColor: '#10091c' }}>
             <div className="p-6 border-b border-gray-700/60 bg-gradient-to-r from-[#2c189a]/20 to-[#5a189a]/20 flex items-center justify-between">
@@ -4032,8 +4033,8 @@ const Levels: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>, document.body)
+      }
 
       {/* Chat Modal for AI Coach */}
       {isChatModalOpen && (
