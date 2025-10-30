@@ -3905,7 +3905,21 @@ const Levels: React.FC = () => {
             >
               {/* Lock Overlay */}
               {!level.isUnlocked && (
-                <div className="absolute inset-0 bg-gradient-to-r from-[#2c189a] to-[#5a189a] backdrop-blur-[1px] z-10 flex items-center justify-center">
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-[#2c189a] to-[#5a189a] backdrop-blur-[1px] z-10 flex items-center justify-center cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const isFreeAccount = (
+                      userData.subscriptionType === 'free_trial' ||
+                      !userData.subscriptionType ||
+                      userData.subscriptionType === 'none' ||
+                      userData.planName === 'free_trial'
+                    );
+                    if (isFreeAccount) {
+                      setShowSubscriptionPrompt(true);
+                    }
+                  }}
+                >
                   <div className="bg-gray-800/90 rounded-full p-3 shadow-lg">
                     <Lock className="w-6 h-6 text-gray-400" />
                         </div>
