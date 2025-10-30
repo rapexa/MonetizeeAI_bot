@@ -2877,7 +2877,7 @@ const Levels: React.FC = () => {
                   <div
                     key={stage.id}
                     onClick={() => {
-                      // Check subscription limits
+                      // Check subscription limits first
                       const canAccessStage = () => {
                         // Paid or named plan users: full access
                         if (userData.subscriptionType === 'paid') return true;
@@ -2892,14 +2892,21 @@ const Levels: React.FC = () => {
                         }
                         return false;
                       };
-                      
-                      if (passedStages.has(stage.id) && canAccessStage()) {
+
+                      // If subscription does not allow this stage, show subscription modal immediately
+                      if (!canAccessStage()) {
+                        setShowSubscriptionPrompt(true);
+                        return;
+                      }
+
+                      // Otherwise proceed with normal stage access rules
+                      if (passedStages.has(stage.id)) {
                         setSelectedStage(stage);
                         setViewMode('stage-detail');
                         // Scroll to top when opening stage detail
                         window.scrollTo({ top: 0, behavior: 'smooth' });
-                      } else if (!canAccessStage()) {
-                        setShowSubscriptionPrompt(true);
+                      } else {
+                        // Not yet unlocked by progression - could show a tip later
                       }
                     }}
                     className={`group relative overflow-hidden rounded-xl border transition-all duration-300 ${
