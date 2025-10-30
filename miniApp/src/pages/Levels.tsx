@@ -2879,13 +2879,15 @@ const Levels: React.FC = () => {
                     onClick={() => {
                       // Check subscription limits
                       const canAccessStage = () => {
-                        if (userData.subscriptionType === 'paid') {
-                          return true;
-                        }
-                        // For free trial users AND users without subscription (legacy/none): only first 3 stages
-                        if (userData.subscriptionType === 'free_trial' || 
-                            !userData.subscriptionType || 
-                            userData.subscriptionType === 'none') {
+                        // Paid or named plan users: full access
+                        if (userData.subscriptionType === 'paid') return true;
+                        if (userData.planName && userData.planName !== '' && userData.planName !== 'free_trial') return true;
+
+                        // Free/none users: only first 3 stages
+                        if (userData.subscriptionType === 'free_trial' ||
+                            !userData.subscriptionType ||
+                            userData.subscriptionType === 'none' ||
+                            userData.planName === 'free_trial') {
                           return stage.id <= 3;
                         }
                         return false;
@@ -3881,6 +3883,16 @@ const Levels: React.FC = () => {
                 if (level.isUnlocked) {
                   setSelectedLevel(level);
                   setViewMode('detail');
+                } else {
+                  const isFreeAccount = (
+                    userData.subscriptionType === 'free_trial' ||
+                    !userData.subscriptionType ||
+                    userData.subscriptionType === 'none' ||
+                    userData.planName === 'free_trial'
+                  );
+                  if (isFreeAccount) {
+                    setShowSubscriptionPrompt(true);
+                  }
                 }
               }}
               className={`relative overflow-hidden rounded-3xl border transition-all duration-500 ${
