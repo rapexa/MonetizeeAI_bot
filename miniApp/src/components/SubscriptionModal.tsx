@@ -1,0 +1,44 @@
+import React from 'react';
+
+interface SubscriptionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onActivate: () => void;
+}
+
+const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, onActivate }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[99998] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <div className="w-[92%] max-w-md rounded-2xl overflow-hidden border border-gray-700/60 shadow-xl"
+           style={{ background: 'linear-gradient(135deg, #0f0a19 0%, #130b22 100%)' }}>
+        <div className="p-5 border-b border-gray-700/50 bg-gray-800/30 flex items-center justify-between">
+          <h3 className="text-base font-semibold text-white">دسترسی ویژه لازم است</h3>
+          <button onClick={onClose} className="w-9 h-9 rounded-xl bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 flex items-center justify-center">✕</button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <p className="text-sm leading-7 text-gray-200 whitespace-pre-line">
+{`🔒 ادامه‌ی این مسیر فقط برای کاربران ویژه بازه
+
+📌 با اشتراک ویژه، تمام مراحل ساخت بیزینس آنلاینت باز میشه`}
+          </p>
+        </div>
+
+        <div className="p-5 border-t border-gray-700/50">
+          <button
+            onClick={onActivate}
+            className="w-full py-3 rounded-xl text-white font-medium bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 transition-colors"
+          >
+            🔓 فعـال‌سازی اشتراک ویـژه
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SubscriptionModal;
+
+
