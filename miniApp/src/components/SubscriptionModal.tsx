@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -9,8 +10,17 @@ interface SubscriptionModalProps {
 const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, onActivate }) => {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  const modal = (
+    <div className="fixed inset-0 z-[2147483000] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       {/* Card */}
       <div
         className="w-[92%] max-w-md rounded-2xl overflow-hidden border border-gray-700/60 shadow-2xl transform transition-all duration-200"
@@ -47,6 +57,12 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
       </div>
     </div>
   );
+
+  // Render via portal to body to avoid stacking context issues
+  if (typeof document !== 'undefined' && document.body) {
+    return ReactDOM.createPortal(modal, document.body);
+  }
+  return modal;
 };
 
 export default SubscriptionModal;
