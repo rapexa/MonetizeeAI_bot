@@ -79,6 +79,7 @@ const Levels: React.FC = () => {
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail' | 'stage-detail'>('list');
   const videoRefs = React.useRef<{[key: number]: HTMLVideoElement | null}>({});
+  const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false);
 
   const toggleFullscreen = async (videoIndex: number) => {
     const videoElement = videoRefs.current[videoIndex];
@@ -2896,8 +2897,7 @@ const Levels: React.FC = () => {
                         // Scroll to top when opening stage detail
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       } else if (!canAccessStage()) {
-                        // Show subscription limit message
-                        alert('🔒 این مرحله نیاز به اشتراک پولی دارد. برای دسترسی کامل، اشتراک پولی تهیه کنید.');
+                        setShowSubscriptionPrompt(true);
                       }
                     }}
                     className={`group relative overflow-hidden rounded-xl border transition-all duration-300 ${
@@ -3965,6 +3965,42 @@ const Levels: React.FC = () => {
 
       </div>
       
+      {/* Subscription required modal */}
+      {showSubscriptionPrompt && (
+        <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+            <div className="p-6 border-b border-gray-700/60 bg-gradient-to-r from-[#2c189a]/20 to-[#5a189a]/20 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">اشتراک ویژه لازم است</h3>
+              <button onClick={() => setShowSubscriptionPrompt(false)} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
+                <X size={18} className="text-gray-300" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-white text-base leading-7">
+                🔒 ادامه‌ی این مسیر فقط برای کاربران ویژه بازه
+              </p>
+              <p className="text-gray-300 text-sm leading-6">
+                📌 با اشتراک ویژه، تمام مراحل ساخت بیزینس آنلاینت باز میشه
+              </p>
+            </div>
+            <div className="p-6 pt-0 flex flex-col gap-3">
+              <button
+                onClick={() => { setShowSubscriptionPrompt(false); navigate('/profile'); }}
+                className="w-full py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 transition-all shadow-[0_0_20px_rgba(139,0,255,0.35)] hover:scale-[1.02] active:scale-[0.99]"
+              >
+                🔓 فعـال‌سازی اشتراک ویـژه
+              </button>
+              <button
+                onClick={() => setShowSubscriptionPrompt(false)}
+                className="w-full py-3 rounded-2xl font-medium border border-gray-700/60 text-gray-300 hover:bg-gray-800/30 transition-all"
+              >
+                بعدا
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Chat Modal for AI Coach */}
       {isChatModalOpen && (
         <div className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm">
