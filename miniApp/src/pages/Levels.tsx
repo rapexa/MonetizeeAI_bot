@@ -3891,6 +3891,7 @@ const Levels: React.FC = () => {
                     userData.planName === 'free_trial'
                   );
                   if (isFreeAccount) {
+                    console.log('[Levels] Locked level clicked by free user -> opening subscription modal');
                     setShowSubscriptionPrompt(true);
                   }
                 }
@@ -3979,7 +3980,7 @@ const Levels: React.FC = () => {
       
       {/* Subscription required modal */}
       {showSubscriptionPrompt && (
-        <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[999999] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
           <div className="w-full max-w-md backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden" style={{ backgroundColor: '#10091c' }}>
             <div className="p-6 border-b border-gray-700/60 bg-gradient-to-r from-[#2c189a]/20 to-[#5a189a]/20 flex items-center justify-between">
               <h3 className="text-lg font-bold text-white">اشتراک ویژه لازم است</h3>
