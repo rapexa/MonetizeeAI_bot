@@ -126,6 +126,22 @@ const Levels: React.FC = () => {
     console.log('🔥 Modal state changed to:', isChatModalOpen);
   }, [isChatModalOpen]);
 
+  // Debug subscription card state changes
+  useEffect(() => {
+    console.log('🎴 [Levels] showSubscriptionCard state changed to:', showSubscriptionCard);
+  }, [showSubscriptionCard]);
+
+  // Debug userData changes
+  useEffect(() => {
+    console.log('👤 [Levels] userData changed:', {
+      subscriptionType: userData?.subscriptionType,
+      planName: userData?.planName,
+      currentSession: userData?.currentSession,
+      isVerified: userData?.isVerified,
+      fullUserData: userData
+    });
+  }, [userData]);
+
   // Debug: Log localStorage contents
   useEffect(() => {
     try {
@@ -2880,35 +2896,54 @@ const Levels: React.FC = () => {
                   <div
                     key={stage.id}
                     onClick={() => {
+                      console.log('🔵 [Levels] Stage clicked:', stage.id);
+                      console.log('🔵 [Levels] User subscriptionType:', userData.subscriptionType);
+                      console.log('🔵 [Levels] Stage passed?', passedStages.has(stage.id));
+                      
                       // Check subscription limits
                       const canAccessStage = () => {
                         if (userData.subscriptionType === 'paid') {
+                          console.log('✅ [Levels] User has paid subscription - access granted');
                           return true;
                         }
                         // For free trial users AND users without subscription (legacy/none): only first 3 stages
                         if (userData.subscriptionType === 'free_trial' || 
                             !userData.subscriptionType || 
                             userData.subscriptionType === 'none') {
-                          return stage.id <= 3;
+                          const allowed = stage.id <= 3;
+                          console.log(`🔵 [Levels] Free trial/None user - Stage ${stage.id} <= 3? ${allowed}`);
+                          return allowed;
                         }
+                        console.log('❌ [Levels] Unknown subscription type - access denied');
                         return false;
                       };
                       
+                      const hasAccess = canAccessStage();
+                      console.log('🔵 [Levels] canAccessStage result:', hasAccess);
+                      
                       // First check subscription - if not allowed, show card and return
-                      if (!canAccessStage()) {
+                      if (!hasAccess) {
+                        console.log('🚨 [Levels] NO ACCESS - Setting showSubscriptionCard to TRUE');
                         setShowSubscriptionCard(true);
+                        console.log('🔵 [Levels] showSubscriptionCard state set to true');
                         // Auto-hide after 5 seconds
-                        setTimeout(() => setShowSubscriptionCard(false), 5000);
+                        setTimeout(() => {
+                          console.log('⏰ [Levels] Auto-hiding subscription card after 5 seconds');
+                          setShowSubscriptionCard(false);
+                        }, 5000);
                         return;
                       }
                       
                       // If subscription allows and stage is passed, open it
                       if (passedStages.has(stage.id)) {
+                        console.log('✅ [Levels] Access granted and stage passed - opening stage');
                         setShowSubscriptionCard(false); // Hide card if it was showing
                         setSelectedStage(stage);
                         setViewMode('stage-detail');
                         // Scroll to top when opening stage detail
                         window.scrollTo({ top: 0, behavior: 'smooth' });
+                      } else {
+                        console.log('⚠️ [Levels] Access granted but stage not passed yet');
                       }
                     }}
                     className={`group relative overflow-hidden rounded-xl border transition-all duration-300 ${
@@ -3977,9 +4012,15 @@ const Levels: React.FC = () => {
       </div>
       
       {/* Subscription inline card (like ReadyPrompts) */}
-      {showSubscriptionCard && (
-        <div className="fixed top-16 left-4 right-4 z-[99999] p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl animate-in slide-in-from-top-5">
-          <div className="flex items-start gap-3">
+      {(() => {
+        console.log('🔴 [Levels] Rendering subscription card section - showSubscriptionCard:', showSubscriptionCard);
+        return null;
+      })()}
+      {showSubscriptionCard && (() => {
+        console.log('✅ [Levels] SUBSCRIPTION CARD IS RENDERING NOW!');
+        return (
+          <div className="fixed top-16 left-4 right-4 z-[99999] p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl animate-in slide-in-from-top-5">
+            <div className="flex items-start gap-3">
             <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
               <Crown className="w-4 h-4 text-red-400" />
             </div>
@@ -4010,7 +4051,8 @@ const Levels: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Subscription Required Modal */}
       {isSubscriptionModalOpen && (
