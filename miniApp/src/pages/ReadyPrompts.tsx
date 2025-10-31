@@ -9,6 +9,8 @@ import {
   Crown
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import PromptCopySubscriptionCard from '../components/PromptCopySubscriptionCard';
+import PromptAccessSubscriptionCard from '../components/PromptAccessSubscriptionCard';
 
 interface Prompt {
   id: string;
@@ -34,16 +36,34 @@ const ReadyPrompts: React.FC = () => {
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [showLevelSelector, setShowLevelSelector] = useState(false);
+  const [showCopySubscriptionCard, setShowCopySubscriptionCard] = useState(false);
+  const [showAccessSubscriptionCard, setShowAccessSubscriptionCard] = useState(false);
 
-  // Check if user can access prompts
-  const canAccessPrompts = () => {
+  // Check if user is free_trial
+  const isFreeTrial = userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none';
+
+  // Check if user can access a specific prompt (only for free_trial - levels 1-3)
+  const canAccessPrompt = (prompt: Prompt) => {
     if (userData.subscriptionType === 'paid') {
+      return true; // Paid users can access all prompts
+    }
+    
+    // Free trial users can only access prompts from levels 1-3
+    if (isFreeTrial && prompt.level) {
+      return prompt.level <= 3;
+    }
+    
+    // If no level is specified (e.g., business, product, marketing categories), allow access for free_trial
+    if (isFreeTrial && !prompt.level) {
       return true;
     }
-    if (userData.subscriptionType === 'free_trial') {
-      return false; // Prompts are NOT available in free trial
-    }
+    
     return false;
+  };
+
+  // Check if user can copy prompts (only paid users can copy)
+  const canCopyPrompt = () => {
+    return userData.subscriptionType === 'paid';
   };
 
   // Handle URL parameters for stage selection
@@ -410,16 +430,34 @@ const ReadyPrompts: React.FC = () => {
                            prompt.desc.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            prompt.text.toLowerCase().includes(searchTerm.toLowerCase());
     
+    // Check access permissions for free_trial users
+    if (isFreeTrial && prompt.level) {
+      // Only show levels 1-3 for free_trial
+      if (prompt.level > 3) {
+        return false;
+      }
+    }
+    
     // اگر مرحله انتخاب شده باشد، فقط پرامپت‌های آن مرحله را نمایش بده
     if (selectedLevel) {
+      // For free_trial, only allow selecting levels 1-3
+      if (isFreeTrial && selectedLevel > 3) {
+        return false;
+      }
       return matchesSearch && prompt.level === selectedLevel;
     }
     
-    // اگر مرحله انتخاب نشده باشد، همه پرامپت‌ها را نمایش بده
-    return matchesSearch;
+    // اگر مرحله انتخاب نشده باشد، فقط پرامپت‌های قابل دسترسی را نمایش بده
+    return matchesSearch && canAccessPrompt(prompt);
   });
 
   const copyToClipboard = (text: string) => {
+    // Check if user can copy (only paid users)
+    if (!canCopyPrompt()) {
+      setShowCopySubscriptionCard(true);
+      return;
+    }
+    
     navigator.clipboard.writeText(text);
     // You can add a toast notification here
   };
@@ -453,23 +491,10 @@ const ReadyPrompts: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      {/* Subscription limit warning */}
-      {!canAccessPrompts() && (
-        <div className="fixed top-16 left-4 right-4 z-40 p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
-              <Crown className="w-4 h-4 text-red-400" />
-            </div>
-            <div>
-              <h4 className="text-red-400 font-bold text-sm mb-1">محدودیت اشتراک</h4>
-              <p className="text-red-300 text-xs">
-                برای دسترسی به پرامت‌ها، اشتراک پولی تهیه کنید.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+    <>
+      <PromptCopySubscriptionCard show={showCopySubscriptionCard} onClose={() => setShowCopySubscriptionCard(false)} />
+      <PromptAccessSubscriptionCard show={showAccessSubscriptionCard} onClose={() => setShowAccessSubscriptionCard(false)} />
+      <div className="min-h-screen bg-black text-white relative overflow-hidden">
       
       {/* Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900/30 via-black to-gray-900/30"></div>
@@ -544,9 +569,11 @@ const ReadyPrompts: React.FC = () => {
             {/* Level Selector */}
             {showLevelSelector && (
               <div className="mb-6 p-4 bg-gray-800/30 rounded-2xl border border-gray-700/60">
-                <h3 className="text-lg font-semibold text-white mb-4">انتخاب مرحله (۱ تا ۲۹)</h3>
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  {isFreeTrial ? 'انتخاب مرحله (فقط ۱ تا ۳)' : 'انتخاب مرحله (۱ تا ۲۹)'}
+                </h3>
                 <div className="grid grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-2">
-                  {Array.from({ length: 29 }, (_, i) => i + 1).map((level) => (
+                  {Array.from({ length: isFreeTrial ? 3 : 29 }, (_, i) => i + 1).map((level) => (
                     <button
                       key={level}
                       onClick={() => {
@@ -562,6 +589,23 @@ const ReadyPrompts: React.FC = () => {
                       {level}
                     </button>
                   ))}
+                  {isFreeTrial && (
+                    <>
+                      {Array.from({ length: 26 }, (_, i) => i + 4).map((level) => (
+                        <button
+                          key={level}
+                          onClick={() => {
+                            setShowAccessSubscriptionCard(true);
+                          }}
+                          className="p-3 rounded-xl text-sm font-medium transition-all duration-300 opacity-50 cursor-pointer bg-gray-700/30 text-gray-500 hover:bg-gray-600/50 hover:text-gray-400 relative"
+                          title="فقط در نسخه ویژه"
+                        >
+                          {level}
+                          <Crown size={12} className="absolute top-1 left-1 text-red-400" />
+                        </button>
+                      ))}
+                    </>
+                  )}
                 </div>
                 {selectedLevel && (
                   <button
@@ -650,22 +694,22 @@ const ReadyPrompts: React.FC = () => {
                   <div
                     key={prompt.id}
                     className={`backdrop-blur-xl rounded-3xl p-6 border border-gray-800/60 transition-all duration-300 ${
-                      canAccessPrompts() 
+                      canAccessPrompt(prompt) 
                         ? 'hover:border-orange-500/50 hover:scale-[1.02] cursor-pointer group' 
-                        : 'opacity-50 cursor-not-allowed grayscale blur-sm'
+                        : 'opacity-50 cursor-pointer'
                     }`}
                 style={{ backgroundColor: '#0A111C' }}
                     onClick={() => {
-                      if (canAccessPrompts()) {
+                      if (canAccessPrompt(prompt)) {
                         setSelectedPrompt(prompt);
                       } else {
-                        alert('🔒 برای دسترسی به پرامت‌ها، اشتراک پولی تهیه کنید.');
+                        setShowAccessSubscriptionCard(true);
                       }
                     }}
                   >
                     <div className="flex items-start gap-4 mb-4">
                       <div className={`w-12 h-12 bg-gradient-to-br ${promptCategories[selectedCategory].color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                        {!canAccessPrompts() ? (
+                        {!canAccessPrompt(prompt) ? (
                           <Crown size={24} className="text-red-400" />
                         ) : (
                           <Sparkles size={24} className="text-white" />
@@ -681,9 +725,19 @@ const ReadyPrompts: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (!canAccessPrompt(prompt)) {
+                            setShowAccessSubscriptionCard(true);
+                            return;
+                          }
                           copyToClipboard(prompt.text);
                         }}
-                        className="flex-1 py-2 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center justify-center gap-2 transition-colors text-sm"
+                        className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm ${
+                          canAccessPrompt(prompt)
+                            ? canCopyPrompt()
+                              ? 'bg-gray-700 hover:bg-gray-600 text-white cursor-pointer'
+                              : 'bg-gray-700/50 text-gray-400 cursor-pointer'
+                            : 'bg-gray-700/30 text-gray-500 cursor-pointer'
+                        }`}
                       >
                         <Copy size={16} />
                         کپی
@@ -691,9 +745,17 @@ const ReadyPrompts: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          usePrompt(prompt);
+                          if (canAccessPrompt(prompt)) {
+                            usePrompt(prompt);
+                          } else {
+                            setShowAccessSubscriptionCard(true);
+                          }
                         }}
-                        className="flex-1 py-2 px-4 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white rounded-lg flex items-center justify-center gap-2 transition-colors text-sm"
+                        className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm ${
+                          canAccessPrompt(prompt)
+                            ? 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white'
+                            : 'bg-gray-700/30 text-gray-500 cursor-not-allowed opacity-50'
+                        }`}
                       >
                         <Sparkles size={16} />
                         استفاده
@@ -746,15 +808,37 @@ const ReadyPrompts: React.FC = () => {
 
                 <div className="flex gap-2 pt-4 border-t border-gray-700/20">
                   <button
-                    onClick={() => copyToClipboard(selectedPrompt.text)}
-                    className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl flex items-center justify-center gap-2 transition-colors"
+                    onClick={() => {
+                      if (!canAccessPrompt(selectedPrompt)) {
+                        setShowAccessSubscriptionCard(true);
+                        return;
+                      }
+                      copyToClipboard(selectedPrompt.text);
+                    }}
+                    className={`flex-1 px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-colors ${
+                      canAccessPrompt(selectedPrompt)
+                        ? canCopyPrompt()
+                          ? 'bg-gray-700 hover:bg-gray-600 text-white cursor-pointer'
+                          : 'bg-gray-700/50 text-gray-400 cursor-pointer'
+                        : 'bg-gray-700/30 text-gray-500 cursor-pointer'
+                    }`}
                   >
                     <Copy size={16} />
                     کپی پرامپت
                   </button>
                   <button
-                    onClick={() => usePrompt(selectedPrompt)}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white rounded-xl flex items-center justify-center gap-2 transition-colors"
+                    onClick={() => {
+                      if (canAccessPrompt(selectedPrompt)) {
+                        usePrompt(selectedPrompt);
+                      } else {
+                        setShowAccessSubscriptionCard(true);
+                      }
+                    }}
+                    className={`flex-1 px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-colors ${
+                      canAccessPrompt(selectedPrompt)
+                        ? 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white'
+                        : 'bg-gray-700/30 text-gray-500 cursor-not-allowed opacity-50'
+                    }`}
                   >
                     <Sparkles size={16} />
                     استفاده
@@ -766,6 +850,7 @@ const ReadyPrompts: React.FC = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 
