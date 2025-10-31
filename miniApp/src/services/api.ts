@@ -150,20 +150,16 @@ class APIService {
         }
       }
 
-      // Method 4: Try localStorage for saved Telegram ID (only if no other method worked)
-      if (typeof window !== 'undefined' && !this.isInTelegram()) {
-        const savedTelegramId = localStorage.getItem('telegram_id');
-        if (savedTelegramId && !isNaN(Number(savedTelegramId))) {
-          this.cachedTelegramId = Number(savedTelegramId);
-          logger.debug(`🔍 Got Telegram ID from localStorage (fallback): ${this.cachedTelegramId}`);
-          return this.cachedTelegramId;
-        }
-      }
-
-      // Method 5: Use test user for browser testing (both dev and production)
+      // Method 4: Use test user for browser testing (both dev and production)
+      // Priority: Always use 76599340 as test user when not in Telegram
       if (!this.isInTelegram()) {
-        this.cachedTelegramId = 76599340; // Test user for browser testing
-        logger.debug(`🔍 Using test user ID for browser testing: ${this.cachedTelegramId}`);
+        // Clear any saved telegram_id from localStorage to force using test user
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('telegram_id');
+        }
+        this.cachedTelegramId = 76599340; // Test user: RAPEXA (@Rapexam)
+        this.saveTelegramIdToStorage(76599340);
+        logger.debug(`🔍 Using test user ID for browser testing: ${this.cachedTelegramId} (RAPEXA)`);
         return this.cachedTelegramId;
       }
 
