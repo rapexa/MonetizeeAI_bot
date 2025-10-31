@@ -2,12 +2,14 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import { useApp } from '../context/AppContext';
+import AIToolSubscriptionCard from '../components/AIToolSubscriptionCard';
 import { 
   Rocket, 
   Copy, 
   Download, 
   RefreshCw, 
   ArrowLeft,
+  ArrowRight,
   Zap,
   CheckCircle,
   Lightbulb,
@@ -43,7 +45,9 @@ import {
 
 const BusinessBuilderAI: React.FC = () => {
   const navigate = useNavigate();
-  const { isAPIConnected } = useApp();
+  const { isAPIConnected, userData } = useApp();
+  const [showSubscriptionCard, setShowSubscriptionCard] = React.useState(false);
+  const [hasUsedBefore, setHasUsedBefore] = React.useState(false);
   const [formData, setFormData] = React.useState({
     userName: '',
     interests: '',
@@ -362,6 +366,16 @@ const BusinessBuilderAI: React.FC = () => {
       return;
     }
 
+    // Check if free_trial user has already used this tool
+    if (isFreeTrial) {
+      const toolKey = 'business_builder_used';
+      const hasUsed = localStorage.getItem(toolKey) === 'true';
+      if (hasUsed) {
+        setShowSubscriptionCard(true);
+        return;
+      }
+    }
+
     setIsGenerating(true);
     try {
       console.log('🚀 Generating business plan with ChatGPT...');
@@ -375,6 +389,20 @@ const BusinessBuilderAI: React.FC = () => {
       if (response.success && response.data) {
         console.log('✅ Business plan generated successfully:', response.data);
         setResult(response.data);
+        
+        // Check if user has used this tool before (only for free_trial)
+        if (isFreeTrial) {
+          const toolKey = 'business_builder_used';
+          const hasUsed = localStorage.getItem(toolKey) === 'true';
+          setHasUsedBefore(hasUsed);
+          
+          // Mark as used
+          if (!hasUsed) {
+            localStorage.setItem(toolKey, 'true');
+          }
+        } else {
+          setHasUsedBefore(false); // Paid users always have access
+        }
       } else {
         console.error('❌ Failed to generate business plan:', response.error);
         
@@ -415,8 +443,36 @@ const BusinessBuilderAI: React.FC = () => {
     document.body.removeChild(element);
   };
 
+  // Check if user is free_trial
+  const isFreeTrial = userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none';
+  
+  // Check if free_trial user has already used this tool and redirect if needed
+  React.useEffect(() => {
+    if (isFreeTrial) {
+      const toolKey = 'business_builder_used';
+      const hasUsed = localStorage.getItem(toolKey) === 'true';
+      if (hasUsed) {
+        console.log('🚫 Free trial user already used Business Builder AI - redirecting...');
+        navigate('/tools');
+      }
+    }
+  }, [isFreeTrial, navigate]);
+  
+  // Check if user has used this tool before (on mount) - only for free_trial
+  React.useEffect(() => {
+    if (result && isFreeTrial) {
+      const toolKey = 'business_builder_used';
+      const hasUsed = localStorage.getItem(toolKey) === 'true';
+      setHasUsedBefore(hasUsed);
+    } else if (result && !isFreeTrial) {
+      setHasUsedBefore(false); // Paid users always have access
+    }
+  }, [result, isFreeTrial]);
+
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
+    <>
+      <AIToolSubscriptionCard show={showSubscriptionCard} onClose={() => setShowSubscriptionCard(false)} />
+      <div className="min-h-screen bg-black text-white relative overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900/30 via-black to-gray-900/30"></div>
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-gray-800/10 via-transparent to-transparent"></div>
@@ -658,43 +714,152 @@ const BusinessBuilderAI: React.FC = () => {
                     <p className="text-gray-200 font-medium">{result.targetAudience}</p>
                   </div>
                   
-                  <div className="bg-gradient-to-r from-gray-800/60 to-gray-700/60 rounded-xl p-4 border border-gray-600/30 shadow-lg">
-                    <h4 className="text-blue-500 font-bold mb-3 flex items-center gap-2">
-                      <Package size={18} className="text-blue-500" />
-                      محصولات/خدمات
-                    </h4>
-                    <ul className="text-gray-200 space-y-2">
-                      {result.products.map((product: string, index: number) => (
-                        <li key={index} className="flex items-center gap-3">
-                          <CheckCircle size={16} className="text-blue-500 flex-shrink-0" />
-                          <span className="font-medium">{product}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-gray-800/60 to-gray-700/60 rounded-xl p-4 border border-gray-600/30 shadow-lg">
-                    <h4 className="text-blue-500 font-bold mb-3 flex items-center gap-2">
-                      <DollarSign size={18} className="text-blue-500" />
-                      روش‌های درآمدزایی
-                    </h4>
-                    <ul className="text-gray-200 space-y-2">
-                      {result.monetization.map((method: string, index: number) => (
-                        <li key={index} className="flex items-center gap-3">
-                          <CheckCircle size={16} className="text-green-400 flex-shrink-0" />
-                          <span className="font-medium">{method}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-[#5a189a]/20 to-purple-500/20 rounded-xl p-4 border border-[#5a189a]/30 shadow-lg">
-                    <h4 className="text-blue-500 font-bold mb-3 flex items-center gap-2">
-                      <Zap size={18} className="text-blue-500" />
-                      اولین قدم امروز
-                    </h4>
-                    <p className="text-gray-200 font-medium">{result.firstAction}</p>
-                  </div>
+                  {isFreeTrial ? (
+                    <>
+                      {hasUsedBefore ? (
+                        <>
+                          <div className="relative">
+                            <div className="bg-gradient-to-r from-gray-800/60 to-gray-700/60 rounded-xl p-4 border border-gray-600/30 shadow-lg blur-[2px] pointer-events-none">
+                              <h4 className="text-blue-500 font-bold mb-3 flex items-center gap-2">
+                                <Package size={18} className="text-blue-500" />
+                                محصولات/خدمات
+                              </h4>
+                              <ul className="text-gray-200 space-y-2">
+                                {result.products.map((product: string, index: number) => (
+                                  <li key={index} className="flex items-center gap-3">
+                                    <CheckCircle size={16} className="text-blue-500 flex-shrink-0" />
+                                    <span className="font-medium">{product}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div className="absolute inset-0 flex items-center justify-center cursor-pointer" onClick={() => setShowSubscriptionCard(true)}>
+                              <div className="bg-black/50 backdrop-blur-sm rounded-xl px-4 py-2">
+                                <span className="text-white text-sm font-medium">برای مشاهده کامل کلیک کنید</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="relative">
+                            <div className="bg-gradient-to-r from-gray-800/60 to-gray-700/60 rounded-xl p-4 border border-gray-600/30 shadow-lg blur-[2px] pointer-events-none">
+                              <h4 className="text-blue-500 font-bold mb-3 flex items-center gap-2">
+                                <DollarSign size={18} className="text-blue-500" />
+                                روش‌های درآمدزایی
+                              </h4>
+                              <ul className="text-gray-200 space-y-2">
+                                {result.monetization.map((method: string, index: number) => (
+                                  <li key={index} className="flex items-center gap-3">
+                                    <CheckCircle size={16} className="text-green-400 flex-shrink-0" />
+                                    <span className="font-medium">{method}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div className="absolute inset-0 flex items-center justify-center cursor-pointer" onClick={() => setShowSubscriptionCard(true)}>
+                              <div className="bg-black/50 backdrop-blur-sm rounded-xl px-4 py-2">
+                                <span className="text-white text-sm font-medium">برای مشاهده کامل کلیک کنید</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="relative">
+                            <div className="bg-gradient-to-r from-[#5a189a]/20 to-purple-500/20 rounded-xl p-4 border border-[#5a189a]/30 shadow-lg blur-[2px] pointer-events-none">
+                              <h4 className="text-blue-500 font-bold mb-3 flex items-center gap-2">
+                                <Zap size={18} className="text-blue-500" />
+                                اولین قدم امروز
+                              </h4>
+                              <p className="text-gray-200 font-medium">{result.firstAction}</p>
+                            </div>
+                            <div className="absolute inset-0 flex items-center justify-center cursor-pointer" onClick={() => setShowSubscriptionCard(true)}>
+                              <div className="bg-black/50 backdrop-blur-sm rounded-xl px-4 py-2">
+                                <span className="text-white text-sm font-medium">برای مشاهده کامل کلیک کنید</span>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="bg-gradient-to-r from-gray-800/60 to-gray-700/60 rounded-xl p-4 border border-gray-600/30 shadow-lg">
+                            <h4 className="text-blue-500 font-bold mb-3 flex items-center gap-2">
+                              <Package size={18} className="text-blue-500" />
+                              محصولات/خدمات
+                            </h4>
+                            <ul className="text-gray-200 space-y-2">
+                              {result.products.map((product: string, index: number) => (
+                                <li key={index} className="flex items-center gap-3">
+                                  <CheckCircle size={16} className="text-blue-500 flex-shrink-0" />
+                                  <span className="font-medium">{product}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          
+                          <div className="bg-gradient-to-r from-gray-800/60 to-gray-700/60 rounded-xl p-4 border border-gray-600/30 shadow-lg">
+                            <h4 className="text-blue-500 font-bold mb-3 flex items-center gap-2">
+                              <DollarSign size={18} className="text-blue-500" />
+                              روش‌های درآمدزایی
+                            </h4>
+                            <ul className="text-gray-200 space-y-2">
+                              {result.monetization.map((method: string, index: number) => (
+                                <li key={index} className="flex items-center gap-3">
+                                  <CheckCircle size={16} className="text-green-400 flex-shrink-0" />
+                                  <span className="font-medium">{method}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          
+                          <div className="bg-gradient-to-r from-[#5a189a]/20 to-purple-500/20 rounded-xl p-4 border border-[#5a189a]/30 shadow-lg">
+                            <h4 className="text-blue-500 font-bold mb-3 flex items-center gap-2">
+                              <Zap size={18} className="text-blue-500" />
+                              اولین قدم امروز
+                            </h4>
+                            <p className="text-gray-200 font-medium">{result.firstAction}</p>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="bg-gradient-to-r from-gray-800/60 to-gray-700/60 rounded-xl p-4 border border-gray-600/30 shadow-lg">
+                        <h4 className="text-blue-500 font-bold mb-3 flex items-center gap-2">
+                          <Package size={18} className="text-blue-500" />
+                          محصولات/خدمات
+                        </h4>
+                        <ul className="text-gray-200 space-y-2">
+                          {result.products.map((product: string, index: number) => (
+                            <li key={index} className="flex items-center gap-3">
+                              <CheckCircle size={16} className="text-blue-500 flex-shrink-0" />
+                              <span className="font-medium">{product}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-gray-800/60 to-gray-700/60 rounded-xl p-4 border border-gray-600/30 shadow-lg">
+                        <h4 className="text-blue-500 font-bold mb-3 flex items-center gap-2">
+                          <DollarSign size={18} className="text-blue-500" />
+                          روش‌های درآمدزایی
+                        </h4>
+                        <ul className="text-gray-200 space-y-2">
+                          {result.monetization.map((method: string, index: number) => (
+                            <li key={index} className="flex items-center gap-3">
+                              <CheckCircle size={16} className="text-green-400 flex-shrink-0" />
+                              <span className="font-medium">{method}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-[#5a189a]/20 to-purple-500/20 rounded-xl p-4 border border-[#5a189a]/30 shadow-lg">
+                        <h4 className="text-blue-500 font-bold mb-3 flex items-center gap-2">
+                          <Zap size={18} className="text-blue-500" />
+                          اولین قدم امروز
+                        </h4>
+                        <p className="text-gray-200 font-medium">{result.firstAction}</p>
+                      </div>
+                    </>
+                  )}
                   
                   <div className="flex gap-2">
                     <button
@@ -735,6 +900,7 @@ const BusinessBuilderAI: React.FC = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 

@@ -40,19 +40,25 @@ const Dashboard: React.FC = () => {
   const [editingField, setEditingField] = React.useState<string | null>(null);
 
   // Check if user can access AI tools
+  // Paid users: always have access
+  // Free trial users: can access once (check if already used)
   const canAccessAITools = () => {
     if (userData.subscriptionType === 'paid') {
       return true;
     }
-    return false; // Free trial and none don't have access to AI tools
+    // Free trial users can access if they haven't used it yet
+    // We'll check individual tools in the click handlers
+    return true; // Allow access, but individual tools will check usage
   };
 
-  // Check if user can access CRM
+  // Check if user can access specific AI tool (for free_trial users)
+  const hasUsedAITool = (toolKey: string) => {
+    return localStorage.getItem(toolKey) === 'true';
+  };
+
+  // Check if user can access CRM - NO RESTRICTIONS, everyone has access
   const canAccessCRM = () => {
-    if (userData.subscriptionType === 'paid') {
-      return true;
-    }
-    return false; // Free trial and none don't have access to CRM
+    return true; // CRM is available for everyone, no restrictions
   };
 
   const [tempValue, setTempValue] = React.useState<string>('');
@@ -680,146 +686,86 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-2 gap-3">
           {/* 1-Minute Business Builder */}
           <div 
-            className={`text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden ${
-              canAccessAITools() 
-                ? 'cursor-pointer hover:shadow-xl hover:scale-105' 
-                : 'opacity-50 cursor-not-allowed grayscale blur-sm'
-            }`}
+            className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
             style={{ backgroundColor: '#10091c' }}
             onClick={() => {
-              if (canAccessAITools()) {
-                navigate('/business-builder-ai');
-              } else {
-                alert('🔒 برای دسترسی به این ابزار، اشتراک پولی تهیه کنید.');
-              }
+              navigate('/business-builder-ai');
             }}
           >
             <div className="flex items-center justify-center mb-1">
               <div className="text-xs text-white font-medium transition-colors duration-300">سازنده ۱ دقیقه‌ای</div>
             </div>
             <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-              {!canAccessAITools() ? (
-                <Crown size={16} className="text-red-400" />
-              ) : (
-                <Rocket size={16} className="text-blue-500 drop-shadow-lg" />
-              )}
-              <span className={`${!canAccessAITools() ? 'text-red-400' : 'text-blue-500 drop-shadow-lg'}`}>کسب‌وکار</span>
+              <Rocket size={16} className="text-blue-500 drop-shadow-lg" />
+              <span className="text-blue-500 drop-shadow-lg">کسب‌وکار</span>
             </div>
           </div>
 
           {/* Instant Sell Kit */}
           <div 
-            className={`text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden ${
-              canAccessAITools() 
-                ? 'cursor-pointer hover:shadow-xl hover:scale-105' 
-                : 'opacity-50 cursor-not-allowed grayscale blur-sm'
-            }`}
+            className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
             style={{ backgroundColor: '#10091c' }}
             onClick={() => {
-              if (canAccessAITools()) {
-                navigate('/sell-kit-ai');
-              } else {
-                alert('🔒 برای دسترسی به این ابزار، اشتراک پولی تهیه کنید.');
-              }
+              navigate('/sell-kit-ai');
             }}
           >
             <div className="flex items-center justify-center mb-1">
               <div className="text-xs text-white font-medium transition-colors duration-300">کیت فروش</div>
             </div>
             <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-              {!canAccessAITools() ? (
-                <Crown size={16} className="text-red-400" />
-              ) : (
-                <Package size={16} className="text-green-500 drop-shadow-lg" />
-              )}
-              <span className={`${!canAccessAITools() ? 'text-red-400' : 'text-green-500 drop-shadow-lg'}`}>فوری</span>
+              <Package size={16} className="text-green-500 drop-shadow-lg" />
+              <span className="text-green-500 drop-shadow-lg">فوری</span>
             </div>
           </div>
 
           {/* Instant Client Finder */}
           <div 
-            className={`text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden ${
-              canAccessAITools() 
-                ? 'cursor-pointer hover:shadow-xl hover:scale-105' 
-                : 'opacity-50 cursor-not-allowed grayscale blur-sm'
-            }`}
+            className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
             style={{ backgroundColor: '#10091c' }}
             onClick={() => {
-              if (canAccessAITools()) {
-                navigate('/client-finder-ai');
-              } else {
-                alert('🔒 برای دسترسی به این ابزار، اشتراک پولی تهیه کنید.');
-              }
+              navigate('/client-finder-ai');
             }}
           >
             <div className="flex items-center justify-center mb-1">
               <div className="text-xs text-white font-medium transition-colors duration-300">یابنده مشتری</div>
             </div>
             <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-              {!canAccessAITools() ? (
-                <Crown size={16} className="text-red-400" />
-              ) : (
-                <Search size={16} className="text-orange-500 drop-shadow-lg" />
-              )}
-              <span className={`${!canAccessAITools() ? 'text-red-400' : 'text-orange-500 drop-shadow-lg'}`}>فوری</span>
+              <Search size={16} className="text-orange-500 drop-shadow-lg" />
+              <span className="text-orange-500 drop-shadow-lg">فوری</span>
             </div>
           </div>
 
           {/* Fast Sales Path */}
           <div 
-            className={`text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden ${
-              canAccessAITools() 
-                ? 'cursor-pointer hover:shadow-xl hover:scale-105' 
-                : 'opacity-50 cursor-not-allowed grayscale blur-sm'
-            }`}
+            className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
             style={{ backgroundColor: '#10091c' }}
             onClick={() => {
-              if (canAccessAITools()) {
-                navigate('/sales-path-ai');
-              } else {
-                alert('🔒 برای دسترسی به این ابزار، اشتراک پولی تهیه کنید.');
-              }
+              navigate('/sales-path-ai');
             }}
           >
             <div className="flex items-center justify-center mb-1">
               <div className="text-xs text-white font-medium transition-colors duration-300">مسیر فروش</div>
             </div>
             <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-              {!canAccessAITools() ? (
-                <Crown size={16} className="text-red-400" />
-              ) : (
-                <Map size={16} className="text-purple-500 drop-shadow-lg" />
-              )}
-              <span className={`${!canAccessAITools() ? 'text-red-400' : 'text-purple-500 drop-shadow-lg'}`}>سریع</span>
+              <Map size={16} className="text-purple-500 drop-shadow-lg" />
+              <span className="text-purple-500 drop-shadow-lg">سریع</span>
             </div>
           </div>
 
           {/* Sales Management System - Full Width */}
           <div 
-            className={`col-span-2 text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden ${
-              canAccessCRM() 
-                ? 'cursor-pointer hover:shadow-xl hover:scale-105' 
-                : 'opacity-50 cursor-not-allowed grayscale blur-sm'
-            }`}
+            className={`col-span-2 text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105`}
             style={{ backgroundColor: '#10091c' }}
             onClick={() => {
-              if (canAccessCRM()) {
-                navigate('/crm');
-              } else {
-                alert('🔒 برای دسترسی به CRM، اشتراک پولی تهیه کنید.');
-              }
+              navigate('/crm');
             }}
           >
             <div className="flex items-center justify-center mb-1">
               <div className="text-xs text-white font-medium transition-colors duration-300">سیستم مدیریت فروش</div>
             </div>
             <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-              {!canAccessCRM() ? (
-                <Crown size={16} className="text-red-400" />
-              ) : (
-                <BarChart3 size={16} className="text-green-500 drop-shadow-lg" />
-              )}
-              <span className={`${!canAccessCRM() ? 'text-red-400' : 'text-green-500 drop-shadow-lg'}`}>مدیریت فروش</span>
+              <BarChart3 size={16} className="text-green-500 drop-shadow-lg" />
+              <span className="text-green-500 drop-shadow-lg">مدیریت فروش</span>
             </div>
           </div>
         </div>

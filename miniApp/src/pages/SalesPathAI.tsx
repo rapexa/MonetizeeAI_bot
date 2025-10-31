@@ -2,12 +2,14 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import { useApp } from '../context/AppContext';
+import AIToolSubscriptionCard from '../components/AIToolSubscriptionCard';
 import { 
   Map, 
   Copy, 
   Download, 
   RefreshCw, 
   ArrowLeft,
+  ArrowRight,
   Calendar,
   Star,
   Heart,
@@ -32,7 +34,9 @@ import {
 
 const SalesPathAI: React.FC = () => {
   const navigate = useNavigate();
-  const { isAPIConnected } = useApp();
+  const { isAPIConnected, userData } = useApp();
+  const [showSubscriptionCard, setShowSubscriptionCard] = React.useState(false);
+  const [hasUsedBefore, setHasUsedBefore] = React.useState(false);
   const [formData, setFormData] = React.useState({
     productName: '',
     targetAudience: '',
@@ -241,6 +245,16 @@ const SalesPathAI: React.FC = () => {
       return;
     }
 
+    // Check if free_trial user has already used this tool
+    if (isFreeTrial) {
+      const toolKey = 'sales_path_used';
+      const hasUsed = localStorage.getItem(toolKey) === 'true';
+      if (hasUsed) {
+        setShowSubscriptionCard(true);
+        return;
+      }
+    }
+
     setIsGenerating(true);
     try {
       console.log('🚀 Generating sales path with ChatGPT...');
@@ -254,6 +268,20 @@ const SalesPathAI: React.FC = () => {
       if (response.success && response.data) {
         console.log('✅ Sales path generated successfully:', response.data);
         setResult(response.data);
+        
+        // Check if user has used this tool before (only for free_trial)
+        if (isFreeTrial) {
+          const toolKey = 'sales_path_used';
+          const hasUsed = localStorage.getItem(toolKey) === 'true';
+          setHasUsedBefore(hasUsed);
+          
+          // Mark as used
+          if (!hasUsed) {
+            localStorage.setItem(toolKey, 'true');
+          }
+        } else {
+          setHasUsedBefore(false); // Paid users always have access
+        }
       } else {
         console.error('❌ Failed to generate sales path:', response.error);
         
@@ -294,8 +322,36 @@ const SalesPathAI: React.FC = () => {
     document.body.removeChild(element);
   };
 
+  // Check if user is free_trial
+  const isFreeTrial = userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none';
+  
+  // Check if free_trial user has already used this tool and redirect if needed
+  React.useEffect(() => {
+    if (isFreeTrial) {
+      const toolKey = 'sales_path_used';
+      const hasUsed = localStorage.getItem(toolKey) === 'true';
+      if (hasUsed) {
+        console.log('🚫 Free trial user already used Sales Path AI - redirecting...');
+        navigate('/tools');
+      }
+    }
+  }, [isFreeTrial, navigate]);
+  
+  // Check if user has used this tool before (on mount) - only for free_trial
+  React.useEffect(() => {
+    if (result && isFreeTrial) {
+      const toolKey = 'sales_path_used';
+      const hasUsed = localStorage.getItem(toolKey) === 'true';
+      setHasUsedBefore(hasUsed);
+    } else if (result && !isFreeTrial) {
+      setHasUsedBefore(false); // Paid users always have access
+    }
+  }, [result, isFreeTrial]);
+
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
+    <>
+      <AIToolSubscriptionCard show={showSubscriptionCard} onClose={() => setShowSubscriptionCard(false)} />
+      <div className="min-h-screen bg-black text-white relative overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900/30 via-black to-gray-900/30"></div>
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-gray-800/10 via-transparent to-transparent"></div>
@@ -552,19 +608,60 @@ const SalesPathAI: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-4 border border-purple-500/30 shadow-lg">
-                    <h4 className="text-purple-500 font-bold mb-3 flex items-center gap-2">
-                      <Heart size={18} className="text-purple-500" />
-                      تاکتیک‌های تعامل
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {result.engagement.map((tactic: string, index: number) => (
-                        <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm font-medium">
-                          {tactic}
-                        </span>
-                      ))}
+                  {isFreeTrial ? (
+                    <>
+                      {hasUsedBefore ? (
+                        <div className="relative">
+                          <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-4 border border-purple-500/30 shadow-lg blur-[2px] pointer-events-none">
+                            <h4 className="text-purple-500 font-bold mb-3 flex items-center gap-2">
+                              <Heart size={18} className="text-purple-500" />
+                              تاکتیک‌های تعامل
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {result.engagement.map((tactic: string, index: number) => (
+                                <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm font-medium">
+                                  {tactic}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="absolute inset-0 flex items-center justify-center cursor-pointer" onClick={() => setShowSubscriptionCard(true)}>
+                            <div className="bg-black/50 backdrop-blur-sm rounded-xl px-4 py-2">
+                              <span className="text-white text-sm font-medium">برای مشاهده کامل کلیک کنید</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-4 border border-purple-500/30 shadow-lg">
+                          <h4 className="text-purple-500 font-bold mb-3 flex items-center gap-2">
+                            <Heart size={18} className="text-purple-500" />
+                            تاکتیک‌های تعامل
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {result.engagement.map((tactic: string, index: number) => (
+                              <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm font-medium">
+                                {tactic}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-4 border border-purple-500/30 shadow-lg">
+                      <h4 className="text-purple-500 font-bold mb-3 flex items-center gap-2">
+                        <Heart size={18} className="text-purple-500" />
+                        تاکتیک‌های تعامل
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {result.engagement.map((tactic: string, index: number) => (
+                          <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm font-medium">
+                            {tactic}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                   
                   <div className="flex gap-2">
                     <button
@@ -605,6 +702,7 @@ const SalesPathAI: React.FC = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 
