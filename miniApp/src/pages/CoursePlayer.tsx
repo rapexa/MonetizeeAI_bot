@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { /* Clock, */ CheckCircle2, ArrowLeft, Maximize2, Minimize2, Lock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import CourseSubscriptionCard from '../components/CourseSubscriptionCard';
 
 type Session = {
   id: string;
@@ -75,6 +76,7 @@ const CoursePlayer: React.FC = () => {
   
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [showSubscriptionCard, setShowSubscriptionCard] = React.useState(false);
 
   // Check if user can access session
   const canAccessSession = (sessionIndex: number) => {
@@ -83,15 +85,14 @@ const CoursePlayer: React.FC = () => {
       return true;
     }
     
-    // If user has free trial, they can access first 3 sessions (index 0, 1, 2)
+    // If user has free trial, they can only access first session (index 0)
     if (userData.subscriptionType === 'free_trial') {
-      const canAccess = sessionIndex < 3;
-      return canAccess;
+      return sessionIndex === 0;
     }
     
-    // Legacy users (verified but no subscription type set) - limit to first 3 sessions too
+    // Legacy users (verified but no subscription type set) - limit to first session too
     if (userData.subscriptionType === 'none' || !userData.subscriptionType) {
-      return sessionIndex < 3; // Legacy users also limited to first 3 sessions
+      return sessionIndex === 0; // Legacy users also limited to first session
     }
     
     // If user has no subscription, they can't access any sessions
@@ -151,7 +152,9 @@ const CoursePlayer: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
+    <>
+      <CourseSubscriptionCard show={showSubscriptionCard} onClose={() => setShowSubscriptionCard(false)} />
+      <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
         <div className="flex items-center justify-between p-4 max-w-md mx-auto">
@@ -254,10 +257,15 @@ const CoursePlayer: React.FC = () => {
             return (
               <button
                 key={s.id}
-                onClick={() => canAccess ? setCurrent(s) : null}
-                disabled={!canAccess}
+                onClick={() => {
+                  if (canAccess) {
+                    setCurrent(s);
+                  } else {
+                    setShowSubscriptionCard(true);
+                  }
+                }}
                   className={`w-full p-4 rounded-2xl border transition-all duration-300 ${
-                    canAccess ? 'hover:scale-[1.01] active:scale-[0.99]' : 'opacity-50 cursor-not-allowed'
+                    canAccess ? 'hover:scale-[1.01] active:scale-[0.99] cursor-pointer' : 'opacity-50 cursor-pointer'
                   } ${
                     isActive 
                       ? 'bg-gradient-to-r from-[#8A00FF]/20 to-[#C738FF]/20 border-[#8A00FF]/50 shadow-[0_0_20px_rgba(139,0,255,0.2)]' 
@@ -265,7 +273,7 @@ const CoursePlayer: React.FC = () => {
                         ? 'bg-gray-800/40 border-gray-700/60 hover:border-gray-600/60'
                         : 'bg-gray-800/20 border-gray-700/30'
                   }`}
-                >
+              >
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
                       isActive 
@@ -330,6 +338,7 @@ const CoursePlayer: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
