@@ -469,6 +469,12 @@ const ReadyPrompts: React.FC = () => {
   };
 
   const usePrompt = (prompt: Prompt) => {
+    // Check if user can access this prompt before using it
+    if (!canAccessPrompt(prompt)) {
+      setShowAccessSubscriptionCard(true);
+      return;
+    }
+    
     // Check if we came from AI Coach page
     const fromAICoach = window.location.search.includes('from=ai-coach');
     const fromLevels = window.location.search.includes('from=levels');
