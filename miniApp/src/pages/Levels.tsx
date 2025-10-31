@@ -2894,13 +2894,21 @@ const Levels: React.FC = () => {
                         return false;
                       };
                       
-                      if (passedStages.has(stage.id) && canAccessStage()) {
+                      // First check subscription - if not allowed, show card and return
+                      if (!canAccessStage()) {
+                        setShowSubscriptionCard(true);
+                        // Auto-hide after 5 seconds
+                        setTimeout(() => setShowSubscriptionCard(false), 5000);
+                        return;
+                      }
+                      
+                      // If subscription allows and stage is passed, open it
+                      if (passedStages.has(stage.id)) {
+                        setShowSubscriptionCard(false); // Hide card if it was showing
                         setSelectedStage(stage);
                         setViewMode('stage-detail');
                         // Scroll to top when opening stage detail
                         window.scrollTo({ top: 0, behavior: 'smooth' });
-                      } else if (!canAccessStage()) {
-                        setShowSubscriptionCard(true);
                       }
                     }}
                     className={`group relative overflow-hidden rounded-xl border transition-all duration-300 ${
@@ -3970,25 +3978,36 @@ const Levels: React.FC = () => {
       
       {/* Subscription inline card (like ReadyPrompts) */}
       {showSubscriptionCard && (
-        <div className="fixed top-16 left-4 right-4 z-40 p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
+        <div className="fixed top-16 left-4 right-4 z-[99999] p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl animate-in slide-in-from-top-5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
               <Crown className="w-4 h-4 text-red-400" />
             </div>
-            <div className="flex-1">
-              <h4 className="text-red-400 font-bold text-sm mb-1">محدودیت اشتراک</h4>
-              <p className="text-red-300 text-xs whitespace-pre-line">
-{`🔒 ادامه‌ی این مسیر فقط برای کاربران ویژه بازه
-
-📌 با اشتراک ویژه، تمام مراحل ساخت بیزینس آنلاینت باز میشه`}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <h4 className="text-red-400 font-bold text-sm">محدودیت اشتراک</h4>
+                <button
+                  onClick={() => setShowSubscriptionCard(false)}
+                  className="text-red-400/70 hover:text-red-400 text-lg leading-none"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="text-red-300 text-xs leading-relaxed mb-3">
+                🔒 ادامه‌ی این مسیر فقط برای کاربران ویژه بازه
+                <br />
+                📌 با اشتراک ویژه، تمام مراحل ساخت بیزینس آنلاینت باز میشه
               </p>
+              <button
+                onClick={() => {
+                  setShowSubscriptionCard(false);
+                  navigate('/profile');
+                }}
+                className="w-full py-2 rounded-lg text-white text-xs font-medium bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 transition-colors"
+              >
+                🔓 فعـال‌سازی اشتراک ویـژه
+              </button>
             </div>
-            <button
-              onClick={() => navigate('/profile')}
-              className="ml-3 shrink-0 px-3 py-2 rounded-lg text-white text-xs bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90"
-            >
-              🔓 فعـال‌سازی اشتراک ویـژه
-            </button>
           </div>
         </div>
       )}
