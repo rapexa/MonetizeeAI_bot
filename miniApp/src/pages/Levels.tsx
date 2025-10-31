@@ -2926,11 +2926,11 @@ const Levels: React.FC = () => {
                         console.log('🚨 [Levels] NO ACCESS - Setting showSubscriptionCard to TRUE');
                         setShowSubscriptionCard(true);
                         console.log('🔵 [Levels] showSubscriptionCard state set to true');
-                        // Auto-hide after 5 seconds
+                        // Auto-hide after 15 seconds (increased from 5 to give user time to see it)
                         setTimeout(() => {
-                          console.log('⏰ [Levels] Auto-hiding subscription card after 5 seconds');
+                          console.log('⏰ [Levels] Auto-hiding subscription card after 15 seconds');
                           setShowSubscriptionCard(false);
-                        }, 5000);
+                        }, 15000);
                         return;
                       }
                       
@@ -4012,14 +4012,10 @@ const Levels: React.FC = () => {
       </div>
       
       {/* Subscription inline card (like ReadyPrompts) */}
-      {(() => {
-        console.log('🔴 [Levels] Rendering subscription card section - showSubscriptionCard:', showSubscriptionCard);
-        return null;
-      })()}
       {showSubscriptionCard && (() => {
-        console.log('✅ [Levels] SUBSCRIPTION CARD IS RENDERING NOW!');
+        console.log('✅ [Levels] SUBSCRIPTION CARD IS RENDERING NOW! showSubscriptionCard:', showSubscriptionCard);
         return (
-          <div className="fixed top-16 left-4 right-4 z-[99999] p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl animate-in slide-in-from-top-5">
+          <div className="fixed top-16 left-4 right-4 z-[99999] p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl animate-in slide-in-from-top-5" style={{ position: 'fixed', top: '64px' }}>
             <div className="flex items-start gap-3">
             <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
               <Crown className="w-4 h-4 text-red-400" />
@@ -4028,7 +4024,10 @@ const Levels: React.FC = () => {
               <div className="flex items-center justify-between mb-1">
                 <h4 className="text-red-400 font-bold text-sm">محدودیت اشتراک</h4>
                 <button
-                  onClick={() => setShowSubscriptionCard(false)}
+                  onClick={() => {
+                    console.log('❌ [Levels] Close button clicked');
+                    setShowSubscriptionCard(false);
+                  }}
                   className="text-red-400/70 hover:text-red-400 text-lg leading-none"
                 >
                   ×
@@ -4041,6 +4040,7 @@ const Levels: React.FC = () => {
               </p>
               <button
                 onClick={() => {
+                  console.log('🔓 [Levels] Activate subscription button clicked');
                   setShowSubscriptionCard(false);
                   navigate('/profile');
                 }}
