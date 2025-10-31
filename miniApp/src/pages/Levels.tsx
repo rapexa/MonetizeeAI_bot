@@ -2746,8 +2746,9 @@ const Levels: React.FC = () => {
     if (!showSubscriptionCard) return null;
     console.log('✅ [Levels] SUBSCRIPTION CARD IS RENDERING NOW! showSubscriptionCard:', showSubscriptionCard);
     return (
-      <div className="fixed top-16 left-4 right-4 z-[999999] p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl" style={{ position: 'fixed', top: '64px', zIndex: 999999 }}>
-        <div className="flex items-start gap-3">
+      <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowSubscriptionCard(false)}>
+        <div className="w-[92%] max-w-md p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-start gap-3">
           <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
             <Crown className="w-4 h-4 text-red-400" />
           </div>
@@ -2780,6 +2781,7 @@ const Levels: React.FC = () => {
               🔓 فعـال‌سازی اشتراک ویـژه
             </button>
           </div>
+          </div>
         </div>
       </div>
     );
@@ -2787,10 +2789,10 @@ const Levels: React.FC = () => {
 
   // Render Level Detail Page
   if (viewMode === 'detail' && selectedLevel) {
-  return (
-    <>
-      {renderSubscriptionCard()}
-      <div className="min-h-screen transition-colors duration-300 page-container" style={{ backgroundColor: '#0E0817' }}>
+    return (
+      <>
+        {renderSubscriptionCard()}
+        <div className="min-h-screen transition-colors duration-300 page-container" style={{ backgroundColor: '#0E0817' }}>
         <style dangerouslySetInnerHTML={{
           __html: `
             html.dark .page-container {
@@ -3042,7 +3044,7 @@ const Levels: React.FC = () => {
           </div>
         </div>
       </div>
-    </>
+      </>
     );
   }
 
@@ -3880,7 +3882,7 @@ const Levels: React.FC = () => {
           </div>
         )}
       </div>
-    </>
+      </>
     );
   }
 
