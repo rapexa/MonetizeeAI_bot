@@ -41,11 +41,11 @@ const Chatbot: React.FC = () => {
       return true;
     }
     if (userData.subscriptionType === 'free_trial') {
-      return (userData.chatMessagesUsed || 0) < 1; // Only 1 message per day for free trial users
+      return (userData.chatMessagesUsed || 0) < 5; // Only 5 messages per day for free trial users
     }
-    // For users without subscription type (legacy), also allow 1 message
+    // For users without subscription type (legacy), also allow 5 messages
     if (!userData.subscriptionType || userData.subscriptionType === 'none') {
-      return (userData.chatMessagesUsed || 0) < 1;
+      return (userData.chatMessagesUsed || 0) < 5;
     }
     return false;
   };

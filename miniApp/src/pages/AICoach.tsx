@@ -15,6 +15,7 @@ const AICoach: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedAIModel, setSelectedAIModel] = useState('chatgpt-plus');
+  const [showSubscriptionCard, setShowSubscriptionCard] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{
     id: number;
     text: string;
@@ -34,11 +35,11 @@ const AICoach: React.FC = () => {
       return true;
     }
     if (userData.subscriptionType === 'free_trial') {
-      return (userData.chatMessagesUsed || 0) < 1; // Only 1 message per day for free trial users
+      return (userData.chatMessagesUsed || 0) < 5; // Only 5 messages per day for free trial users
     }
-    // For users without subscription type (legacy), also allow 1 message
+    // For users without subscription type (legacy), also allow 5 messages
     if (!userData.subscriptionType || userData.subscriptionType === 'none') {
-      return (userData.chatMessagesUsed || 0) < 1;
+      return (userData.chatMessagesUsed || 0) < 5;
     }
     return false;
   };
@@ -136,7 +137,11 @@ const AICoach: React.FC = () => {
 
     // Check subscription limits
     if (!canUseChat()) {
-      alert('🔒 شما به محدودیت پیام روزانه رسیده‌اید. امروز یک پیام ارسال کردید. برای استفاده بیشتر، اشتراک پولی تهیه کنید.');
+      setShowSubscriptionCard(true);
+      // Auto-hide after 15 seconds
+      setTimeout(() => {
+        setShowSubscriptionCard(false);
+      }, 15000);
       return;
     }
 
@@ -209,8 +214,50 @@ const AICoach: React.FC = () => {
     }
   };
 
+  // Helper function to render subscription card
+  const renderSubscriptionCard = () => {
+    if (!showSubscriptionCard) return null;
+    return (
+      <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowSubscriptionCard(false)}>
+        <div className="w-[92%] max-w-md p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Crown className="w-4 h-4 text-red-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <h4 className="text-red-400 font-bold text-sm">محدودیت اشتراک</h4>
+                <button
+                  onClick={() => setShowSubscriptionCard(false)}
+                  className="text-red-400/70 hover:text-red-400 text-lg leading-none"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="text-red-300 text-xs leading-relaxed mb-3">
+                ⚠️ به سقف پیام روزانه‌ات رسیدی!
+                <br />
+                🤖 با نسخه ویژه، بدون محدودیت از دستیار هوش مصنوعی استفاده کن
+              </p>
+              <button
+                onClick={() => {
+                  setShowSubscriptionCard(false);
+                  navigate('/profile');
+                }}
+                className="w-full py-2 rounded-lg text-white text-xs font-medium bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 transition-colors"
+              >
+                🔓 فعـال‌سازی اشتراک ویـژه با دسترسی نامحدود
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
+      {renderSubscriptionCard()}
       <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
         {/* Fixed Header */}
         <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
@@ -315,23 +362,6 @@ const AICoach: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Subscription limit warning */}
-              {!canUseChat() && (
-                <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
-                      <Crown className="w-4 h-4 text-red-400" />
-                    </div>
-                    <div>
-                      <h4 className="text-red-400 font-bold text-sm mb-1">محدودیت اشتراک</h4>
-                      <p className="text-red-300 text-xs">
-                        شما امروز یک پیام ارسال کرده‌اید. برای استفاده بیشتر، اشتراک پولی تهیه کنید.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
               <div className="flex gap-3 items-center">
                 <input
                   type="text"
