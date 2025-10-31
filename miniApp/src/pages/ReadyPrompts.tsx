@@ -43,19 +43,21 @@ const ReadyPrompts: React.FC = () => {
   const isFreeTrial = userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none';
 
   // Check if user can access a specific prompt (only for free_trial - levels 1-3)
+  // Other categories (business, product, marketing, etc.) are NOT accessible for free_trial
   const canAccessPrompt = (prompt: Prompt) => {
     if (userData.subscriptionType === 'paid') {
       return true; // Paid users can access all prompts
     }
     
     // Free trial users can only access prompts from levels 1-3
-    if (isFreeTrial && prompt.level) {
-      return prompt.level <= 3;
-    }
-    
-    // If no level is specified (e.g., business, product, marketing categories), allow access for free_trial
-    if (isFreeTrial && !prompt.level) {
-      return true;
+    // All other categories (business, product, marketing, sales, etc.) are restricted
+    if (isFreeTrial) {
+      // Only allow access to levels 1-3
+      if (prompt.level && prompt.level <= 3) {
+        return true;
+      }
+      // All other prompts (without level or level > 3) are NOT accessible
+      return false;
     }
     
     return false;
@@ -430,25 +432,29 @@ const ReadyPrompts: React.FC = () => {
                            prompt.desc.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            prompt.text.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Check access permissions for free_trial users
-    if (isFreeTrial && prompt.level) {
-      // Only show levels 1-3 for free_trial
-      if (prompt.level > 3) {
-        return false;
+    // برای free_trial: فقط level 1-3 قابل مشاهده هستند
+    // سایر دسته‌بندی‌ها (business, product, etc.) برای free_trial قابل مشاهده نیستند
+    if (isFreeTrial) {
+      // Only show levels 1-3
+      if (prompt.level && prompt.level <= 3) {
+        // اگر مرحله انتخاب شده باشد، فقط پرامپت‌های آن مرحله را نمایش بده
+        if (selectedLevel) {
+          return matchesSearch && prompt.level === selectedLevel;
+        }
+        return matchesSearch;
       }
+      // Hide all other prompts (levels > 3 or no level)
+      return false;
     }
     
+    // برای paid users: همه پرامپت‌ها قابل مشاهده
     // اگر مرحله انتخاب شده باشد، فقط پرامپت‌های آن مرحله را نمایش بده
     if (selectedLevel) {
-      // For free_trial, only allow selecting levels 1-3
-      if (isFreeTrial && selectedLevel > 3) {
-        return false;
-      }
       return matchesSearch && prompt.level === selectedLevel;
     }
     
-    // اگر مرحله انتخاب نشده باشد، فقط پرامپت‌های قابل دسترسی را نمایش بده
-    return matchesSearch && canAccessPrompt(prompt);
+    // اگر مرحله انتخاب نشده باشد، همه پرامپت‌ها را نمایش بده
+    return matchesSearch;
   });
 
   const copyToClipboard = (text: string) => {
@@ -619,44 +625,61 @@ const ReadyPrompts: React.FC = () => {
             )}
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {Object.entries(promptCategories).filter(([key]) => key !== 'levels').map(([key, category]) => (
-                <button
-                  key={key}
-                  onClick={() => {
-                    setSelectedCategory(key);
-                    setSelectedLevel(null); // پاک کردن مرحله انتخاب شده
-                  }}
-                  className={`group relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-300 text-center hover:scale-[1.02] hover:shadow-lg ${
-                    selectedCategory === key
-                      ? `bg-gradient-to-r ${category.color} text-white shadow-md border border-white/20`
-                      : 'bg-gray-800/50 hover:bg-gray-700/70 text-gray-300 hover:text-white border border-gray-700/60 hover:border-gray-600/80'
-                  }`}
-                  style={{ backgroundColor: selectedCategory === key ? undefined : '#0B0E1A' }}
-                >
-                  {/* Glow effect on hover */}
-                  <div className={`absolute inset-0 rounded-xl opacity-0 group-hover:opacity-15 transition-opacity duration-300 ${
-                    selectedCategory === key ? 'bg-white' : 'bg-gradient-to-r from-[#8A00FF] to-[#C738FF]'
-                  }`}></div>
-                  
-                  <div className="relative z-10 flex flex-col items-center gap-2 w-full">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg transition-transform duration-300 group-hover:scale-110 ${
-                      selectedCategory === key 
-                        ? 'bg-white/20 backdrop-blur-sm' 
-                        : 'bg-gray-700/50 group-hover:bg-gradient-to-r group-hover:from-[#8A00FF]/20 group-hover:to-[#C738FF]/20'
-                    }`}>
-                      {category.icon}
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs font-bold mb-0.5 leading-tight">{category.title}</div>
-                      <div className={`text-[10px] font-medium ${
-                        selectedCategory === key ? 'text-white/80' : 'text-gray-400 group-hover:text-gray-300'
+              {Object.entries(promptCategories).filter(([key]) => key !== 'levels').map(([key, category]) => {
+                // Check if this category is restricted for free_trial users
+                const isRestricted = isFreeTrial && key !== 'levels';
+                
+                return (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      if (isRestricted) {
+                        setShowAccessSubscriptionCard(true);
+                        return;
+                      }
+                      setSelectedCategory(key);
+                      setSelectedLevel(null); // پاک کردن مرحله انتخاب شده
+                    }}
+                    className={`group relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-300 text-center hover:scale-[1.02] hover:shadow-lg ${
+                      isRestricted
+                        ? 'opacity-60 cursor-pointer bg-gray-800/30 border border-gray-700/40'
+                        : selectedCategory === key
+                        ? `bg-gradient-to-r ${category.color} text-white shadow-md border border-white/20`
+                        : 'bg-gray-800/50 hover:bg-gray-700/70 text-gray-300 hover:text-white border border-gray-700/60 hover:border-gray-600/80'
+                    }`}
+                    style={{ backgroundColor: selectedCategory === key && !isRestricted ? undefined : '#0B0E1A' }}
+                    title={isRestricted ? 'فقط در نسخه ویژه' : ''}
+                  >
+                    {/* Glow effect on hover */}
+                    <div className={`absolute inset-0 rounded-xl opacity-0 group-hover:opacity-15 transition-opacity duration-300 ${
+                      selectedCategory === key ? 'bg-white' : 'bg-gradient-to-r from-[#8A00FF] to-[#C738FF]'
+                    }`}></div>
+                    
+                    <div className="relative z-10 flex flex-col items-center gap-2 w-full">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg transition-transform duration-300 group-hover:scale-110 relative ${
+                        isRestricted
+                          ? 'bg-gray-700/30'
+                          : selectedCategory === key 
+                          ? 'bg-white/20 backdrop-blur-sm' 
+                          : 'bg-gray-700/50 group-hover:bg-gradient-to-r group-hover:from-[#8A00FF]/20 group-hover:to-[#C738FF]/20'
                       }`}>
-                      {category.prompts.length} پرامپت
+                        {isRestricted && <Crown size={12} className="absolute -top-1 -right-1 text-red-400" />}
+                        {category.icon}
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs font-bold mb-0.5 leading-tight">{category.title}</div>
+                        <div className={`text-[10px] font-medium ${
+                          isRestricted
+                            ? 'text-gray-500'
+                            : selectedCategory === key ? 'text-white/80' : 'text-gray-400 group-hover:text-gray-300'
+                        }`}>
+                        {category.prompts.length} پرامپت
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -683,6 +706,23 @@ const ReadyPrompts: React.FC = () => {
                   <div>
                     <h3 className="text-white font-semibold">مرحله {selectedLevel} انتخاب شده</h3>
                     <p className="text-gray-300 text-sm">پرامپت‌های مخصوص این مرحله نمایش داده می‌شوند</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Show warning for free_trial users when viewing non-levels categories */}
+            {isFreeTrial && selectedCategory !== 'levels' && filteredPrompts.length === 0 && (
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
+                    <Crown className="w-4 h-4 text-red-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-red-400 font-bold text-sm mb-1">محدودیت اشتراک</h4>
+                    <p className="text-red-300 text-xs">
+                      دسترسی به این دسته از پرامپت‌ها فقط در نسخه ویژه فعال است.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -766,10 +806,28 @@ const ReadyPrompts: React.FC = () => {
               </div>
             ) : (
               <div className="text-center py-12 backdrop-blur-xl rounded-3xl p-6 border border-gray-800/60" style={{ backgroundColor: '#10091D' }}>
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
-                  <Search size={24} className="text-gray-400" />
-                </div>
-                <p className="text-gray-500">پرامپتی یافت نشد</p>
+                {isFreeTrial && selectedCategory !== 'levels' ? (
+                  <>
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center">
+                      <Crown size={32} className="text-red-400" />
+                    </div>
+                    <h3 className="text-red-400 font-bold text-lg mb-2">دسترسی محدود شده</h3>
+                    <p className="text-gray-400 mb-4">این دسته از پرامپت‌ها فقط در نسخه ویژه در دسترس هستند.</p>
+                    <button
+                      onClick={() => setShowAccessSubscriptionCard(true)}
+                      className="px-6 py-2 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white rounded-lg font-medium transition-colors"
+                    >
+                      تهیه اشتراک ویژه 💎
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
+                      <Search size={24} className="text-gray-400" />
+                    </div>
+                    <p className="text-gray-500">پرامپتی یافت نشد</p>
+                  </>
+                )}
               </div>
             )}
           </div>
