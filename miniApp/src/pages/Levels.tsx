@@ -3836,7 +3836,51 @@ const Levels: React.FC = () => {
 
   // Render Levels List Page
   return (
-          <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0E0817' }}>
+    <>
+      {/* Subscription inline card (like ReadyPrompts) - OUTSIDE main container */}
+      {showSubscriptionCard && (() => {
+        console.log('✅ [Levels] SUBSCRIPTION CARD IS RENDERING NOW! showSubscriptionCard:', showSubscriptionCard);
+        return (
+          <div className="fixed top-16 left-4 right-4 z-[999999] p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl" style={{ position: 'fixed', top: '64px', zIndex: 999999 }}>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Crown className="w-4 h-4 text-red-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-red-400 font-bold text-sm">محدودیت اشتراک</h4>
+                  <button
+                    onClick={() => {
+                      console.log('❌ [Levels] Close button clicked');
+                      setShowSubscriptionCard(false);
+                    }}
+                    className="text-red-400/70 hover:text-red-400 text-lg leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+                <p className="text-red-300 text-xs leading-relaxed mb-3">
+                  🔒 ادامه‌ی این مسیر فقط برای کاربران ویژه بازه
+                  <br />
+                  📌 با اشتراک ویژه، تمام مراحل ساخت بیزینس آنلاینت باز میشه
+                </p>
+                <button
+                  onClick={() => {
+                    console.log('🔓 [Levels] Activate subscription button clicked');
+                    setShowSubscriptionCard(false);
+                    navigate('/profile');
+                  }}
+                  className="w-full py-2 rounded-lg text-white text-xs font-medium bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 transition-colors"
+                >
+                  🔓 فعـال‌سازی اشتراک ویـژه
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+          
+      <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0E0817' }}>
         {/* Header */}
               <div className="pt-24 p-4 space-y-6 max-w-md mx-auto">
         {/* Sticky Header */}
@@ -4010,49 +4054,6 @@ const Levels: React.FC = () => {
 
 
       </div>
-      
-      {/* Subscription inline card (like ReadyPrompts) */}
-      {showSubscriptionCard && (() => {
-        console.log('✅ [Levels] SUBSCRIPTION CARD IS RENDERING NOW! showSubscriptionCard:', showSubscriptionCard);
-        return (
-          <div className="fixed top-16 left-4 right-4 z-[99999] p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl animate-in slide-in-from-top-5" style={{ position: 'fixed', top: '64px' }}>
-            <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Crown className="w-4 h-4 text-red-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-1">
-                <h4 className="text-red-400 font-bold text-sm">محدودیت اشتراک</h4>
-                <button
-                  onClick={() => {
-                    console.log('❌ [Levels] Close button clicked');
-                    setShowSubscriptionCard(false);
-                  }}
-                  className="text-red-400/70 hover:text-red-400 text-lg leading-none"
-                >
-                  ×
-                </button>
-              </div>
-              <p className="text-red-300 text-xs leading-relaxed mb-3">
-                🔒 ادامه‌ی این مسیر فقط برای کاربران ویژه بازه
-                <br />
-                📌 با اشتراک ویژه، تمام مراحل ساخت بیزینس آنلاینت باز میشه
-              </p>
-              <button
-                onClick={() => {
-                  console.log('🔓 [Levels] Activate subscription button clicked');
-                  setShowSubscriptionCard(false);
-                  navigate('/profile');
-                }}
-                className="w-full py-2 rounded-lg text-white text-xs font-medium bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 transition-colors"
-              >
-                🔓 فعـال‌سازی اشتراک ویـژه
-              </button>
-            </div>
-          </div>
-        </div>
-        );
-      })()}
 
       {/* Subscription Required Modal */}
       {isSubscriptionModalOpen && (
@@ -4134,6 +4135,7 @@ const Levels: React.FC = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 
