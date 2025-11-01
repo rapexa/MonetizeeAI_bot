@@ -190,6 +190,76 @@ func sendSMS(to, text string) error {
 	return nil
 }
 
+// sendPatternSMS sends SMS using IPPanel pattern API
+func sendPatternSMS(patternCode, recipient string, variables map[string]string) error {
+	// Load SMS config
+	config := GetSMSConfig()
+
+	// Normalize phone number (remove +98, add 0 if needed)
+	normalizedPhone := normalizePhoneNumber(recipient)
+	if normalizedPhone == "" {
+		return fmt.Errorf("invalid phone number: %s", recipient)
+	}
+
+	// Convert to format: 98930xxxxxxx (remove leading 0, add 98)
+	phoneForAPI := normalizedPhone
+	if strings.HasPrefix(phoneForAPI, "0") {
+		phoneForAPI = "98" + phoneForAPI[1:]
+	} else if !strings.HasPrefix(phoneForAPI, "98") {
+		phoneForAPI = "98" + phoneForAPI
+	}
+
+	payload := map[string]interface{}{
+		"code":      patternCode,
+		"sender":    config.SenderNumber,
+		"recipient": phoneForAPI,
+		"variable":  variables,
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		logger.Error("sendPatternSMS: Error marshaling JSON", zap.Error(err))
+		return err
+	}
+
+	req, err := http.NewRequest("POST", config.BaseURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		logger.Error("sendPatternSMS: Error creating request", zap.Error(err))
+		return err
+	}
+
+	req.Header.Set("apikey", config.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Error("sendPatternSMS: Error making request", zap.Error(err))
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error("sendPatternSMS: Error reading response", zap.Error(err))
+		return err
+	}
+
+	logger.Info("sendPatternSMS: Response",
+		zap.String("pattern_code", patternCode),
+		zap.String("recipient", phoneForAPI),
+		zap.String("response", string(body)))
+
+	if resp.StatusCode != http.StatusOK {
+		logger.Error("sendPatternSMS: API returned error",
+			zap.Int("status_code", resp.StatusCode),
+			zap.String("response", string(body)))
+		return fmt.Errorf("SMS API error: status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
 func sendBulkSMS(to []string, text string) error {
 	data := map[string]interface{}{
 		"from": "50002710046748",
@@ -275,26 +345,27 @@ func sendBulkSMSWithStatus(to []string, text string) (string, error) {
 
 // checkSubscriptionExpiry checks if subscription has expired and sends notification
 func checkSubscriptionExpiry(user *User) {
+	// Get payment link from environment variable
+	paymentLink := os.Getenv("PAYMENT_LINK")
+	if paymentLink == "" {
+		paymentLink = "https://t.me/MonetizeeAI_bot/MonetizeAI" // Default to mini app
+	}
+
 	// Check if subscription has expired
 	if user.SubscriptionType == "free_trial" && user.SubscriptionExpiry != nil {
 		if time.Now().After(*user.SubscriptionExpiry) {
 			// Subscription has expired and notification not sent yet
 			if !subscriptionExpiryNotificationsSent[user.TelegramID] {
-				// Send expiry notification
+				// Send expiry notification with only payment link
 				msg := tgbotapi.NewMessage(user.TelegramID,
 					"⚠️ اشتراک رایگان شما به پایان رسید!\n\n"+
 						"🔒 متأسفانه دیگر نمی‌توانید از امکانات ربات استفاده کنید.\n\n"+
-						"✅ برای ادامه استفاده از امکانات ربات:\n\n"+
-						"📱 لطفا وارد مینی اپ شوید و اشتراک ماهیانه خریداری کنید\n"+
-						"🔐 یا لایسنس خود را وارد کنید")
+						"✅ برای ادامه استفاده از امکانات ربات، لطفا اشتراک ماهیانه خریداری کنید.")
 
-				// Create keyboard with miniapp button and license entry
+				// Create keyboard with only payment link button
 				keyboard := tgbotapi.NewInlineKeyboardMarkup(
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonURL("📱 ورود به مینی اپ", "https://t.me/sianmarketing_bot/miniapp"),
-					),
-					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("🔐 ورود لایسنس", "enter_license"),
+						tgbotapi.NewInlineKeyboardButtonURL("💳 خرید اشتراک", paymentLink),
 					),
 				)
 				msg.ReplyMarkup = keyboard
@@ -310,21 +381,16 @@ func checkSubscriptionExpiry(user *User) {
 	if user.SubscriptionType == "paid" && user.SubscriptionExpiry != nil && time.Now().After(*user.SubscriptionExpiry) {
 		// Paid license has expired and notification not sent yet
 		if !subscriptionExpiryNotificationsSent[user.TelegramID] {
-			// Send expiry notification
+			// Send expiry notification with only payment link
 			msg := tgbotapi.NewMessage(user.TelegramID,
 				"⚠️ اشتراک پولی شما به پایان رسید!\n\n"+
 					"🔒 متأسفانه دیگر نمی‌توانید از امکانات ربات استفاده کنید.\n\n"+
-					"✅ برای ادامه استفاده از امکانات ربات:\n\n"+
-					"📱 لطفا وارد مینی اپ شوید و اشتراک ماهیانه خریداری کنید\n"+
-					"🔐 یا لایسنس خود را وارد کنید")
+					"✅ برای ادامه استفاده از امکانات ربات، لطفا اشتراک ماهیانه خریداری کنید.")
 
-			// Create keyboard with miniapp button and license entry
+			// Create keyboard with only payment link button
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
 				tgbotapi.NewInlineKeyboardRow(
-					tgbotapi.NewInlineKeyboardButtonURL("📱 ورود به مینی اپ", "https://t.me/sianmarketing_bot/miniapp"),
-				),
-				tgbotapi.NewInlineKeyboardRow(
-					tgbotapi.NewInlineKeyboardButtonData("🔐 ورود لایسنس", "enter_license"),
+					tgbotapi.NewInlineKeyboardButtonURL("💳 خرید اشتراک", paymentLink),
 				),
 			)
 			msg.ReplyMarkup = keyboard
@@ -539,6 +605,26 @@ func processUserInput(input string, user *User) string {
 			userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
 		}
 
+		// Send sign-up SMS immediately after registration
+		if user.Phone != "" {
+			go func() {
+				config := GetSMSConfig()
+				err := sendPatternSMS(config.PatternSignUp, user.Phone, map[string]string{
+					"variable": userName,
+				})
+				if err != nil {
+					logger.Error("Failed to send sign-up SMS",
+						zap.Int64("user_id", user.TelegramID),
+						zap.String("phone", user.Phone),
+						zap.Error(err))
+				} else {
+					logger.Info("Sign-up SMS sent successfully",
+						zap.Int64("user_id", user.TelegramID),
+						zap.String("phone", user.Phone))
+				}
+			}()
+		}
+
 		msg := tgbotapi.NewMessage(user.TelegramID, fmt.Sprintf("✅ مرحله ۳: ثبت‌نام موفق\n\n🎉 %s عزیز، ثبت‌نامت در پلتفرم MonetizeAI با موفقیت انجام شد.\n\n💎 نسخه ویژه MonetizeAI برای کساییه که می‌خوان سریع، جدی و حرفه‌ای مسیر درآمد دلاریشون رو بسازن.\n\nبا نسخه ویژه، تمام سطوح و ابزارهای زیر برای تو باز می‌شن:\n• کوچ هوش مصنوعی بدون محدودیت\n• ۹ سطح کامل آموزش عملی\n• بانک ۲۰۰+ پرامپت اختصاصی\n• ابزارهای ایده‌یابی، مشتری‌یابی و فروش حرفه‌ای\n• تحلیل هوشمند CRM و مسیر رشد\n\nاینجا قراره بیزینس واقعی خودتو بسازی، نه فقط تست کنی 💼\n\nآیا لایسنس دارید؟", userName))
 
 		// Create inline keyboard for license choice
@@ -553,6 +639,30 @@ func processUserInput(input string, user *User) string {
 
 		// Set state to wait for license choice
 		userStates[user.TelegramID] = StateWaitingForLicenseChoice
+		return ""
+	}
+
+	// Check if subscription has expired - block all actions if expired
+	if !user.HasActiveSubscription() {
+		// Get payment link from environment variable
+		paymentLink := os.Getenv("PAYMENT_LINK")
+		if paymentLink == "" {
+			paymentLink = "https://t.me/MonetizeeAI_bot/MonetizeAI" // Default to mini app
+		}
+
+		msg := tgbotapi.NewMessage(user.TelegramID,
+			"⚠️ اشتراک شما به پایان رسید!\n\n"+
+				"🔒 متأسفانه دیگر نمی‌توانید از امکانات ربات استفاده کنید.\n\n"+
+				"✅ برای ادامه استفاده از امکانات ربات، لطفا اشتراک ماهیانه خریداری کنید.")
+
+		// Create keyboard with only payment link button
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonURL("💳 خرید اشتراک", paymentLink),
+			),
+		)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
 		return ""
 	}
 

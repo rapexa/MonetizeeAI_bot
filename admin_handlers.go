@@ -1896,6 +1896,10 @@ func handleChangePlan(admin *Admin, planType string, userIDStr string) {
 		user.PlanName = "ultimate"
 		user.SubscriptionExpiry = nil
 		user.IsVerified = true
+		// Cancel remaining SMS notifications since user purchased subscription
+		user.FreeTrialDayOneSMSSent = true
+		user.FreeTrialDayTwoSMSSent = true
+		user.FreeTrialExpireSMSSent = true
 	} else if planType == "free" {
 		// Free Trial - 3 days
 		expiry := time.Now().AddDate(0, 0, days)
@@ -1904,6 +1908,10 @@ func handleChangePlan(admin *Admin, planType string, userIDStr string) {
 		user.SubscriptionExpiry = &expiry
 		user.FreeTrialUsed = true
 		user.IsVerified = true
+		// Reset SMS flags for new free trial
+		user.FreeTrialDayOneSMSSent = false
+		user.FreeTrialDayTwoSMSSent = false
+		user.FreeTrialExpireSMSSent = false
 	} else {
 		// Paid subscriptions (Starter, Pro)
 		expiry := time.Now().AddDate(0, 0, days)
@@ -1911,6 +1919,10 @@ func handleChangePlan(admin *Admin, planType string, userIDStr string) {
 		user.PlanName = planType // "starter" یا "pro"
 		user.SubscriptionExpiry = &expiry
 		user.IsVerified = true
+		// Cancel remaining SMS notifications since user purchased subscription
+		user.FreeTrialDayOneSMSSent = true
+		user.FreeTrialDayTwoSMSSent = true
+		user.FreeTrialExpireSMSSent = true
 	}
 	user.IsActive = true
 
