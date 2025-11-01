@@ -645,34 +645,14 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 		bot.Send(msg)
 
 	case "buy_subscription":
-		// Check if subscription has expired
-		if !user.HasActiveSubscription() {
-			// User has expired subscription - show payment plans in Telegram
-			userStates[userID] = StateWaitingForPlanSelection
+		// Check if user is in registration flow (StateWaitingForLicenseChoice)
+		// or if subscription has expired
+		currentState, _ := userStates[userID]
+		isInRegistrationFlow := currentState == StateWaitingForLicenseChoice
+		hasExpiredSubscription := !user.HasActiveSubscription() && user.IsVerified && (user.SubscriptionType == "paid" || user.SubscriptionType == "free_trial")
 
-			// Get payment config for prices
-			paymentConfig := GetPaymentConfig()
-
-			planMsg := fmt.Sprintf(
-				"💎 *پلن‌های اشتراک MonetizeAI*\n\n"+
-					"🚀 *Starter* (یک ماهه)\n"+
-					"💰 قیمت: %s تومان\n\n"+
-					"⚡ *Pro* (شش‌ماهه)\n"+
-					"💰 قیمت: %s تومان\n\n"+
-					"👑 *Ultimate* (مادام‌العمر)\n"+
-					"💰 قیمت: %s تومان\n\n"+
-					"لطفا یکی از پلن‌های بالا را انتخاب کنید:",
-				formatPrice(paymentConfig.StarterPrice),
-				formatPrice(paymentConfig.ProPrice),
-				formatPrice(paymentConfig.UltimatePrice))
-
-			msg := tgbotapi.NewMessage(userID, planMsg)
-			msg.ParseMode = "Markdown"
-			planKeyboard := getPlanSelectionKeyboard()
-			msg.ReplyMarkup = planKeyboard
-			bot.Send(msg)
-		} else {
-			// User is in registration flow (has active subscription or free trial) - redirect to Mini App
+		if isInRegistrationFlow {
+			// User is in registration flow - redirect to Mini App (original behavior)
 			// Start free trial so user can access mini app
 			user.StartFreeTrial()
 			user.IsVerified = true // Mark user as verified so they can use the bot
@@ -716,6 +696,70 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 			bot.Send(msg)
 
 			// Send main menu as well
+			menuMsg := tgbotapi.NewMessage(userID, "🏠 منوی اصلی:")
+			menuMsg.ReplyMarkup = getMainMenuKeyboard(&user)
+			bot.Send(menuMsg)
+		} else if hasExpiredSubscription {
+			// User has expired subscription - show payment plans in Telegram
+			userStates[userID] = StateWaitingForPlanSelection
+
+			// Get payment config for prices
+			paymentConfig := GetPaymentConfig()
+
+			planMsg := fmt.Sprintf(
+				"💎 *پلن‌های اشتراک MonetizeAI*\n\n"+
+					"🚀 *Starter* (یک ماهه)\n"+
+					"💰 قیمت: %s تومان\n\n"+
+					"⚡ *Pro* (شش‌ماهه)\n"+
+					"💰 قیمت: %s تومان\n\n"+
+					"👑 *Ultimate* (مادام‌العمر)\n"+
+					"💰 قیمت: %s تومان\n\n"+
+					"لطفا یکی از پلن‌های بالا را انتخاب کنید:",
+				formatPrice(paymentConfig.StarterPrice),
+				formatPrice(paymentConfig.ProPrice),
+				formatPrice(paymentConfig.UltimatePrice))
+
+			msg := tgbotapi.NewMessage(userID, planMsg)
+			msg.ParseMode = "Markdown"
+			planKeyboard := getPlanSelectionKeyboard()
+			msg.ReplyMarkup = planKeyboard
+			bot.Send(msg)
+		} else {
+			// Fallback: User is verified but might not be in registration flow
+			// Still redirect to Mini App
+			user.StartFreeTrial()
+			user.IsVerified = true
+			user.IsActive = true
+			if err := db.Save(&user).Error; err != nil {
+				logger.Error("Failed to save user with free trial for subscription purchase", zap.Error(err), zap.Int64("user_id", userID))
+				sendMessage(userID, "❌ خطا در فعال‌سازی دسترسی. لطفا دوباره تلاش کنید.")
+				return
+			}
+
+			userStates[userID] = ""
+
+			miniAppURL := os.Getenv("MINI_APP_URL")
+			if miniAppURL == "" {
+				miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
+			}
+
+			miniAppWithSubscription := fmt.Sprintf("%s?startapp=subscription", miniAppURL)
+
+			userName := user.FirstName
+			if user.LastName != "" {
+				userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
+			}
+
+			msg := tgbotapi.NewMessage(userID, fmt.Sprintf("💎 عالی %s!\n\n✅ اشتراک رایگان برای دسترسی به مینی اپ فعال شد.\n\n🔗 حالا می‌تونی وارد صفحه اشتراک‌ها بشی و اشتراک مورد نظرت رو انتخاب کنی:", userName))
+
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonURL("💎 مشاهده و خرید اشتراک", miniAppWithSubscription),
+				),
+			)
+			msg.ReplyMarkup = keyboard
+			bot.Send(msg)
+
 			menuMsg := tgbotapi.NewMessage(userID, "🏠 منوی اصلی:")
 			menuMsg.ReplyMarkup = getMainMenuKeyboard(&user)
 			bot.Send(menuMsg)

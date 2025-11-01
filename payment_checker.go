@@ -25,12 +25,12 @@ func StartPaymentChecker() {
 	}()
 }
 
-// checkPendingPayments finds pending transactions older than 5 minutes and verifies them
+// checkPendingPayments finds pending transactions older than 2 minutes and verifies them
 func checkPendingPayments() {
-	// Find all pending transactions that are older than 5 minutes
-	// (to give users time to complete payment)
+	// Find all pending transactions that are older than 2 minutes
+	// (to give users time to complete payment, but check soon after)
 	var pendingTransactions []PaymentTransaction
-	cutoffTime := time.Now().Add(-5 * time.Minute)
+	cutoffTime := time.Now().Add(-2 * time.Minute)
 
 	err := db.Where("status = ? AND created_at <= ?", "pending", cutoffTime).Find(&pendingTransactions).Error
 	if err != nil {
@@ -39,18 +39,33 @@ func checkPendingPayments() {
 	}
 
 	if len(pendingTransactions) == 0 {
-		logger.Debug("No pending transactions to check")
+		// Changed to Info for better visibility
+		logger.Info("No pending transactions to check",
+			zap.Time("checked_at", time.Now()),
+			zap.Time("cutoff_time", cutoffTime))
 		return
 	}
 
 	logger.Info("Checking pending payments",
-		zap.Int("count", len(pendingTransactions)))
+		zap.Int("count", len(pendingTransactions)),
+		zap.Time("checked_at", time.Now()))
 
 	paymentService := NewPaymentService(db)
 
 	for _, transaction := range pendingTransactions {
+		// Re-check status from database to avoid race conditions
+		var currentTransaction PaymentTransaction
+		if err := db.Where("id = ?", transaction.ID).First(&currentTransaction).Error; err != nil {
+			logger.Warn("Transaction not found, skipping",
+				zap.Uint("transaction_id", transaction.ID))
+			continue
+		}
+
 		// Skip if already processed (shouldn't happen, but safety check)
-		if transaction.Status != "pending" {
+		if currentTransaction.Status != "pending" {
+			logger.Debug("Transaction already processed, skipping",
+				zap.Uint("transaction_id", transaction.ID),
+				zap.String("status", currentTransaction.Status))
 			continue
 		}
 
@@ -70,6 +85,12 @@ func checkPendingPayments() {
 				zap.Error(err))
 			continue
 		}
+
+		logger.Info("Payment verification result",
+			zap.Uint("transaction_id", transaction.ID),
+			zap.String("authority", transaction.Authority),
+			zap.String("status", verifiedTransaction.Status),
+			zap.String("ref_id", verifiedTransaction.RefID))
 
 		// Check if payment was successful
 		if verifiedTransaction.Status == "success" {
@@ -100,11 +121,10 @@ func checkPendingPayments() {
 				zap.Uint("user_id", transaction.UserID),
 				zap.String("plan_type", transaction.Type))
 		} else {
-			logger.Debug("Payment still pending",
+			logger.Debug("Payment still pending or failed",
 				zap.Uint("transaction_id", transaction.ID),
 				zap.String("authority", transaction.Authority),
 				zap.String("status", verifiedTransaction.Status))
 		}
 	}
 }
-
