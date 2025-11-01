@@ -89,6 +89,9 @@ func init() {
 	// Start Web API server (optional, controlled by environment variable)
 	StartWebAPI()
 
+	// Start payment checker background job
+	StartPaymentChecker()
+
 	// Initialize bot
 	var err error
 	bot, err = tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_TOKEN"))
