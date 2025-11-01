@@ -202,14 +202,22 @@ const Profile: React.FC = () => {
   const handlePlanSelection = (planId: string) => {
     // Close subscription modal and open checkout modal
     setShowSubscriptionModal(false);
-    setShowCheckoutModal(true);
     setSelectedPlan(planId);
+    setSelectedPaymentMethod('online'); // Set default payment method
     setPaymentAuthority(null); // Reset payment authority
+    setPaymentLoading(false); // Reset loading state
+    // Small delay to ensure state updates before showing modal
+    setTimeout(() => {
+      setShowCheckoutModal(true);
+    }, 100);
   };
 
   // Handle payment button click
   const handlePayment = async () => {
+    console.log('handlePayment called', { selectedPlan, selectedPaymentMethod });
+    
     if (!selectedPlan) {
+      console.error('No plan selected');
       alert('لطفا یک پلن را انتخاب کنید');
       return;
     }
@@ -223,10 +231,12 @@ const Profile: React.FC = () => {
 
     const planType = planTypeMap[selectedPlan];
     if (!planType) {
+      console.error('Invalid plan type', selectedPlan);
       alert('نوع پلن نامعتبر است');
       return;
     }
 
+    console.log('Creating payment request for plan:', planType);
     setPaymentLoading(true);
 
     try {
@@ -236,15 +246,33 @@ const Profile: React.FC = () => {
       if (response.success && response.data) {
         const { payment_url, authority } = response.data;
         
+        console.log('Payment created:', { payment_url, authority });
+        
         // Save authority to check payment status later
         setPaymentAuthority(authority);
         
-        // Open payment page in new tab
-        window.open(payment_url, '_blank');
+        // Open payment page - in Telegram Mini App, use window.location.href or window.open
+        // Note: window.open might be blocked in some Telegram Mini App contexts
+        // Using window.location.href as primary method
+        try {
+          if (typeof window !== 'undefined') {
+            // Try to open in new tab first (works on mobile browsers)
+            const paymentWindow = window.open(payment_url, '_blank');
+            // If popup blocked, fallback to same window
+            if (!paymentWindow || paymentWindow.closed || typeof paymentWindow.closed === 'undefined') {
+              window.location.href = payment_url;
+            }
+          }
+        } catch (error) {
+          console.error('Error opening payment URL:', error);
+          // Fallback to direct navigation
+          window.location.href = payment_url;
+        }
         
         // Start polling for payment status
         pollPaymentStatus(authority);
       } else {
+        console.error('Payment creation failed:', response.error);
         alert(response.error || 'خطا در ایجاد درخواست پرداخت. لطفا دوباره تلاش کنید.');
       }
     } catch (error) {
@@ -889,8 +917,33 @@ const Profile: React.FC = () => {
 
       {/* Checkout Modal */}
       {showCheckoutModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 z-[9999]">
-          <div className="bg-gradient-to-br from-[#0F0817] via-[#10091c] to-[#0F0817] backdrop-blur-xl rounded-3xl w-full max-w-md max-h-[90vh] border border-gray-700/60 shadow-2xl overflow-hidden">
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 z-[9999]"
+          style={{ 
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999
+          }}
+          onClick={(e) => {
+            // Close modal if clicking on backdrop
+            if (e.target === e.currentTarget) {
+              setShowCheckoutModal(false);
+            }
+          }}
+        >
+          <div 
+            className="bg-gradient-to-br from-[#0F0817] via-[#10091c] to-[#0F0817] backdrop-blur-xl rounded-3xl w-full max-w-md max-h-[90vh] border border-gray-700/60 shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              zIndex: 10000,
+              maxWidth: '90vw',
+              margin: 'auto'
+            }}
+          >
             {/* Header */}
             <div className="relative p-6 border-b border-gray-700/60 bg-gradient-to-r from-[#2c189a]/20 to-[#5a189a]/20">
               <div className="absolute inset-0 bg-gradient-to-r from-[#2c189a]/10 to-[#5a189a]/10 rounded-t-3xl"></div>
@@ -909,7 +962,8 @@ const Profile: React.FC = () => {
                 </div>
                 
             {/* Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+            <div className="flex flex-col" style={{ maxHeight: 'calc(90vh - 180px)', minHeight: '400px' }}>
+              <div className="p-6 overflow-y-auto flex-1">
               {/* Selected Plan */}
               <div className="backdrop-blur-xl rounded-2xl p-6 border border-gray-700/60 shadow-lg mb-6" style={{ backgroundColor: '#10091c' }}>
                 <div className="flex items-center gap-4 mb-4">
@@ -1054,17 +1108,51 @@ const Profile: React.FC = () => {
                   </p>
                 </div>
               )}
-
-              {/* Action Buttons */}
-              <div className="space-y-3">
+              </div>
+              
+              {/* Action Buttons - Fixed at bottom */}
+              <div className="p-6 pt-0 space-y-3 border-t border-gray-700/50" style={{ 
+                backgroundColor: '#10091c',
+                flexShrink: 0,
+                paddingBottom: '24px'
+              }}>
                 {selectedPaymentMethod === 'online' ? (
                   <>
                     <button 
-                      onClick={handlePayment}
-                      disabled={paymentLoading}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Payment button clicked', { selectedPlan, selectedPaymentMethod, paymentLoading });
+                        if (!paymentLoading && selectedPlan) {
+                          handlePayment();
+                        }
+                      }}
+                      disabled={paymentLoading || !selectedPlan}
                       className="w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-xl bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 shadow-[#5A189A]/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                      style={{ 
+                        minHeight: '56px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '100%',
+                        backgroundColor: paymentLoading || !selectedPlan ? 'rgba(44, 24, 154, 0.5)' : undefined,
+                        border: 'none',
+                        outline: 'none',
+                        WebkitTapHighlightColor: 'transparent',
+                        touchAction: 'manipulation',
+                        fontSize: '18px',
+                        fontWeight: 'bold'
+                      }}
+                      type="button"
                     >
-                      {paymentLoading ? '⏳ در حال ایجاد درخواست پرداخت...' : '💳 پرداخت و فعال‌سازی'}
+                      {paymentLoading ? (
+                        <span className="flex items-center gap-2">
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          در حال ایجاد درخواست پرداخت...
+                        </span>
+                      ) : (
+                        <span>💳 پرداخت و فعال‌سازی</span>
+                      )}
                     </button>
                     {paymentAuthority && (
                       <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-3">
@@ -1090,6 +1178,7 @@ const Profile: React.FC = () => {
                 <button 
                   onClick={() => setShowCheckoutModal(false)}
                   className="w-full py-3 px-6 rounded-2xl font-medium transition-all duration-300 border border-gray-700/60 text-gray-300 hover:bg-gray-800/30"
+                  type="button"
                 >
                   بازگشت
                 </button>
