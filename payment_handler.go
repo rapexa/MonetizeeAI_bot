@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
-	"strings"
 
 	"MonetizeeAI_bot/logger"
 
@@ -40,14 +38,8 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 	if authority == "" {
 		logger.Warn("No authority provided in callback")
 
-		// Redirect به صفحه ناموفق در مینی اپ
-		miniAppURL := os.Getenv("MINI_APP_URL")
-		if miniAppURL == "" {
-			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
-		}
-
-		failedURL := fmt.Sprintf("%s/payment/result?status=failed", miniAppURL)
-		http.Redirect(w, r, failedURL, http.StatusSeeOther)
+		// نمایش صفحه HTML ناموفق
+		h.renderPaymentResultPage(w, r, "failed", "", "", "")
 		return
 	}
 
@@ -57,14 +49,8 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 			zap.String("authority", authority),
 			zap.String("status", status))
 
-		// نمایش صفحه HTML که کاربر را به مینی اپ redirect می‌کند
-		miniAppURL := os.Getenv("MINI_APP_URL")
-		if miniAppURL == "" {
-			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
-		}
-
-		miniAppPath := fmt.Sprintf("/payment/result?status=failed&authority=%s", authority)
-		h.renderRedirectPage(w, r, miniAppURL, miniAppPath, "failed")
+		// نمایش صفحه HTML ناموفق
+		h.renderPaymentResultPage(w, r, "failed", "", "", "")
 		return
 	}
 
@@ -75,14 +61,8 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 			zap.String("authority", authority),
 			zap.Error(err))
 
-		// Redirect به صفحه ناموفق در مینی اپ
-		miniAppURL := os.Getenv("MINI_APP_URL")
-		if miniAppURL == "" {
-			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
-		}
-
-		miniAppPath := fmt.Sprintf("/payment/result?status=failed&authority=%s", authority)
-		h.renderRedirectPage(w, r, miniAppURL, miniAppPath, "failed")
+		// نمایش صفحه HTML ناموفق
+		h.renderPaymentResultPage(w, r, "failed", "", "", "")
 		return
 	}
 
@@ -91,19 +71,11 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 		logger.Info("Transaction already processed",
 			zap.String("authority", authority))
 
-		// Redirect به صفحه موفقیت (حتی اگر قبلاً پردازش شده)
-		miniAppURL := os.Getenv("MINI_APP_URL")
-		if miniAppURL == "" {
-			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
-		}
-
-		miniAppPath := fmt.Sprintf("/payment/result?status=success&authority=%s&ref_id=%s&amount=%d&plan_type=%s",
-			authority,
+		// نمایش صفحه HTML موفقیت (حتی اگر قبلاً پردازش شده)
+		h.renderPaymentResultPage(w, r, "success",
 			transaction.RefID,
-			transaction.Amount,
+			fmt.Sprintf("%d", transaction.Amount),
 			transaction.Type)
-
-		h.renderRedirectPage(w, r, miniAppURL, miniAppPath, "success")
 		return
 	}
 
@@ -114,14 +86,8 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 			zap.String("authority", authority),
 			zap.Error(err))
 
-		// Redirect به صفحه ناموفق در مینی اپ
-		miniAppURL := os.Getenv("MINI_APP_URL")
-		if miniAppURL == "" {
-			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
-		}
-
-		miniAppPath := fmt.Sprintf("/payment/result?status=failed&authority=%s", authority)
-		h.renderRedirectPage(w, r, miniAppURL, miniAppPath, "failed")
+		// نمایش صفحه HTML ناموفق
+		h.renderPaymentResultPage(w, r, "failed", "", "", "")
 		return
 	}
 
@@ -131,14 +97,8 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 			zap.String("authority", authority),
 			zap.String("status", verifiedTransaction.Status))
 
-		// Redirect به صفحه ناموفق در مینی اپ
-		miniAppURL := os.Getenv("MINI_APP_URL")
-		if miniAppURL == "" {
-			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
-		}
-
-		miniAppPath := fmt.Sprintf("/payment/result?status=failed&authority=%s", authority)
-		h.renderRedirectPage(w, r, miniAppURL, miniAppPath, "failed")
+		// نمایش صفحه HTML ناموفق
+		h.renderPaymentResultPage(w, r, "failed", "", "", "")
 		return
 	}
 
@@ -158,14 +118,10 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 	h.sendPaymentSuccessNotification(verifiedTransaction)
 
 	// 10. نمایش صفحه نتیجه پرداخت
-	// پارامترها را به URL اضافه می‌کنیم تا در renderRedirectPage خوانده شوند
-	r.URL.RawQuery = fmt.Sprintf("status=success&authority=%s&ref_id=%s&amount=%d&plan_type=%s",
-		authority,
+	h.renderPaymentResultPage(w, r, "success",
 		verifiedTransaction.RefID,
-		verifiedTransaction.Amount,
+		fmt.Sprintf("%d", verifiedTransaction.Amount),
 		verifiedTransaction.Type)
-
-	h.renderRedirectPage(w, r, "", "", "success")
 }
 
 // sendPaymentSuccessNotification ارسال پیام موفقیت به کاربر
@@ -237,7 +193,13 @@ func (h *PaymentHandler) sendPaymentSuccessNotification(
 	if _, err := bot.Send(msg); err != nil {
 		logger.Error("Error sending payment notification",
 			zap.Int64("telegram_id", user.TelegramID),
+			zap.String("transaction_ref_id", transaction.RefID),
 			zap.Error(err))
+	} else {
+		logger.Info("Payment success notification sent to Telegram",
+			zap.Int64("telegram_id", user.TelegramID),
+			zap.String("transaction_ref_id", transaction.RefID),
+			zap.String("plan_type", transaction.Type))
 	}
 
 	// ارسال SMS بر اساس نوع اشتراک
@@ -262,28 +224,41 @@ func (h *PaymentHandler) sendPaymentSuccessNotification(
 			return
 		}
 
-		if userPtr.Phone != "" {
-			// ساخت نام کاربر
-			userName := userPtr.FirstName
-			if userPtr.LastName != "" {
-				userName = fmt.Sprintf("%s %s", userPtr.FirstName, userPtr.LastName)
-			}
+		if userPtr.Phone == "" {
+			logger.Warn("User phone is empty, cannot send SMS",
+				zap.Int64("user_id", int64(userPtr.TelegramID)),
+				zap.String("plan_type", planType))
+			return
+		}
 
-			err := sendPatternSMS(patternCode, userPtr.Phone, map[string]string{
-				"name": userName,
-			})
-			if err != nil {
-				logger.Error("Failed to send subscription SMS",
-					zap.Int64("user_id", int64(userPtr.TelegramID)),
-					zap.String("phone", userPtr.Phone),
-					zap.String("plan_type", planType),
-					zap.Error(err))
-			} else {
-				logger.Info("Subscription SMS sent successfully",
-					zap.Int64("user_id", int64(userPtr.TelegramID)),
-					zap.String("phone", userPtr.Phone),
-					zap.String("plan_type", planType))
-			}
+		// ساخت نام کاربر
+		userName := userPtr.FirstName
+		if userPtr.LastName != "" {
+			userName = fmt.Sprintf("%s %s", userPtr.FirstName, userPtr.LastName)
+		}
+
+		logger.Info("Attempting to send subscription SMS",
+			zap.Int64("user_id", int64(userPtr.TelegramID)),
+			zap.String("phone", userPtr.Phone),
+			zap.String("plan_type", planType),
+			zap.String("pattern_code", patternCode))
+
+		err := sendPatternSMS(patternCode, userPtr.Phone, map[string]string{
+			"name": userName,
+		})
+		if err != nil {
+			logger.Error("Failed to send subscription SMS",
+				zap.Int64("user_id", int64(userPtr.TelegramID)),
+				zap.String("phone", userPtr.Phone),
+				zap.String("plan_type", planType),
+				zap.String("pattern_code", patternCode),
+				zap.Error(err))
+		} else {
+			logger.Info("Subscription SMS sent successfully",
+				zap.Int64("user_id", int64(userPtr.TelegramID)),
+				zap.String("phone", userPtr.Phone),
+				zap.String("plan_type", planType),
+				zap.String("pattern_code", patternCode))
 		}
 	}(&user, transaction.Type)
 }
@@ -470,34 +445,16 @@ func (h *PaymentHandler) renderPaymentPage(
 	w.Write([]byte(pageContent))
 }
 
-// renderRedirectPage نمایش صفحه نتیجه پرداخت با تم مینی اپ
-func (h *PaymentHandler) renderRedirectPage(w http.ResponseWriter, r *http.Request, miniAppURL, miniAppPath, status string) {
+// renderPaymentResultPage نمایش صفحه نتیجه پرداخت با تم مینی اپ
+func (h *PaymentHandler) renderPaymentResultPage(w http.ResponseWriter, r *http.Request, status, refID, amountStr, planType string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	// استخراج پارامترها از query string
-	refID := r.URL.Query().Get("ref_id")
-	amountStr := r.URL.Query().Get("amount")
-	planType := r.URL.Query().Get("plan_type")
-
-	// اگر از miniAppPath فراخوانی شده (backward compatibility)
-	if refID == "" && strings.Contains(miniAppPath, "ref_id=") {
-		// Extract from miniAppPath
-		if strings.Contains(miniAppPath, "?") {
-			queryPart := strings.Split(miniAppPath, "?")[1]
-			parts := strings.Split(queryPart, "&")
-			for _, part := range parts {
-				if strings.HasPrefix(part, "ref_id=") {
-					refID = strings.TrimPrefix(part, "ref_id=")
-				}
-				if strings.HasPrefix(part, "amount=") {
-					amountStr = strings.TrimPrefix(part, "amount=")
-				}
-				if strings.HasPrefix(part, "plan_type=") {
-					planType = strings.TrimPrefix(part, "plan_type=")
-				}
-			}
-		}
-	}
+	// Debug logging
+	logger.Info("renderPaymentResultPage called",
+		zap.String("status", status),
+		zap.String("ref_id", refID),
+		zap.String("amount", amountStr),
+		zap.String("plan_type", planType))
 
 	// تعیین محتوا بر اساس status
 	var icon string
