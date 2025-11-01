@@ -148,7 +148,8 @@ func handleSubscriptionPaymentButton(user *User, planType string) string {
 			"💰 قیمت: %s تومان\n"+
 			"📅 مدت: %s\n\n"+
 			"🔗 *لینک پرداخت:*\n%s\n\n"+
-			"⚠️ *توجه:* پرداخت را در کمتر از 15 دقیقه تکمیل کنید.",
+			"⚠️ *توجه:* پرداخت را در کمتر از 15 دقیقه تکمیل کنید.\n\n"+
+			"✅ پرداخت شما بعد از 3 دقیقه خودکار توسط سیستم چک می‌شود، پس پرداخت خود رو با خیال راحت انجام دهید.",
 		planName,
 		formatPrice(planPrice),
 		planPeriod,
