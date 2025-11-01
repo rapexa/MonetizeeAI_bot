@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -622,9 +623,21 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 			return
 		}
 
-		// Send main menu keyboard to user
-		msg := tgbotapi.NewMessage(userID, "🎉 تبریک! اشتراک رایگان شما فعال شد!\n\n⏰ مدت: 3 روز\n📅 انقضا: "+user.SubscriptionExpiry.Format("2006-01-02 15:04")+"\n\n✅ حالا می‌توانید از تمام امکانات استفاده کنید\n\n⚠️ یادآوری محدودیت‌ها:\n• حداکثر 5 پیام چت در روز\n• فقط 3 قسمت اول هر دوره\n\nبرای دسترسی کامل، اشتراک پولی تهیه کنید.")
-		msg.ReplyMarkup = getMainMenuKeyboard()
+		// Send free trial success message to user
+		userName := user.FirstName
+		if user.LastName != "" {
+			userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
+		}
+
+		msg := tgbotapi.NewMessage(userID, fmt.Sprintf("🚀 عالی %s\n\nنسخه رایگان MonetizeAI برای تو فعال شد ✅\n\nتا ۳ روز آینده می‌تونی مسیر ساخت سیستم درآمد دلاری‌ت رو شروع کنی.\n\nیادت نره: نسخه کامل بدون محدودیت ابزار، مراحل و کوچ فعاله 💡", userName))
+
+		// Create dashboard button (using inline keyboard with callback)
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🔘 ورود به داشبورد و شروع مسیر رایگان", "dashboard_access"),
+			),
+		)
+		msg.ReplyMarkup = keyboard
 		bot.Send(msg)
 
 	case "decline_trial":
@@ -639,6 +652,27 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 		msg := tgbotapi.NewMessage(userID, "✅ لطفا لایسنس خود را وارد کنید:")
 		msg.ReplyMarkup = getExpiredSubscriptionKeyboard()
 		bot.Send(msg)
+
+	case "dashboard_access":
+		// User clicked dashboard button - show Mini App link
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL != "" {
+			// Create Mini App URL with user ID
+			miniAppWithParams := fmt.Sprintf("https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=%d", userID)
+
+			// Create inline keyboard with dashboard button
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonURL("🏠 ورود به داشبورد", miniAppWithParams),
+				),
+			)
+
+			msg := tgbotapi.NewMessage(userID, "🏠 برای ورود به داشبورد روی دکمه زیر کلیک کنید:")
+			msg.ReplyMarkup = keyboard
+			bot.Send(msg)
+		} else {
+			sendMessage(userID, "❌ داشبورد در حال حاضر در دسترس نیست.")
+		}
 	}
 }
 
@@ -1273,8 +1307,20 @@ func handleLicenseVerification(admin *Admin, data string) {
 		sendMessage(admin.TelegramID, "✅ درخواست با موفقیت تایید شد")
 
 		// Send success message to user
-		msg := tgbotapi.NewMessage(verification.User.TelegramID, "✅ درخواست شما تایید شد!\n\n🎉 به ربات MONETIZE AI🥇 خوش آمدید!\n\n🔥 لایسنس شما فعال شد (مادام‌العمر)\n\n✅ دسترسی کامل و نامحدود به تمام امکانات\n✅ چت با هوش مصنوعی بدون محدودیت\n✅ دوره‌های آموزشی کامل\n✅ ابزارهای کسب‌وکار\n✅ CRM و پرامت‌ها\n\nمن دستیار هوشمند شما هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
-		msg.ReplyMarkup = getMainMenuKeyboard()
+		userName := verification.User.FirstName
+		if verification.User.LastName != "" {
+			userName = fmt.Sprintf("%s %s", verification.User.FirstName, verification.User.LastName)
+		}
+
+		msg := tgbotapi.NewMessage(verification.User.TelegramID, fmt.Sprintf("🎉 تبریک %s!\n\nنسخه ویژه MonetizeAI برای تو فعال شد 💎\n\nحالا همه ابزارها و سطوح باز شدن.\nبریم شروع کنیم 👇", userName))
+
+		// Create dashboard button
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🔘 ورود به داشبورد کامل", "dashboard_access"),
+			),
+		)
+		msg.ReplyMarkup = keyboard
 		bot.Send(msg)
 		// Send session 1 info
 		getCurrentSessionInfo(&verification.User)

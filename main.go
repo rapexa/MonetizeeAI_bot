@@ -277,7 +277,7 @@ func handleMessage(update tgbotapi.Update) {
 	// Handle test_start command early to reset everything and show full flow
 	if update.Message.IsCommand() && update.Message.Command() == "test_start" {
 		// Reset state to force full flow
-		userStates[update.Message.From.ID] = StateWaitingForLicenseChoice
+		userStates[update.Message.From.ID] = StateWaitingForName
 
 		// Get or create user, but reset their verification status for testing
 		var user User
@@ -300,22 +300,8 @@ func handleMessage(update tgbotapi.Update) {
 			// Just reset the state in memory
 		}
 
-		// Send voice message with caption
-		voice := tgbotapi.NewVoice(update.Message.Chat.ID, tgbotapi.FileURL("http://quantnano.ir/wp-content/uploads/2025/05/جلسه-صفر.mp3"))
-		voice.Caption = "🧠 این ویس رو با دقت گوش بده؛ اینجا نقطه شروع یه مسیر جدیه…\n\n👇 بعد از گوش دادن، برو سراغ مرحله ۱\nجایی که اولین قدم مسیر درآمد دلاری با هوش مصنوعی رو برمی‌داری 🚀"
-		bot.Send(voice)
-
-		// Send welcome message with license choice
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به ربات MONETIZE AI🥇 خوش آمدید!\n\nآیا لایسنس دارید؟")
-
-		// Create inline keyboard for license choice
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("✅ بله، لایسنس دارم", "has_license"),
-				tgbotapi.NewInlineKeyboardButtonData("❌ خیر، لایسنس ندارم", "no_license"),
-			),
-		)
-		msg.ReplyMarkup = keyboard
+		// Send welcome message and ask for name
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 سلام\n\nخوش اومدی به دنیای MonetizeAI\n\nاولین ربات هوشمندی که قدم‌به‌قدم کمکت می‌کنه مسیر درآمد دلاری خودت رو با هوش مصنوعی بسازی.\n\n🧠 لطفاً نام و نام خانوادگی خودت رو ارسال کن تا ربات هوشمند برای تو فعال بشه.")
 		bot.Send(msg)
 		return
 	}
@@ -363,14 +349,9 @@ func handleMessage(update tgbotapi.Update) {
 		case "start":
 			// Only send welcome message if user already exists and is verified
 			if !isNewUser(update.Message.From.ID) && user.IsVerified {
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "به ربات MONETIZE AI🥇 خوش آمدید! من دستیار هوشمند شما هستم. بیایید سفر خود را برای ساخت یک کسب و کار موفق مبتنی بر هوش مصنوعی شروع کنیم.")
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 سلام خوش اومدی به دنیای MonetizeAI اولین ربات هوشمندی که قدم‌به‌قدم کمکت می‌کنه مسیر درآمد دلاری خودت رو با هوش مصنوعی بسازی.")
 				msg.ReplyMarkup = getMainMenuKeyboard()
 				bot.Send(msg)
-
-				// Send voice message with caption
-				voice := tgbotapi.NewVoice(update.Message.Chat.ID, tgbotapi.FileURL("http://quantnano.ir/wp-content/uploads/2025/05/جلسه-صفر.mp3"))
-				voice.Caption = "🧠 این ویس رو با دقت گوش بده؛ اینجا نقطه شروع یه مسیر جدیه…\n\n👇 بعد از گوش دادن، برو سراغ مرحله ۱\nجایی که اولین قدم مسیر درآمد دلاری با هوش مصنوعی رو برمی‌داری 🚀"
-				bot.Send(voice)
 			}
 			return
 		case "help":

@@ -379,25 +379,11 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 		}
 		db.Create(&user)
 
-		// Set state to wait for license choice (not license input yet)
-		userStates[user.TelegramID] = StateWaitingForLicenseChoice
+		// Set state to wait for name first (new flow)
+		userStates[user.TelegramID] = StateWaitingForName
 
-		// Send voice message with caption
-		voice := tgbotapi.NewVoice(user.TelegramID, tgbotapi.FileURL("http://quantnano.ir/wp-content/uploads/2025/05/جلسه-صفر.mp3"))
-		voice.Caption = "🧠 این ویس رو با دقت گوش بده؛ اینجا نقطه شروع یه مسیر جدیه…\n\n👇 بعد از گوش دادن، برو سراغ مرحله ۱\nجایی که اولین قدم مسیر درآمد دلاری با هوش مصنوعی رو برمی‌داری 🚀"
-		bot.Send(voice)
-
-		// Send welcome message with license choice
-		msg := tgbotapi.NewMessage(user.TelegramID, "👋 به ربات MONETIZE AI🥇 خوش آمدید!\n\nآیا لایسنس دارید؟")
-
-		// Create inline keyboard for license choice
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("✅ بله، لایسنس دارم", "has_license"),
-				tgbotapi.NewInlineKeyboardButtonData("❌ خیر، لایسنس ندارم", "no_license"),
-			),
-		)
-		msg.ReplyMarkup = keyboard
+		// Send welcome message and ask for name
+		msg := tgbotapi.NewMessage(user.TelegramID, "👋 سلام\n\nخوش اومدی به دنیای MonetizeAI\n\nاولین ربات هوشمندی که قدم‌به‌قدم کمکت می‌کنه مسیر درآمد دلاری خودت رو با هوش مصنوعی بسازی.\n\n🧠 لطفاً نام و نام خانوادگی خودت رو ارسال کن تا ربات هوشمند برای تو فعال بشه.")
 		bot.Send(msg)
 		return &user
 	}
@@ -469,12 +455,52 @@ func processUserInput(input string, user *User) string {
 		}
 		if input == "5a7474e6746067c57382ac1727a400fa65b7398a3774c3b19272916549c93a8d" {
 			user.License = input
-			userStates[user.TelegramID] = StateWaitingForName
-			msg := tgbotapi.NewMessage(user.TelegramID, "✅ لایسنس معتبر است.\n\nلطفا نام و نام خانوادگی خود را وارد کنید:")
+			db.Save(user)
+
+			// Create verification request (name and phone already collected)
+			verification := LicenseVerification{
+				UserID:    user.ID,
+				License:   user.License,
+				FirstName: user.FirstName,
+				LastName:  user.LastName,
+			}
+			if err := db.Create(&verification).Error; err != nil {
+				logger.Error("Failed to create license verification",
+					zap.Int64("user_id", user.TelegramID),
+					zap.Error(err))
+				msg := tgbotapi.NewMessage(user.TelegramID, "❌ خطا در ثبت اطلاعات. لطفا دوباره تلاش کنید.")
+				bot.Send(msg)
+				return ""
+			}
+
+			// Notify admins
+			var admins []Admin
+			db.Find(&admins)
+			for _, admin := range admins {
+				adminMsg := fmt.Sprintf("🔔 درخواست تایید لایسنس جدید:\n\n👤 کاربر: %s\n📱 آیدی: %d\n📝 نام: %s %s\n📞 موبایل: %s\n🔑 لایسنس: %s",
+					user.Username,
+					user.TelegramID,
+					user.FirstName,
+					user.LastName,
+					user.Phone,
+					user.License)
+				keyboard := tgbotapi.NewInlineKeyboardMarkup(
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("✅ تایید", fmt.Sprintf("verify:%d", verification.ID)),
+						tgbotapi.NewInlineKeyboardButtonData("❌ رد", fmt.Sprintf("reject:%d", verification.ID)),
+					),
+				)
+				msg := tgbotapi.NewMessage(admin.TelegramID, adminMsg)
+				msg.ReplyMarkup = keyboard
+				bot.Send(msg)
+			}
+
+			userStates[user.TelegramID] = ""
+			msg := tgbotapi.NewMessage(user.TelegramID, "✅ لایسنس معتبر است.\n\n⏳ لطفا منتظر تایید ادمین باشید.")
 			bot.Send(msg)
 			return ""
 		} else {
-			msg := tgbotapi.NewMessage(user.TelegramID, "لطفا فقط کد لایسنس معتبر را کپی کنید و  وارد کنید.\n\n✅ از منو پایین: لطفا روی گزینه ارسال لایسنس کلیک کنید.")
+			msg := tgbotapi.NewMessage(user.TelegramID, "لطفا فقط کد لایسنس معتبر را کپی کنید و  وارد کنید.")
 			bot.Send(msg)
 			return ""
 		}
@@ -492,52 +518,34 @@ func processUserInput(input string, user *User) string {
 		user.LastName = lastName
 		db.Save(user)
 		userStates[user.TelegramID] = StateWaitingForPhone
-		msg := tgbotapi.NewMessage(user.TelegramID, "لطفا شماره موبایل خود را وارد کنید:")
+		msg := tgbotapi.NewMessage(user.TelegramID, "📱 حالا شماره موبایلت رو بفرست تا سیستم هوشمند MonetizeAI برای تو فعال بشه.")
 		bot.Send(msg)
 		return ""
 	case StateWaitingForPhone:
 		// Save phone number
-		userStates[user.TelegramID] = ""
 		user.Phone = input
 		db.Save(user)
-		// Create verification request
-		verification := LicenseVerification{
-			UserID:    user.ID,
-			License:   user.License,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
+
+		// Send registration success message and introduce premium version
+		userName := user.FirstName
+		if user.LastName != "" {
+			userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
 		}
-		if err := db.Create(&verification).Error; err != nil {
-			logger.Error("Failed to create license verification",
-				zap.Int64("user_id", user.TelegramID),
-				zap.Error(err))
-			msg := tgbotapi.NewMessage(user.TelegramID, "❌ خطا در ثبت اطلاعات. لطفا دوباره تلاش کنید.")
-			bot.Send(msg)
-			return ""
-		}
-		// Notify admins
-		var admins []Admin
-		db.Find(&admins)
-		for _, admin := range admins {
-			adminMsg := fmt.Sprintf("🔔 درخواست تایید لایسنس جدید:\n\n👤 کاربر: %s\n📱 آیدی: %d\n📝 نام: %s %s\n📞 موبایل: %s\n🔑 لایسنس: %s",
-				user.Username,
-				user.TelegramID,
-				user.FirstName,
-				user.LastName,
-				user.Phone,
-				user.License)
-			keyboard := tgbotapi.NewInlineKeyboardMarkup(
-				tgbotapi.NewInlineKeyboardRow(
-					tgbotapi.NewInlineKeyboardButtonData("✅ تایید", fmt.Sprintf("verify:%d", verification.ID)),
-					tgbotapi.NewInlineKeyboardButtonData("❌ رد", fmt.Sprintf("reject:%d", verification.ID)),
-				),
-			)
-			msg := tgbotapi.NewMessage(admin.TelegramID, adminMsg)
-			msg.ReplyMarkup = keyboard
-			bot.Send(msg)
-		}
-		msg := tgbotapi.NewMessage(user.TelegramID, "✅ اطلاعات شما با موفقیت ثبت شد.\n\n⏳ لطفا منتظر تایید ادمین باشید.")
+
+		msg := tgbotapi.NewMessage(user.TelegramID, fmt.Sprintf("✅ مرحله ۳: ثبت‌نام موفق\n\n🎉 %s عزیز، ثبت‌نامت در پلتفرم MonetizeAI با موفقیت انجام شد.\n\n💎 نسخه ویژه MonetizeAI برای کساییه که می‌خوان سریع، جدی و حرفه‌ای مسیر درآمد دلاریشون رو بسازن.\n\nبا نسخه ویژه، تمام سطوح و ابزارهای زیر برای تو باز می‌شن:\n• کوچ هوش مصنوعی بدون محدودیت\n• ۹ سطح کامل آموزش عملی\n• بانک ۲۰۰+ پرامپت اختصاصی\n• ابزارهای ایده‌یابی، مشتری‌یابی و فروش حرفه‌ای\n• تحلیل هوشمند CRM و مسیر رشد\n\nاینجا قراره بیزینس واقعی خودتو بسازی، نه فقط تست کنی 💼\n\nآیا لایسنس دارید؟", userName))
+
+		// Create inline keyboard for license choice
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🔹 بله لایسنس دارم", "has_license"),
+				tgbotapi.NewInlineKeyboardButtonData("🔸 خیر لایسنس ندارم", "no_license"),
+			),
+		)
+		msg.ReplyMarkup = keyboard
 		bot.Send(msg)
+
+		// Set state to wait for license choice
+		userStates[user.TelegramID] = StateWaitingForLicenseChoice
 		return ""
 	}
 
