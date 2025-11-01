@@ -57,7 +57,9 @@ func initDB() {
 		&PaymentTransaction{},
 	)
 	if err != nil {
-		log.Printf("Warning: Migration error: %v", err)
+		logger.Fatal("Failed to migrate database", zap.Error(err))
+	} else {
+		logger.Info("Database migration completed successfully", zap.String("tables", "users, videos, sessions, exercises, admins, payment_transactions"))
 	}
 
 	// Verify database connection
