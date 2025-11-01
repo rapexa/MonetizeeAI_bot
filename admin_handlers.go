@@ -631,13 +631,8 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 
 		msg := tgbotapi.NewMessage(userID, fmt.Sprintf("🚀 عالی %s\n\nنسخه رایگان MonetizeAI برای تو فعال شد ✅\n\nتا ۳ روز آینده می‌تونی مسیر ساخت سیستم درآمد دلاری‌ت رو شروع کنی.\n\nیادت نره: نسخه کامل بدون محدودیت ابزار، مراحل و کوچ فعاله 💡", userName))
 
-		// Create dashboard button (using inline keyboard with callback)
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🔘 ورود به داشبورد و شروع مسیر رایگان", "dashboard_access"),
-			),
-		)
-		msg.ReplyMarkup = keyboard
+		// Show main menu keyboard with dashboard button
+		msg.ReplyMarkup = getMainMenuKeyboard()
 		bot.Send(msg)
 
 	case "decline_trial":
@@ -1314,13 +1309,8 @@ func handleLicenseVerification(admin *Admin, data string) {
 
 		msg := tgbotapi.NewMessage(verification.User.TelegramID, fmt.Sprintf("🎉 تبریک %s!\n\nنسخه ویژه MonetizeAI برای تو فعال شد 💎\n\nحالا همه ابزارها و سطوح باز شدن.\nبریم شروع کنیم 👇", userName))
 
-		// Create dashboard button
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🔘 ورود به داشبورد کامل", "dashboard_access"),
-			),
-		)
-		msg.ReplyMarkup = keyboard
+		// Show main menu keyboard with dashboard button
+		msg.ReplyMarkup = getMainMenuKeyboard()
 		bot.Send(msg)
 		// Send session 1 info
 		getCurrentSessionInfo(&verification.User)
