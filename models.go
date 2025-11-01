@@ -51,6 +51,7 @@ type User struct {
 	CourseSessionsUsed int    `gorm:"default:0"` // تعداد جلسات دوره استفاده شده
 
 	// SMS tracking fields
+	SignUpSMSSent          bool `gorm:"default:false"` // SMS ثبت‌نام (فقط یک بار)
 	FreeTrialDayOneSMSSent bool `gorm:"default:false"` // SMS روز دوم (11 صبح)
 	FreeTrialDayTwoSMSSent bool `gorm:"default:false"` // SMS روز سوم (10 صبح)
 	FreeTrialExpireSMSSent bool `gorm:"default:false"` // SMS بعد از انقضا (2 ساعت بعد)

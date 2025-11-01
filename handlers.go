@@ -193,7 +193,7 @@ func sendSMS(to, text string) error {
 // sendPatternSMS sends SMS using IPPanel pattern API
 func sendPatternSMS(patternCode, recipient string, variables map[string]string) error {
 	// Load SMS config
-	config := GetSMSConfig()
+	smsConfig := GetSMSConfig()
 
 	// Normalize phone number (remove +98, add 0 if needed)
 	normalizedPhone := normalizePhoneNumber(recipient)
@@ -209,9 +209,14 @@ func sendPatternSMS(patternCode, recipient string, variables map[string]string) 
 		phoneForAPI = "98" + phoneForAPI
 	}
 
+	// Build base URL matching the working example
+	baseURL := "https://api2.ippanel.com/api/v1"
+	requestURL := baseURL + "/sms/pattern/normal/send"
+
+	// Create request payload matching the working example
 	payload := map[string]interface{}{
 		"code":      patternCode,
-		"sender":    config.SenderNumber,
+		"sender":    smsConfig.SenderNumber,
 		"recipient": phoneForAPI,
 		"variable":  variables,
 	}
@@ -222,17 +227,23 @@ func sendPatternSMS(patternCode, recipient string, variables map[string]string) 
 		return err
 	}
 
-	req, err := http.NewRequest("POST", config.BaseURL, bytes.NewBuffer(jsonData))
+	logger.Info("sendPatternSMS: Request",
+		zap.String("url", requestURL),
+		zap.String("pattern_code", patternCode),
+		zap.String("recipient", phoneForAPI),
+		zap.String("request_body", string(jsonData)))
+
+	req, err := http.NewRequest("POST", requestURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		logger.Error("sendPatternSMS: Error creating request", zap.Error(err))
 		return err
 	}
 
-	req.Header.Set("apikey", config.APIKey)
+	req.Header.Set("apikey", smsConfig.APIKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	// Use DefaultClient like the working example
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		logger.Error("sendPatternSMS: Error making request", zap.Error(err))
 		return err
@@ -246,6 +257,7 @@ func sendPatternSMS(patternCode, recipient string, variables map[string]string) 
 	}
 
 	logger.Info("sendPatternSMS: Response",
+		zap.Int("status_code", resp.StatusCode),
 		zap.String("pattern_code", patternCode),
 		zap.String("recipient", phoneForAPI),
 		zap.String("response", string(body)))
@@ -605,24 +617,36 @@ func processUserInput(input string, user *User) string {
 			userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
 		}
 
-		// Send sign-up SMS immediately after registration
-		if user.Phone != "" {
-			go func() {
-				config := GetSMSConfig()
-				err := sendPatternSMS(config.PatternSignUp, user.Phone, map[string]string{
-					"variable": userName,
+		// Send sign-up SMS immediately after registration (only once per phone)
+		if user.Phone != "" && !user.SignUpSMSSent {
+			go func(phoneNum, name string, userID int64, userPtr *User) {
+				smsConfig := GetSMSConfig()
+				// Check if SMS was already sent to this phone number (to prevent duplicates)
+				var existingUser User
+				if err := db.Where("phone = ? AND sign_up_sms_sent = ?", phoneNum, true).First(&existingUser).Error; err == nil {
+					// SMS already sent to this phone number, skip
+					logger.Info("Sign-up SMS already sent to this phone number, skipping",
+						zap.String("phone", phoneNum))
+					return
+				}
+
+				err := sendPatternSMS(smsConfig.PatternSignUp, phoneNum, map[string]string{
+					"variable": name,
 				})
 				if err != nil {
 					logger.Error("Failed to send sign-up SMS",
-						zap.Int64("user_id", user.TelegramID),
-						zap.String("phone", user.Phone),
+						zap.Int64("user_id", userID),
+						zap.String("phone", phoneNum),
 						zap.Error(err))
 				} else {
+					// Mark as sent to prevent duplicate sending
+					userPtr.SignUpSMSSent = true
+					db.Save(userPtr)
 					logger.Info("Sign-up SMS sent successfully",
-						zap.Int64("user_id", user.TelegramID),
-						zap.String("phone", user.Phone))
+						zap.Int64("user_id", userID),
+						zap.String("phone", phoneNum))
 				}
-			}()
+			}(user.Phone, userName, user.TelegramID, user)
 		}
 
 		msg := tgbotapi.NewMessage(user.TelegramID, fmt.Sprintf("✅ مرحله ۳: ثبت‌نام موفق\n\n🎉 %s عزیز، ثبت‌نامت در پلتفرم MonetizeAI با موفقیت انجام شد.\n\n💎 نسخه ویژه MonetizeAI برای کساییه که می‌خوان سریع، جدی و حرفه‌ای مسیر درآمد دلاریشون رو بسازن.\n\nبا نسخه ویژه، تمام سطوح و ابزارهای زیر برای تو باز می‌شن:\n• کوچ هوش مصنوعی بدون محدودیت\n• ۹ سطح کامل آموزش عملی\n• بانک ۲۰۰+ پرامپت اختصاصی\n• ابزارهای ایده‌یابی، مشتری‌یابی و فروش حرفه‌ای\n• تحلیل هوشمند CRM و مسیر رشد\n\nاینجا قراره بیزینس واقعی خودتو بسازی، نه فقط تست کنی 💼\n\nآیا لایسنس دارید؟", userName))
