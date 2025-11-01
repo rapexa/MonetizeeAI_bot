@@ -629,6 +629,9 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 			userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
 		}
 
+		// Clear state so user can use main menu
+		userStates[userID] = ""
+
 		msg := tgbotapi.NewMessage(userID, fmt.Sprintf("🚀 عالی %s\n\nنسخه رایگان MonetizeAI برای تو فعال شد ✅\n\nتا ۳ روز آینده می‌تونی مسیر ساخت سیستم درآمد دلاری‌ت رو شروع کنی.\n\nیادت نره: نسخه کامل بدون محدودیت ابزار، مراحل و کوچ فعاله 💡", userName))
 
 		// Show main menu keyboard with dashboard button
@@ -1306,6 +1309,9 @@ func handleLicenseVerification(admin *Admin, data string) {
 		if verification.User.LastName != "" {
 			userName = fmt.Sprintf("%s %s", verification.User.FirstName, verification.User.LastName)
 		}
+
+		// Clear state so user can use main menu
+		userStates[verification.User.TelegramID] = ""
 
 		msg := tgbotapi.NewMessage(verification.User.TelegramID, fmt.Sprintf("🎉 تبریک %s!\n\nنسخه ویژه MonetizeAI برای تو فعال شد 💎\n\nحالا همه ابزارها و سطوح باز شدن.\nبریم شروع کنیم 👇", userName))
 

@@ -437,17 +437,23 @@ func processUserInput(input string, user *User) string {
 
 	switch state {
 	case StateWaitingForLicenseChoice:
-		// User should select from inline buttons, not send text
-		msg := tgbotapi.NewMessage(user.TelegramID, "⚠️ لطفا یکی از گزینه‌های زیر را انتخاب کنید:")
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("✅ بله، لایسنس دارم", "has_license"),
-				tgbotapi.NewInlineKeyboardButtonData("❌ خیر، لایسنس ندارم", "no_license"),
-			),
-		)
-		msg.ReplyMarkup = keyboard
-		bot.Send(msg)
-		return ""
+		// If user is verified, clear state and allow them to use menu
+		if user.IsVerified {
+			userStates[user.TelegramID] = ""
+			// Let it fall through to normal command handling
+		} else {
+			// User should select from inline buttons, not send text
+			msg := tgbotapi.NewMessage(user.TelegramID, "⚠️ لطفا یکی از گزینه‌های زیر را انتخاب کنید:")
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("🔹 بله لایسنس دارم", "has_license"),
+					tgbotapi.NewInlineKeyboardButtonData("🔸 خیر لایسنس ندارم", "no_license"),
+				),
+			)
+			msg.ReplyMarkup = keyboard
+			bot.Send(msg)
+			return ""
+		}
 
 	case StateWaitingForLicense:
 		if strings.TrimSpace(input) == "" {
