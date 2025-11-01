@@ -631,7 +631,7 @@ func processUserInput(input string, user *User) string {
 				}
 
 				err := sendPatternSMS(smsConfig.PatternSignUp, phoneNum, map[string]string{
-					"variable": name,
+					"name": name,
 				})
 				if err != nil {
 					logger.Error("Failed to send sign-up SMS",

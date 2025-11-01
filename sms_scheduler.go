@@ -170,7 +170,7 @@ func checkAndSendExpiredFreeTrialSMS() {
 				}
 
 				err := sendPatternSMS(config.PatternExpire, user.Phone, map[string]string{
-					"variable": userName,
+					"name": userName,
 				})
 				if err != nil {
 					logger.Error("Failed to send free trial expiry SMS",
