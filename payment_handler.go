@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	"MonetizeeAI_bot/logger"
 
@@ -36,7 +37,15 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 	// 2. بررسی وجود Authority
 	if authority == "" {
 		logger.Warn("No authority provided in callback")
-		h.renderPaymentPage(w, r, "failed", "کد پیگیری یافت نشد", "NO_AUTHORITY", "", "", "")
+
+		// Redirect به صفحه ناموفق در مینی اپ
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL == "" {
+			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
+		}
+
+		failedURL := fmt.Sprintf("%s/payment/result?status=failed", miniAppURL)
+		http.Redirect(w, r, failedURL, http.StatusSeeOther)
 		return
 	}
 
@@ -45,7 +54,15 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 		logger.Info("Payment cancelled by user",
 			zap.String("authority", authority),
 			zap.String("status", status))
-		h.renderPaymentPage(w, r, "failed", "پرداخت لغو شد", "CANCELLED", "", "", "")
+
+		// نمایش صفحه HTML که کاربر را به مینی اپ redirect می‌کند
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL == "" {
+			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
+		}
+
+		miniAppPath := fmt.Sprintf("/payment/result?status=failed&authority=%s", authority)
+		h.renderRedirectPage(w, r, miniAppURL, miniAppPath, "failed")
 		return
 	}
 
@@ -55,7 +72,15 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 		logger.Error("Transaction not found",
 			zap.String("authority", authority),
 			zap.Error(err))
-		h.renderPaymentPage(w, r, "failed", "تراکنش یافت نشد", "NOT_FOUND", "", "", "")
+
+		// Redirect به صفحه ناموفق در مینی اپ
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL == "" {
+			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
+		}
+
+		miniAppPath := fmt.Sprintf("/payment/result?status=failed&authority=%s", authority)
+		h.renderRedirectPage(w, r, miniAppURL, miniAppPath, "failed")
 		return
 	}
 
@@ -63,9 +88,20 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 	if transaction.Status == "success" {
 		logger.Info("Transaction already processed",
 			zap.String("authority", authority))
-		h.renderPaymentPage(w, r, "success",
-			"پرداخت قبلاً تأیید شده است", "ALREADY_PROCESSED",
-			transaction.RefID, fmt.Sprintf("%d", transaction.Amount), transaction.Type)
+
+		// Redirect به صفحه موفقیت (حتی اگر قبلاً پردازش شده)
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL == "" {
+			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
+		}
+
+		miniAppPath := fmt.Sprintf("/payment/result?status=success&authority=%s&ref_id=%s&amount=%d&plan_type=%s",
+			authority,
+			transaction.RefID,
+			transaction.Amount,
+			transaction.Type)
+
+		h.renderRedirectPage(w, r, miniAppURL, miniAppPath, "success")
 		return
 	}
 
@@ -75,8 +111,15 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 		logger.Error("Payment verification failed",
 			zap.String("authority", authority),
 			zap.Error(err))
-		h.renderPaymentPage(w, r, "failed",
-			"تأیید پرداخت ناموفق بود", "VERIFICATION_FAILED", "", "", "")
+
+		// Redirect به صفحه ناموفق در مینی اپ
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL == "" {
+			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
+		}
+
+		miniAppPath := fmt.Sprintf("/payment/result?status=failed&authority=%s", authority)
+		h.renderRedirectPage(w, r, miniAppURL, miniAppPath, "failed")
 		return
 	}
 
@@ -85,8 +128,15 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 		logger.Warn("Payment not verified",
 			zap.String("authority", authority),
 			zap.String("status", verifiedTransaction.Status))
-		h.renderPaymentPage(w, r, "failed",
-			"پرداخت تأیید نشد", "NOT_VERIFIED", "", "", "")
+
+		// Redirect به صفحه ناموفق در مینی اپ
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL == "" {
+			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
+		}
+
+		miniAppPath := fmt.Sprintf("/payment/result?status=failed&authority=%s", authority)
+		h.renderRedirectPage(w, r, miniAppURL, miniAppPath, "failed")
 		return
 	}
 
@@ -105,12 +155,21 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 	// 9. ارسال پیام موفقیت به کاربر در تلگرام
 	h.sendPaymentSuccessNotification(verifiedTransaction)
 
-	// 10. نمایش صفحه موفقیت
-	h.renderPaymentPage(w, r, "success",
-		"پرداخت با موفقیت انجام شد", "SUCCESS",
+	// 10. نمایش صفحه HTML که کاربر را به مینی اپ redirect می‌کند
+	miniAppURL := os.Getenv("MINI_APP_URL")
+	if miniAppURL == "" {
+		miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
+	}
+
+	// ساخت URL با پارامترها برای مینی اپ
+	miniAppPath := fmt.Sprintf("/payment/result?status=success&authority=%s&ref_id=%s&amount=%d&plan_type=%s",
+		authority,
 		verifiedTransaction.RefID,
-		fmt.Sprintf("%d", verifiedTransaction.Amount),
+		verifiedTransaction.Amount,
 		verifiedTransaction.Type)
+
+	// صفحه HTML که کاربر را به مینی اپ هدایت می‌کند
+	h.renderRedirectPage(w, r, miniAppURL, miniAppPath, "success")
 }
 
 // sendPaymentSuccessNotification ارسال پیام موفقیت به کاربر
@@ -184,6 +243,53 @@ func (h *PaymentHandler) sendPaymentSuccessNotification(
 			zap.Int64("telegram_id", user.TelegramID),
 			zap.Error(err))
 	}
+
+	// ارسال SMS بر اساس نوع اشتراک
+	go func(userPtr *User, planType string) {
+		smsConfig := GetSMSConfig()
+		var patternCode string
+
+		switch planType {
+		case "starter":
+			patternCode = smsConfig.PatternSubscriptionOneMonth
+		case "pro":
+			patternCode = smsConfig.PatternSubscriptionSixMonth
+		case "ultimate":
+			patternCode = smsConfig.PatternSubscriptionUnlimited
+		default:
+			logger.Warn("Unknown plan type for SMS", zap.String("plan_type", planType))
+			return
+		}
+
+		if patternCode == "" {
+			logger.Warn("SMS pattern code not configured", zap.String("plan_type", planType))
+			return
+		}
+
+		if userPtr.Phone != "" {
+			// ساخت نام کاربر
+			userName := userPtr.FirstName
+			if userPtr.LastName != "" {
+				userName = fmt.Sprintf("%s %s", userPtr.FirstName, userPtr.LastName)
+			}
+
+			err := sendPatternSMS(patternCode, userPtr.Phone, map[string]string{
+				"name": userName,
+			})
+			if err != nil {
+				logger.Error("Failed to send subscription SMS",
+					zap.Int64("user_id", int64(userPtr.TelegramID)),
+					zap.String("phone", userPtr.Phone),
+					zap.String("plan_type", planType),
+					zap.Error(err))
+			} else {
+				logger.Info("Subscription SMS sent successfully",
+					zap.Int64("user_id", int64(userPtr.TelegramID)),
+					zap.String("phone", userPtr.Phone),
+					zap.String("plan_type", planType))
+			}
+		}
+	}(&user, transaction.Type)
 }
 
 // renderPaymentPage نمایش صفحه نتیجه پرداخت
@@ -363,6 +469,106 @@ func (h *PaymentHandler) renderPaymentPage(
 </body>
 </html>`, message)
 	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(pageContent))
+}
+
+// renderRedirectPage نمایش صفحه HTML که کاربر را به مینی اپ هدایت می‌کند
+func (h *PaymentHandler) renderRedirectPage(w http.ResponseWriter, r *http.Request, miniAppURL, miniAppPath, status string) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	// ساخت URL کامل برای مینی اپ
+	fullMiniAppURL := miniAppURL + miniAppPath
+
+	// صفحه HTML با JavaScript که کاربر را به مینی اپ redirect می‌کند
+	pageContent := fmt.Sprintf(`<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>در حال هدایت - MonetizeAI</title>
+    <style>
+        body {
+            font-family: 'IranSansX', Vazir, system-ui, sans-serif;
+            background: linear-gradient(135deg, #0e0817 0%%, #1a0f2e 100%%);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            max-width: 400px;
+        }
+        .loader {
+            border: 4px solid rgba(44, 24, 154, 0.3);
+            border-top: 4px solid #5a189a;
+            border-radius: 50%%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0%% { transform: rotate(0deg); }
+            100%% { transform: rotate(360deg); }
+        }
+        h1 {
+            margin: 20px 0;
+            font-size: 24px;
+        }
+        .button {
+            background: linear-gradient(135deg, #2c189a 0%%, #5a189a 100%%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="loader"></div>
+        <h1>در حال هدایت به مینی اپ...</h1>
+        <p>اگر به طور خودکار منتقل نشدید، روی دکمه زیر کلیک کنید:</p>
+        <a href="%s" class="button">باز کردن مینی اپ</a>
+    </div>
+    <script>
+        // تلاش برای باز کردن مینی اپ
+        setTimeout(function() {
+            // اگر در Telegram Mini App هستیم، از Telegram API استفاده می‌کنیم
+            if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+                // اگر در مینی اپ هستیم، فقط navigate کنیم
+                if (window.location.href.includes('t.me')) {
+                    window.location.href = '%s';
+                } else {
+                    // اگر در مرورگر هستیم، سعی کنیم مینی اپ را باز کنیم
+                    window.location.href = '%s';
+                }
+            } else {
+                // اگر Telegram API در دسترس نیست، به URL مینی اپ redirect کنیم
+                window.location.href = '%s';
+            }
+        }, 500);
+        
+        // Fallback: اگر بعد از 3 ثانیه redirect نشد، دکمه نمایش داده می‌شود
+    </script>
+</body>
+</html>`, fullMiniAppURL, fullMiniAppURL, fullMiniAppURL, fullMiniAppURL)
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(pageContent))

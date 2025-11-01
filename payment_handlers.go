@@ -143,6 +143,19 @@ func handleSubscriptionPaymentButton(user *User, planType string) string {
 		planPeriod = "مادام‌العمر"
 	}
 
+	// Format price with thousand separators
+	priceStr := fmt.Sprintf("%d", planPrice)
+	if len(priceStr) > 3 {
+		var formatted strings.Builder
+		for i, char := range priceStr {
+			if i > 0 && (len(priceStr)-i)%3 == 0 {
+				formatted.WriteString(",")
+			}
+			formatted.WriteRune(char)
+		}
+		priceStr = formatted.String()
+	}
+
 	paymentText := fmt.Sprintf(
 		"💳 *اشتراک %s*\n\n"+
 			"💰 قیمت: %s تومان\n"+
@@ -150,7 +163,7 @@ func handleSubscriptionPaymentButton(user *User, planType string) string {
 			"🔗 *لینک پرداخت:*\n%s\n\n"+
 			"⚠️ *توجه:* پرداخت را در کمتر از 15 دقیقه تکمیل کنید.",
 		planName,
-		formatPrice(planPrice),
+		priceStr,
 		planPeriod,
 		paymentURL)
 

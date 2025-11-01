@@ -7,12 +7,15 @@ type SMSConfig struct {
 	APIKey       string
 	BaseURL      string
 	SenderNumber string
-	
+
 	// Pattern codes
-	PatternSignUp        string
-	PatternDayOne        string
-	PatternDayTwo        string
-	PatternExpire        string
+	PatternSignUp                string
+	PatternDayOne                string
+	PatternDayTwo                string
+	PatternExpire                string
+	PatternSubscriptionOneMonth  string // یک ماهه
+	PatternSubscriptionSixMonth  string // شش‌ماهه
+	PatternSubscriptionUnlimited string // مادام‌العمر
 }
 
 // GetSMSConfig loads SMS configuration from environment variables
@@ -21,12 +24,15 @@ func GetSMSConfig() SMSConfig {
 		APIKey:       getEnvOrDefault("IPPANEL_API_KEY", "YTA0MGZmMjUtYWZkOS00NDI3LTk3ZGMtOWIxYTk5N2ViZjVkZWRkY2MxZDg4YTU2ZjZkZGMyMzNiODA0YWE4OGM3MzE="),
 		BaseURL:      getEnvOrDefault("IPPANEL_BASE_URL", "https://api2.ippanel.com/api/v1/sms/pattern/normal/send"),
 		SenderNumber: getEnvOrDefault("IPPANEL_SENDER", "+983000505"),
-		
+
 		// Pattern codes
-		PatternSignUp: getEnvOrDefault("SMS_PATTERN_SIGNUP", "atd1s2iyjhbyn97"),
-		PatternDayOne: getEnvOrDefault("SMS_PATTERN_DAY_ONE", "2oqomrq32ku7ulw"),
-		PatternDayTwo: getEnvOrDefault("SMS_PATTERN_DAY_TWO", "bmjuebluw7fqtb8"),
-		PatternExpire: getEnvOrDefault("SMS_PATTERN_EXPIRE", "0p50p1flzpolqhe"),
+		PatternSignUp:                getEnvOrDefault("SMS_PATTERN_SIGNUP", "atd1s2iyjhbyn97"),
+		PatternDayOne:                getEnvOrDefault("SMS_PATTERN_DAY_ONE", "2oqomrq32ku7ulw"),
+		PatternDayTwo:                getEnvOrDefault("SMS_PATTERN_DAY_TWO", "bmjuebluw7fqtb8"),
+		PatternExpire:                getEnvOrDefault("SMS_PATTERN_EXPIRE", "0p50p1flzpolqhe"),
+		PatternSubscriptionOneMonth:  getEnvOrDefault("SMS_PATTERN_SUBSCRIPTION_ONE_MONTH", "dgvea4rwwxn0zzm"),
+		PatternSubscriptionSixMonth:  getEnvOrDefault("SMS_PATTERN_SUBSCRIPTION_SIX_MONTH", "bskxk9gf738ge1x"),
+		PatternSubscriptionUnlimited: getEnvOrDefault("SMS_PATTERN_SUBSCRIPTION_UNLIMITED", "00ogp471ns7kuhc"),
 	}
 }
 
@@ -38,4 +44,3 @@ func getEnvOrDefault(key, defaultValue string) string {
 	}
 	return value
 }
-

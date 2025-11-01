@@ -31,7 +31,7 @@ func GetPaymentConfig() PaymentConfig {
 		MerchantID:    getEnvOrDefault("ZARINPAL_MERCHANT_ID", "3ef8ccdc-8fc9-43ba-8931-ad68cf890c7e"),
 		Sandbox:       false,
 		CallbackURL:   getEnvOrDefault("ZARINPAL_CALLBACK_URL", "https://www.sianacademy.com/payment/callback"),
-		StarterPrice:  790000,  // ۷۹۰,۰۰۰ تومان
+		StarterPrice:  1000,    // ۱,۰۰۰ تومان (موقت برای تست - باید به 790000 برگردد)
 		ProPrice:      3300000, // ۳,۳۰۰,۰۰۰ تومان (شش‌ماهه)
 		UltimatePrice: 7500000, // ۷,۵۰۰,۰۰۰ تومان (مادام‌العمر)
 	}
@@ -363,10 +363,27 @@ func (s *PaymentService) UpdateUserSubscription(userID uint, planType string) er
 		return err
 	}
 
+	// تعیین نقطه شروع برای محاسبه انقضا
+	var baseTime time.Time
+	if user.SubscriptionExpiry != nil && user.SubscriptionExpiry.After(time.Now()) {
+		// اگر کاربر قبلاً اشتراک داشته و هنوز منقضی نشده، از تاریخ انقضای فعلی ادامه می‌دهیم
+		baseTime = *user.SubscriptionExpiry
+		logger.Info("Extending existing subscription",
+			zap.Uint("user_id", userID),
+			zap.Time("current_expiry", baseTime),
+			zap.String("plan_type", planType))
+	} else {
+		// اگر اشتراک ندارد یا منقضی شده، از الان شروع می‌کنیم
+		baseTime = time.Now()
+		logger.Info("Starting new subscription",
+			zap.Uint("user_id", userID),
+			zap.String("plan_type", planType))
+	}
+
 	switch planType {
 	case "starter":
-		// اشتراک یک ماهه
-		expiry := time.Now().AddDate(0, 1, 0)
+		// اشتراک یک ماهه - اضافه کردن به تاریخ پایه
+		expiry := baseTime.AddDate(0, 1, 0)
 		user.SubscriptionType = "paid"
 		user.PlanName = "starter"
 		user.SubscriptionExpiry = &expiry
@@ -377,8 +394,8 @@ func (s *PaymentService) UpdateUserSubscription(userID uint, planType string) er
 		user.FreeTrialExpireSMSSent = true
 
 	case "pro":
-		// اشتراک شش‌ماهه
-		expiry := time.Now().AddDate(0, 6, 0)
+		// اشتراک شش‌ماهه - اضافه کردن به تاریخ پایه
+		expiry := baseTime.AddDate(0, 6, 0)
 		user.SubscriptionType = "paid"
 		user.PlanName = "pro"
 		user.SubscriptionExpiry = &expiry
@@ -389,7 +406,7 @@ func (s *PaymentService) UpdateUserSubscription(userID uint, planType string) er
 		user.FreeTrialExpireSMSSent = true
 
 	case "ultimate":
-		// اشتراک مادام‌العمر
+		// اشتراک مادام‌العمر - همیشه بدون انقضا
 		user.SubscriptionType = "paid"
 		user.PlanName = "ultimate"
 		user.SubscriptionExpiry = nil // No expiry for lifetime
@@ -412,7 +429,13 @@ func (s *PaymentService) UpdateUserSubscription(userID uint, planType string) er
 
 	logger.Info("User subscription updated",
 		zap.Uint("user_id", userID),
-		zap.String("plan_type", planType))
+		zap.String("plan_type", planType),
+		zap.Time("expiry", func() time.Time {
+			if user.SubscriptionExpiry != nil {
+				return *user.SubscriptionExpiry
+			}
+			return time.Time{}
+		}()))
 
 	return nil
 }
