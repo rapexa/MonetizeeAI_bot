@@ -274,6 +274,52 @@ func handleMessage(update tgbotapi.Update) {
 		return
 	}
 
+	// Handle test_start command early to reset everything and show full flow
+	if update.Message.IsCommand() && update.Message.Command() == "test_start" {
+		// Reset state to force full flow
+		userStates[update.Message.From.ID] = StateWaitingForLicenseChoice
+
+		// Get or create user, but reset their verification status for testing
+		var user User
+		result := db.Where("telegram_id = ?", update.Message.From.ID).First(&user)
+		if result.Error == gorm.ErrRecordNotFound {
+			// Create new user for testing
+			user = User{
+				TelegramID:       update.Message.From.ID,
+				Username:         update.Message.From.UserName,
+				FirstName:        update.Message.From.FirstName,
+				LastName:         update.Message.From.LastName,
+				CurrentSession:   1,
+				IsVerified:       false,
+				SubscriptionType: "none",
+				PlanName:         "",
+			}
+			db.Create(&user)
+		} else {
+			// User exists - temporarily reset state for testing (don't modify DB)
+			// Just reset the state in memory
+		}
+
+		// Send voice message with caption
+		voice := tgbotapi.NewVoice(update.Message.Chat.ID, tgbotapi.FileURL("http://quantnano.ir/wp-content/uploads/2025/05/جلسه-صفر.mp3"))
+		voice.Caption = "🧠 این ویس رو با دقت گوش بده؛ اینجا نقطه شروع یه مسیر جدیه…\n\n👇 بعد از گوش دادن، برو سراغ مرحله ۱\nجایی که اولین قدم مسیر درآمد دلاری با هوش مصنوعی رو برمی‌داری 🚀"
+		bot.Send(voice)
+
+		// Send welcome message with license choice
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 به ربات MONETIZE AI🥇 خوش آمدید!\n\nآیا لایسنس دارید؟")
+
+		// Create inline keyboard for license choice
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("✅ بله، لایسنس دارم", "has_license"),
+				tgbotapi.NewInlineKeyboardButtonData("❌ خیر، لایسنس ندارم", "no_license"),
+			),
+		)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
+		return
+	}
+
 	// If not admin, check if user is blocked
 	var user *User
 	if err := db.Where("telegram_id = ?", update.Message.From.ID).First(&user).Error; err == nil {
