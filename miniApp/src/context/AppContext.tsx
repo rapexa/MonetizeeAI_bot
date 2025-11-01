@@ -273,7 +273,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Check if subscription has expired
+  // IMPORTANT: This function should only be called after data has been loaded
+  // If subscriptionType is undefined, it means data hasn't been loaded yet, so return false
   const isSubscriptionExpired = (): boolean => {
+    // If subscriptionType is undefined, data hasn't been loaded yet - don't show expired state
+    if (userData.subscriptionType === undefined) {
+      return false;
+    }
+    
     // Legacy users: If IsVerified is true and no subscription type is set, treat as lifetime license
     if (userData.isVerified && (!userData.subscriptionType || userData.subscriptionType === 'none')) {
       return false; // Old verified users never expire
@@ -297,6 +304,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     
     // If no subscription or subscription type is none, consider it as expired
+    // BUT only if we have confirmed data (not during initial load)
     if (!userData.subscriptionType || userData.subscriptionType === 'none') {
       return true;
     }

@@ -7,13 +7,12 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { telegramIdError, userData, isSubscriptionExpired } = useApp();
+  const { telegramIdError, isSubscriptionExpired, loadingUser } = useApp();
   
-  // Check subscription expiry from multiple sources:
-  // 1. From API error (telegramIdError)
-  // 2. From userData using isSubscriptionExpired() function
+  // Only check subscription expiry after data has been loaded
+  // This prevents showing the overlay during initial load when data is not yet available
   const hasExpiredFromError = telegramIdError && telegramIdError.includes('اشتراک شما به پایان رسید');
-  const hasExpiredFromData = isSubscriptionExpired && isSubscriptionExpired();
+  const hasExpiredFromData = !loadingUser && isSubscriptionExpired && isSubscriptionExpired();
   const isSubscriptionExpiredState = hasExpiredFromError || hasExpiredFromData;
 
   return (
