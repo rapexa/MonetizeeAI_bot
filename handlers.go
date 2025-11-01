@@ -388,10 +388,11 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 		return &user
 	}
 
-	// If user exists but not verified, ask for license
+	// If user exists but not verified, restart full flow from name
 	if !user.IsVerified {
-		userStates[user.TelegramID] = StateWaitingForLicense
-		msg := tgbotapi.NewMessage(user.TelegramID, "لطفا لایسنس خود را وارد کنید:")
+		// Restart full flow from name (same as new user)
+		userStates[user.TelegramID] = StateWaitingForName
+		msg := tgbotapi.NewMessage(user.TelegramID, "👋 سلام\n\nخوش اومدی به دنیای MonetizeAI\n\nاولین ربات هوشمندی که قدم‌به‌قدم کمکت می‌کنه مسیر درآمد دلاری خودت رو با هوش مصنوعی بسازی.\n\n🧠 لطفاً نام و نام خانوادگی خودت رو ارسال کن تا ربات هوشمند برای تو فعال بشه.")
 		bot.Send(msg)
 		return &user
 	}
