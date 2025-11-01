@@ -2789,10 +2789,10 @@ const Levels: React.FC = () => {
 
   // Render Level Detail Page
   if (viewMode === 'detail' && selectedLevel) {
-    return (
+  return (
       <>
         {renderSubscriptionCard()}
-        <div className="min-h-screen transition-colors duration-300 page-container" style={{ backgroundColor: '#0E0817' }}>
+      <div className="min-h-screen transition-colors duration-300 page-container" style={{ backgroundColor: '#0E0817' }}>
         <style dangerouslySetInnerHTML={{
           __html: `
             html.dark .page-container {
@@ -2955,8 +2955,8 @@ const Levels: React.FC = () => {
                           return true;
                         }
                         // For free trial users AND users without subscription (legacy/none): only first 3 stages
-                        if (userData.subscriptionType === 'free_trial' || 
-                            !userData.subscriptionType || 
+                        if (userData.subscriptionType === 'free_trial' ||
+                            !userData.subscriptionType ||
                             userData.subscriptionType === 'none') {
                           const allowed = stage.id <= 3;
                           console.log(`🔵 [Levels] Free trial/None user - Stage ${stage.id} <= 3? ${allowed}`);
@@ -2965,7 +2965,7 @@ const Levels: React.FC = () => {
                         console.log('❌ [Levels] Unknown subscription type - access denied');
                         return false;
                       };
-                      
+
                       const hasAccess = canAccessStage();
                       console.log('🔵 [Levels] canAccessStage result:', hasAccess);
                       
@@ -2981,7 +2981,7 @@ const Levels: React.FC = () => {
                         }, 15000);
                         return;
                       }
-                      
+
                       // If subscription allows and stage is passed, open it
                       if (passedStages.has(stage.id)) {
                         console.log('✅ [Levels] Access granted and stage passed - opening stage');
@@ -3053,7 +3053,7 @@ const Levels: React.FC = () => {
     return (
       <>
         {renderSubscriptionCard()}
-        <div className="min-h-screen transition-colors duration-300 page-container" style={{ backgroundColor: '#0E0817' }}>
+      <div className="min-h-screen transition-colors duration-300 page-container" style={{ backgroundColor: '#0E0817' }}>
         {/* Header */}
         <div className="relative px-8 py-6 backdrop-blur-xl border-b border-gray-800/60 overflow-hidden" style={{ backgroundColor: '#0E0817' }}>
           <div className="absolute inset-0 bg-gradient-to-r from-[#2c189a] to-[#5a189a]"></div>
@@ -3890,7 +3890,7 @@ const Levels: React.FC = () => {
   return (
     <>
       {renderSubscriptionCard()}
-      <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0E0817' }}>
+          <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0E0817' }}>
         {/* Header */}
               <div className="pt-24 p-4 space-y-6 max-w-md mx-auto">
         {/* Sticky Header */}
@@ -4064,7 +4064,7 @@ const Levels: React.FC = () => {
 
 
       </div>
-
+      
       {/* Subscription Required Modal */}
       {isSubscriptionModalOpen && (
         <SubscriptionModal

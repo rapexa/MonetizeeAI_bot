@@ -106,6 +106,10 @@ const ChatModal: React.FC<ChatModalProps> = ({
             setChatMessages(prev => [...prev, incompleteNote]);
           }
         } else {
+          // Check if subscription expired
+          if (response.error === 'SUBSCRIPTION_EXPIRED' || response.subscriptionExpired) {
+            throw new Error('SUBSCRIPTION_EXPIRED');
+          }
           throw new Error(response.error || 'Failed to get response');
         }
       } else {
@@ -114,12 +118,14 @@ const ChatModal: React.FC<ChatModalProps> = ({
     } catch (error) {
       console.error('Error sending message:', error);
       
-      // Check if it's a rate limit error
+      // Check if it's a rate limit error or subscription expired
       let errorMessage = '❌ متأسفانه در حال حاضر نمی‌توانم پاسخ دهم. لطفا دوباره تلاش کنید.';
       
       if (error instanceof Error) {
         if (error.message.includes('محدودیت سه تا سوال') || error.message.includes('rate limit')) {
           errorMessage = '⚠️ ' + error.message;
+        } else if (error.message.includes('SUBSCRIPTION_EXPIRED') || error.message.includes('subscription has expired')) {
+          errorMessage = '⚠️ اشتراک شما به پایان رسید!\n\n🔒 برای ادامه استفاده از امکانات، لطفا به ربات برگردید و اشتراک خریداری کنید یا لایسنس خود را وارد کنید.';
         }
       }
       

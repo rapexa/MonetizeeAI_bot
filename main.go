@@ -375,7 +375,7 @@ func handleMessage(update tgbotapi.Update) {
 			// Only send welcome message if user already exists and is verified
 			if !isNewUser(update.Message.From.ID) && user.IsVerified {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "👋 سلام خوش اومدی به دنیای MonetizeAI اولین ربات هوشمندی که قدم‌به‌قدم کمکت می‌کنه مسیر درآمد دلاری خودت رو با هوش مصنوعی بسازی.")
-				msg.ReplyMarkup = getMainMenuKeyboard()
+				msg.ReplyMarkup = getMainMenuKeyboard(user)
 				bot.Send(msg)
 			}
 			return

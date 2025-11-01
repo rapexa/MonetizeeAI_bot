@@ -168,8 +168,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } else {
         console.log('❌ Authentication failed:', authResponse.error);
         
-        // If no telegram_id available, show appropriate message
-        if (authResponse.error?.includes('No user ID available')) {
+        // Check if subscription has expired
+        if (authResponse.error === 'SUBSCRIPTION_EXPIRED' || (authResponse as any).subscriptionExpired) {
+          console.log('⚠️ Subscription expired - user must renew in bot');
+          setTelegramIdError('⚠️ اشتراک شما به پایان رسید!\n\n🔒 برای ادامه استفاده از امکانات، لطفا به ربات برگردید و اشتراک خریداری کنید یا لایسنس خود را وارد کنید.\n\n💎 برای بازگشت به ربات، روی دکمه زیر کلیک کنید:');
+          setHasRealData(false);
+        } else if (authResponse.error?.includes('No user ID available')) {
+          // If no telegram_id available, show appropriate message
           console.log('⚠️ No Telegram ID available - user must access from Telegram');
           setTelegramIdError('لطفا از طریق تلگرام وارد شوید تا اطلاعات شما نمایش داده شود');
           // Keep using default data but mark as not real

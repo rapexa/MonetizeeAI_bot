@@ -635,7 +635,7 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 		msg := tgbotapi.NewMessage(userID, fmt.Sprintf("🚀 عالی %s\n\nنسخه رایگان MonetizeAI برای تو فعال شد ✅\n\nتا ۳ روز آینده می‌تونی مسیر ساخت سیستم درآمد دلاری‌ت رو شروع کنی.\n\nیادت نره: نسخه کامل بدون محدودیت ابزار، مراحل و کوچ فعاله 💡", userName))
 
 		// Show main menu keyboard with dashboard button
-		msg.ReplyMarkup = getMainMenuKeyboard()
+		msg.ReplyMarkup = getMainMenuKeyboard(&user)
 		bot.Send(msg)
 
 	case "decline_trial":
@@ -645,53 +645,81 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 		bot.Send(msg)
 
 	case "buy_subscription":
-		// User wants to buy subscription - activate free trial first and redirect to mini app
-		// Start free trial so user can access mini app
-		user.StartFreeTrial()
-		user.IsVerified = true // Mark user as verified so they can use the bot
-		user.IsActive = true   // Ensure user is active
-		if err := db.Save(&user).Error; err != nil {
-			logger.Error("Failed to save user with free trial for subscription purchase", zap.Error(err), zap.Int64("user_id", userID))
-			sendMessage(userID, "❌ خطا در فعال‌سازی دسترسی. لطفا دوباره تلاش کنید.")
-			return
+		// Check if subscription has expired
+		if !user.HasActiveSubscription() {
+			// User has expired subscription - show payment plans in Telegram
+			userStates[userID] = StateWaitingForPlanSelection
+
+			// Get payment config for prices
+			paymentConfig := GetPaymentConfig()
+
+			planMsg := fmt.Sprintf(
+				"💎 *پلن‌های اشتراک MonetizeAI*\n\n"+
+					"🚀 *Starter* (یک ماهه)\n"+
+					"💰 قیمت: %s تومان\n\n"+
+					"⚡ *Pro* (شش‌ماهه)\n"+
+					"💰 قیمت: %s تومان\n\n"+
+					"👑 *Ultimate* (مادام‌العمر)\n"+
+					"💰 قیمت: %s تومان\n\n"+
+					"لطفا یکی از پلن‌های بالا را انتخاب کنید:",
+				formatPrice(paymentConfig.StarterPrice),
+				formatPrice(paymentConfig.ProPrice),
+				formatPrice(paymentConfig.UltimatePrice))
+
+			msg := tgbotapi.NewMessage(userID, planMsg)
+			msg.ParseMode = "Markdown"
+			planKeyboard := getPlanSelectionKeyboard()
+			msg.ReplyMarkup = planKeyboard
+			bot.Send(msg)
+		} else {
+			// User is in registration flow (has active subscription or free trial) - redirect to Mini App
+			// Start free trial so user can access mini app
+			user.StartFreeTrial()
+			user.IsVerified = true // Mark user as verified so they can use the bot
+			user.IsActive = true   // Ensure user is active
+			if err := db.Save(&user).Error; err != nil {
+				logger.Error("Failed to save user with free trial for subscription purchase", zap.Error(err), zap.Int64("user_id", userID))
+				sendMessage(userID, "❌ خطا در فعال‌سازی دسترسی. لطفا دوباره تلاش کنید.")
+				return
+			}
+
+			// Clear state so user can use main menu
+			userStates[userID] = ""
+
+			// Get mini app URL
+			miniAppURL := os.Getenv("MINI_APP_URL")
+			if miniAppURL == "" {
+				miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
+			}
+
+			// Create Mini App URL with startapp parameter
+			// Telegram Mini App format: https://t.me/bot_username/app_name?startapp=param
+			// The startapp parameter will be available as start_param in Telegram WebApp
+			miniAppWithSubscription := fmt.Sprintf("%s?startapp=subscription", miniAppURL)
+
+			userName := user.FirstName
+			if user.LastName != "" {
+				userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
+			}
+
+			msg := tgbotapi.NewMessage(userID, fmt.Sprintf("💎 عالی %s!\n\n✅ اشتراک رایگان برای دسترسی به مینی اپ فعال شد.\n\n🔗 حالا می‌تونی وارد صفحه اشتراک‌ها بشی و اشتراک مورد نظرت رو انتخاب کنی:", userName))
+
+			// Create inline keyboard with Mini App button
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonURL("💎 مشاهده و خرید اشتراک", miniAppWithSubscription),
+				),
+			)
+			msg.ReplyMarkup = keyboard
+
+			// Also send main menu
+			bot.Send(msg)
+
+			// Send main menu as well
+			menuMsg := tgbotapi.NewMessage(userID, "🏠 منوی اصلی:")
+			menuMsg.ReplyMarkup = getMainMenuKeyboard(&user)
+			bot.Send(menuMsg)
 		}
-
-		// Clear state so user can use main menu
-		userStates[userID] = ""
-
-		// Get mini app URL
-		miniAppURL := os.Getenv("MINI_APP_URL")
-		if miniAppURL == "" {
-			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
-		}
-
-		// Create Mini App URL with startapp parameter
-		// Telegram Mini App format: https://t.me/bot_username/app_name?startapp=param
-		// The startapp parameter will be available as start_param in Telegram WebApp
-		miniAppWithSubscription := fmt.Sprintf("%s?startapp=subscription", miniAppURL)
-
-		userName := user.FirstName
-		if user.LastName != "" {
-			userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
-		}
-
-		msg := tgbotapi.NewMessage(userID, fmt.Sprintf("💎 عالی %s!\n\n✅ اشتراک رایگان برای دسترسی به مینی اپ فعال شد.\n\n🔗 حالا می‌تونی وارد صفحه اشتراک‌ها بشی و اشتراک مورد نظرت رو انتخاب کنی:", userName))
-
-		// Create inline keyboard with Mini App button
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonURL("💎 مشاهده و خرید اشتراک", miniAppWithSubscription),
-			),
-		)
-		msg.ReplyMarkup = keyboard
-
-		// Also send main menu
-		bot.Send(msg)
-
-		// Send main menu as well
-		menuMsg := tgbotapi.NewMessage(userID, "🏠 منوی اصلی:")
-		menuMsg.ReplyMarkup = getMainMenuKeyboard()
-		bot.Send(menuMsg)
 
 	case "enter_license":
 		// User wants to enter license
@@ -798,7 +826,7 @@ func handleUnbanUser(admin *Admin, userID string) {
 
 	// Send notification to the unblocked user
 	unblockMsg := tgbotapi.NewMessage(user.TelegramID, "✅ دسترسی شما به ربات بازگردانده شد.\n\nشما می‌توانید از خدمات ربات استفاده کنید.")
-	unblockMsg.ReplyMarkup = getMainMenuKeyboard()
+	unblockMsg.ReplyMarkup = getMainMenuKeyboard(&user)
 	bot.Send(unblockMsg)
 
 	logAdminAction(admin, "unban_user", fmt.Sprintf("مسدودیت کاربر %s برداشته شد", user.Username), "user", user.ID)
@@ -1376,10 +1404,10 @@ func handleLicenseVerification(admin *Admin, data string) {
 		msg := tgbotapi.NewMessage(verification.User.TelegramID, fmt.Sprintf("🎉 تبریک %s!\n\nنسخه ویژه MonetizeAI برای تو فعال شد 💎\n\nحالا همه ابزارها و سطوح باز شدن.\nبریم شروع کنیم 👇", userName))
 
 		// Show main menu keyboard with dashboard button
-		msg.ReplyMarkup = getMainMenuKeyboard()
+		msg.ReplyMarkup = getMainMenuKeyboard(&verification.User)
 		bot.Send(msg)
-		// Send session 1 info
-		getCurrentSessionInfo(&verification.User)
+		// این سیستم قدیمی حذف شده است - دیگر پیام خودکار مرحله ارسال نمی‌شود
+		// getCurrentSessionInfo(&verification.User) // DISABLED
 
 		// Log admin action
 		logAdminAction(admin, "verify_license", fmt.Sprintf("تایید لایسنس کاربر %s", verification.User.Username), "user", verification.User.ID)
@@ -2009,7 +2037,7 @@ func handleChangePlan(admin *Admin, planType string, userIDStr string) {
 		message, planType, expiryMsg)
 
 	userMsg := tgbotapi.NewMessage(user.TelegramID, userNotification)
-	userMsg.ReplyMarkup = getMainMenuKeyboard()
+	userMsg.ReplyMarkup = getMainMenuKeyboard(&user)
 	bot.Send(userMsg)
 
 	// Log admin action

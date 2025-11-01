@@ -306,6 +306,15 @@ func authenticateTelegramUser(c *gin.Context) {
 		return
 	}
 
+	// Check if subscription has expired
+	if !user.HasActiveSubscription() {
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   "Your subscription has expired. Please return to the bot and purchase a subscription or enter your license.",
+		})
+		return
+	}
+
 	// Return user info
 	completedSessions := user.CurrentSession - 1
 	userLevel := GetUserLevel(completedSessions)
@@ -592,6 +601,15 @@ func handleChatRequest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
 			Error:   "Database error",
+		})
+		return
+	}
+
+	// Check if subscription has expired
+	if !user.HasActiveSubscription() {
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   "Your subscription has expired. Please return to the bot and purchase a subscription or enter your license.",
 		})
 		return
 	}

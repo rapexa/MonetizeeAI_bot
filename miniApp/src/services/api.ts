@@ -8,6 +8,8 @@ export interface APIResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
+  subscriptionExpired?: boolean;
+  message?: string;
 }
 
 // Telegram WebApp types
@@ -221,6 +223,15 @@ class APIService {
           return {
             success: false,
             error: result.error || 'شما به محدودیت سه تا سوال در دقیقه رسیدید لطفا دقایق دیگر امتحان کنید'
+          };
+        }
+        // Handle subscription expired (403 Forbidden)
+        if (response.status === 403 && result.error && result.error.includes('subscription has expired')) {
+          return {
+            success: false,
+            error: 'SUBSCRIPTION_EXPIRED',
+            subscriptionExpired: true,
+            message: result.error || 'اشتراک شما به پایان رسید است. لطفا به ربات برگردید و اشتراک خریداری کنید.'
           };
         }
         throw new Error(result.error || `HTTP error! status: ${response.status}`);

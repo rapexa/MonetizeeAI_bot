@@ -180,9 +180,13 @@ const AICoach: React.FC = () => {
           setChatMessages(prev => [...prev, aiResponse]);
           // Auto scroll after AI response
           setTimeout(scrollToBottom, 100);
-        } else {
-          throw new Error(response.error || 'Failed to get response');
+      } else {
+        // Check if subscription expired
+        if (response.error === 'SUBSCRIPTION_EXPIRED' || response.subscriptionExpired) {
+          throw new Error('SUBSCRIPTION_EXPIRED');
         }
+        throw new Error(response.error || 'Failed to get response');
+      }
       } else {
         // Fallback to simulated response
         throw new Error('API not connected');
@@ -196,6 +200,8 @@ const AICoach: React.FC = () => {
       if (error instanceof Error) {
         if (error.message.includes('محدودیت سه تا سوال') || error.message.includes('rate limit')) {
           errorMessage = '⚠️ ' + error.message;
+        } else if (error.message.includes('SUBSCRIPTION_EXPIRED') || error.message.includes('subscription has expired')) {
+          errorMessage = '⚠️ اشتراک شما به پایان رسید!\n\n🔒 برای ادامه استفاده از امکانات، لطفا به ربات برگردید و اشتراک خریداری کنید یا لایسنس خود را وارد کنید.';
         }
       }
       

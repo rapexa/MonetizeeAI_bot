@@ -72,7 +72,11 @@ func sendPaymentSuccessNotifications(transaction *PaymentTransaction) {
 	// ارسال پیام تلگرام
 	msg := tgbotapi.NewMessage(int64(user.TelegramID), successMessage)
 	msg.ParseMode = "Markdown"
-	msg.ReplyMarkup = getMainMenuKeyboard()
+	// Get user from database to pass to getMainMenuKeyboard
+	var userForMenu User
+	if err := db.First(&userForMenu, transaction.UserID).Error; err == nil {
+		msg.ReplyMarkup = getMainMenuKeyboard(&userForMenu)
+	}
 
 	if _, err := bot.Send(msg); err != nil {
 		logger.Error("Error sending payment notification",

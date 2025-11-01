@@ -32,6 +32,7 @@ const (
 	StateWaitingForName          = "waiting_for_name"
 	StateWaitingForPhone         = "waiting_for_phone"
 	StateWaitingForLicenseChoice = "waiting_for_license_choice"
+	StateWaitingForPlanSelection = "waiting_for_plan_selection"
 
 	// 🔒 SECURITY: Rate limiting constants
 	MaxChatMessagesPerMinute = 3
@@ -597,10 +598,28 @@ func processUserInput(input string, user *User) string {
 			bot.Send(msg)
 			return ""
 		} else {
-			msg := tgbotapi.NewMessage(user.TelegramID, "لطفا فقط کد لایسنس معتبر را کپی کنید و  وارد کنید.")
+			// Invalid license - show buy subscription option
+			msg := tgbotapi.NewMessage(user.TelegramID,
+				"❌ لایسنس وارد شده معتبر نیست. \n\n"+"لطفا فقط کد لایسنس معتبر را کپی کنید و  وارد کنید.\n\n"+
+					"💡 اگر لایسنس معتبری ندارید، می‌توانید اشتراک خریداری کنید:")
+
+			// Show payment plans
+			planKeyboard := getPlanSelectionKeyboard()
+			msg.ReplyMarkup = planKeyboard
 			bot.Send(msg)
+
+			// Keep state as StateWaitingForLicense so user can try again or select plan
+			// User can click on plan buttons (callback) or try entering license again
 			return ""
 		}
+
+	case StateWaitingForPlanSelection:
+		// User should select from inline buttons, not send text
+		msg := tgbotapi.NewMessage(user.TelegramID, "⚠️ لطفا یکی از پلن‌های زیر را از طریق دکمه‌ها انتخاب کنید:")
+		planKeyboard := getPlanSelectionKeyboard()
+		msg.ReplyMarkup = planKeyboard
+		bot.Send(msg)
+		return ""
 
 	case StateWaitingForName:
 		names := strings.Split(input, " ")
@@ -681,26 +700,76 @@ func processUserInput(input string, user *User) string {
 		return ""
 	}
 
-	// Check if subscription has expired - block all actions if expired
+	// Check if subscription has expired - handle expired subscription users
 	if !user.HasActiveSubscription() {
-		// Get payment link from environment variable
-		paymentLink := os.Getenv("PAYMENT_LINK")
-		if paymentLink == "" {
-			paymentLink = "https://t.me/MonetizeeAI_bot/MonetizeAI" // Default to mini app
+		// Only allow support and main menu for expired users
+		if input == "🆘 پشتیبانی" {
+			// Open Telegram support
+			supportMsg := tgbotapi.NewMessage(user.TelegramID,
+				"🆘 برای ارتباط با پشتیبانی، لطفا با ما در تماس باشید:\n\n"+
+					"📞 پشتیبانی: @sian_academy_support")
+			supportMsg.ReplyMarkup = getMainMenuKeyboard(user)
+			bot.Send(supportMsg)
+			return ""
 		}
 
-		msg := tgbotapi.NewMessage(user.TelegramID,
-			"⚠️ اشتراک شما به پایان رسید!\n\n"+
-				"🔒 متأسفانه دیگر نمی‌توانید از امکانات ربات استفاده کنید.\n\n"+
-				"✅ برای ادامه استفاده از امکانات ربات، لطفا اشتراک ماهیانه خریداری کنید.")
+		if input == "🏠 منوی اصلی" {
+			// Show main menu with limited options
+			menuMsg := tgbotapi.NewMessage(user.TelegramID,
+				"🏠 منوی اصلی:\n\n"+
+					"⚠️ اشتراک شما به پایان رسید!\n\n"+
+					"🔒 برای استفاده از امکانات ربات، لطفا یکی از گزینه‌های زیر را انتخاب کنید:")
+			menuMsg.ReplyMarkup = getExpiredSubscriptionKeyboard()
+			bot.Send(menuMsg)
+			return ""
+		}
 
-		// Create keyboard with only payment link button
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonURL("💳 خرید اشتراک", paymentLink),
-			),
-		)
-		msg.ReplyMarkup = keyboard
+		// Handle "وارد کردن لایسنس" button
+		if input == "🔐 وارد کردن لایسنس" {
+			userStates[user.TelegramID] = StateWaitingForLicense
+			msg := tgbotapi.NewMessage(user.TelegramID,
+				"✅ لطفا لایسنس خود را وارد کنید:\n\n"+
+					"💡 اگر لایسنس ندارید، می‌توانید اشتراک خریداری کنید.")
+			msg.ReplyMarkup = getExpiredSubscriptionKeyboard()
+			bot.Send(msg)
+			return ""
+		}
+
+		// Handle "خرید اشتراک" button
+		if input == "💳 خرید اشتراک" {
+			userStates[user.TelegramID] = StateWaitingForPlanSelection
+
+			// Get payment config for prices
+			paymentConfig := GetPaymentConfig()
+
+			planMsg := fmt.Sprintf(
+				"💎 *پلن‌های اشتراک MonetizeAI*\n\n"+
+					"🚀 *Starter* (یک ماهه)\n"+
+					"💰 قیمت: %s تومان\n\n"+
+					"⚡ *Pro* (شش‌ماهه)\n"+
+					"💰 قیمت: %s تومان\n\n"+
+					"👑 *Ultimate* (مادام‌العمر)\n"+
+					"💰 قیمت: %s تومان\n\n"+
+					"لطفا یکی از پلن‌های بالا را انتخاب کنید:",
+				formatPrice(paymentConfig.StarterPrice),
+				formatPrice(paymentConfig.ProPrice),
+				formatPrice(paymentConfig.UltimatePrice))
+
+			msg := tgbotapi.NewMessage(user.TelegramID, planMsg)
+			msg.ParseMode = "Markdown"
+			planKeyboard := getPlanSelectionKeyboard()
+			msg.ReplyMarkup = planKeyboard
+			bot.Send(msg)
+			return ""
+		}
+
+		// For any other input, show expiry message with options
+		msg := tgbotapi.NewMessage(user.TelegramID,
+			"⚠️ *اشتراک شما به پایان رسید!*\n\n"+
+				"🔒 متأسفانه دیگر نمی‌توانید از امکانات ربات استفاده کنید.\n\n"+
+				"✅ برای ادامه استفاده از امکانات ربات، یکی از گزینه‌های زیر را انتخاب کنید:")
+		msg.ParseMode = "Markdown"
+		msg.ReplyMarkup = getExpiredSubscriptionKeyboard()
 		bot.Send(msg)
 		return ""
 	}
@@ -757,12 +826,23 @@ func processUserInput(input string, user *User) string {
 		userStates[user.TelegramID] = ""
 		return getFullRoadmap(user)
 	case "📚 ادامه مسیر من":
-		// Re-fetch user data to get latest session
-		var freshUser User
-		if err := db.Where("telegram_id = ?", user.TelegramID).First(&freshUser).Error; err == nil {
-			user.CurrentSession = freshUser.CurrentSession
+		// این سیستم قدیمی حذف شده است
+		// کاربر باید از Mini App برای دسترسی به محتوا استفاده کند
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL != "" {
+			miniAppWithParams := fmt.Sprintf("https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=%d", user.TelegramID)
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonURL("🏠 ورود به داشبورد", miniAppWithParams),
+				),
+			)
+			msg := tgbotapi.NewMessage(user.TelegramID, "📚 برای دسترسی به محتوای آموزشی، لطفاً از طریق Mini App وارد شوید:")
+			msg.ReplyMarkup = keyboard
+			bot.Send(msg)
+		} else {
+			return "📚 سیستم مراحل قدیمی حذف شده است. لطفاً از طریق Mini App به محتوا دسترسی داشته باشید."
 		}
-		return getCurrentSessionInfo(user)
+		return ""
 	case "✅ ارسال تمرین":
 		userStates[user.TelegramID] = "submitting_exercise"
 		msg := tgbotapi.NewMessage(user.TelegramID, "لطفا تمرین خود را برای مرحله فعلی ارسال کنید. پاسخ خود را در پیام بعدی بنویسید.")
@@ -825,7 +905,7 @@ func processUserInput(input string, user *User) string {
 	case "🔙 بازگشت":
 		userStates[user.TelegramID] = ""
 		msg := tgbotapi.NewMessage(user.TelegramID, "به منوی اصلی بازگشتید.")
-		msg.ReplyMarkup = getMainMenuKeyboard()
+		msg.ReplyMarkup = getMainMenuKeyboard(user)
 		bot.Send(msg)
 		return ""
 	case "💬 چت با دستیار هوشمند":
@@ -859,7 +939,7 @@ func processUserInput(input string, user *User) string {
 	case "🔚 اتمام مکالمه با دستیار هوشمند":
 		userStates[user.TelegramID] = ""
 		msg := tgbotapi.NewMessage(user.TelegramID, "مکالمه با دستیار هوشمند به پایان رسید. به منوی اصلی بازگشتید.")
-		msg.ReplyMarkup = getMainMenuKeyboard()
+		msg.ReplyMarkup = getMainMenuKeyboard(user)
 		bot.Send(msg)
 		return ""
 	case "🛍️ خرید اشتراک هوش مصنوعی":
@@ -880,7 +960,7 @@ func processUserInput(input string, user *User) string {
 		if state == "submitting_exercise" {
 			userStates[user.TelegramID] = ""
 			msg := tgbotapi.NewMessage(user.TelegramID, handleExerciseSubmission(user, input))
-			msg.ReplyMarkup = getMainMenuKeyboard()
+			msg.ReplyMarkup = getMainMenuKeyboard(user)
 			bot.Send(msg)
 			return ""
 		}
@@ -897,96 +977,29 @@ func processUserInput(input string, user *User) string {
 	}
 }
 
+// getCurrentSessionInfo - DISABLED: این سیستم قدیمی حذف شده است
+// پیام‌های خودکار مرحله دیگر ارسال نمی‌شوند
+// کاربران باید از Mini App برای دسترسی به محتوا استفاده کنند
 func getCurrentSessionInfo(user *User) string {
-	// Re-fetch user to get latest data
-	var freshUser User
-	if err := db.Where("telegram_id = ?", user.TelegramID).First(&freshUser).Error; err != nil {
-		logger.Error("Failed to fetch fresh user data",
-			zap.Int64("user_id", user.TelegramID),
-			zap.Error(err))
-		return "خطا در دریافت اطلاعات کاربر. لطفا دوباره تلاش کنید."
-	}
+	// این تابع غیرفعال شده است
+	logger.Info("getCurrentSessionInfo called but disabled",
+		zap.Int64("user_id", user.TelegramID))
 
-	// Use fresh user data
-	user.CurrentSession = freshUser.CurrentSession
-
-	var session Session
-	if err := db.Where("number = ?", user.CurrentSession).First(&session).Error; err != nil {
-		logger.Error("Failed to get session",
-			zap.Int64("user_id", user.TelegramID),
-			zap.Int("session_number", user.CurrentSession),
-			zap.Error(err))
-
-		return "خطا در دریافت اطلاعات مرحله فعلی. لطفا دوباره تلاش کنید."
-	}
-
-	var video Video
-	db.Where("session_id = ?", session.ID).First(&video)
-
-	// Create a message without the video link
-	message := fmt.Sprintf("📚 %d: %s\n\n%s",
-		session.Number,
-		session.Title,
-		session.Description)
-
-	// Create inline keyboard with video button
-	inlineKeyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonURL("📺 مشاهده ویدیو", video.VideoLink),
-		),
-	)
-
-	// Send the thumbnail photo with the message and inline keyboard
-	photo := tgbotapi.NewPhoto(user.TelegramID, tgbotapi.FileURL(session.ThumbnailURL))
-	photo.Caption = message
-	photo.ReplyMarkup = inlineKeyboard
-
-	// Debug: Check if photo is being sent
-	logger.Info("Sending photo for session",
-		zap.Int("session_number", session.Number),
-		zap.String("thumbnail_url", session.ThumbnailURL),
-		zap.String("video_link", video.VideoLink))
-
-	if _, err := bot.Send(photo); err != nil {
-		logger.Error("Failed to send photo",
-			zap.Int64("user_id", user.TelegramID),
-			zap.Int("session_number", session.Number),
-			zap.Error(err))
-
-		// Fallback: send text message instead
-		fallbackMsg := tgbotapi.NewMessage(user.TelegramID, message)
-		fallbackMsg.ReplyMarkup = inlineKeyboard
-		bot.Send(fallbackMsg)
-	}
-
-	// Check if this is the last video (session 29)
-	if session.Number == 29 {
-		// Send congratulatory message
-		congratsMsg := "🎉 تبریک! شما به پایان مسیر خود رسیده‌اید!\n\n" +
-			"شما تمام ۲۹ مرحله را با موفقیت گذارنده اید. این یک دستاورد بزرگ است!\n\n" +
-			"برای انتهای کار میتونی روی دکمه استخدام کلیک کنی و اقدام به شروع مسیر خودت کنی ! 🎁"
-
-		// Create a modified keyboard without exercise buttons
-		keyboard := tgbotapi.NewReplyKeyboard(
-			tgbotapi.NewKeyboardButtonRow(
-				tgbotapi.NewKeyboardButton("📊 پیشرفت"),
-				tgbotapi.NewKeyboardButton("❇️ دیدن همه مسیر"),
-			),
-			tgbotapi.NewKeyboardButtonRow(
-				tgbotapi.NewKeyboardButton("❓ راهنما"),
-			),
-			tgbotapi.NewKeyboardButtonRow(
-				tgbotapi.NewKeyboardButton("💬 چت با دستیار هوشمند"),
+	// Redirect to Mini App instead
+	miniAppURL := os.Getenv("MINI_APP_URL")
+	if miniAppURL != "" {
+		miniAppWithParams := fmt.Sprintf("https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=%d", user.TelegramID)
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonURL("🏠 ورود به داشبورد", miniAppWithParams),
 			),
 		)
-		keyboard.ResizeKeyboard = true
-
-		msg := tgbotapi.NewMessage(user.TelegramID, congratsMsg)
+		msg := tgbotapi.NewMessage(user.TelegramID, "📚 سیستم مراحل قدیمی حذف شده است.\n\nلطفاً برای دسترسی به محتوای آموزشی از Mini App استفاده کنید:")
 		msg.ReplyMarkup = keyboard
 		bot.Send(msg)
 	}
 
-	return "" // Return empty string since we're sending the messages directly
+	return ""
 }
 
 func getProgressInfo(user *User) string {
@@ -1228,7 +1241,29 @@ func sendMessage(chatID int64, text string) {
 	bot.Send(msg)
 }
 
-func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
+// getMainMenuKeyboard returns main menu keyboard
+// For users with expired subscription, only shows support and main menu buttons
+func getMainMenuKeyboard(user *User) tgbotapi.ReplyKeyboardMarkup {
+	// Check if subscription has expired
+	if user != nil && !user.HasActiveSubscription() {
+		// Limited keyboard for expired subscription
+		rows := [][]tgbotapi.KeyboardButton{
+			{
+				tgbotapi.NewKeyboardButton("🆘 پشتیبانی"),
+			},
+			{
+				tgbotapi.NewKeyboardButton("🏠 منوی اصلی"),
+			},
+		}
+		keyboard := tgbotapi.ReplyKeyboardMarkup{
+			Keyboard:        rows,
+			ResizeKeyboard:  true,
+			OneTimeKeyboard: false,
+		}
+		return keyboard
+	}
+
+	// Full keyboard for active users
 	rows := [][]tgbotapi.KeyboardButton{
 		{
 			tgbotapi.NewKeyboardButton("🏠 ورود به داشبورد"),
@@ -1255,16 +1290,34 @@ func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 }
 
 // getExpiredSubscriptionKeyboard returns keyboard for users with expired subscription
+// Shows two options: enter license or buy subscription
 func getExpiredSubscriptionKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.ReplyKeyboardMarkup{
 		Keyboard: [][]tgbotapi.KeyboardButton{
 			{
-				tgbotapi.NewKeyboardButton("🔐 ورود لایسنس"),
+				tgbotapi.NewKeyboardButton("🔐 وارد کردن لایسنس"),
+			},
+			{
+				tgbotapi.NewKeyboardButton("💳 خرید اشتراک"),
 			},
 		},
 		ResizeKeyboard:  true,
 		OneTimeKeyboard: false,
 	}
+	return keyboard
+}
+
+// getPlanSelectionKeyboard returns keyboard for selecting payment plan
+func getPlanSelectionKeyboard() tgbotapi.InlineKeyboardMarkup {
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("🚀 Starter", "payment:starter"),
+			tgbotapi.NewInlineKeyboardButtonData("⚡ Pro", "payment:pro"),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("👑 Ultimate", "payment:ultimate"),
+		),
+	)
 	return keyboard
 }
 
