@@ -185,6 +185,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setTelegramIdError(null);
         }
       }
+      
+      // Also check subscription expiry from userData even if auth succeeded
+      // This handles cases where API returns user data but subscription has expired
+      if (authResponse.success && authResponse.data) {
+        const userInfo = authResponse.data as any;
+        // Check if subscription has expired based on expiry date
+        if (userInfo.subscription_type === 'paid' && userInfo.subscription_expiry) {
+          const expiryDate = new Date(userInfo.subscription_expiry);
+          if (new Date() > expiryDate) {
+            console.log('⚠️ Subscription expired based on expiry date');
+            setTelegramIdError('⚠️ اشتراک شما به پایان رسید!\n\n🔒 برای ادامه استفاده از امکانات، لطفا به ربات برگردید و اشتراک خریداری کنید یا لایسنس خود را وارد کنید.\n\n💎 برای بازگشت به ربات، روی دکمه زیر کلیک کنید:');
+          }
+        } else if (userInfo.subscription_type === 'free_trial' && userInfo.subscription_expiry) {
+          const expiryDate = new Date(userInfo.subscription_expiry);
+          if (new Date() > expiryDate) {
+            console.log('⚠️ Free trial expired based on expiry date');
+            setTelegramIdError('⚠️ اشتراک شما به پایان رسید!\n\n🔒 برای ادامه استفاده از امکانات، لطفا به ربات برگردید و اشتراک خریداری کنید یا لایسنس خود را وارد کنید.\n\n💎 برای بازگشت به ربات، روی دکمه زیر کلیک کنید:');
+          }
+        }
+      }
     } catch (error) {
       console.error('❌ Error syncing with API:', error);
       setIsAPIConnected(false);

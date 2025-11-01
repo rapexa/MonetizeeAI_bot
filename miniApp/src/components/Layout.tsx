@@ -7,29 +7,35 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { telegramIdError } = useApp();
-  const isSubscriptionExpired = telegramIdError && telegramIdError.includes('اشتراک شما به پایان رسید');
+  const { telegramIdError, userData, isSubscriptionExpired } = useApp();
+  
+  // Check subscription expiry from multiple sources:
+  // 1. From API error (telegramIdError)
+  // 2. From userData using isSubscriptionExpired() function
+  const hasExpiredFromError = telegramIdError && telegramIdError.includes('اشتراک شما به پایان رسید');
+  const hasExpiredFromData = isSubscriptionExpired && isSubscriptionExpired();
+  const isSubscriptionExpiredState = hasExpiredFromError || hasExpiredFromData;
 
   return (
     <div className="min-h-screen flex flex-col relative" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Main content with blur effect if subscription expired */}
       <div 
-        className={`flex-1 pb-20 transition-all duration-300 ${isSubscriptionExpired ? 'blur-sm pointer-events-none' : ''}`}
-        style={isSubscriptionExpired ? { filter: 'blur(8px)', userSelect: 'none' as any } : {}}
+        className={`flex-1 pb-20 transition-all duration-300 ${isSubscriptionExpiredState ? 'blur-sm pointer-events-none' : ''}`}
+        style={isSubscriptionExpiredState ? { filter: 'blur(8px)', userSelect: 'none' as any } : {}}
       >
         {children}
       </div>
       
       {/* Bottom nav with blur effect if subscription expired */}
       <div 
-        className={isSubscriptionExpired ? 'blur-sm pointer-events-none' : ''}
-        style={isSubscriptionExpired ? { filter: 'blur(8px)', userSelect: 'none' as any } : {}}
+        className={isSubscriptionExpiredState ? 'blur-sm pointer-events-none' : ''}
+        style={isSubscriptionExpiredState ? { filter: 'blur(8px)', userSelect: 'none' as any } : {}}
       >
         <BottomNav />
       </div>
 
       {/* Subscription expired overlay - covers entire screen */}
-      {isSubscriptionExpired && (
+      {isSubscriptionExpiredState && (
         <div 
           className="fixed inset-0 z-[9999] flex items-center justify-center p-6"
           style={{
@@ -58,15 +64,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             {/* Message */}
             <div className="text-gray-300 text-sm mb-6 leading-relaxed space-y-2">
-              {telegramIdError.split('\n\n').map((line, idx) => (
-                <p key={idx} className={idx === 0 ? 'font-bold text-white' : ''}>
-                  {line}
-                </p>
-              ))}
+              {hasExpiredFromError && telegramIdError ? (
+                telegramIdError.split('\n\n').map((line, idx) => (
+                  <p key={idx} className={idx === 0 ? 'font-bold text-white' : ''}>
+                    {line}
+                  </p>
+                ))
+              ) : (
+                <>
+                  <p className="font-bold text-white">
+                    ⚠️ اشتراک شما به پایان رسید!
+                  </p>
+                  <p>
+                    🔒 برای ادامه استفاده از امکانات، لطفا به ربات برگردید و اشتراک خریداری کنید یا لایسنس خود را وارد کنید.
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Action button */}
-            {telegramIdError.includes('برای بازگشت به ربات') && (
+            {((hasExpiredFromError && telegramIdError?.includes('برای بازگشت به ربات')) || hasExpiredFromData) && (
               <button
                 onClick={() => {
                   if (window.Telegram?.WebApp) {
