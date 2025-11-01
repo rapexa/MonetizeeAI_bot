@@ -379,8 +379,8 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 		}
 		db.Create(&user)
 
-		// Set state to wait for license
-		userStates[user.TelegramID] = StateWaitingForLicense
+		// Set state to wait for license choice (not license input yet)
+		userStates[user.TelegramID] = StateWaitingForLicenseChoice
 
 		// Send voice message with caption
 		voice := tgbotapi.NewVoice(user.TelegramID, tgbotapi.FileURL("http://quantnano.ir/wp-content/uploads/2025/05/جلسه-صفر.mp3"))
@@ -441,7 +441,7 @@ func processUserInput(input string, user *User) string {
 	}
 
 	// If user has no subscription and not in license entry mode, redirect them
-	if !user.IsVerified && state != StateWaitingForLicense && state != StateWaitingForName && state != StateWaitingForPhone {
+	if !user.IsVerified && state != StateWaitingForLicense && state != StateWaitingForName && state != StateWaitingForPhone && state != StateWaitingForLicenseChoice {
 		// User is not verified and not in any input state, this shouldn't happen but handle gracefully
 		if len(input) > 0 && input != "/start" {
 			// If user sends any text that's not /start and is not in proper state, ignore it or reset state
@@ -450,6 +450,19 @@ func processUserInput(input string, user *User) string {
 	}
 
 	switch state {
+	case StateWaitingForLicenseChoice:
+		// User should select from inline buttons, not send text
+		msg := tgbotapi.NewMessage(user.TelegramID, "⚠️ لطفا یکی از گزینه‌های زیر را انتخاب کنید:")
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("✅ بله، لایسنس دارم", "has_license"),
+				tgbotapi.NewInlineKeyboardButtonData("❌ خیر، لایسنس ندارم", "no_license"),
+			),
+		)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
+		return ""
+
 	case StateWaitingForLicense:
 		if strings.TrimSpace(input) == "" {
 			return ""

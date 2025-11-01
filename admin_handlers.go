@@ -598,6 +598,8 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 
 	case "no_license":
 		// User doesn't have license, offer free trial
+		// Clear the state so user won't be stuck in license waiting mode
+		userStates[userID] = StateWaitingForLicenseChoice
 		msg := tgbotapi.NewMessage(userID, "🎉 عالی! ما یک پیشنهاد ویژه برای شما داریم:\n\n🆓 اشتراک رایگان 3 روزه\n\n✅ دسترسی کامل به تمام امکانات\n✅ چت با هوش مصنوعی\n✅ دوره‌های آموزشی\n✅ ابزارهای کسب‌وکار\n\n⚠️ محدودیت‌ها:\n• حداکثر 5 پیام چت در روز\n• فقط 3 قسمت اول هر دوره\n\nآیا می‌خواهید اشتراک رایگان را شروع کنید؟")
 
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
@@ -626,6 +628,8 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 		bot.Send(msg)
 
 	case "decline_trial":
+		// Clear state so user can start fresh
+		userStates[userID] = ""
 		msg := tgbotapi.NewMessage(userID, "متوجه شدم. اگر در آینده تصمیم گرفتید، می‌توانید با ارسال /start دوباره شروع کنید.")
 		bot.Send(msg)
 
