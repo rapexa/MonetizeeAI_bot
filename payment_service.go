@@ -261,6 +261,7 @@ func (s *PaymentService) sendPaymentRequest(url string, req PaymentRequest) (*Pa
 }
 
 // VerifyPayment تایید پرداخت با ZarinPal
+// این تابع idempotent است - اگر تراکنش قبلاً پردازش شده باشد، وضعیت فعلی را برمی‌گرداند
 func (s *PaymentService) VerifyPayment(authority string, amount int) (*PaymentTransaction, error) {
 	// 1. پیدا کردن تراکنش از دیتابیس
 	var transaction PaymentTransaction
@@ -268,20 +269,30 @@ func (s *PaymentService) VerifyPayment(authority string, amount int) (*PaymentTr
 		return nil, fmt.Errorf("transaction not found: %w", err)
 	}
 
-	// 2. ساخت درخواست تایید
+	// 2. اگر تراکنش قبلاً پردازش شده (success یا failed)، وضعیت فعلی را برمی‌گردانیم
+	// این از پردازش مجدد جلوگیری می‌کند (Idempotency)
+	if transaction.Status == "success" || transaction.Status == "failed" {
+		logger.Info("Transaction already processed, returning current status",
+			zap.String("authority", authority),
+			zap.String("status", transaction.Status),
+			zap.String("ref_id", transaction.RefID))
+		return &transaction, nil
+	}
+
+	// 3. ساخت درخواست تایید
 	verifyReq := PaymentVerify{
 		MerchantID: s.config.MerchantID,
 		Amount:     amount,
 		Authority:  authority,
 	}
 
-	// 3. انتخاب URL
+	// 4. انتخاب URL
 	apiURL := "https://api.zarinpal.com/pg/v4/payment/verify.json"
 	if s.config.Sandbox {
 		apiURL = "https://sandbox.zarinpal.com/pg/v4/payment/verify.json"
 	}
 
-	// 4. ارسال درخواست تایید
+	// 5. ارسال درخواست تایید
 	response, err := s.sendVerifyRequest(apiURL, verifyReq)
 	if err != nil {
 		logger.Error("Failed to verify payment",
@@ -290,7 +301,7 @@ func (s *PaymentService) VerifyPayment(authority string, amount int) (*PaymentTr
 		return nil, fmt.Errorf("failed to verify payment: %w", err)
 	}
 
-	// 5. بررسی کد پاسخ - 100 یا 101 = موفق
+	// 6. بررسی کد پاسخ - 100 یا 101 = موفق
 	if response.Data.Code == 100 || response.Data.Code == 101 {
 		transaction.Status = "success"
 		transaction.RefID = fmt.Sprintf("%d", response.Data.RefID)
@@ -305,12 +316,40 @@ func (s *PaymentService) VerifyPayment(authority string, amount int) (*PaymentTr
 			zap.String("message", response.Data.Message))
 	}
 
-	// 6. ذخیره وضعیت نهایی
-	if err := s.db.Save(&transaction).Error; err != nil {
+	// 7. ذخیره وضعیت نهایی با atomic update
+	// استفاده از WHERE clause برای جلوگیری از race condition
+	// این اطمینان می‌دهد که فقط اگر هنوز pending باشد، update شود
+	result := s.db.Model(&PaymentTransaction{}).
+		Where("authority = ? AND status = ?", authority, "pending").
+		Updates(map[string]interface{}{
+			"status": transaction.Status,
+			"ref_id": transaction.RefID,
+		})
+
+	if result.Error != nil {
 		logger.Error("Failed to update transaction status",
 			zap.Uint("transaction_id", transaction.ID),
-			zap.Error(err))
-		return nil, fmt.Errorf("failed to update transaction status: %w", err)
+			zap.Error(result.Error))
+		return nil, fmt.Errorf("failed to update transaction status: %w", result.Error)
+	}
+
+	// بررسی اینکه آیا row به‌روزرسانی شد یا نه
+	// اگر 0 rows affected باشد، یعنی تراکنش قبلاً توسط process دیگری پردازش شده
+	if result.RowsAffected == 0 {
+		logger.Info("Transaction already processed by another process, returning current status",
+			zap.String("authority", authority))
+		// خواندن مجدد تراکنش برای برگرداندن وضعیت فعلی
+		var currentTransaction PaymentTransaction
+		if err := s.db.Where("authority = ?", authority).First(&currentTransaction).Error; err == nil {
+			return &currentTransaction, nil
+		}
+		return &transaction, nil
+	}
+
+	// 8. خواندن مجدد تراکنش برای اطمینان از وضعیت به‌روز
+	var updatedTransaction PaymentTransaction
+	if err := s.db.Where("authority = ?", authority).First(&updatedTransaction).Error; err == nil {
+		return &updatedTransaction, nil
 	}
 
 	return &transaction, nil

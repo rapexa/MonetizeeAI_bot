@@ -372,7 +372,7 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	data := callback.Data
 
 	// Check if it's a user callback (not admin)
-	if strings.HasPrefix(data, "has_license") || strings.HasPrefix(data, "no_license") || strings.HasPrefix(data, "start_free_trial") || data == "enter_license" || strings.HasPrefix(data, "payment:") || data == "buy_subscription" {
+	if strings.HasPrefix(data, "has_license") || strings.HasPrefix(data, "no_license") || strings.HasPrefix(data, "start_free_trial") || data == "enter_license" || strings.HasPrefix(data, "payment:") || data == "buy_subscription" || strings.HasPrefix(data, "check_payment:") {
 		handleUserCallbackQuery(update)
 		bot.Send(tgbotapi.NewCallback(callback.ID, "✅ عملیات با موفقیت انجام شد"))
 		return
@@ -802,6 +802,14 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 				return
 			}
 		}
+
+		// Check if it's a manual payment check callback
+		if strings.HasPrefix(data, "check_payment:") {
+			authority := strings.TrimPrefix(data, "check_payment:")
+			handleManualPaymentCheck(&user, authority)
+			return
+		}
+
 		logger.Warn("Unknown callback data", zap.String("data", data), zap.Int64("user_id", userID))
 	}
 }
