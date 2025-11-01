@@ -22,7 +22,6 @@ import CRM from './pages/CRM';
 import LeadProfile from './pages/LeadProfile';
 import ReadyPrompts from './pages/ReadyPrompts';
 import CoursePlayer from './pages/CoursePlayer';
-import PaymentResult from './pages/PaymentResult';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -45,36 +44,31 @@ function AppRouter() {
   }, [navigate, location.pathname]);
 
   return (
-    <>
+    <Layout>
       <Routes>
-        <Route path="/payment/result" element={<PaymentResult />} />
-      </Routes>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/levels" element={<Levels />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/ai-coach" element={<AICoach />} />
-          <Route path="/tools" element={<Tools />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/chatbot" element={<Chatbot />} />
-          <Route path="/growth-club" element={<SocialGrowth />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/chat/:userId" element={<Chat />} />
-          <Route path="/energy-boost" element={<EnergyBoost />} />
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/levels" element={<Levels />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/ai-coach" element={<AICoach />} />
+        <Route path="/tools" element={<Tools />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/chatbot" element={<Chatbot />} />
+        <Route path="/growth-club" element={<SocialGrowth />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/chat/:userId" element={<Chat />} />
+        <Route path="/energy-boost" element={<EnergyBoost />} />
 
-          <Route path="/business-builder-ai" element={<BusinessBuilderAI />} />
-          <Route path="/sell-kit-ai" element={<SellKitAI />} />
-          <Route path="/client-finder-ai" element={<ClientFinderAI />} />
-          <Route path="/sales-path-ai" element={<SalesPathAI />} />
-          <Route path="/crm" element={<CRM />} />
-          <Route path="/lead-profile" element={<LeadProfile />} />
-          {/* SalesPanel removed */}
-          <Route path="/ready-prompts" element={<ReadyPrompts />} />
-          <Route path="/courses/:courseId" element={<CoursePlayer />} />
-        </Routes>
-      </Layout>
-    </>
+        <Route path="/business-builder-ai" element={<BusinessBuilderAI />} />
+        <Route path="/sell-kit-ai" element={<SellKitAI />} />
+        <Route path="/client-finder-ai" element={<ClientFinderAI />} />
+        <Route path="/sales-path-ai" element={<SalesPathAI />} />
+        <Route path="/crm" element={<CRM />} />
+        <Route path="/lead-profile" element={<LeadProfile />} />
+        {/* SalesPanel removed */}
+        <Route path="/ready-prompts" element={<ReadyPrompts />} />
+        <Route path="/courses/:courseId" element={<CoursePlayer />} />
+      </Routes>
+    </Layout>
   );
 }
 

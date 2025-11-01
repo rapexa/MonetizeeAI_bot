@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 
 	"MonetizeeAI_bot/logger"
 
@@ -155,21 +157,15 @@ func (h *PaymentHandler) HandleCallback(w http.ResponseWriter, r *http.Request) 
 	// 9. ارسال پیام موفقیت به کاربر در تلگرام
 	h.sendPaymentSuccessNotification(verifiedTransaction)
 
-	// 10. نمایش صفحه HTML که کاربر را به مینی اپ redirect می‌کند
-	miniAppURL := os.Getenv("MINI_APP_URL")
-	if miniAppURL == "" {
-		miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
-	}
-
-	// ساخت URL با پارامترها برای مینی اپ
-	miniAppPath := fmt.Sprintf("/payment/result?status=success&authority=%s&ref_id=%s&amount=%d&plan_type=%s",
+	// 10. نمایش صفحه نتیجه پرداخت
+	// پارامترها را به URL اضافه می‌کنیم تا در renderRedirectPage خوانده شوند
+	r.URL.RawQuery = fmt.Sprintf("status=success&authority=%s&ref_id=%s&amount=%d&plan_type=%s",
 		authority,
 		verifiedTransaction.RefID,
 		verifiedTransaction.Amount,
 		verifiedTransaction.Type)
 
-	// صفحه HTML که کاربر را به مینی اپ هدایت می‌کند
-	h.renderRedirectPage(w, r, miniAppURL, miniAppPath, "success")
+	h.renderRedirectPage(w, r, "", "", "success")
 }
 
 // sendPaymentSuccessNotification ارسال پیام موفقیت به کاربر
@@ -474,101 +470,367 @@ func (h *PaymentHandler) renderPaymentPage(
 	w.Write([]byte(pageContent))
 }
 
-// renderRedirectPage نمایش صفحه HTML که کاربر را به مینی اپ هدایت می‌کند
+// renderRedirectPage نمایش صفحه نتیجه پرداخت با تم مینی اپ
 func (h *PaymentHandler) renderRedirectPage(w http.ResponseWriter, r *http.Request, miniAppURL, miniAppPath, status string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	// ساخت URL کامل برای مینی اپ
-	fullMiniAppURL := miniAppURL + miniAppPath
+	// استخراج پارامترها از query string
+	refID := r.URL.Query().Get("ref_id")
+	amountStr := r.URL.Query().Get("amount")
+	planType := r.URL.Query().Get("plan_type")
 
-	// صفحه HTML با JavaScript که کاربر را به مینی اپ redirect می‌کند
+	// اگر از miniAppPath فراخوانی شده (backward compatibility)
+	if refID == "" && strings.Contains(miniAppPath, "ref_id=") {
+		// Extract from miniAppPath
+		if strings.Contains(miniAppPath, "?") {
+			queryPart := strings.Split(miniAppPath, "?")[1]
+			parts := strings.Split(queryPart, "&")
+			for _, part := range parts {
+				if strings.HasPrefix(part, "ref_id=") {
+					refID = strings.TrimPrefix(part, "ref_id=")
+				}
+				if strings.HasPrefix(part, "amount=") {
+					amountStr = strings.TrimPrefix(part, "amount=")
+				}
+				if strings.HasPrefix(part, "plan_type=") {
+					planType = strings.TrimPrefix(part, "plan_type=")
+				}
+			}
+		}
+	}
+
+	// تعیین محتوا بر اساس status
+	var icon string
+	var title string
+	var message string
+	var cardClass string
+
+	if status == "success" {
+		icon = "✅"
+		title = "پرداخت موفق!"
+		message = "اشتراک شما با موفقیت فعال شد. از خدمات ما لذت ببرید! 🎉"
+		cardClass = "success-card"
+	} else {
+		icon = "❌"
+		title = "پرداخت ناموفق"
+		message = "متأسفانه پرداخت شما با خطا مواجه شد. لطفاً دوباره تلاش کنید."
+		cardClass = "failed-card"
+	}
+
+	// Get plan name
+	var planName string
+	switch planType {
+	case "starter":
+		planName = "Starter (یک ماهه)"
+	case "pro":
+		planName = "Pro (شش‌ماهه)"
+	case "ultimate":
+		planName = "Ultimate (مادام‌العمر)"
+	default:
+		planName = ""
+	}
+
+	// Format amount
+	var formattedAmount string
+	if amountStr != "" {
+		if amt, err := strconv.Atoi(amountStr); err == nil {
+			formattedAmount = formatPrice(amt)
+		} else {
+			formattedAmount = amountStr
+		}
+	}
+
 	pageContent := fmt.Sprintf(`<!DOCTYPE html>
 <html dir="rtl" lang="fa">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>در حال هدایت - MonetizeAI</title>
+    <title>%s - MonetizeAI</title>
     <style>
-        body {
-            font-family: 'IranSansX', Vazir, system-ui, sans-serif;
-            background: linear-gradient(135deg, #0e0817 0%%, #1a0f2e 100%%);
+        @import url('https://fonts.googleapis.com/css2?family=Vazir:wght@400;500;700&display=swap');
+        
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Vazir', 'IranSansX', system-ui, sans-serif;
+            background: #0e0817;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            padding: 20px;
             color: white;
         }
-        .container {
-            text-align: center;
-            max-width: 400px;
+        
+        .payment-container {
+            width: 100%%;
+            max-width: 450px;
+            position: relative;
         }
-        .loader {
-            border: 4px solid rgba(44, 24, 154, 0.3);
-            border-top: 4px solid #5a189a;
+        
+        .payment-card {
+            background: linear-gradient(135deg, rgba(44, 24, 154, 0.95) 0%%, rgba(90, 24, 154, 0.95) 50%%, rgba(114, 34, 242, 0.95) 100%%);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(90, 24, 154, 0.3);
+            border: 1px solid rgba(90, 24, 154, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .payment-card::before {
+            content: '';
+            position: absolute;
+            top: -50%%;
+            right: -50%%;
+            width: 200%%;
+            height: 200%%;
+            background: radial-gradient(circle, rgba(114, 34, 242, 0.1) 0%%, transparent 70%%);
+            pointer-events: none;
+        }
+        
+        .icon-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .icon-circle {
+            width: 96px;
+            height: 96px;
             border-radius: 50%%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
         }
-        @keyframes spin {
-            0%% { transform: rotate(0deg); }
-            100%% { transform: rotate(360deg); }
+        
+        .success-card .icon-circle {
+            background: linear-gradient(135deg, #10b981 0%%, #059669 100%%);
         }
-        h1 {
-            margin: 20px 0;
-            font-size: 24px;
+        
+        .failed-card .icon-circle {
+            background: linear-gradient(135deg, #ef4444 0%%, #dc2626 100%%);
         }
-        .button {
+        
+        .icon-circle::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%%;
+            padding: 2px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), transparent);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0.5;
+        }
+        
+        .title {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .success-card .title {
+            color: #10b981;
+        }
+        
+        .failed-card .title {
+            color: #ef4444;
+        }
+        
+        .message {
+            text-align: center;
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 32px;
+            line-height: 1.6;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .details {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .detail-value {
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .detail-value.amount {
+            color: #10b981;
+        }
+        
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .btn {
+            width: 100%%;
+            padding: 16px 24px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Vazir', 'IranSansX', system-ui, sans-serif;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
             background: linear-gradient(135deg, #2c189a 0%%, #5a189a 100%%);
             color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 20px;
-            text-decoration: none;
-            display: inline-block;
-            transition: transform 0.2s;
+            box-shadow: 0 8px 24px rgba(90, 24, 154, 0.4);
         }
-        .button:hover {
-            transform: scale(1.05);
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(90, 24, 154, 0.6);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        @media (max-width: 480px) {
+            .payment-card {
+                padding: 24px;
+            }
+            
+            .title {
+                font-size: 24px;
+            }
+            
+            .icon-circle {
+                width: 80px;
+                height: 80px;
+                font-size: 40px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="loader"></div>
-        <h1>در حال هدایت به مینی اپ...</h1>
-        <p>اگر به طور خودکار منتقل نشدید، روی دکمه زیر کلیک کنید:</p>
-        <a href="%s" class="button">باز کردن مینی اپ</a>
+    <div class="payment-container">
+        <div class="payment-card %s">
+            <div class="icon-container">
+                <div class="icon-circle">
+                    %s
+                </div>
+            </div>
+            
+            <h1 class="title">%s</h1>
+            <p class="message">%s</p>
+            
+            %s
+            
+            <div class="buttons">
+                %s
+            </div>
+        </div>
     </div>
-    <script>
-        // تلاش برای باز کردن مینی اپ
-        setTimeout(function() {
-            // اگر در Telegram Mini App هستیم، از Telegram API استفاده می‌کنیم
-            if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-                // اگر در مینی اپ هستیم، فقط navigate کنیم
-                if (window.location.href.includes('t.me')) {
-                    window.location.href = '%s';
-                } else {
-                    // اگر در مرورگر هستیم، سعی کنیم مینی اپ را باز کنیم
-                    window.location.href = '%s';
-                }
-            } else {
-                // اگر Telegram API در دسترس نیست، به URL مینی اپ redirect کنیم
-                window.location.href = '%s';
-            }
-        }, 500);
-        
-        // Fallback: اگر بعد از 3 ثانیه redirect نشد، دکمه نمایش داده می‌شود
-    </script>
 </body>
-</html>`, fullMiniAppURL, fullMiniAppURL, fullMiniAppURL, fullMiniAppURL)
+</html>`, cardClass, icon, title, message,
+		func() string {
+			if status == "success" && refID != "" {
+				return fmt.Sprintf(`<div class="details">
+                    %s
+                    %s
+                    %s
+                </div>`,
+					func() string {
+						if refID != "" {
+							return fmt.Sprintf(`<div class="detail-row">
+                        <span class="detail-label">شماره تراکنش:</span>
+                        <span class="detail-value">%s</span>
+                    </div>`, refID)
+						}
+						return ""
+					}(),
+					func() string {
+						if formattedAmount != "" {
+							return fmt.Sprintf(`<div class="detail-row">
+                        <span class="detail-label">مبلغ:</span>
+                        <span class="detail-value amount">%s تومان</span>
+                    </div>`, formattedAmount)
+						}
+						return ""
+					}(),
+					func() string {
+						if planName != "" {
+							return fmt.Sprintf(`<div class="detail-row">
+                        <span class="detail-label">نوع اشتراک:</span>
+                        <span class="detail-value">%s</span>
+                    </div>`, planName)
+						}
+						return ""
+					}())
+			}
+			return ""
+		}(),
+		func() string {
+			if status == "success" {
+				return `<button class="btn btn-primary" onclick="window.close()">بستن</button>`
+			} else {
+				return `<button class="btn btn-primary" onclick="window.history.back()">تلاش مجدد</button>
+                    <button class="btn btn-secondary" onclick="window.close()">بستن</button>`
+			}
+		}())
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(pageContent))
