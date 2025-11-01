@@ -665,10 +665,10 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
 		}
 
-		// Create Mini App URL that opens directly to profile/subscription page
-		// We'll use startapp parameter to indicate user wants to see subscription page
-		// Format: /profile?startapp=subscription
-		miniAppWithSubscription := fmt.Sprintf("%s/profile?startapp=subscription", miniAppURL)
+		// Create Mini App URL with startapp parameter
+		// Telegram Mini App format: https://t.me/bot_username/app_name?startapp=param
+		// The startapp parameter will be available as start_param in Telegram WebApp
+		miniAppWithSubscription := fmt.Sprintf("%s?startapp=subscription", miniAppURL)
 
 		userName := user.FirstName
 		if user.LastName != "" {

@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Levels from './pages/Levels';
@@ -24,6 +24,53 @@ import ReadyPrompts from './pages/ReadyPrompts';
 import CoursePlayer from './pages/CoursePlayer';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
+
+// Component to handle Telegram WebApp start_param navigation
+function AppRouter() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check if Telegram WebApp has start_param for subscription
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
+      const startParam = window.Telegram.WebApp.initDataUnsafe.start_param;
+      
+      // If start_param is "subscription", navigate to profile page
+      // The Profile component will handle opening the subscription modal
+      if (startParam === 'subscription' && location.pathname !== '/profile') {
+        navigate('/profile?startapp=subscription', { replace: true });
+      }
+    }
+  }, [navigate, location.pathname]);
+
+  return (
+    <Layout>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/levels" element={<Levels />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/ai-coach" element={<AICoach />} />
+        <Route path="/tools" element={<Tools />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/chatbot" element={<Chatbot />} />
+        <Route path="/growth-club" element={<SocialGrowth />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/chat/:userId" element={<Chat />} />
+        <Route path="/energy-boost" element={<EnergyBoost />} />
+
+        <Route path="/business-builder-ai" element={<BusinessBuilderAI />} />
+        <Route path="/sell-kit-ai" element={<SellKitAI />} />
+        <Route path="/client-finder-ai" element={<ClientFinderAI />} />
+        <Route path="/sales-path-ai" element={<SalesPathAI />} />
+        <Route path="/crm" element={<CRM />} />
+        <Route path="/lead-profile" element={<LeadProfile />} />
+        {/* SalesPanel removed */}
+        <Route path="/ready-prompts" element={<ReadyPrompts />} />
+        <Route path="/courses/:courseId" element={<CoursePlayer />} />
+      </Routes>
+    </Layout>
+  );
+}
 
 function App() {
   return (
@@ -50,31 +97,7 @@ function App() {
       <ThemeProvider>
         <AppProvider>
           <Router>
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/levels" element={<Levels />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/ai-coach" element={<AICoach />} />
-                <Route path="/tools" element={<Tools />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/chatbot" element={<Chatbot />} />
-                <Route path="/growth-club" element={<SocialGrowth />} />
-                <Route path="/messages" element={<Messages />} />
-                <Route path="/chat/:userId" element={<Chat />} />
-                <Route path="/energy-boost" element={<EnergyBoost />} />
-
-                <Route path="/business-builder-ai" element={<BusinessBuilderAI />} />
-                <Route path="/sell-kit-ai" element={<SellKitAI />} />
-                <Route path="/client-finder-ai" element={<ClientFinderAI />} />
-                <Route path="/sales-path-ai" element={<SalesPathAI />} />
-                <Route path="/crm" element={<CRM />} />
-                <Route path="/lead-profile" element={<LeadProfile />} />
-                {/* SalesPanel removed */}
-                <Route path="/ready-prompts" element={<ReadyPrompts />} />
-                <Route path="/courses/:courseId" element={<CoursePlayer />} />
-              </Routes>
-            </Layout>
+            <AppRouter />
           </Router>
         </AppProvider>
       </ThemeProvider>
