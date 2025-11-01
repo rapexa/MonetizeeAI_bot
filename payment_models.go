@@ -1,8 +1,6 @@
 package main
 
 import (
-	"time"
-
 	"gorm.io/gorm"
 )
 
@@ -17,9 +15,6 @@ type PaymentTransaction struct {
 	RefID       string `gorm:"size:100" json:"ref_id"`
 	Status      string `gorm:"size:20;default:'pending'" json:"status"` // Statuses: "pending", "success", "failed"
 	Description string `gorm:"size:500" json:"description"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	DeletedAt   gorm.DeletedAt `gorm:"index"`
 }
 
 func (PaymentTransaction) TableName() string {
