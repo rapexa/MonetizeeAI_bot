@@ -294,11 +294,30 @@ func handleMessage(update tgbotapi.Update) {
 				IsVerified:       false,
 				SubscriptionType: "none",
 				PlanName:         "",
+				// Reset SMS flags for testing
+				SignUpSMSSent:          false,
+				FreeTrialDayOneSMSSent: false,
+				FreeTrialDayTwoSMSSent: false,
+				FreeTrialExpireSMSSent: false,
 			}
 			db.Create(&user)
 		} else {
-			// User exists - temporarily reset state for testing (don't modify DB)
-			// Just reset the state in memory
+			// User exists - reset SMS flags and verification for testing
+			user.IsVerified = false
+			user.SubscriptionType = "none"
+			user.PlanName = ""
+			// Reset SMS flags for testing so SMS can be sent again
+			user.SignUpSMSSent = false
+			user.FreeTrialDayOneSMSSent = false
+			user.FreeTrialDayTwoSMSSent = false
+			user.FreeTrialExpireSMSSent = false
+			// Clear phone so it asks again
+			user.Phone = ""
+			user.FirstName = ""
+			user.LastName = ""
+			// Reset subscription expiry
+			user.SubscriptionExpiry = nil
+			db.Save(&user)
 		}
 
 		// Send welcome message and ask for name
