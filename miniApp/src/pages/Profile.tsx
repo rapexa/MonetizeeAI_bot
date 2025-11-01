@@ -29,6 +29,8 @@ const Profile: React.FC = () => {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('online');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentAuthority, setPaymentAuthority] = useState<string | null>(null);
 
   const planDetails = {
     starter: {
@@ -201,7 +203,123 @@ const Profile: React.FC = () => {
     setShowSubscriptionModal(false);
     setShowCheckoutModal(true);
     setSelectedPlan(planId);
+    setPaymentAuthority(null); // Reset payment authority
   };
+
+  // Handle payment button click
+  const handlePayment = async () => {
+    if (!selectedPlan) {
+      alert('لطفا یک پلن را انتخاب کنید');
+      return;
+    }
+
+    // Map plan IDs to backend plan types
+    const planTypeMap: { [key: string]: 'starter' | 'pro' | 'ultimate' } = {
+      'starter': 'starter',
+      'pro': 'pro',
+      'ultimate': 'ultimate'
+    };
+
+    const planType = planTypeMap[selectedPlan];
+    if (!planType) {
+      alert('نوع پلن نامعتبر است');
+      return;
+    }
+
+    setPaymentLoading(true);
+
+    try {
+      // Create payment request
+      const response = await apiService.createPaymentRequest(planType);
+
+      if (response.success && response.data) {
+        const { payment_url, authority } = response.data;
+        
+        // Save authority to check payment status later
+        setPaymentAuthority(authority);
+        
+        // Open payment page in new tab
+        window.open(payment_url, '_blank');
+        
+        // Start polling for payment status
+        pollPaymentStatus(authority);
+      } else {
+        alert(response.error || 'خطا در ایجاد درخواست پرداخت. لطفا دوباره تلاش کنید.');
+      }
+    } catch (error) {
+      console.error('Payment request error:', error);
+      alert('خطا در ارتباط با سرور. لطفا دوباره تلاش کنید.');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // Poll payment status after redirect
+  const pollPaymentStatus = async (authority: string) => {
+    const maxAttempts = 60; // Check for 5 minutes (60 * 5 seconds)
+    let attempts = 0;
+
+    const checkStatus = async () => {
+      if (attempts >= maxAttempts) {
+        console.log('Payment status check timeout');
+        return;
+      }
+
+      attempts++;
+
+      try {
+        const response = await apiService.checkPaymentStatus(authority);
+
+        if (response.success && response.data) {
+          if (response.data.success) {
+            // Payment successful
+            alert('✅ پرداخت با موفقیت انجام شد! اشتراک شما فعال شد.');
+            setShowCheckoutModal(false);
+            setPaymentAuthority(null);
+            
+            // Refresh user data
+            if (refreshUserData) {
+              refreshUserData();
+            }
+            return;
+          } else if (response.data.failed) {
+            // Payment failed
+            alert('❌ پرداخت ناموفق بود. لطفا دوباره تلاش کنید.');
+            setPaymentAuthority(null);
+            return;
+          }
+        }
+
+        // If still pending, check again after 5 seconds
+        if (response.data?.pending) {
+          setTimeout(checkStatus, 5000);
+        }
+      } catch (error) {
+        console.error('Error checking payment status:', error);
+        // Retry after 5 seconds
+        setTimeout(checkStatus, 5000);
+      }
+    };
+
+    // Start checking after 5 seconds
+    setTimeout(checkStatus, 5000);
+  };
+
+  // Check payment status on component mount if we have an authority
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const authority = urlParams.get('Authority');
+    const status = urlParams.get('Status');
+
+    if (authority && status === 'OK') {
+      // User returned from ZarinPal
+      setPaymentAuthority(authority);
+      pollPaymentStatus(authority);
+      
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   // Load profile data on component mount
   useEffect(() => {
@@ -917,28 +1035,22 @@ const Profile: React.FC = () => {
               {/* Action Buttons */}
               <div className="space-y-3">
                 {selectedPaymentMethod === 'online' ? (
-                  <button 
-                    onClick={() => {
-                      // Get payment link for selected plan
-                      const paymentLinks: { [key: string]: string } = {
-                        'starter': 'https://zarinp.al/752552',
-                        'pro': 'https://zarinp.al/752556',
-                        'ultimate': 'https://zarinp.al/752558'
-                      };
-                      
-                      const paymentLink = paymentLinks[selectedPlan];
-                      
-                      if (paymentLink) {
-                        // Open payment page in new tab (modal stays open)
-                        window.open(paymentLink, '_blank');
-                      } else {
-                        alert('لینک پرداخت یافت نشد!');
-                      }
-                    }}
-                    className="w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-xl bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 shadow-[#5A189A]/25"
+                  <>
+                    <button 
+                      onClick={handlePayment}
+                      disabled={paymentLoading}
+                      className="w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-xl bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 shadow-[#5A189A]/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
-                    💳 پرداخت و فعال‌سازی
-                  </button>
+                      {paymentLoading ? '⏳ در حال ایجاد درخواست پرداخت...' : '💳 پرداخت و فعال‌سازی'}
+                    </button>
+                    {paymentAuthority && (
+                      <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-3">
+                        <p className="text-blue-400 text-xs text-center">
+                          ⏳ در حال بررسی وضعیت پرداخت... لطفا صفحه پرداخت را ببندید و منتظر بمانید.
+                        </p>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="text-center">
                     <div className="bg-green-500/20 border border-green-500/30 rounded-xl p-4 mb-3">

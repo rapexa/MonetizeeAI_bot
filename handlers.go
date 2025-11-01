@@ -375,9 +375,14 @@ func checkSubscriptionExpiry(user *User) {
 						"✅ برای ادامه استفاده از امکانات ربات، لطفا اشتراک ماهیانه خریداری کنید.")
 
 				// Create keyboard with only payment link button
+				// Show payment plans keyboard
 				keyboard := tgbotapi.NewInlineKeyboardMarkup(
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonURL("💳 خرید اشتراک", paymentLink),
+						tgbotapi.NewInlineKeyboardButtonData("🚀 Starter", "payment:starter"),
+						tgbotapi.NewInlineKeyboardButtonData("⚡ Pro", "payment:pro"),
+					),
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("👑 Ultimate", "payment:ultimate"),
 					),
 				)
 				msg.ReplyMarkup = keyboard
@@ -399,10 +404,14 @@ func checkSubscriptionExpiry(user *User) {
 					"🔒 متأسفانه دیگر نمی‌توانید از امکانات ربات استفاده کنید.\n\n"+
 					"✅ برای ادامه استفاده از امکانات ربات، لطفا اشتراک ماهیانه خریداری کنید.")
 
-			// Create keyboard with only payment link button
+			// Show payment plans keyboard
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
 				tgbotapi.NewInlineKeyboardRow(
-					tgbotapi.NewInlineKeyboardButtonURL("💳 خرید اشتراک", paymentLink),
+					tgbotapi.NewInlineKeyboardButtonData("🚀 Starter", "payment:starter"),
+					tgbotapi.NewInlineKeyboardButtonData("⚡ Pro", "payment:pro"),
+				),
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("👑 Ultimate", "payment:ultimate"),
 				),
 			)
 			msg.ReplyMarkup = keyboard

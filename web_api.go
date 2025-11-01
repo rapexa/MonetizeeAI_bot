@@ -224,7 +224,22 @@ func StartWebAPI() {
 		// 🔒 SECURITY: Mini App security management endpoint
 		v1.POST("/security", handleMiniAppSecurityAPI)
 
+		// Payment endpoints
+		v1.POST("/payment/create", handleCreatePaymentRequest)
+		v1.GET("/payment/status", handleCheckPaymentStatus)
 	}
+
+	// Payment callback routes (outside v1, for ZarinPal)
+	paymentHandler := NewPaymentHandler()
+	r.GET("/payment/callback", func(c *gin.Context) {
+		paymentHandler.HandleCallback(c.Writer, c.Request)
+	})
+	r.POST("/payment/callback", func(c *gin.Context) {
+		paymentHandler.HandleCallback(c.Writer, c.Request)
+	})
+	r.GET("/payment/check", func(c *gin.Context) {
+		paymentHandler.CheckPaymentStatus(c.Writer, c.Request)
+	})
 
 	port := getEnvWithDefault("WEB_API_PORT", "8080")
 	logger.Info("Starting Web API server", zap.String("port", port))

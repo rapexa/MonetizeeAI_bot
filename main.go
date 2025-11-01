@@ -54,6 +54,7 @@ func initDB() {
 		&Backup{},
 		&LicenseVerification{},
 		&ChatMessage{},
+		&PaymentTransaction{},
 	)
 	if err != nil {
 		log.Printf("Warning: Migration error: %v", err)

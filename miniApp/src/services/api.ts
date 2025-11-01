@@ -513,6 +513,50 @@ class APIService {
       ...quizData
     });
   }
+
+  // Create payment request
+  async createPaymentRequest(planType: 'starter' | 'pro' | 'ultimate'): Promise<APIResponse<{
+    authority: string;
+    payment_url: string;
+    amount: number;
+    plan_type: string;
+  }>> {
+    const telegramId = this.getTelegramId();
+    if (!telegramId) {
+      return { success: false, error: 'No user ID available' };
+    }
+
+    return this.makeRequest<{
+      authority: string;
+      payment_url: string;
+      amount: number;
+      plan_type: string;
+    }>('POST', '/payment/create', {
+      telegram_id: telegramId,
+      plan_type: planType
+    });
+  }
+
+  // Check payment status
+  async checkPaymentStatus(authority: string): Promise<APIResponse<{
+    status: string;
+    ref_id: string;
+    amount: number;
+    type: string;
+    success: boolean;
+    failed: boolean;
+    pending: boolean;
+  }>> {
+    return this.makeRequest<{
+      status: string;
+      ref_id: string;
+      amount: number;
+      type: string;
+      success: boolean;
+      failed: boolean;
+      pending: boolean;
+    }>('GET', `/payment/status?authority=${encodeURIComponent(authority)}`);
+  }
 }
 
 const apiService = new APIService();
