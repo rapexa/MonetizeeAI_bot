@@ -492,6 +492,13 @@ func getUserOrCreate(from *tgbotapi.User) *User {
 }
 
 func processUserInput(input string, user *User) string {
+	// Refresh user from database to get latest subscription status
+	// This is important because payment checker might have updated the subscription
+	var updatedUser User
+	if err := db.Where("telegram_id = ?", user.TelegramID).First(&updatedUser).Error; err == nil {
+		user = &updatedUser
+	}
+
 	state, exists := userStates[user.TelegramID]
 	if !exists {
 		state = ""
@@ -614,12 +621,29 @@ func processUserInput(input string, user *User) string {
 		}
 
 	case StateWaitingForPlanSelection:
-		// User should select from inline buttons, not send text
-		msg := tgbotapi.NewMessage(user.TelegramID, "⚠️ لطفا یکی از پلن‌های زیر را از طریق دکمه‌ها انتخاب کنید:")
-		planKeyboard := getPlanSelectionKeyboard()
-		msg.ReplyMarkup = planKeyboard
-		bot.Send(msg)
-		return ""
+		// First check if user now has active subscription (payment might have completed)
+		// Re-check from database to get latest subscription status
+		var latestUser User
+		if err := db.Where("telegram_id = ?", user.TelegramID).First(&latestUser).Error; err == nil {
+			if latestUser.HasActiveSubscription() {
+				// User has active subscription now, clear state and allow normal flow
+				userStates[user.TelegramID] = ""
+				// Update user pointer to latest data
+				user = &latestUser
+				// Let it fall through to normal command handling
+			} else {
+				// User should select from inline buttons, not send text
+				msg := tgbotapi.NewMessage(user.TelegramID, "⚠️ لطفا یکی از پلن‌های زیر را از طریق دکمه‌ها انتخاب کنید:")
+				planKeyboard := getPlanSelectionKeyboard()
+				msg.ReplyMarkup = planKeyboard
+				bot.Send(msg)
+				return ""
+			}
+		} else {
+			// User not found, clear state anyway
+			userStates[user.TelegramID] = ""
+			// Let it fall through
+		}
 
 	case StateWaitingForName:
 		names := strings.Split(input, " ")

@@ -30,7 +30,7 @@ func checkPendingPayments() {
 	// Find all pending transactions that are older than 2 minutes
 	// (to give users time to complete payment, but check soon after)
 	var pendingTransactions []PaymentTransaction
-	cutoffTime := time.Now().Add(-2 * time.Minute)
+	cutoffTime := time.Now().Add(-3 * time.Minute)
 
 	err := db.Where("status = ? AND created_at <= ?", "pending", cutoffTime).Find(&pendingTransactions).Error
 	if err != nil {
@@ -114,6 +114,14 @@ func checkPendingPayments() {
 
 			// Send success notifications (SMS and Telegram)
 			sendPaymentSuccessNotifications(verifiedTransaction)
+
+			// Clear user state so they can use the menu
+			var user User
+			if err := db.First(&user, transaction.UserID).Error; err == nil {
+				userStates[user.TelegramID] = ""
+				logger.Info("Cleared user state after successful payment",
+					zap.Int64("telegram_id", user.TelegramID))
+			}
 
 			logger.Info("Pending payment processed successfully",
 				zap.Uint("transaction_id", transaction.ID),

@@ -394,6 +394,13 @@ func handleMessage(update tgbotapi.Update) {
 		}
 	}
 
+	// Refresh user from database before processing input
+	// This ensures we have the latest subscription status
+	var freshUser User
+	if err := db.Where("telegram_id = ?", update.Message.From.ID).First(&freshUser).Error; err == nil {
+		user = &freshUser
+	}
+
 	// Handle regular messages
 	response := processUserInput(update.Message.Text, user)
 	sendMessage(update.Message.Chat.ID, response)
