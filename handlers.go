@@ -537,6 +537,9 @@ func processUserInput(input string, user *User) string {
 					tgbotapi.NewInlineKeyboardButtonData("🔹 بله لایسنس دارم", "has_license"),
 					tgbotapi.NewInlineKeyboardButtonData("🔸 خیر لایسنس ندارم", "no_license"),
 				),
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData("💎 تهیه اشتراک ویژه", "buy_subscription"),
+				),
 			)
 			msg.ReplyMarkup = keyboard
 			bot.Send(msg)
@@ -665,6 +668,9 @@ func processUserInput(input string, user *User) string {
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("🔹 بله لایسنس دارم", "has_license"),
 				tgbotapi.NewInlineKeyboardButtonData("🔸 خیر لایسنس ندارم", "no_license"),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("💎 تهیه اشتراک ویژه", "buy_subscription"),
 			),
 		)
 		msg.ReplyMarkup = keyboard

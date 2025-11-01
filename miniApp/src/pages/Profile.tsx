@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import apiService from '../services/api';
 import { 
@@ -14,6 +14,7 @@ import {
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { userData, isAPIConnected, refreshUserData } = useApp();
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -320,6 +321,28 @@ const Profile: React.FC = () => {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
+
+  // Check if user came from "buy subscription" button - open subscription modal automatically
+  useEffect(() => {
+    // Check URL parameter first
+    const urlParams = new URLSearchParams(window.location.search);
+    const startapp = urlParams.get('startapp');
+    
+    // Also check Telegram WebApp start_param
+    let startParam: string | null = null;
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
+      startParam = window.Telegram.WebApp.initDataUnsafe.start_param;
+    }
+    
+    // Check if startapp parameter or start_param starts with "subscription"
+    if ((startapp && startapp.startsWith('subscription')) || (startParam && startParam.startsWith('subscription'))) {
+      // Open subscription modal automatically
+      setShowSubscriptionModal(true);
+      
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [location]);
 
   // Load profile data on component mount
   useEffect(() => {

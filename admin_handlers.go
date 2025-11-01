@@ -372,7 +372,7 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	data := callback.Data
 
 	// Check if it's a user callback (not admin)
-	if strings.HasPrefix(data, "has_license") || strings.HasPrefix(data, "no_license") || strings.HasPrefix(data, "start_free_trial") || data == "enter_license" || strings.HasPrefix(data, "payment:") {
+	if strings.HasPrefix(data, "has_license") || strings.HasPrefix(data, "no_license") || strings.HasPrefix(data, "start_free_trial") || data == "enter_license" || strings.HasPrefix(data, "payment:") || data == "buy_subscription" {
 		handleUserCallbackQuery(update)
 		bot.Send(tgbotapi.NewCallback(callback.ID, "✅ عملیات با موفقیت انجام شد"))
 		return
@@ -643,6 +643,55 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 		userStates[userID] = ""
 		msg := tgbotapi.NewMessage(userID, "متوجه شدم. اگر در آینده تصمیم گرفتید، می‌توانید با ارسال /start دوباره شروع کنید.")
 		bot.Send(msg)
+
+	case "buy_subscription":
+		// User wants to buy subscription - activate free trial first and redirect to mini app
+		// Start free trial so user can access mini app
+		user.StartFreeTrial()
+		user.IsVerified = true // Mark user as verified so they can use the bot
+		user.IsActive = true   // Ensure user is active
+		if err := db.Save(&user).Error; err != nil {
+			logger.Error("Failed to save user with free trial for subscription purchase", zap.Error(err), zap.Int64("user_id", userID))
+			sendMessage(userID, "❌ خطا در فعال‌سازی دسترسی. لطفا دوباره تلاش کنید.")
+			return
+		}
+
+		// Clear state so user can use main menu
+		userStates[userID] = ""
+
+		// Get mini app URL
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL == "" {
+			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
+		}
+
+		// Create Mini App URL that opens directly to profile/subscription page
+		// We'll use startapp parameter to indicate user wants to see subscription page
+		// Format: /profile?startapp=subscription
+		miniAppWithSubscription := fmt.Sprintf("%s/profile?startapp=subscription", miniAppURL)
+
+		userName := user.FirstName
+		if user.LastName != "" {
+			userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
+		}
+
+		msg := tgbotapi.NewMessage(userID, fmt.Sprintf("💎 عالی %s!\n\n✅ اشتراک رایگان برای دسترسی به مینی اپ فعال شد.\n\n🔗 حالا می‌تونی وارد صفحه اشتراک‌ها بشی و اشتراک مورد نظرت رو انتخاب کنی:", userName))
+
+		// Create inline keyboard with Mini App button
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonURL("💎 مشاهده و خرید اشتراک", miniAppWithSubscription),
+			),
+		)
+		msg.ReplyMarkup = keyboard
+
+		// Also send main menu
+		bot.Send(msg)
+
+		// Send main menu as well
+		menuMsg := tgbotapi.NewMessage(userID, "🏠 منوی اصلی:")
+		menuMsg.ReplyMarkup = getMainMenuKeyboard()
+		bot.Send(menuMsg)
 
 	case "enter_license":
 		// User wants to enter license
