@@ -155,7 +155,35 @@ const Dashboard: React.FC = () => {
     await refreshUserData();
   };
 
-  // Show guide notification for second time (10 minutes after first)
+  // Check and start guide notification timer on mount
+  React.useEffect(() => {
+    const hasSeenStories = localStorage.getItem('hasSeenOnboardingStories') === 'true';
+    const guideNotifCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
+    
+    console.log('📊 Dashboard mounted - Guide notification status:', {
+      hasSeenStories,
+      guideNotifCount,
+      showOnboarding
+    });
+    
+    // اگر استوری‌ها دیده شده ولی نوتیفیکیشن هنوز نشون داده نشده
+    if (hasSeenStories && guideNotifCount === 0) {
+      console.log('⏰ Starting guide notification timer (1 minute)');
+      const timer = setTimeout(() => {
+        const currentCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
+        if (currentCount === 0) {
+          console.log('🔔 Showing guide notification (first time)');
+          setShowGuideNotification(true);
+          localStorage.setItem('guideNotificationCount', '1');
+          localStorage.setItem('lastGuideNotificationTime', Date.now().toString());
+        }
+      }, 60000); // 1 minute
+      
+      return () => clearTimeout(timer);
+    }
+  }, []); // Run only once on mount
+
+  // Show guide notification for second time (2 minutes after first - برای تست)
   React.useEffect(() => {
     const guideNotifCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
     const lastNotifTime = parseInt(localStorage.getItem('lastGuideNotificationTime') || '0');
@@ -165,17 +193,17 @@ const Dashboard: React.FC = () => {
     // فقط برای بار دوم (اگر بار اول دیده شده ولی بار دوم نه)
     if (guideNotifCount === 1) {
       const timeSinceLastNotif = Date.now() - lastNotifTime;
-      const tenMinutes = 600000; // 10 minutes in milliseconds
+      const twoMinutes = 120000; // 2 minutes for testing (قبلاً 600000 بود - 10 دقیقه)
       
-      // اگر کمتر از 10 دقیقه از بار اول گذشته، تایمر برای باقیمانده زمان بذار
-      if (timeSinceLastNotif < tenMinutes) {
-        const remainingTime = tenMinutes - timeSinceLastNotif;
+      // اگر کمتر از 2 دقیقه از بار اول گذشته، تایمر برای باقیمانده زمان بذار
+      if (timeSinceLastNotif < twoMinutes) {
+        const remainingTime = twoMinutes - timeSinceLastNotif;
         console.log('Scheduling second guide notification in', remainingTime / 1000, 'seconds');
         
         const timer = setTimeout(() => {
           const currentCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
           if (currentCount === 1) {
-            console.log('Showing second guide notification');
+            console.log('🔔 Showing second guide notification (last time)');
             setShowGuideNotification(true);
             localStorage.setItem('guideNotificationCount', '2');
             localStorage.setItem('lastGuideNotificationTime', Date.now().toString());
@@ -654,15 +682,16 @@ const Dashboard: React.FC = () => {
           // بعد از بسته شدن استوری‌ها، تایمر نوتیفیکیشن راهنما را شروع کن
           const guideNotifCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
           if (guideNotifCount === 0) {
-            console.log('Stories closed, scheduling guide notification for 2 minutes');
+            console.log('Stories closed, scheduling guide notification for 1 minute');
             setTimeout(() => {
               const currentCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
               if (currentCount < 2) {
+                console.log('🔔 Showing guide notification (first time)');
                 setShowGuideNotification(true);
                 localStorage.setItem('guideNotificationCount', '1');
                 localStorage.setItem('lastGuideNotificationTime', Date.now().toString());
               }
-            }, 120000); // 2 minutes after closing stories
+            }, 60000); // 1 minute after closing stories (برای تست - قبلاً 120000 بود)
           }
         }} />
       )}
@@ -709,6 +738,20 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Debug Button - فقط برای تست */}
+      <button
+        onClick={() => {
+          localStorage.removeItem('hasSeenOnboardingStories');
+          localStorage.removeItem('guideNotificationCount');
+          localStorage.removeItem('lastGuideNotificationTime');
+          console.log('🔄 localStorage cleared - refresh page to test');
+          alert('localStorage پاک شد! صفحه رو refresh کن تا از اول تست کنی');
+        }}
+        className="fixed bottom-24 left-4 z-[9999] bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg"
+      >
+        🔄 Reset Test
+      </button>
 
       <div className="min-h-screen transition-colors duration-300 dashboard-container" 
            style={{ 
