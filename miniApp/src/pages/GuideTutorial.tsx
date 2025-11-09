@@ -149,7 +149,7 @@ const GuideTutorial: React.FC = () => {
             autoPlay
             playsInline
           >
-            <source src="https://dl.sianmarketing.com/bot/rahnama.mp4" type="video/mp4" />
+            <source src="/rahnama.mp4" type="video/mp4" />
           </video>
 
           {/* Loading Spinner */}

@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
 const storyVideos = [
-  'https://dl.sianmarketing.com/bot/1.mp4',
-  'https://dl.sianmarketing.com/bot/2.mp4',
-  'https://dl.sianmarketing.com/bot/3.mp4',
-  'https://dl.sianmarketing.com/bot/4.mp4',
-  'https://dl.sianmarketing.com/bot/5.mp4'
+  '/1.mp4',
+  '/2.mp4',
+  '/3.mp4',
+  '/4.mp4',
+  '/5.mp4'
 ];
 
 interface OnboardingStoriesProps {
