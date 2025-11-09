@@ -13,7 +13,7 @@ interface TimeLeft {
 
 const SubscriptionManagement: React.FC = () => {
   const navigate = useNavigate();
-  const { refreshUserData } = useApp();
+  const { userData, refreshUserData } = useApp();
   const [selectedPlan, setSelectedPlan] = useState<string>('pro');
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 2, hours: 23, minutes: 45, seconds: 30 });
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -252,43 +252,45 @@ const SubscriptionManagement: React.FC = () => {
               </p>
             </div>
 
-            {/* Countdown Timer - Ultra Modern & Minimal */}
-            <div className="relative overflow-hidden rounded-3xl p-6 mb-4" style={{ background: 'linear-gradient(135deg, rgba(15, 8, 23, 0.95) 0%, rgba(16, 9, 28, 0.95) 100%)' }}>
-              {/* Glow Effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#2c189a]/10 via-transparent to-[#5a189a]/10 animate-pulse"></div>
-              
-              <div className="relative z-10">
-                <div className="flex items-center justify-center gap-2 mb-5">
-                  <div className="w-2 h-2 rounded-full bg-[#5a189a] animate-pulse"></div>
-                  <p className="text-white font-medium text-sm tracking-wide">تخفیف ویژه فقط تا</p>
-                  <div className="w-2 h-2 rounded-full bg-[#5a189a] animate-pulse"></div>
-                </div>
+            {/* Countdown Timer - فقط برای کاربران free_trial */}
+            {userData.subscriptionType === 'free_trial' && (
+              <div className="relative overflow-hidden rounded-3xl p-6 mb-4" style={{ background: 'linear-gradient(135deg, rgba(15, 8, 23, 0.95) 0%, rgba(16, 9, 28, 0.95) 100%)' }}>
+                {/* Glow Effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#2c189a]/10 via-transparent to-[#5a189a]/10 animate-pulse"></div>
                 
-                <div className="flex justify-center items-center gap-3">
-                  {[
-                    { label: 'روز', value: timeLeft.days },
-                    { label: 'ساعت', value: timeLeft.hours },
-                    { label: 'دقیقه', value: timeLeft.minutes },
-                    { label: 'ثانیه', value: timeLeft.seconds }
-                  ].map((item, index) => (
-                    <div key={index} className="flex flex-col items-center group">
-                      <div className="relative">
-                        {/* Outer Glow */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#2c189a] to-[#5a189a] rounded-2xl blur-md opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                        
-                        {/* Main Box */}
-                        <div className="relative bg-gradient-to-br from-[#0F0817] to-[#10091c] rounded-2xl w-16 h-16 flex items-center justify-center border border-[#5a189a]/40 shadow-2xl group-hover:scale-110 transition-all duration-300">
-                          <span className="text-white font-black text-2xl tracking-tight">
-                            {String(item.value).padStart(2, '0')}
-                          </span>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-center gap-2 mb-5">
+                    <div className="w-2 h-2 rounded-full bg-[#5a189a] animate-pulse"></div>
+                    <p className="text-white font-medium text-sm tracking-wide">تخفیف ویژه فقط تا</p>
+                    <div className="w-2 h-2 rounded-full bg-[#5a189a] animate-pulse"></div>
+                  </div>
+                  
+                  <div className="flex justify-center items-center gap-3">
+                    {[
+                      { label: 'روز', value: timeLeft.days },
+                      { label: 'ساعت', value: timeLeft.hours },
+                      { label: 'دقیقه', value: timeLeft.minutes },
+                      { label: 'ثانیه', value: timeLeft.seconds }
+                    ].map((item, index) => (
+                      <div key={index} className="flex flex-col items-center group">
+                        <div className="relative">
+                          {/* Outer Glow */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-[#2c189a] to-[#5a189a] rounded-2xl blur-md opacity-50 group-hover:opacity-75 transition-opacity"></div>
+                          
+                          {/* Main Box */}
+                          <div className="relative bg-gradient-to-br from-[#0F0817] to-[#10091c] rounded-2xl w-16 h-16 flex items-center justify-center border border-[#5a189a]/40 shadow-2xl group-hover:scale-110 transition-all duration-300">
+                            <span className="text-white font-black text-2xl tracking-tight">
+                              {String(item.value).padStart(2, '0')}
+                            </span>
+                          </div>
                         </div>
+                        <span className="text-gray-400 text-xs mt-2 font-medium">{item.label}</span>
                       </div>
-                      <span className="text-gray-400 text-xs mt-2 font-medium">{item.label}</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Plans Section */}

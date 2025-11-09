@@ -3950,42 +3950,44 @@ const Levels: React.FC = () => {
           </p>
           
           {/* Free Trial Countdown Timer - Mobile Optimized */}
-          <div className="mt-4 w-full max-w-sm mx-auto px-2">
-            <div className="bg-gradient-to-br from-red-500/15 via-red-600/15 to-rose-500/15 backdrop-blur-md rounded-2xl border border-red-500/30 p-3 shadow-lg shadow-red-500/10">
-              <div className="flex items-center justify-center gap-1.5 mb-2">
-                <Clock className="w-3.5 h-3.5 text-red-400 animate-pulse" />
-                <span className="text-[11px] font-medium text-red-300">زمان باقی‌مانده استفاده رایگان:</span>
-              </div>
-              <div className="flex items-center justify-center gap-1">
-                {(() => {
-                  const time = formatTrialTime(freeTrialTimeLeft);
-                  return (
-                    <>
-                      <div className="flex flex-col items-center bg-red-500/25 rounded-lg px-2 py-1.5 min-w-[46px] border border-red-400/30">
-                        <span className="text-lg font-bold text-red-100 leading-none">{String(time.days).padStart(2, '0')}</span>
-                        <span className="text-[8px] text-red-300 mt-0.5">روز</span>
-                      </div>
-                      <span className="text-red-400 font-bold text-xs">:</span>
-                      <div className="flex flex-col items-center bg-red-500/25 rounded-lg px-2 py-1.5 min-w-[46px] border border-red-400/30">
-                        <span className="text-lg font-bold text-red-100 leading-none">{String(time.hours).padStart(2, '0')}</span>
-                        <span className="text-[8px] text-red-300 mt-0.5">ساعت</span>
-                      </div>
-                      <span className="text-red-400 font-bold text-xs">:</span>
-                      <div className="flex flex-col items-center bg-red-500/25 rounded-lg px-2 py-1.5 min-w-[46px] border border-red-400/30">
-                        <span className="text-lg font-bold text-red-100 leading-none">{String(time.minutes).padStart(2, '0')}</span>
-                        <span className="text-[8px] text-red-300 mt-0.5">دقیقه</span>
-                      </div>
-                      <span className="text-red-400 font-bold text-xs">:</span>
-                      <div className="flex flex-col items-center bg-red-500/25 rounded-lg px-2 py-1.5 min-w-[46px] border border-red-400/30">
-                        <span className="text-lg font-bold text-red-100 leading-none">{String(time.seconds).padStart(2, '0')}</span>
-                        <span className="text-[8px] text-red-300 mt-0.5">ثانیه</span>
-                      </div>
-                    </>
-                  );
-                })()}
+          {userData.subscriptionType === 'free_trial' && (
+            <div className="mt-4 w-full max-w-sm mx-auto px-2">
+              <div className="bg-gradient-to-br from-red-500/15 via-red-600/15 to-rose-500/15 backdrop-blur-md rounded-2xl border border-red-500/30 p-3 shadow-lg shadow-red-500/10">
+                <div className="flex items-center justify-center gap-1.5 mb-2">
+                  <Clock className="w-3.5 h-3.5 text-red-400 animate-pulse" />
+                  <span className="text-[11px] font-medium text-red-300">زمان باقی‌مانده استفاده رایگان:</span>
+                </div>
+                <div className="flex items-center justify-center gap-1">
+                  {(() => {
+                    const time = formatTrialTime(freeTrialTimeLeft);
+                    return (
+                      <>
+                        <div className="flex flex-col items-center bg-red-500/25 rounded-lg px-2 py-1.5 min-w-[46px] border border-red-400/30">
+                          <span className="text-lg font-bold text-red-100 leading-none">{String(time.days).padStart(2, '0')}</span>
+                          <span className="text-[8px] text-red-300 mt-0.5">روز</span>
+                        </div>
+                        <span className="text-red-400 font-bold text-xs">:</span>
+                        <div className="flex flex-col items-center bg-red-500/25 rounded-lg px-2 py-1.5 min-w-[46px] border border-red-400/30">
+                          <span className="text-lg font-bold text-red-100 leading-none">{String(time.hours).padStart(2, '0')}</span>
+                          <span className="text-[8px] text-red-300 mt-0.5">ساعت</span>
+                        </div>
+                        <span className="text-red-400 font-bold text-xs">:</span>
+                        <div className="flex flex-col items-center bg-red-500/25 rounded-lg px-2 py-1.5 min-w-[46px] border border-red-400/30">
+                          <span className="text-lg font-bold text-red-100 leading-none">{String(time.minutes).padStart(2, '0')}</span>
+                          <span className="text-[8px] text-red-300 mt-0.5">دقیقه</span>
+                        </div>
+                        <span className="text-red-400 font-bold text-xs">:</span>
+                        <div className="flex flex-col items-center bg-red-500/25 rounded-lg px-2 py-1.5 min-w-[46px] border border-red-400/30">
+                          <span className="text-lg font-bold text-red-100 leading-none">{String(time.seconds).padStart(2, '0')}</span>
+                          <span className="text-[8px] text-red-300 mt-0.5">ثانیه</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Progress Overview */}
