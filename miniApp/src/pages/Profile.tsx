@@ -558,12 +558,11 @@ const Profile: React.FC = () => {
           
         {/* Team Message Card */}
         <div 
-          className="backdrop-blur-xl rounded-3xl p-8 border border-gray-700/60 shadow-lg mb-8 cursor-pointer hover:border-purple-500/30 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] group" 
+          className="backdrop-blur-xl rounded-3xl p-8 border border-gray-700/60 shadow-lg mb-8 transition-all duration-300 hover:shadow-xl" 
           style={{ backgroundColor: '#10091c' }}
-          onClick={() => window.open('https://t.me/sian_academy_support', '_blank')}
         >
           <div className="flex items-center gap-4 mb-5">
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#2c189a] to-[#5a189a] shadow-xl border border-white/20 group-hover:scale-110 transition-transform duration-300">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#2c189a] to-[#5a189a] shadow-xl border border-white/20">
               <div className="scale-125 text-white">
                 <MessageSquare size={24} />
               </div>
@@ -576,11 +575,25 @@ const Profile: React.FC = () => {
               <p className="text-sm font-medium" style={{ color: '#8B5CF6' }}>با عشق از تیم MonetizeAI</p>
             </div>
           </div>
-          <p className="text-sm text-gray-300 mb-4">
+          <p className="text-sm text-gray-300 mb-6">
             سلام! ما در MonetizeAI متعهد به موفقیت شما هستیم. اگر سوالی دارید یا به کمک نیاز دارید، تیم پشتیبانی ما آماده خدمت‌رسانی است. ما اینجا هستیم تا در هر مرحله از مسیر رشد کسب‌وکارتان همراه شما باشیم.
           </p>
-          <div className="flex items-center justify-end text-sm">
-            <span className="font-medium" style={{ color: '#8B5CF6' }}>ارتباط با پشتیبانی →</span>
+          
+          {/* Action Buttons */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => window.open('https://t.me/sian_academy_support', '_blank')}
+              className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white py-3 px-4 rounded-xl font-medium hover:from-[#1a0f5a] hover:to-[#4a0f7a] transition-all duration-300 shadow-lg hover:scale-105 hover:shadow-xl whitespace-nowrap"
+            >
+              پشتیبانی
+            </button>
+            
+            <button
+              onClick={() => navigate('/guide-tutorial')}
+              className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white py-3 px-4 rounded-xl font-medium hover:from-[#1a0f5a] hover:to-[#4a0f7a] transition-all duration-300 shadow-lg hover:scale-105 hover:shadow-xl whitespace-nowrap"
+            >
+              راهنمای استفاده
+            </button>
           </div>
           </div>
       </div>
