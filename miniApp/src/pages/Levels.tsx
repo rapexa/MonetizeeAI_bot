@@ -82,8 +82,30 @@ const Levels: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'detail' | 'stage-detail'>('list');
   const videoRefs = React.useRef<{[key: number]: HTMLVideoElement | null}>({});
   
-  // Free trial countdown timer (3 days = 259200 seconds)
-  const [freeTrialTimeLeft, setFreeTrialTimeLeft] = useState(259200);
+  // Free trial countdown timer - محاسبه بر اساس subscriptionExpiry واقعی
+  const [freeTrialTimeLeft, setFreeTrialTimeLeft] = useState(0);
+
+  // محاسبه زمان باقیمانده بر اساس subscriptionExpiry
+  useEffect(() => {
+    if (userData.subscriptionType === 'free_trial' && userData.subscriptionExpiry) {
+      const calculateTimeLeft = () => {
+        const expiryDate = new Date(userData.subscriptionExpiry!);
+        const now = new Date();
+        const diffInSeconds = Math.max(0, Math.floor((expiryDate.getTime() - now.getTime()) / 1000));
+        return diffInSeconds;
+      };
+
+      // تنظیم اولیه
+      setFreeTrialTimeLeft(calculateTimeLeft());
+
+      // آپدیت هر ثانیه
+      const interval = setInterval(() => {
+        setFreeTrialTimeLeft(calculateTimeLeft());
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [userData.subscriptionType, userData.subscriptionExpiry]);
 
   const toggleFullscreen = async (videoIndex: number) => {
     const videoElement = videoRefs.current[videoIndex];
@@ -124,17 +146,6 @@ const Levels: React.FC = () => {
     }
   };
 
-  // Free trial countdown effect
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setFreeTrialTimeLeft((prev) => {
-        if (prev <= 0) return 0;
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
 
   // Format time for display
   const formatTrialTime = (seconds: number) => {

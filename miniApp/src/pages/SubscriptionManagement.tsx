@@ -15,39 +15,38 @@ const SubscriptionManagement: React.FC = () => {
   const navigate = useNavigate();
   const { userData, refreshUserData } = useApp();
   const [selectedPlan, setSelectedPlan] = useState<string>('pro');
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 2, hours: 23, minutes: 45, seconds: 30 });
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('online');
   const [paymentLoading, setPaymentLoading] = useState(false);
 
-  // Countdown timer
+  // Countdown timer - محاسبه بر اساس subscriptionExpiry واقعی
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        let { days, hours, minutes, seconds } = prev;
+    if (userData.subscriptionType === 'free_trial' && userData.subscriptionExpiry) {
+      const calculateTimeLeft = () => {
+        const expiryDate = new Date(userData.subscriptionExpiry!);
+        const now = new Date();
+        const diffInMs = Math.max(0, expiryDate.getTime() - now.getTime());
         
-        if (seconds > 0) {
-          seconds--;
-        } else if (minutes > 0) {
-          minutes--;
-          seconds = 59;
-        } else if (hours > 0) {
-          hours--;
-          minutes = 59;
-          seconds = 59;
-        } else if (days > 0) {
-          days--;
-          hours = 23;
-          minutes = 59;
-          seconds = 59;
-        }
+        const days = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diffInMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diffInMs % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diffInMs % (1000 * 60)) / 1000);
         
         return { days, hours, minutes, seconds };
-      });
-    }, 1000);
+      };
 
-    return () => clearInterval(timer);
-  }, []);
+      // تنظیم اولیه
+      setTimeLeft(calculateTimeLeft());
+
+      // آپدیت هر ثانیه
+      const timer = setInterval(() => {
+        setTimeLeft(calculateTimeLeft());
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [userData.subscriptionType, userData.subscriptionExpiry]);
 
   const planDetails = {
     starter: {
