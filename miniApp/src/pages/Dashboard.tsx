@@ -73,6 +73,7 @@ const Dashboard: React.FC = () => {
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [showProfileUpload, setShowProfileUpload] = React.useState(false);
   const [profileImage, setProfileImage] = React.useState<string | null>(null);
+  const [telegramProfilePhoto, setTelegramProfilePhoto] = React.useState<string | null>(null);
   const [chatMessage, setChatMessage] = React.useState<string>('');
   const [isEditingPrompt, setIsEditingPrompt] = React.useState<boolean>(false);
   const [chatMessages, setChatMessages] = React.useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string, isNew?: boolean}>>([]);
@@ -99,6 +100,37 @@ const Dashboard: React.FC = () => {
       setShowScrollButton(!isAtBottom && chatMessages.length > 0);
     }
   };
+
+  // Get Telegram profile photo
+  React.useEffect(() => {
+    const getTelegramProfilePhoto = () => {
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+        const user = window.Telegram.WebApp.initDataUnsafe?.user;
+        if (user) {
+          // Telegram WebApp API doesn't directly provide photo URL
+          // But we can construct it if we have the user's photo info
+          // For now, we'll check if photo_url exists in user data
+          const photoUrl = (user as any).photo_url;
+          if (photoUrl) {
+            console.log('📸 Telegram profile photo found:', photoUrl);
+            setTelegramProfilePhoto(photoUrl);
+          } else {
+            console.log('📸 No Telegram profile photo available');
+            // Try to get from userData if backend provides it
+            if (userData.telegramId) {
+              // Check if we have profile photo URL in userData
+              const userPhotoUrl = (userData as any).profilePhotoUrl;
+              if (userPhotoUrl) {
+                setTelegramProfilePhoto(userPhotoUrl);
+              }
+            }
+          }
+        }
+      }
+    };
+
+    getTelegramProfilePhoto();
+  }, [userData, isInTelegram]);
 
   // Auto refresh data periodically
   React.useEffect(() => {
@@ -296,8 +328,6 @@ const Dashboard: React.FC = () => {
   const hasIncome = userData.incomeMonth > 0;
   const monthGrowth = 12;
 
-
-
   // Enhanced Notifications with different types and interactions
   const notifications = [
     {
@@ -379,8 +409,6 @@ const Dashboard: React.FC = () => {
       actionColor: 'bg-pink-500'
     }
   ];
-
-
 
   const quickActions = [
     {
@@ -569,8 +597,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-
-
   const handleCloseGuideModal = () => {
     console.log('Guide modal closed');
     setShowGuideModal(false);
@@ -657,14 +683,24 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Enhanced Profile Header */}
-              <div className="flex items-center justify-between mb-6 backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 group bg-gradient-to-r from-[#2c189a] to-[#5a189a]">
+              <div className="flex items-center justify-between mb-6 backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
         <div 
           className="flex items-center gap-3 cursor-pointer group"
           onClick={() => navigate('/profile')}
         >
-          <div className="w-12 h-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full flex items-center justify-center shadow-lg">
-              {profileImage ? (
-              <img src={profileImage} alt="Profile" className="w-full h-full object-cover rounded-full" />
+          <div className="w-12 h-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full flex items-center justify-center shadow-lg overflow-hidden">
+              {telegramProfilePhoto || profileImage ? (
+              <img 
+                src={telegramProfilePhoto || profileImage || ''} 
+                alt="Profile" 
+                className="w-full h-full object-cover rounded-full"
+                onError={(e) => {
+                  // If image fails to load, hide it and show icon
+                  e.currentTarget.style.display = 'none';
+                  setTelegramProfilePhoto(null);
+                  setProfileImage(null);
+                }}
+              />
             ) : (
               <User size={18} className="text-white drop-shadow-lg" />
             )}

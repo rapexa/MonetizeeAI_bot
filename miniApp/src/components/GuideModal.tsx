@@ -46,7 +46,7 @@ const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose, onStartGuide }
 
           {/* Subtitle */}
           <p className="text-white/60 text-sm mb-6 leading-relaxed">
-            فقط تو ۶۰ ثانیه یاد بگیر چطور با MonetizeAI بیزینس خودتو بسازی.
+            فقط تو چند دقیقه یاد بگیر چطور با MonetizeAI بیزینس خودتو بسازی.
           </p>
 
           {/* CTA Button */}
