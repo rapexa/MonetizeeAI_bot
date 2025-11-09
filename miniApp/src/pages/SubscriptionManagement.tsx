@@ -75,8 +75,8 @@ const SubscriptionManagement: React.FC = () => {
       name: 'Ultimate',
       price: '۷,۵۰۰,۰۰۰',
       originalPrice: '۹,۴۸۰,۰۰۰',
-      period: 'یکسال',
-      description: 'اشتراک یکساله',
+      period: 'بی‌نهایت',
+      description: 'اشتراک مادام‌العمر',
       icon: '👑',
       gradient: 'from-green-500 to-green-600',
       badge: undefined,
@@ -294,12 +294,27 @@ const SubscriptionManagement: React.FC = () => {
 
           {/* Plans Section */}
           <div className="px-2">
-            <p className="text-white text-center mb-4 text-sm">
-              انتخاب اشتراک: مدت زمان را انتخاب کنید و از تخفیف ویژه بهره‌مند شوید
-            </p>
+            {/* پیام برای کاربران مادام‌العمر */}
+            {userData.planName === 'ultimate' ? (
+              <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-md rounded-2xl p-6 border border-green-500/30">
+                <div className="flex flex-col items-center text-center">
+                  <div className="text-6xl mb-4">👑</div>
+                  <h3 className="text-white text-xl font-bold mb-2">
+                    شما اشتراک مادام‌العمر دارید!
+                  </h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    به عنوان یک کاربر ویژه، به تمام امکانات پلتفرم به صورت نامحدود و برای همیشه دسترسی دارید. 🎉
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-white text-center mb-4 text-sm">
+                  انتخاب اشتراک: مدت زمان را انتخاب کنید و از تخفیف ویژه بهره‌مند شوید
+                </p>
 
-            <div className="space-y-3">
-              {plans.map((plan) => (
+                <div className="space-y-3">
+                  {plans.map((plan) => (
                 <div
                   key={plan.id}
                   onClick={() => handlePlanSelect(plan.id)}
@@ -368,8 +383,8 @@ const SubscriptionManagement: React.FC = () => {
               <span className="text-lg">ادامه و خرید اشتراک {planDetails[selectedPlan as keyof typeof planDetails]?.name}</span>
               <span className="text-xl">←</span>
             </button>
-
-            
+              </>
+            )}
           </div>
         </div>
       </div>

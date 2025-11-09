@@ -402,15 +402,35 @@ func (s *PaymentService) UpdateUserSubscription(userID uint, planType string) er
 		return err
 	}
 
+	// جلوگیری از خرید برای کاربران ultimate
+	if user.PlanName == "ultimate" {
+		logger.Warn("User with ultimate plan tried to purchase",
+			zap.Uint("user_id", userID),
+			zap.String("attempted_plan", planType))
+		return fmt.Errorf("کاربر دارای اشتراک مادام‌العمر است و نیاز به خرید مجدد ندارد")
+	}
+
 	// تعیین نقطه شروع برای محاسبه انقضا
 	var baseTime time.Time
+	var keepCurrentPlanName bool = false
+	
 	if user.SubscriptionExpiry != nil && user.SubscriptionExpiry.After(time.Now()) {
 		// اگر کاربر قبلاً اشتراک داشته و هنوز منقضی نشده، از تاریخ انقضای فعلی ادامه می‌دهیم
 		baseTime = *user.SubscriptionExpiry
-		logger.Info("Extending existing subscription",
-			zap.Uint("user_id", userID),
-			zap.Time("current_expiry", baseTime),
-			zap.String("plan_type", planType))
+		
+		// اگر Pro → Starter و هنوز Pro منقضی نشده، اسم رو Pro نگه می‌داریم
+		if user.PlanName == "pro" && planType == "starter" {
+			keepCurrentPlanName = true
+			logger.Info("Pro user buying Starter - extending with Pro name",
+				zap.Uint("user_id", userID),
+				zap.Time("current_expiry", baseTime),
+				zap.String("plan_type", planType))
+		} else {
+			logger.Info("Extending existing subscription",
+				zap.Uint("user_id", userID),
+				zap.Time("current_expiry", baseTime),
+				zap.String("plan_type", planType))
+		}
 	} else {
 		// اگر اشتراک ندارد یا منقضی شده، از الان شروع می‌کنیم
 		baseTime = time.Now()
@@ -424,7 +444,13 @@ func (s *PaymentService) UpdateUserSubscription(userID uint, planType string) er
 		// اشتراک یک ماهه - اضافه کردن به تاریخ پایه
 		expiry := baseTime.AddDate(0, 1, 0)
 		user.SubscriptionType = "paid"
-		user.PlanName = "starter"
+		
+		// اگر Pro → Starter و منقضی نشده، اسم Pro رو نگه می‌داریم
+		if !keepCurrentPlanName {
+			user.PlanName = "starter"
+		}
+		// اگر keepCurrentPlanName = true باشه، PlanName تغییر نمی‌کنه
+		
 		user.SubscriptionExpiry = &expiry
 		user.IsVerified = true
 		// Cancel remaining SMS notifications
