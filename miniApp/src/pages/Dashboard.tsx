@@ -739,20 +739,6 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Debug Button - فقط برای تست */}
-      <button
-        onClick={() => {
-          localStorage.removeItem('hasSeenOnboardingStories');
-          localStorage.removeItem('guideNotificationCount');
-          localStorage.removeItem('lastGuideNotificationTime');
-          console.log('🔄 localStorage cleared - refresh page to test');
-          alert('localStorage پاک شد! صفحه رو refresh کن تا از اول تست کنی');
-        }}
-        className="fixed bottom-24 left-4 z-[9999] bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg"
-      >
-        🔄 Reset Test
-      </button>
-
       <div className="min-h-screen transition-colors duration-300 dashboard-container" 
            style={{ 
                          backgroundColor: '#0e0817',
