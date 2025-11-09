@@ -6,6 +6,8 @@ import apiService from '../services/api';
 // import RadialGauge from '../components/RadialGauge';
 
 import AIMessage from '../components/AIMessage';
+import OnboardingStories from '../components/OnboardingStories';
+import GuideModal from '../components/GuideModal';
 
 import { 
   TrendingUp, 
@@ -30,7 +32,8 @@ import {
   Map,
   Maximize2,
   BarChart3,
-  Crown
+  Crown,
+  Edit3
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -38,6 +41,11 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [editingField, setEditingField] = React.useState<string | null>(null);
+  const [animatedText, setAnimatedText] = React.useState<string>('');
+  const [isEditingIncome, setIsEditingIncome] = React.useState<boolean>(false);
+  const [tempIncome, setTempIncome] = React.useState<string>('');
+  const [showOnboarding, setShowOnboarding] = React.useState<boolean>(true);
+  const [showGuideModal, setShowGuideModal] = React.useState<boolean>(false);
 
   // Check if user can access AI tools
   // Paid users: always have access
@@ -110,6 +118,88 @@ const Dashboard: React.FC = () => {
     console.log('🔄 Manual refresh triggered...');
     await refreshUserData();
   };
+
+  // Show guide modal 10 seconds after entering platform (only first time)
+  React.useEffect(() => {
+    const hasSeenGuide = localStorage.getItem('hasSeenGuideModal');
+    console.log('Guide modal check - hasSeenGuide:', hasSeenGuide);
+    
+    if (!hasSeenGuide) {
+      console.log('Guide modal will appear in 10 seconds...');
+      const timer = setTimeout(() => {
+        console.log('Showing guide modal now!');
+        setShowGuideModal(true);
+      }, 10000); // Show after 10 seconds
+
+      return () => clearTimeout(timer);
+    } else {
+      console.log('User has already seen the guide modal');
+    }
+  }, []); // Run only once on mount
+
+  // Animated text cycling for no income state with smooth typography effect
+  React.useEffect(() => {
+    const messages = [
+      '۲۰۰ میلیون تومان',
+      'این میتونه درآمد تو باشه!',
+      'اولین پلتفرم پولسازی با AI'
+    ];
+    
+    let messageIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    
+    const typeEffect = () => {
+      const currentMessage = messages[messageIndex];
+      
+      if (!isDeleting) {
+        // Typing effect - smooth and faster character by character
+        if (charIndex <= currentMessage.length) {
+          setAnimatedText(currentMessage.substring(0, charIndex));
+          charIndex++;
+          
+          if (charIndex > currentMessage.length) {
+            // Finished typing, wait exactly 2 seconds before deleting
+            timeoutId = setTimeout(() => {
+              isDeleting = true;
+              typeEffect();
+            }, 2000); // Exactly 2 seconds pause
+            return;
+          }
+          
+          // Faster typing speed with slight variation for smooth feel
+          const typingSpeed = 60 + Math.random() * 40; // 60-100ms for faster but smooth typing
+          timeoutId = setTimeout(typeEffect, typingSpeed);
+        }
+      } else {
+        // Deleting effect - much faster than typing
+        if (charIndex > 0) {
+          charIndex--;
+          setAnimatedText(currentMessage.substring(0, charIndex));
+          
+          // Much faster deleting speed
+          const deletingSpeed = 15 + Math.random() * 15; // 15-30ms (very fast)
+          timeoutId = setTimeout(typeEffect, deletingSpeed);
+        } else {
+          // Finished deleting, move to next message
+          isDeleting = false;
+          messageIndex = (messageIndex + 1) % messages.length;
+          
+          // Short pause before starting next message
+          timeoutId = setTimeout(typeEffect, 500);
+        }
+      }
+    };
+    
+    // Start the animation
+    typeEffect();
+    
+    // Cleanup
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, []);
 
   // Load chat history on component mount
   React.useEffect(() => {
@@ -481,16 +571,42 @@ const Dashboard: React.FC = () => {
 
 
 
+  const handleCloseGuideModal = () => {
+    console.log('Guide modal closed');
+    setShowGuideModal(false);
+    localStorage.setItem('hasSeenGuideModal', 'true');
+  };
+
+  const handleStartGuide = () => {
+    console.log('Starting guide - navigating to /guide-tutorial');
+    setShowGuideModal(false);
+    localStorage.setItem('hasSeenGuideModal', 'true');
+    navigate('/guide-tutorial'); // Navigate to guide tutorial page
+  };
+
   return (
-    <div className="min-h-screen transition-colors duration-300 dashboard-container" 
-         style={{ 
-                       backgroundColor: '#0e0817',
-           '--dark-bg': '#0e0817'
-         } as React.CSSProperties & { '--dark-bg': string }}>
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          html.dark .dashboard-container {
-            background: #0F0F0F !important;
+    <>
+      {/* Onboarding Stories */}
+      {showOnboarding && (
+        <OnboardingStories onClose={() => setShowOnboarding(false)} />
+      )}
+
+      {/* Guide Modal */}
+      <GuideModal 
+        isOpen={showGuideModal}
+        onClose={handleCloseGuideModal}
+        onStartGuide={handleStartGuide}
+      />
+
+      <div className="min-h-screen transition-colors duration-300 dashboard-container" 
+           style={{ 
+                         backgroundColor: '#0e0817',
+             '--dark-bg': '#0e0817'
+           } as React.CSSProperties & { '--dark-bg': string }}>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            html.dark .dashboard-container {
+              background: #0F0F0F !important;
           }
           @media (prefers-color-scheme: dark) {
             .dashboard-container {
@@ -557,9 +673,40 @@ const Dashboard: React.FC = () => {
             <h2 className="text-sm font-bold text-white drop-shadow-lg">
               {userData.username ? `@${userData.username}` : userData.firstName || '@hosein_dev'}
             </h2>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-sm font-bold text-white drop-shadow-lg">۱,۲۰۰</span>
-              <span className="text-xs text-white/80">امتیاز</span>
+            
+            {/* Subscription Badge - Compact */}
+            <div className="mt-1">
+              {(() => {
+                // تشخیص دقیق نوع اشتراک از API
+                const subType = userData.subscriptionType?.toLowerCase();
+                const planName = userData.planName?.toLowerCase();
+                
+                if (subType === 'ultimate' || planName === 'ultimate') {
+                  return (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-green-500/20 text-green-400 border border-green-500/30 backdrop-blur-sm">
+                      اشتراک مادام‌العمر
+                    </span>
+                  );
+                } else if (subType === 'pro' || planName === 'pro') {
+                  return (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-500/25 text-purple-200 border border-purple-400/35 shadow-sm shadow-purple-500/15">
+                      اشتراک شش ماهه
+                    </span>
+                  );
+                } else if (subType === 'starter' || planName === 'starter') {
+                  return (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-green-500/20 text-green-200 border border-green-500/25">
+                      اشتراک ماهانه
+                    </span>
+                  );
+                } else {
+                  return (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-600/10 text-gray-400 border border-gray-600/15">
+                      اشتراک رایگان
+                    </span>
+                  );
+                }
+              })()}
             </div>
           </div>
         </div>
@@ -594,28 +741,108 @@ const Dashboard: React.FC = () => {
         </div>
         
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 rounded-2xl bg-green-400/30 backdrop-blur-sm border border-green-300/20">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-green-400/30 backdrop-blur-sm border border-green-300/20">
                 <DollarSign size={24} className="text-white" />
               </div>
               <div>
                 <h3 className="text-white/90 text-sm font-medium">درآمد ماهانه 💰</h3>
                 <p className="text-white/70 text-xs">+{monthGrowth}% رشد</p>
+              </div>
             </div>
+            {!hasIncome && (
+              <button
+                onClick={() => setIsEditingIncome(true)}
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all duration-300 group"
+                title="ویرایش درآمد"
+              >
+                <Edit3 size={16} className="text-white/80 group-hover:text-white transition-colors" />
+              </button>
+            )}
           </div>
           
-            {hasIncome ? (
-            <div className="text-4xl font-black text-white mb-2 tracking-tight">
-                  {formatCurrency(userData.incomeMonth)}
-                </div>
-            ) : (
-            <div className="text-2xl font-bold text-white/90 bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center">
-                هنوز فروش نداری
-              <div className="text-sm font-normal text-white/70 mt-2">شروع کن و اولین درآمدت رو کسب کن!</div>
+          {isEditingIncome ? (
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+              <input
+                type="text"
+                value={tempIncome}
+                onChange={(e) => setTempIncome(e.target.value)}
+                placeholder="مثال: ۵۰۰۰۰۰۰"
+                className="w-full bg-white/10 text-white text-center text-xl font-bold rounded-xl px-4 py-3 border border-white/30 focus:border-green-400/50 focus:outline-none transition-all"
+                autoFocus
+              />
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={async () => {
+                    if (tempIncome) {
+                      const numValue = parseInt(tempIncome.replace(/[^\d]/g, ''));
+                      if (!isNaN(numValue)) {
+                        try {
+                          await apiService.updateUserProfile({
+                            username: userData.username || '',
+                            phone: '',
+                            email: '',
+                            monthly_income: numValue
+                          });
+                          await refreshUserData();
+                          setIsEditingIncome(false);
+                          setTempIncome('');
+                        } catch (error) {
+                          console.error('Error updating income:', error);
+                        }
+                      }
+                    }
+                  }}
+                  className="flex-1 py-2 px-4 rounded-xl bg-green-500/30 hover:bg-green-500/40 text-green-200 font-medium text-sm transition-all border border-green-400/30"
+                >
+                  ذخیره
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditingIncome(false);
+                    setTempIncome('');
+                  }}
+                  className="flex-1 py-2 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white/80 font-medium text-sm transition-all border border-white/20"
+                >
+                  لغو
+                </button>
               </div>
-            )}
+            </div>
+          ) : hasIncome ? (
+            <div 
+              onClick={() => {
+                setTempIncome(userData.incomeMonth.toString());
+                setIsEditingIncome(true);
+              }}
+              className="text-4xl font-black text-white mb-2 tracking-tight cursor-pointer hover:text-green-300 transition-colors duration-300 inline-block"
+              title="کلیک کنید برای ویرایش"
+            >
+              {formatCurrency(userData.incomeMonth)}
+            </div>
+          ) : (
+            <>
+              <div className="text-2xl font-bold text-white/90 bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center min-h-[80px] flex items-center justify-center">
+                <div className="relative flex items-center gap-0.5">
+                  <span className="inline-block transition-all duration-200 ease-out" style={{ minWidth: '2px' }}>{animatedText}</span>
+                  <span 
+                    className="inline-block w-0.5 h-6 bg-green-400 shadow-lg shadow-green-400/50 transition-opacity duration-300"
+                    style={{
+                      animation: 'blink 1s ease-in-out infinite'
+                    }}
+                  ></span>
+                </div>
+              </div>
+              <style>{`
+                @keyframes blink {
+                  0%, 49% { opacity: 1; }
+                  50%, 100% { opacity: 0; }
+                }
+              `}</style>
+            </>
+          )}
           
-          <div className="flex items-center gap-2 text-white/80">
+          <div className="flex items-center gap-2 text-white/80 mt-4">
             <TrendingUp size={16} />
             <span className="text-sm font-medium">در مسیر موفقیت</span>
           </div>
@@ -1065,6 +1292,7 @@ const Dashboard: React.FC = () => {
 
       </div>
     </div>
+    </>
   );
 };
 

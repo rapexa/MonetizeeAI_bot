@@ -81,6 +81,9 @@ const Levels: React.FC = () => {
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail' | 'stage-detail'>('list');
   const videoRefs = React.useRef<{[key: number]: HTMLVideoElement | null}>({});
+  
+  // Free trial countdown timer (3 days = 259200 seconds)
+  const [freeTrialTimeLeft, setFreeTrialTimeLeft] = useState(259200);
 
   const toggleFullscreen = async (videoIndex: number) => {
     const videoElement = videoRefs.current[videoIndex];
@@ -119,6 +122,28 @@ const Levels: React.FC = () => {
       const isAtBottom = scrollHeight - scrollTop <= clientHeight + 10; // 10px tolerance
       setShowScrollButton(!isAtBottom && chatMessages.length > 0);
     }
+  };
+
+  // Free trial countdown effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFreeTrialTimeLeft((prev) => {
+        if (prev <= 0) return 0;
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Format time for display
+  const formatTrialTime = (seconds: number) => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    return { days, hours, minutes, seconds: secs };
   };
 
   // Debug modal state changes
@@ -3923,6 +3948,44 @@ const Levels: React.FC = () => {
           <p className="text-gray-600 dark:text-gray-300">
             از انتخاب ایده تا ساخت کسب‌وکار درآمد دلاری
           </p>
+          
+          {/* Free Trial Countdown Timer - Mobile Optimized */}
+          <div className="mt-4 w-full max-w-sm mx-auto px-2">
+            <div className="bg-gradient-to-br from-red-500/15 via-red-600/15 to-rose-500/15 backdrop-blur-md rounded-2xl border border-red-500/30 p-3 shadow-lg shadow-red-500/10">
+              <div className="flex items-center justify-center gap-1.5 mb-2">
+                <Clock className="w-3.5 h-3.5 text-red-400 animate-pulse" />
+                <span className="text-[11px] font-medium text-red-300">زمان باقی‌مانده استفاده رایگان:</span>
+              </div>
+              <div className="flex items-center justify-center gap-1">
+                {(() => {
+                  const time = formatTrialTime(freeTrialTimeLeft);
+                  return (
+                    <>
+                      <div className="flex flex-col items-center bg-red-500/25 rounded-lg px-2 py-1.5 min-w-[46px] border border-red-400/30">
+                        <span className="text-lg font-bold text-red-100 leading-none">{String(time.days).padStart(2, '0')}</span>
+                        <span className="text-[8px] text-red-300 mt-0.5">روز</span>
+                      </div>
+                      <span className="text-red-400 font-bold text-xs">:</span>
+                      <div className="flex flex-col items-center bg-red-500/25 rounded-lg px-2 py-1.5 min-w-[46px] border border-red-400/30">
+                        <span className="text-lg font-bold text-red-100 leading-none">{String(time.hours).padStart(2, '0')}</span>
+                        <span className="text-[8px] text-red-300 mt-0.5">ساعت</span>
+                      </div>
+                      <span className="text-red-400 font-bold text-xs">:</span>
+                      <div className="flex flex-col items-center bg-red-500/25 rounded-lg px-2 py-1.5 min-w-[46px] border border-red-400/30">
+                        <span className="text-lg font-bold text-red-100 leading-none">{String(time.minutes).padStart(2, '0')}</span>
+                        <span className="text-[8px] text-red-300 mt-0.5">دقیقه</span>
+                      </div>
+                      <span className="text-red-400 font-bold text-xs">:</span>
+                      <div className="flex flex-col items-center bg-red-500/25 rounded-lg px-2 py-1.5 min-w-[46px] border border-red-400/30">
+                        <span className="text-lg font-bold text-red-100 leading-none">{String(time.seconds).padStart(2, '0')}</span>
+                        <span className="text-[8px] text-red-300 mt-0.5">ثانیه</span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Progress Overview */}

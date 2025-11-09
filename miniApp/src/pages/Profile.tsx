@@ -53,7 +53,7 @@ const Profile: React.FC = () => {
       price: '۷,۵۰۰,۰۰۰',
       period: 'مادام‌العمر',
       icon: '👑',
-      gradient: 'from-yellow-500 to-orange-500'
+      gradient: 'from-green-500 to-green-600'
     }
   };
 
@@ -184,7 +184,7 @@ const Profile: React.FC = () => {
   };
 
   const handleSubscriptionManagement = () => {
-    setShowSubscriptionModal(true);
+    navigate('/subscription-management');
   };
 
   const handleSelectPlan = (planId: string) => {
@@ -833,12 +833,12 @@ const Profile: React.FC = () => {
 
                 {/* Ultimate Plan */}
                 <div className="relative rounded-3xl p-8 border border-gray-700/60 transition-all duration-500 hover:scale-105 cursor-pointer group backdrop-blur-xl shadow-lg" style={{ backgroundColor: '#10091c' }}>
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-green-500/20 text-green-400 border border-green-500/30 px-6 py-2 rounded-full text-sm font-bold backdrop-blur-sm">
                     👑 لایف‌تایم
                   </div>
                   
                   <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-green-500/20 border border-green-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
                       <span className="text-white text-2xl">👑</span>
                     </div>
                     <h4 className="text-2xl font-bold text-white mb-3">Ultimate</h4>
@@ -846,36 +846,36 @@ const Profile: React.FC = () => {
                       <span className="text-4xl font-black text-white">۷,۵۰۰,۰۰۰</span>
                       <span className="text-lg text-gray-400">تومان</span>
                     </div>
-                    <div className="text-sm text-yellow-400 font-bold">مادام‌العمر</div>
+                    <div className="text-sm text-green-400 font-bold">مادام‌العمر</div>
                   </div>
 
                   <div className="space-y-3 mb-8">
                     <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+                      <div className="w-4 h-4 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center backdrop-blur-sm">
                         <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                       </div>
                       <span className="text-gray-200 font-medium text-sm">همه امکانات Pro مادام‌العمر</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+                      <div className="w-4 h-4 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center backdrop-blur-sm">
                         <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                       </div>
                       <span className="text-gray-200 font-medium text-sm">دسترسی دائمی به آپدیت‌ها</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+                      <div className="w-4 h-4 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center backdrop-blur-sm">
                         <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                       </div>
                       <span className="text-gray-200 font-medium text-sm">پشتیبانی اولویت‌دار لایف‌تایم</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+                      <div className="w-4 h-4 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center backdrop-blur-sm">
                         <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                       </div>
                       <span className="text-gray-200 font-medium text-sm">دسترسی به ابزارهای بتا</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+                      <div className="w-4 h-4 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center backdrop-blur-sm">
                         <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                       </div>
                       <span className="text-gray-200 font-medium text-sm">عضویت در گروه خصوصی</span>
@@ -884,7 +884,7 @@ const Profile: React.FC = () => {
 
                   <button 
                     onClick={() => handlePlanSelection('ultimate')}
-                    className="w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600 shadow-yellow-500/25"
+                    className="w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-xl bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 shadow-green-500/25"
                   >
                     انتخاب پلن
                   </button>
