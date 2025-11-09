@@ -705,32 +705,32 @@ const Dashboard: React.FC = () => {
 
       {/* Guide Notification - After Stories */}
       {showGuideNotification && (
-        <div className="fixed top-20 left-4 right-4 z-[9998] animate-slideDown">
-          <div className="bg-gradient-to-br from-[#2c189a] via-[#5a189a] to-[#7222F2] backdrop-blur-xl rounded-2xl p-5 shadow-2xl border border-white/20 max-w-md mx-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9998] animate-fadeIn">
+          <div className="bg-gradient-to-br from-[#2c189a] via-[#5a189a] to-[#7222F2] backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-white/20 max-w-md w-full animate-scaleIn">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">📚</span>
+                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
+                  <span className="text-3xl">📚</span>
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-white font-bold text-lg mb-1">راهنمای استفاده از پلتفرم</h4>
-                <p className="text-white/90 text-sm mb-3 leading-relaxed">
+                <h4 className="text-white font-bold text-xl mb-2">راهنمای استفاده از پلتفرم</h4>
+                <p className="text-white/90 text-sm mb-4 leading-relaxed">
                   برای آشنایی کامل با امکانات و نحوه استفاده از MonetizeAI، راهنمای تصویری رو مشاهده کنید!
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button
                     onClick={handleGuideNotificationClick}
-                    className="flex-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-bold py-2.5 px-4 rounded-xl transition-all duration-300 text-sm border border-white/30 hover:scale-105"
+                    className="flex-1 bg-white/25 hover:bg-white/35 backdrop-blur-sm text-white font-bold py-3 px-5 rounded-xl transition-all duration-300 text-sm border border-white/40 hover:scale-105 shadow-lg"
                   >
                     مشاهده راهنما 🚀
                   </button>
                   <button
                     onClick={handleGuideNotificationClose}
-                    className="w-10 h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center transition-all duration-300 border border-white/20 hover:scale-110"
+                    className="w-12 h-12 bg-white/15 hover:bg-white/25 backdrop-blur-sm rounded-xl flex items-center justify-center transition-all duration-300 border border-white/30 hover:scale-110"
                     title="بستن"
                   >
-                    <X size={18} className="text-white" />
+                    <X size={20} className="text-white" />
                   </button>
                 </div>
               </div>
@@ -769,6 +769,30 @@ const Dashboard: React.FC = () => {
           }
           .animate-slideDown {
             animation: slideDown 0.5s ease-out forwards;
+          }
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+            }
+            to {
+              opacity: 1;
+            }
+          }
+          .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out forwards;
+          }
+          @keyframes scaleIn {
+            from {
+              transform: scale(0.9);
+              opacity: 0;
+            }
+            to {
+              transform: scale(1);
+              opacity: 1;
+            }
+          }
+          .animate-scaleIn {
+            animation: scaleIn 0.4s ease-out forwards;
           }
         `
       }} />
