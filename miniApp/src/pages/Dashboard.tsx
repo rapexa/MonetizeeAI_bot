@@ -44,8 +44,12 @@ const Dashboard: React.FC = () => {
   const [animatedText, setAnimatedText] = React.useState<string>('');
   const [isEditingIncome, setIsEditingIncome] = React.useState<boolean>(false);
   const [tempIncome, setTempIncome] = React.useState<string>('');
-  const [showOnboarding, setShowOnboarding] = React.useState<boolean>(true);
+  // بررسی اینکه آیا استوری قبلاً دیده شده یا نه
+  // استوری فقط یک بار در کل عمر نمایش داده می‌شود
+  const hasSeenStories = localStorage.getItem('hasSeenOnboardingStories') === 'true';
+  const [showOnboarding, setShowOnboarding] = React.useState<boolean>(!hasSeenStories);
   const [showGuideModal, setShowGuideModal] = React.useState<boolean>(false);
+  const [showGuideNotification, setShowGuideNotification] = React.useState<boolean>(false);
 
   // Check if user can access AI tools
   // Paid users: always have access
@@ -151,21 +155,35 @@ const Dashboard: React.FC = () => {
     await refreshUserData();
   };
 
-  // Show guide modal 10 seconds after entering platform (only first time)
+  // Show guide notification for second time (10 minutes after first)
   React.useEffect(() => {
-    const hasSeenGuide = localStorage.getItem('hasSeenGuideModal');
-    console.log('Guide modal check - hasSeenGuide:', hasSeenGuide);
+    const guideNotifCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
+    const lastNotifTime = parseInt(localStorage.getItem('lastGuideNotificationTime') || '0');
     
-    if (!hasSeenGuide) {
-      console.log('Guide modal will appear in 10 seconds...');
-      const timer = setTimeout(() => {
-        console.log('Showing guide modal now!');
-        setShowGuideModal(true);
-      }, 10000); // Show after 10 seconds
-
-      return () => clearTimeout(timer);
-    } else {
-      console.log('User has already seen the guide modal');
+    console.log('Checking for second guide notification:', { guideNotifCount, lastNotifTime });
+    
+    // فقط برای بار دوم (اگر بار اول دیده شده ولی بار دوم نه)
+    if (guideNotifCount === 1) {
+      const timeSinceLastNotif = Date.now() - lastNotifTime;
+      const tenMinutes = 600000; // 10 minutes in milliseconds
+      
+      // اگر کمتر از 10 دقیقه از بار اول گذشته، تایمر برای باقیمانده زمان بذار
+      if (timeSinceLastNotif < tenMinutes) {
+        const remainingTime = tenMinutes - timeSinceLastNotif;
+        console.log('Scheduling second guide notification in', remainingTime / 1000, 'seconds');
+        
+        const timer = setTimeout(() => {
+          const currentCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
+          if (currentCount === 1) {
+            console.log('Showing second guide notification');
+            setShowGuideNotification(true);
+            localStorage.setItem('guideNotificationCount', '2');
+            localStorage.setItem('lastGuideNotificationTime', Date.now().toString());
+          }
+        }, remainingTime);
+        
+        return () => clearTimeout(timer);
+      }
     }
   }, []); // Run only once on mount
 
@@ -610,11 +628,43 @@ const Dashboard: React.FC = () => {
     navigate('/guide-tutorial'); // Navigate to guide tutorial page
   };
 
+  // Handle guide notification actions
+  const handleGuideNotificationClick = () => {
+    console.log('Guide notification clicked - navigating to guide');
+    setShowGuideNotification(false);
+    navigate('/guide-tutorial');
+  };
+
+  const handleGuideNotificationClose = () => {
+    console.log('Guide notification dismissed');
+    setShowGuideNotification(false);
+  };
+
   return (
     <>
-      {/* Onboarding Stories */}
+      {/* Onboarding Stories - فقط یک بار در کل عمر نمایش داده می‌شود */}
       {showOnboarding && (
-        <OnboardingStories onClose={() => setShowOnboarding(false)} />
+        <OnboardingStories onClose={() => {
+          console.log('📖 Onboarding stories closed - marking as seen');
+          setShowOnboarding(false);
+          
+          // ذخیره در localStorage که استوری دیده شده و دیگه هیچ‌وقت نشون داده نشه
+          localStorage.setItem('hasSeenOnboardingStories', 'true');
+          
+          // بعد از بسته شدن استوری‌ها، تایمر نوتیفیکیشن راهنما را شروع کن
+          const guideNotifCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
+          if (guideNotifCount === 0) {
+            console.log('Stories closed, scheduling guide notification for 2 minutes');
+            setTimeout(() => {
+              const currentCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
+              if (currentCount < 2) {
+                setShowGuideNotification(true);
+                localStorage.setItem('guideNotificationCount', '1');
+                localStorage.setItem('lastGuideNotificationTime', Date.now().toString());
+              }
+            }, 120000); // 2 minutes after closing stories
+          }
+        }} />
       )}
 
       {/* Guide Modal */}
@@ -623,6 +673,42 @@ const Dashboard: React.FC = () => {
         onClose={handleCloseGuideModal}
         onStartGuide={handleStartGuide}
       />
+
+      {/* Guide Notification - After Stories */}
+      {showGuideNotification && (
+        <div className="fixed top-20 left-4 right-4 z-[9998] animate-slideDown">
+          <div className="bg-gradient-to-br from-[#2c189a] via-[#5a189a] to-[#7222F2] backdrop-blur-xl rounded-2xl p-5 shadow-2xl border border-white/20 max-w-md mx-auto">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">📚</span>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-white font-bold text-lg mb-1">راهنمای استفاده از پلتفرم</h4>
+                <p className="text-white/90 text-sm mb-3 leading-relaxed">
+                  برای آشنایی کامل با امکانات و نحوه استفاده از MonetizeAI، راهنمای تصویری رو مشاهده کنید!
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleGuideNotificationClick}
+                    className="flex-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-bold py-2.5 px-4 rounded-xl transition-all duration-300 text-sm border border-white/30 hover:scale-105"
+                  >
+                    مشاهده راهنما 🚀
+                  </button>
+                  <button
+                    onClick={handleGuideNotificationClose}
+                    className="w-10 h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center transition-all duration-300 border border-white/20 hover:scale-110"
+                    title="بستن"
+                  >
+                    <X size={18} className="text-white" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="min-h-screen transition-colors duration-300 dashboard-container" 
            style={{ 
@@ -641,6 +727,19 @@ const Dashboard: React.FC = () => {
           }
           .animation-delay-150 {
             animation-delay: 150ms;
+          }
+          @keyframes slideDown {
+            from {
+              transform: translateY(-100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateY(0);
+              opacity: 1;
+            }
+          }
+          .animate-slideDown {
+            animation: slideDown 0.5s ease-out forwards;
           }
         `
       }} />
