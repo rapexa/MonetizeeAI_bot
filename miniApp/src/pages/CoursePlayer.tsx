@@ -77,6 +77,7 @@ const CoursePlayer: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const [showSubscriptionCard, setShowSubscriptionCard] = React.useState(false);
+  const [pseudoFullscreen, setPseudoFullscreen] = React.useState(false);
 
   // Check if user can access session
   const canAccessSession = (sessionIndex: number) => {
@@ -114,22 +115,33 @@ const CoursePlayer: React.FC = () => {
   }, [courseId]);
 
   const toggleFullscreen = async () => {
-    if (!document.fullscreenElement) {
-      if (videoRef.current) {
+    const el = videoRef.current;
+    const active = !!document.fullscreenElement || pseudoFullscreen;
+    if (!active) {
+      if (el && el.requestFullscreen) {
         try {
-          await videoRef.current.requestFullscreen();
+          await el.requestFullscreen();
           setIsFullscreen(true);
-        } catch (error) {
-          console.error('Error attempting to enable fullscreen:', error);
-        }
+          return;
+        } catch (_) {}
       }
+      const anyVideo: any = el as any;
+      if (anyVideo && typeof anyVideo.webkitEnterFullscreen === 'function') {
+        try {
+          anyVideo.webkitEnterFullscreen();
+          setIsFullscreen(true);
+          return;
+        } catch (_) {}
+      }
+      setPseudoFullscreen(true);
     } else {
-      try {
-        await document.exitFullscreen();
-        setIsFullscreen(false);
-      } catch (error) {
-        console.error('Error attempting to exit fullscreen:', error);
+      if (document.fullscreenElement) {
+        try {
+          await document.exitFullscreen();
+        } catch (_) {}
       }
+      setIsFullscreen(false);
+      setPseudoFullscreen(false);
     }
   };
 
@@ -137,10 +149,38 @@ const CoursePlayer: React.FC = () => {
   React.useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
+      if (!document.fullscreenElement) {
+        setPseudoFullscreen(false);
+      }
     };
-
+    const handleWebkitEnd = () => {
+      setIsFullscreen(false);
+      setPseudoFullscreen(false);
+    };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitendfullscreen', handleWebkitEnd as any);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitendfullscreen', handleWebkitEnd as any);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (pseudoFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [pseudoFullscreen]);
+
+  React.useEffect(() => {
+    try {
+      // @ts-ignore
+      window?.Telegram?.WebApp?.expand?.();
+    } catch (_) {}
   }, []);
 
   if (!course) {
@@ -174,8 +214,8 @@ const CoursePlayer: React.FC = () => {
 
       <div className={`pt-24 mx-auto p-4 space-y-6 ${isFullscreen ? 'max-w-6xl' : 'max-w-md'}`}>
         {/* Video Player Card */}
-        <div className={`backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'shadow-2xl' : ''}`} style={{ backgroundColor: '#10091c' }}>
-          <div className="relative">
+        <div className={`${pseudoFullscreen ? 'fixed inset-0 z-[9999]' : ''} backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen || pseudoFullscreen ? 'shadow-2xl' : ''}`} style={{ backgroundColor: '#10091c' }}>
+          <div className={`relative ${pseudoFullscreen ? 'w-screen h-screen' : ''}`}>
             {/* Check if user can access current session */}
             {current && canAccessSession(course.sessions.findIndex(s => s.id === current.id)) ? (
               <video
@@ -183,7 +223,7 @@ const CoursePlayer: React.FC = () => {
                 key={current?.id}
                 controls
                 playsInline
-                className={`w-full bg-black transition-all duration-300 ${isFullscreen ? 'h-96' : 'h-52'}`}
+                className={`w-full bg-black transition-all duration-300 ${(isFullscreen || pseudoFullscreen) ? 'h-[100vh]' : 'h-52'}`}
                 controlsList="nodownload"
                 disablePictureInPicture
                 // @ts-ignore - non-standard but supported in Chromium

@@ -8,6 +8,7 @@ const GuideTutorial: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [pseudoFullscreen, setPseudoFullscreen] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -73,18 +74,72 @@ const GuideTutorial: React.FC = () => {
     setIsMuted(!isMuted);
   };
 
-  const toggleFullscreen = () => {
-    const video = videoRef.current;
-    if (!video) return;
+  const toggleFullscreen = async () => {
+    const el = videoRef.current;
+    if (!el) return;
 
-    if (!document.fullscreenElement) {
-      video.requestFullscreen();
-      setIsFullscreen(true);
+    const active = !!document.fullscreenElement || pseudoFullscreen;
+    if (!active) {
+      if (el.requestFullscreen) {
+        try {
+          await el.requestFullscreen();
+          setIsFullscreen(true);
+          return;
+        } catch (_) {}
+      }
+      const anyVideo: any = el as any;
+      if (anyVideo && typeof anyVideo.webkitEnterFullscreen === 'function') {
+        try {
+          anyVideo.webkitEnterFullscreen();
+          setIsFullscreen(true);
+          return;
+        } catch (_) {}
+      }
+      setPseudoFullscreen(true);
     } else {
-      document.exitFullscreen();
+      if (document.fullscreenElement) {
+        try { await document.exitFullscreen(); } catch (_) {}
+      }
       setIsFullscreen(false);
+      setPseudoFullscreen(false);
     }
   };
+
+  // Sync fullscreen state and manage pseudo/body overflow
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      if (!document.fullscreenElement) {
+        setPseudoFullscreen(false);
+      }
+    };
+    const handleWebkitEnd = () => {
+      setIsFullscreen(false);
+      setPseudoFullscreen(false);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitendfullscreen', handleWebkitEnd as any);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitendfullscreen', handleWebkitEnd as any);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (pseudoFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [pseudoFullscreen]);
+
+  useEffect(() => {
+    try {
+      // @ts-ignore
+      window?.Telegram?.WebApp?.expand?.();
+    } catch (_) {}
+  }, []);
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const video = videoRef.current;
@@ -135,7 +190,7 @@ const GuideTutorial: React.FC = () => {
 
         {/* Video Container */}
         <div 
-          className="relative bg-black rounded-2xl overflow-hidden shadow-2xl border border-purple-500/30"
+          className={`relative bg-black rounded-2xl overflow-hidden shadow-2xl border border-purple-500/30 ${pseudoFullscreen ? 'fixed inset-0 z-[9999]' : ''}`}
           onMouseEnter={() => setShowControls(true)}
           onMouseLeave={() => isPlaying && setShowControls(false)}
         >
@@ -143,7 +198,7 @@ const GuideTutorial: React.FC = () => {
           {/* Video */}
           <video
             ref={videoRef}
-            className="w-full aspect-video"
+            className={`w-full ${pseudoFullscreen ? 'h-[100vh]' : 'aspect-video'}`}
             onClick={togglePlay}
             preload="auto"
             autoPlay
@@ -234,7 +289,7 @@ const GuideTutorial: React.FC = () => {
                   onClick={toggleFullscreen}
                   className="p-2 rounded-lg hover:bg-white/10 transition-all"
                 >
-                  {isFullscreen ? (
+                  {(isFullscreen || pseudoFullscreen) ? (
                     <Minimize size={24} className="text-white" />
                   ) : (
                     <Maximize size={24} className="text-white" />

@@ -81,6 +81,8 @@ const Levels: React.FC = () => {
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail' | 'stage-detail'>('list');
   const videoRefs = React.useRef<{[key: number]: HTMLVideoElement | null}>({});
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [pseudoFullscreenIdx, setPseudoFullscreenIdx] = useState<number | null>(null);
   
   // Free trial countdown timer - محاسبه بر اساس subscriptionExpiry واقعی
   const [freeTrialTimeLeft, setFreeTrialTimeLeft] = useState(0);
@@ -108,23 +110,71 @@ const Levels: React.FC = () => {
   }, [userData.subscriptionType, userData.subscriptionExpiry]);
 
   const toggleFullscreen = async (videoIndex: number) => {
-    const videoElement = videoRefs.current[videoIndex];
-    if (!videoElement) return;
+    const el = videoRefs.current[videoIndex];
+    if (!el) return;
 
-    if (!document.fullscreenElement) {
-      try {
-        await videoElement.requestFullscreen();
-      } catch (error) {
-        console.error('Error attempting to enable fullscreen:', error);
+    const active = !!document.fullscreenElement || pseudoFullscreenIdx !== null;
+    if (!active) {
+      if (el.requestFullscreen) {
+        try {
+          await el.requestFullscreen();
+          setIsFullscreen(true);
+          return;
+        } catch (_) {}
       }
+      const anyVideo: any = el as any;
+      if (anyVideo && typeof anyVideo.webkitEnterFullscreen === 'function') {
+        try {
+          anyVideo.webkitEnterFullscreen();
+          setIsFullscreen(true);
+          return;
+        } catch (_) {}
+      }
+      setPseudoFullscreenIdx(videoIndex);
     } else {
-      try {
-        await document.exitFullscreen();
-      } catch (error) {
-        console.error('Error attempting to exit fullscreen:', error);
+      if (document.fullscreenElement) {
+        try { await document.exitFullscreen(); } catch (_) {}
       }
+      setIsFullscreen(false);
+      setPseudoFullscreenIdx(null);
     }
   };
+
+  // Listen for fullscreen changes and manage pseudo state/body overflow
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      if (!document.fullscreenElement) {
+        setPseudoFullscreenIdx(null);
+      }
+    };
+    const handleWebkitEnd = () => {
+      setIsFullscreen(false);
+      setPseudoFullscreenIdx(null);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitendfullscreen', handleWebkitEnd as any);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitendfullscreen', handleWebkitEnd as any);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (pseudoFullscreenIdx !== null) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [pseudoFullscreenIdx]);
+
+  useEffect(() => {
+    try {
+      // @ts-ignore
+      window?.Telegram?.WebApp?.expand?.();
+    } catch (_) {}
+  }, []);
 
   // Chat and edit mode states
   const [chatMessage, setChatMessage] = useState<string>('');
@@ -3212,8 +3262,8 @@ const Levels: React.FC = () => {
                       {selectedStage.videos && selectedStage.videos.length > 0 ? (
                         selectedStage.videos.map((video, index) => (
                           <div key={index} className="mb-4">
-                            <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4">
-                        <div className="aspect-video relative">
+                            <div className={`relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4 ${pseudoFullscreenIdx === index ? 'fixed inset-0 z-[9999]' : ''}`}>
+                              <div className={`aspect-video relative ${pseudoFullscreenIdx === index ? 'w-screen h-screen' : ''}`}>
                                 <video 
                                   ref={(el) => videoRefs.current[index] = el}
                                   controls 
@@ -3226,35 +3276,35 @@ const Levels: React.FC = () => {
                                 </video>
                                 <button
                                   onClick={() => toggleFullscreen(index)}
-                                  className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white p-2 rounded-full border border-white/20 hover:bg-black/80 transition-all duration-300 hover:scale-110"
-                                  title="تمام صفحه"
+                                  className="absolute bottom-3 left-3 bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-1 rounded-full border border-white/20 flex items-center gap-2"
                                 >
-                                  <Maximize2 size={16} />
+                                  <Maximize2 className="w-4 h-4" />
+                                  تمام صفحه
                                 </button>
-                        </div>
-                      </div>
+                              </div>
+                            </div>
 
-                      {/* Video Info */}
+                            {/* Video Info */}
                             <div className="bg-gradient-to-r from-purple-50/80 to-purple-100/80 dark:from-purple-900/20 dark:to-purple-800/20 rounded-3xl p-4 border border-purple-200/50 dark:border-purple-800/50 mb-2">
                               <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-0.5">{video.title}</h4>
-                        <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-purple-500 dark:text-purple-400" />
-                            <span className="text-sm text-purple-600 dark:text-purple-300 font-medium">{video.duration}</span>
+                              <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+                                  <span className="text-sm text-purple-600 dark:text-purple-300 font-medium">{video.duration}</span>
+                                </div>
+                                {/* <div className="flex items-center gap-2">
+                                  <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                  <span className="font-medium">1,234 مشاهده</span>
+                                </div> */}
+                              </div>
+                            </div>
                           </div>
-                          {/* <div className="flex items-center gap-2">
-                            <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
-                            <span className="font-medium">1,234 مشاهده</span>
-                    </div> */}
-                        </div>
-                      </div>
-                    </div>
                         ))
                       ) : selectedStage.videoUrl ? (
                         // Legacy single video support
                         <div className="mb-4">
-                          <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4">
-                            <div className="aspect-video relative">
+                          <div className={`relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4 ${pseudoFullscreenIdx === -1 ? 'fixed inset-0 z-[9999]' : ''}`}>
+                            <div className={`aspect-video relative ${pseudoFullscreenIdx === -1 ? 'w-screen h-screen' : ''}`}>
                               <video 
                                 ref={(el) => videoRefs.current[-1] = el}
                                 controls 
