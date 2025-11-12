@@ -367,13 +367,23 @@ func handleMessage(update tgbotapi.Update) {
 		user = getUserOrCreate(update.Message.From)
 	}
 
-	// Block access until user is verified OR has active subscription (free trial)
-	// Only process license input for users who are NOT verified AND have NO active subscription
-	if !user.IsVerified && !user.HasActiveSubscription() {
-		// Only allow license/name/phone input, do not show main menu or process other commands
-		processUserInput(update.Message.Text, user)
-		return
-	}
+    // If we are collecting phone and user shared contact, handle it
+    if update.Message.Contact != nil {
+        // Ensure we have latest state
+        state, _ := userStates[user.TelegramID]
+        if state == StateWaitingForPhone {
+            completePhoneStepWithContact(user, update.Message.Contact)
+            return
+        }
+    }
+
+    // Block access until user is verified OR has active subscription (free trial)
+    // Only process license input for users who are NOT verified AND have NO active subscription
+    if !user.IsVerified && !user.HasActiveSubscription() {
+        // Only allow license/name/phone input, do not show main menu or process other commands
+        processUserInput(update.Message.Text, user)
+        return
+    }
 
 	// Check if subscription has expired and is not in license entry mode
 	state, _ := userStates[user.TelegramID]
