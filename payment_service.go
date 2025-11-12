@@ -27,34 +27,34 @@ type PaymentConfig struct {
 // extractZarinpalError tries to parse the flexible `errors` field which may be an object or an array.
 // Returns message and code if present; otherwise empty values.
 func extractZarinpalError(raw json.RawMessage) (string, int) {
-    if len(raw) == 0 {
-        return "", 0
-    }
-    // Trim leading spaces
-    i := 0
-    for i < len(raw) && (raw[i] == ' ' || raw[i] == '\n' || raw[i] == '\t' || raw[i] == '\r') {
-        i++
-    }
-    if i >= len(raw) {
-        return "", 0
-    }
-    switch raw[i] {
-    case '[':
-        // errors is an array (often empty); ignore gracefully
-        return "", 0
-    case '{':
-        var obj struct {
-            Message     string      `json:"message"`
-            Code        int         `json:"code"`
-            Validations interface{} `json:"validations"`
-        }
-        if err := json.Unmarshal(raw, &obj); err == nil {
-            return obj.Message, obj.Code
-        }
-        return "", 0
-    default:
-        return "", 0
-    }
+	if len(raw) == 0 {
+		return "", 0
+	}
+	// Trim leading spaces
+	i := 0
+	for i < len(raw) && (raw[i] == ' ' || raw[i] == '\n' || raw[i] == '\t' || raw[i] == '\r') {
+		i++
+	}
+	if i >= len(raw) {
+		return "", 0
+	}
+	switch raw[i] {
+	case '[':
+		// errors is an array (often empty); ignore gracefully
+		return "", 0
+	case '{':
+		var obj struct {
+			Message     string      `json:"message"`
+			Code        int         `json:"code"`
+			Validations interface{} `json:"validations"`
+		}
+		if err := json.Unmarshal(raw, &obj); err == nil {
+			return obj.Message, obj.Code
+		}
+		return "", 0
+	default:
+		return "", 0
+	}
 }
 
 // GetPaymentConfig loads payment configuration from environment variables
@@ -64,7 +64,7 @@ func GetPaymentConfig() PaymentConfig {
 		MerchantID:    getEnvOrDefault("ZARINPAL_MERCHANT_ID", "3ef8ccdc-8fc9-43ba-8931-ad68cf890c7e"),
 		Sandbox:       false,
 		CallbackURL:   getEnvOrDefault("ZARINPAL_CALLBACK_URL", "https://web.sianacademy.com/payment-result.html"),
-		StarterPrice:  1000,    // ۱,۰۰۰ تومان (موقت برای تست - باید به 790000 برگردد)
+		StarterPrice:  990000,  // ۱,۰۰۰ تومان (موقت برای تست - باید به 990000 برگردد)
 		ProPrice:      3300000, // ۳,۳۰۰,۰۰۰ تومان (شش‌ماهه)
 		UltimatePrice: 7500000, // ۷,۵۰۰,۰۰۰ تومان (مادام‌العمر)
 	}

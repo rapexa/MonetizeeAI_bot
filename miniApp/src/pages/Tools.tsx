@@ -522,7 +522,7 @@ const Tools: React.FC = () => {
 
       {/* Main Content */}
       <div className="pt-24 max-w-6xl mx-auto p-6">
-        {/* Subscription limit warning - only show if user is free_trial */}
+        {/* Subscription limit warning - only show if user is free_trial
         {userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none' ? (
           <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl backdrop-blur-xl">
             <div className="flex items-center gap-3">
@@ -537,7 +537,7 @@ const Tools: React.FC = () => {
               </div>
             </div>
           </div>
-        ) : null}
+        ) : null} */}
 
         {/* Internal AI Tools */}
         <div className="mb-12 mt-8">
