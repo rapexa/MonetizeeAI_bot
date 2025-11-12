@@ -629,16 +629,11 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 			return
 		}
 
-		// Send free trial success message to user
-		userName := user.FirstName
-		if user.LastName != "" {
-			userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
-		}
-
 		// Clear state so user can use main menu
 		userStates[userID] = ""
 
-		msg := tgbotapi.NewMessage(userID, fmt.Sprintf("🚀 عالی %s\n\nنسخه رایگان MonetizeAI برای تو فعال شد ✅\n\nتا ۳ روز آینده می‌تونی مسیر ساخت سیستم درآمد دلاری‌ت رو شروع کنی.\n\nیادت نره: نسخه کامل بدون محدودیت ابزار، مراحل و کوچ فعاله 💡", userName))
+		// New unified success message
+		msg := tgbotapi.NewMessage(userID, "تبریک🤩🎉\nنسخه رایگان پلتفرم مانیتایزAI واست فعال شد✅\n\nاز این لحظه، هوش مصنوعی شروع می‌کنه کنار تو کار کردن\nبرای ساخت سیستم واقعی درآمدت، قدم‌به‌قدم، از ایده تا اولین فروش 💸\n\nاینجا همه‌چیز آماده‌ست تا بیزینس شخصی خودت رو با AI بسازی.\nفقط کافیه وارد داشبورد بشی و مسیرت رو شروع کنی👇🏼\n\n🎯 اولین مرحله‌ت آماده‌ست؛\nبزن روی دکمه(🏠 ورود به داشبورد) تا ساخت اولین سیستم پول‌ساز تو شروع بشه.")
 
 		// Show main menu keyboard with dashboard button
 		msg.ReplyMarkup = getMainMenuKeyboard(&user)
