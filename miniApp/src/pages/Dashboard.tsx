@@ -374,6 +374,11 @@ const Dashboard: React.FC = () => {
   const hasIncome = userData.incomeMonth > 0;
   const monthGrowth = 12;
 
+  // Stages progress (replace level-based display)
+  const TOTAL_STAGES = 29;
+  const completedStages = Math.max(0, Math.min(TOTAL_STAGES, userData.completedTasks || 0));
+  const stagesPercent = Math.max(0, Math.min(100, Math.round((completedStages / TOTAL_STAGES) * 100)));
+
   // Enhanced Notifications with different types and interactions
   const notifications = [
     {
@@ -1059,7 +1064,7 @@ const Dashboard: React.FC = () => {
                     <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden shadow-inner">
                     <div
                         className="h-full rounded-full transition-all duration-1000 shadow-lg relative"
-                        style={{ width: `${userData.progressOverall}%`, backgroundColor: '#22c55e' }}
+                        style={{ width: `${stagesPercent}%`, backgroundColor: '#22c55e' }}
                     >
                         <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-0 h-0 border-l-4 border-l-[#22c55e] border-t-2 border-t-transparent border-b-2 border-b-transparent shadow-sm"></div>
                       </div>
@@ -1069,8 +1074,8 @@ const Dashboard: React.FC = () => {
                   
                   {/* Labels */}
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-white font-bold drop-shadow">سطح {userData.currentLevel} از ۹</span>
-                    <span className="text-xs text-white font-bold drop-shadow">{userData.progressOverall}٪ تکمیل شده</span>
+                    <span className="text-xs text-white font-bold drop-shadow">مرحله {completedStages.toLocaleString('en-US')} از 29</span>
+                    <span className="text-xs text-white font-bold drop-shadow">{stagesPercent.toLocaleString('en-US')}% تکمیل شده</span>
                   </div>
                 </div>
               </div>
