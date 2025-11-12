@@ -19,6 +19,7 @@ const SubscriptionManagement: React.FC = () => {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('online');
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [showPrePaymentModal, setShowPrePaymentModal] = useState(false);
 
   // Countdown timer - محاسبه بر اساس subscriptionExpiry واقعی
   useEffect(() => {
@@ -290,6 +291,63 @@ const SubscriptionManagement: React.FC = () => {
                 </div>
               </div>
             )}
+
+      {showPrePaymentModal && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 z-[10000]"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowPrePaymentModal(false);
+            }
+          }}
+        >
+          <div
+            className="bg-gradient-to-br from-[#0F0817] via-[#10091c] to-[#0F0817] backdrop-blur-xl rounded-3xl w-full max-w-md border border-gray-700/60 shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative p-6 border-b border-gray-700/60 bg-gradient-to-r from-[#2c189a]/20 to-[#5a189a]/20">
+              <div className="relative z-10 flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold text-white mb-1">⚠️ آماده‌سازی پرداخت</h3>
+                  <p className="text-gray-300 text-sm">قبل از ورود به درگاه پرداخت</p>
+                </div>
+                <button
+                  onClick={() => setShowPrePaymentModal(false)}
+                  className="p-2 hover:bg-white/10 rounded-xl transition-all duration-300 hover:scale-110 border border-gray-700/60"
+                >
+                  <X size={20} className="text-gray-400" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🛡️</div>
+                <p className="text-gray-200 leading-7">
+                  قبل از پرداخت، این صفحه رو نبند. فقط برو وی‌پی‌ا‌ن رو خاموش کن، بعد برگرد همینجا و روی دکمه زیر کلیک کن.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setShowPrePaymentModal(false);
+                    handlePayment();
+                  }}
+                  disabled={paymentLoading}
+                  className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 ${
+                    paymentLoading
+                      ? 'bg-gray-700 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 transform hover:scale-105'
+                  } text-white shadow-xl shadow-green-500/25`}
+                >
+                  نهایی کردن خرید
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
           </div>
 
           {/* Plans Section */}
@@ -552,7 +610,7 @@ const SubscriptionManagement: React.FC = () => {
               <div className="p-6 border-t border-gray-700/60 bg-gradient-to-r from-[#2c189a]/10 to-[#5a189a]/10">
                 {selectedPaymentMethod === 'online' ? (
                   <button
-                    onClick={handlePayment}
+                    onClick={() => setShowPrePaymentModal(true)}
                     disabled={paymentLoading}
                     className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 ${
                       paymentLoading
