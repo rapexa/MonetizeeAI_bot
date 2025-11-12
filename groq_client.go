@@ -102,7 +102,11 @@ func (g *GroqClient) GenerateMonetizeAIResponse(userMessage string) (string, err
 
 ماموریت: کمک عملی برای ساخت مسیر درآمد با AI، با مثال و اقدام مشخص.`
 
-	return g.GenerateChatResponse(systemPrompt, userMessage, 4000)
+	resp, err := g.GenerateChatResponse(systemPrompt, userMessage, 4000)
+	if err != nil {
+		return "", err
+	}
+	return sanitizePersianText(resp), nil
 }
 
 // GenerateExerciseEvaluation evaluates student exercise submissions
@@ -152,6 +156,11 @@ FEEDBACK: [بازخورد دقیق، سازنده و کاربردی به فار�
 	// اگر feedback خالی بود، از کل response استفاده کن
 	if feedback == "" {
 		feedback = response
+	}
+	// Sanitize only the feedback to enforce Persian-only output
+	feedback = sanitizePersianText(feedback)
+	if feedback == "" {
+		feedback = "خروجی پاکسازی شد. لطفاً دوباره به فارسی روان ارسال کن."
 	}
 
 	return approved, feedback, nil
@@ -293,4 +302,57 @@ func trimPrefix(s, prefix string) string {
 		}
 	}
 	return s
+}
+
+func sanitizePersianText(s string) string {
+	out := make([]rune, 0, len(s))
+	lastSpace := false
+	for _, r := range s {
+		if isAllowedPersianRune(r) {
+			// collapse consecutive spaces
+			if r == ' ' {
+				if lastSpace {
+					continue
+				}
+				lastSpace = true
+			} else {
+				if r != '\n' && r != '\t' && r != '\r' {
+					lastSpace = false
+				}
+			}
+			out = append(out, r)
+		}
+	}
+	return string(out)
+}
+
+func isAllowedPersianRune(r rune) bool {
+	// Persian/Arabic letters and marks
+	if (r >= 0x0600 && r <= 0x06FF) || // Arabic block (includes Persian letters and punctuation like ، ؛ ؟)
+		(r >= 0x0750 && r <= 0x077F) || // Arabic Supplement
+		(r >= 0x08A0 && r <= 0x08FF) { // Arabic Extended-A
+		return true
+	}
+	// Arabic Presentation Forms (punctuation variants)
+	if (r >= 0xFB50 && r <= 0xFDFF) || (r >= 0xFE70 && r <= 0xFEFF) {
+		return true
+	}
+	// Persian digits ۰-۹ and Arabic-Indic digits ٠-٩
+	if (r >= 0x06F0 && r <= 0x06F9) || (r >= 0x0660 && r <= 0x0669) {
+		return true
+	}
+	// ZWNJ
+	if r == 0x200C {
+		return true
+	}
+	// Common whitespace
+	if r == ' ' || r == '\n' || r == '\r' || r == '\t' {
+		return true
+	}
+	// Allow a small set of neutral punctuation
+	switch r {
+	case '.', ',', '!', '?', ':', ';', '(', ')', '[', ']', '{', '}', '«', '»', '"', '\'', '-', '_', '%', '+', '=', '/', '\\', '…':
+		return true
+	}
+	return false
 }
