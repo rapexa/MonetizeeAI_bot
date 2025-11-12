@@ -758,6 +758,21 @@ func processUserInput(input string, user *User) string {
 		return ""
 	}
 
+	case StateWaitingForPhone:
+		// Handle typed phone numbers (contact shares are handled in main.go)
+		normalized := normalizePhoneNumber(input)
+		if normalized == "" {
+			msg := tgbotapi.NewMessage(user.TelegramID, "❌ شماره موبایل نامعتبر است. لطفاً به شکل 0912xxxxxxx وارد کن یا از دکمه ‘📲 اشتراک‌گذاری شماره’ استفاده کن.")
+			bot.Send(msg)
+			return ""
+		}
+		user.Phone = normalized
+		db.Save(user)
+		completePhoneStep(user)
+		return ""
+
+}
+
 	// Check if subscription has expired - handle expired subscription users
 	if !user.HasActiveSubscription() {
 		// Only allow support and main menu for expired users
