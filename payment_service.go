@@ -24,6 +24,39 @@ type PaymentConfig struct {
 	UltimatePrice int // تومان
 }
 
+// extractZarinpalError tries to parse the flexible `errors` field which may be an object or an array.
+// Returns message and code if present; otherwise empty values.
+func extractZarinpalError(raw json.RawMessage) (string, int) {
+    if len(raw) == 0 {
+        return "", 0
+    }
+    // Trim leading spaces
+    i := 0
+    for i < len(raw) && (raw[i] == ' ' || raw[i] == '\n' || raw[i] == '\t' || raw[i] == '\r') {
+        i++
+    }
+    if i >= len(raw) {
+        return "", 0
+    }
+    switch raw[i] {
+    case '[':
+        // errors is an array (often empty); ignore gracefully
+        return "", 0
+    case '{':
+        var obj struct {
+            Message     string      `json:"message"`
+            Code        int         `json:"code"`
+            Validations interface{} `json:"validations"`
+        }
+        if err := json.Unmarshal(raw, &obj); err == nil {
+            return obj.Message, obj.Code
+        }
+        return "", 0
+    default:
+        return "", 0
+    }
+}
+
 // GetPaymentConfig loads payment configuration from environment variables
 func GetPaymentConfig() PaymentConfig {
 
@@ -60,11 +93,7 @@ type PaymentResponse struct {
 		FeeType   string `json:"fee_type"`
 		Fee       int    `json:"fee"`
 	} `json:"data"`
-	Errors struct {
-		Message     string      `json:"message"`
-		Code        int         `json:"code"`
-		Validations interface{} `json:"validations"`
-	} `json:"errors"`
+	Errors json.RawMessage `json:"errors"`
 }
 
 // PaymentVerify - ساختار درخواست تایید
@@ -85,11 +114,7 @@ type PaymentVerifyResponse struct {
 		FeeType  string `json:"fee_type"`
 		Fee      int    `json:"fee"`
 	} `json:"data"`
-	Errors struct {
-		Message     string      `json:"message"`
-		Code        int         `json:"code"`
-		Validations interface{} `json:"validations"`
-	} `json:"errors"`
+	Errors json.RawMessage `json:"errors"`
 }
 
 // PaymentService handles payment operations with ZarinPal
@@ -201,7 +226,9 @@ func (s *PaymentService) CreatePaymentRequest(
 		// Prefer error message from errors.message if data.message is empty
 		errMsg := response.Data.Message
 		if errMsg == "" {
-			errMsg = response.Errors.Message
+			if msg, _ := extractZarinpalError(response.Errors); msg != "" {
+				errMsg = msg
+			}
 		}
 		logger.Error("Payment request failed",
 			zap.Int("code", response.Data.Code),
