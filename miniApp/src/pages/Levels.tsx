@@ -2860,7 +2860,7 @@ const Levels: React.FC = () => {
               onClick={() => {
                 console.log('🔓 [Levels] Activate subscription button clicked');
                 setShowSubscriptionCard(false);
-                navigate('/profile');
+                navigate('/subscription-management');
               }}
               className="w-full py-2 rounded-lg text-white text-xs font-medium bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 transition-colors"
             >
