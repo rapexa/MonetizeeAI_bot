@@ -237,7 +237,8 @@ func (s *PaymentService) CreatePaymentRequest(
 	}
 
 	// 7. به‌روزرسانی تراکنش با Authority از ZarinPal
-	transaction.Authority = response.Data.Authority
+	auth := response.Data.Authority
+	transaction.Authority = &auth
 	if err := s.db.Save(&transaction).Error; err != nil {
 		logger.Error("Failed to update transaction",
 			zap.Uint("transaction_id", transaction.ID),

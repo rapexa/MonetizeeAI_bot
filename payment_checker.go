@@ -8,6 +8,14 @@ import (
 	"go.uber.org/zap"
 )
 
+// valueOrEmpty safely returns the value of a string pointer or an empty string if nil
+func valueOrEmpty(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
 // getIranTime returns current time in Iran timezone
 func getIranTime() time.Time {
 	loc, err := time.LoadLocation("Asia/Tehran")
@@ -82,9 +90,19 @@ func checkPendingPayments() {
 			continue
 		}
 
+		auth := valueOrEmpty(transaction.Authority)
+		if auth == "" {
+			logger.Debug("Skipping pending payment without authority yet",
+				zap.Uint("transaction_id", transaction.ID),
+				zap.Int("amount", transaction.Amount),
+				zap.Int64("user_id", int64(transaction.UserID)),
+				zap.Time("created_at", transaction.CreatedAt))
+			continue
+		}
+
 		logger.Info("Verifying pending payment",
 			zap.Uint("transaction_id", transaction.ID),
-			zap.String("authority", transaction.Authority),
+			zap.String("authority", auth),
 			zap.Int("amount", transaction.Amount),
 			zap.Int64("user_id", int64(transaction.UserID)),
 			zap.Time("created_at", transaction.CreatedAt))
@@ -92,18 +110,18 @@ func checkPendingPayments() {
 		// Verify payment with ZarinPal
 		// VerifyPayment is idempotent - if transaction was already processed by manual check,
 		// it will return the current status without re-processing
-		verifiedTransaction, err := paymentService.VerifyPayment(transaction.Authority, transaction.Amount)
+		verifiedTransaction, err := paymentService.VerifyPayment(auth, transaction.Amount)
 		if err != nil {
 			logger.Warn("Payment verification failed",
 				zap.Uint("transaction_id", transaction.ID),
-				zap.String("authority", transaction.Authority),
+				zap.String("authority", auth),
 				zap.Error(err))
 			continue
 		}
 
 		logger.Info("Payment verification result",
 			zap.Uint("transaction_id", transaction.ID),
-			zap.String("authority", transaction.Authority),
+			zap.String("authority", auth),
 			zap.String("status", verifiedTransaction.Status),
 			zap.String("ref_id", verifiedTransaction.RefID))
 
@@ -115,7 +133,7 @@ func checkPendingPayments() {
 			// VerifyPayment uses atomic update - if RowsAffected was 0, transaction was already processed
 			// In that case, subscription should already be updated, so skip duplicate update
 			var transactionCheck PaymentTransaction
-			if err := db.Where("authority = ?", transaction.Authority).First(&transactionCheck).Error; err == nil {
+			if err := db.Where("authority = ?", auth).First(&transactionCheck).Error; err == nil {
 				// If transaction was already in success state before our call, it was processed manually
 				// Check if subscription was already updated
 				var userCheck User
@@ -123,7 +141,7 @@ func checkPendingPayments() {
 					if userCheck.HasActiveSubscription() && userCheck.PlanName == transaction.Type {
 						// Subscription already active with this plan - likely processed by manual check
 						logger.Info("Transaction already processed manually, subscription already active - skipping duplicate",
-							zap.String("authority", transaction.Authority),
+							zap.String("authority", auth),
 							zap.Uint("user_id", transaction.UserID))
 						continue // Skip duplicate subscription update
 					}
@@ -131,7 +149,7 @@ func checkPendingPayments() {
 			}
 			logger.Info("Pending payment verified as successful",
 				zap.Uint("transaction_id", transaction.ID),
-				zap.String("authority", transaction.Authority),
+				zap.String("authority", auth),
 				zap.String("ref_id", verifiedTransaction.RefID),
 				zap.Uint("user_id", transaction.UserID))
 
@@ -160,13 +178,13 @@ func checkPendingPayments() {
 
 			logger.Info("Pending payment processed successfully",
 				zap.Uint("transaction_id", transaction.ID),
-				zap.String("authority", transaction.Authority),
+				zap.String("authority", auth),
 				zap.Uint("user_id", transaction.UserID),
 				zap.String("plan_type", transaction.Type))
 		} else {
 			logger.Debug("Payment still pending or failed",
 				zap.Uint("transaction_id", transaction.ID),
-				zap.String("authority", transaction.Authority),
+				zap.String("authority", auth),
 				zap.String("status", verifiedTransaction.Status))
 		}
 	}
