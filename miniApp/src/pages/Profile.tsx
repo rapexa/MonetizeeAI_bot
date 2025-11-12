@@ -36,7 +36,7 @@ const Profile: React.FC = () => {
   const planDetails = {
     starter: {
       name: 'Starter',
-      price: '۷۹۰,۰۰۰',
+      price: '۹۹۰,۰۰۰',
       period: 'ماهانه',
       icon: '🚀',
       gradient: 'from-gray-500 to-gray-700'
@@ -182,6 +182,7 @@ const Profile: React.FC = () => {
     name: userData.username || userData.firstName || "کاربر MonetizeAI",
     subscription: getSubscriptionInfo()
   };
+
 
   const handleSubscriptionManagement = () => {
     navigate('/subscription-management');
@@ -508,6 +509,14 @@ const Profile: React.FC = () => {
               <span className="text-gray-400">وضعیت:</span>
               <span className="font-medium text-green-400">{userProfile.subscription.status}</span>
             </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-400">مجموع امتیازها:</span>
+              <span className="inline-flex items-center">
+                <span className="px-3 py-1 rounded-2xl text-white bg-gradient-to-r from-[#2c189a] to-[#5a189a] shadow-md font-bold">
+                  {userData.points || 0}
+                </span>
+              </span>
+            </div>
           </div>
             
               <button 
@@ -737,7 +746,7 @@ const Profile: React.FC = () => {
                     </div>
                     <h4 className="text-2xl font-bold text-white mb-3">Starter</h4>
                     <div className="flex items-center justify-center gap-3 mb-3">
-                      <span className="text-4xl font-black text-white">۷۹۰,۰۰۰</span>
+                      <span className="text-4xl font-black text-white">۹۹۰,۰۰۰</span>
                       <span className="text-lg text-gray-400">تومان</span>
                     </div>
                     <div className="text-sm text-gray-400 mb-4">ماهانه</div>

@@ -325,17 +325,7 @@ const SalesPathAI: React.FC = () => {
   // Check if user is free_trial
   const isFreeTrial = userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none';
   
-  // Check if free_trial user has already used this tool and redirect if needed
-  React.useEffect(() => {
-    if (isFreeTrial) {
-      const toolKey = 'sales_path_used';
-      const hasUsed = localStorage.getItem(toolKey) === 'true';
-      if (hasUsed) {
-        console.log('🚫 Free trial user already used Sales Path AI - redirecting...');
-        navigate('/tools');
-      }
-    }
-  }, [isFreeTrial, navigate]);
+  // Note: Removed automatic redirect - now handled via subscription modal instead
   
   // Check if user has used this tool before (on mount) - only for free_trial
   React.useEffect(() => {

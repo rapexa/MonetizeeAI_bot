@@ -26,11 +26,14 @@ import SubscriptionManagement from './pages/SubscriptionManagement';
 import GuideTutorial from './pages/GuideTutorial';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
+import ErrorBoundary from './components/ErrorBoundary';
+import TestPage from './pages/TestPage';
 
 // Component to handle Telegram WebApp start_param navigation
 function AppRouter() {
   const navigate = useNavigate();
   const location = useLocation();
+  
 
   useEffect(() => {
     // Check if Telegram WebApp has start_param for subscription
@@ -77,6 +80,7 @@ function AppRouter() {
             {/* SalesPanel removed */}
             <Route path="/ready-prompts" element={<ReadyPrompts />} />
             <Route path="/courses/:courseId" element={<CoursePlayer />} />
+            <Route path="/test" element={<TestPage />} />
           </Routes>
         </Layout>
       } />
@@ -86,7 +90,8 @@ function AppRouter() {
 
 function App() {
   return (
-          <div className="min-h-screen transition-colors duration-300 app-container" dir="rtl" style={{ backgroundColor: '#0e0817', fontFamily: 'IranSansX, Vazir, system-ui, sans-serif' }}>
+    <ErrorBoundary>
+      <div className="min-h-screen transition-colors duration-300 app-container" dir="rtl" style={{ backgroundColor: '#0e0817', fontFamily: 'IranSansX, Vazir, system-ui, sans-serif' }}>
         <style dangerouslySetInnerHTML={{
           __html: `
             html.dark .app-container {
@@ -114,6 +119,7 @@ function App() {
         </AppProvider>
       </ThemeProvider>
     </div>
+    </ErrorBoundary>
   );
 }
 

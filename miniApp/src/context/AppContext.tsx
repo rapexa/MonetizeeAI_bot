@@ -13,6 +13,7 @@ interface UserData {
   currentLevel: number;
   completedTasks: number;
   unlockedLevels: number;
+  points: number;
   // API integration fields
   telegramId?: number;
   username?: string;
@@ -42,6 +43,7 @@ interface AppContextType {
   syncWithAPI: () => Promise<void>;
   refreshUserData: () => Promise<void>;
   isSubscriptionExpired: () => boolean;
+  addPoints: (points: number) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -65,7 +67,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     progressOverall: 0,
     currentLevel: 0,
     completedTasks: 0,
-    unlockedLevels: 0
+    unlockedLevels: 0,
+    points: parseInt(localStorage.getItem('userPoints') || '0')
   });
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -312,6 +315,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false;
   };
 
+  // Add points to user's total
+  const addPoints = (points: number) => {
+    setUserData(prev => ({
+      ...prev,
+      points: prev.points + points
+    }));
+    
+    // Save to localStorage for persistence
+    const currentPoints = userData.points + points;
+    localStorage.setItem('userPoints', currentPoints.toString());
+  };
+
   useEffect(() => {
     // Check if running in Telegram
     const currentIsInTelegram = apiService.isInTelegram();
@@ -350,7 +365,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       telegramIdError,
       syncWithAPI,
       refreshUserData,
-      isSubscriptionExpired
+      isSubscriptionExpired,
+      addPoints
     }}>
       {children}
     </AppContext.Provider>

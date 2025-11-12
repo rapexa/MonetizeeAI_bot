@@ -52,8 +52,8 @@ const SubscriptionManagement: React.FC = () => {
   const planDetails = {
     starter: {
       name: 'Starter',
-      price: '۷۹۰,۰۰۰',
-      originalPrice: '۱,۵۸۰,۰۰۰',
+      price: '۹۹۰,۰۰۰',
+      originalPrice: '۱,۹۸۰,۰۰۰',
       period: 'یک ماهه',
       description: 'اشتراک یک ماهه',
       icon: '🚀',

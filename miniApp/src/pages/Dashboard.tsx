@@ -915,13 +915,15 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Big Income Card */}
-      <div className="backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+      <div className="group backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
 
         
-        {/* Green Light Inside Card */}
+        {/* Animated Green Lights */}
         <div className="absolute inset-0 bg-gradient-to-br from-green-400/15 via-green-500/10 to-transparent rounded-3xl"></div>
-        <div className="absolute top-4 right-4 w-32 h-32 bg-green-400/20 rounded-full blur-xl"></div>
-        <div className="absolute bottom-4 left-4 w-24 h-24 bg-green-300/25 rounded-full blur-lg"></div>
+        <div className="absolute inset-0 opacity-100 group-hover:opacity-100 transition-all duration-700">
+          <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-xl bg-green-500/30 animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-20 h-20 rounded-full blur-lg bg-green-400/25 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        </div>
         
         {/* Background Pattern */}
         <div className="absolute inset-4 opacity-5">
@@ -1105,75 +1107,179 @@ const Dashboard: React.FC = () => {
 
         <div className="grid grid-cols-2 gap-3">
           {/* ایده یابی */}
-          <div 
-            className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
-            style={{ backgroundColor: '#10091c' }}
+          <div
             onClick={() => {
               navigate('/business-builder-ai');
             }}
+            className="text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
+            style={{ backgroundColor: '#10091c' }}
           >
-            <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-              <Rocket size={16} className="text-blue-500 drop-shadow-lg" />
-              <span className="text-blue-500 drop-shadow-lg">ایده یابی</span>
+            {/* Animated Background Pattern */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700">
+              <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-xl bg-blue-500/20 animate-pulse"></div>
+              <div className="absolute bottom-0 left-0 w-12 h-12 rounded-full blur-lg bg-blue-400/15 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+            </div>
+            
+            {/* Geometric Accent Lines */}
+            <div className="absolute top-3 left-3 opacity-30 group-hover:opacity-60 transition-all duration-500">
+              <div className="w-6 h-0.5 rounded-full bg-gradient-to-r from-blue-500 to-transparent group-hover:w-8 transition-all duration-500"></div>
+              <div className="w-4 h-0.5 rounded-full mt-1 bg-gradient-to-r from-blue-400 to-transparent group-hover:w-6 transition-all duration-500" style={{ transitionDelay: '0.1s' }}></div>
+            </div>
+            
+            {/* Bottom Right Dot Pattern */}
+            <div className="absolute bottom-3 right-3 opacity-20 group-hover:opacity-40 transition-all duration-500">
+              <div className="flex gap-1">
+                <div className="w-1 h-1 rounded-full bg-blue-400 group-hover:scale-125 transition-transform duration-300"></div>
+                <div className="w-1 h-1 rounded-full bg-blue-400 group-hover:scale-125 transition-transform duration-300" style={{ transitionDelay: '0.1s' }}></div>
+                <div className="w-1 h-1 rounded-full bg-blue-400 group-hover:scale-125 transition-transform duration-300" style={{ transitionDelay: '0.2s' }}></div>
+              </div>
+            </div>
+            
+            {/* Main Content */}
+            <div className="relative z-10 text-lg font-bold text-white flex items-center justify-center transition-all duration-300 group-hover:scale-105">
+              <span className="text-blue-500 drop-shadow-lg group-hover:text-blue-400 transition-colors duration-300 whitespace-nowrap">ایده یابی</span>
             </div>
           </div>
 
           {/* سازنده محصول */}
-          <div 
-            className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
-            style={{ backgroundColor: '#10091c' }}
+          <div
             onClick={() => {
               navigate('/sell-kit-ai');
             }}
+            className="text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
+            style={{ backgroundColor: '#10091c' }}
           >
-            <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-              <Package size={16} className="text-green-500 drop-shadow-lg" />
-              <span className="text-green-500 drop-shadow-lg">سازنده محصول</span>
+            {/* Animated Background Pattern */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700">
+              <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-xl bg-green-500/20 animate-pulse"></div>
+              <div className="absolute bottom-0 left-0 w-12 h-12 rounded-full blur-lg bg-green-400/15 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+            </div>
+            
+            {/* Geometric Accent Lines */}
+            <div className="absolute top-3 left-3 opacity-30 group-hover:opacity-60 transition-all duration-500">
+              <div className="w-6 h-0.5 rounded-full bg-gradient-to-r from-green-500 to-transparent group-hover:w-8 transition-all duration-500"></div>
+              <div className="w-4 h-0.5 rounded-full mt-1 bg-gradient-to-r from-green-400 to-transparent group-hover:w-6 transition-all duration-500" style={{ transitionDelay: '0.1s' }}></div>
+            </div>
+            
+            {/* Bottom Right Dot Pattern */}
+            <div className="absolute bottom-3 right-3 opacity-20 group-hover:opacity-40 transition-all duration-500">
+              <div className="flex gap-1">
+                <div className="w-1 h-1 rounded-full bg-green-400 group-hover:scale-125 transition-transform duration-300"></div>
+                <div className="w-1 h-1 rounded-full bg-green-400 group-hover:scale-125 transition-transform duration-300" style={{ transitionDelay: '0.1s' }}></div>
+                <div className="w-1 h-1 rounded-full bg-green-400 group-hover:scale-125 transition-transform duration-300" style={{ transitionDelay: '0.2s' }}></div>
+              </div>
+            </div>
+            
+            {/* Main Content */}
+            <div className="relative z-10 text-lg font-bold text-white flex items-center justify-center transition-all duration-300 group-hover:scale-105">
+              <span className="text-green-500 drop-shadow-lg group-hover:text-green-400 transition-colors duration-300 whitespace-nowrap">سازنده محصول</span>
             </div>
           </div>
 
           {/* مشتری یابی */}
-          <div 
-            className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
-            style={{ backgroundColor: '#10091c' }}
+          <div
             onClick={() => {
               navigate('/client-finder-ai');
             }}
+            className="text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
+            style={{ backgroundColor: '#10091c' }}
           >
-            <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-              <Search size={16} className="text-orange-500 drop-shadow-lg" />
-              <span className="text-orange-500 drop-shadow-lg">مشتری یابی</span>
+            {/* Animated Background Pattern */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700">
+              <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-xl bg-orange-500/20 animate-pulse"></div>
+              <div className="absolute bottom-0 left-0 w-12 h-12 rounded-full blur-lg bg-orange-400/15 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+            </div>
+            
+            {/* Geometric Accent Lines */}
+            <div className="absolute top-3 left-3 opacity-30 group-hover:opacity-60 transition-all duration-500">
+              <div className="w-6 h-0.5 rounded-full bg-gradient-to-r from-orange-500 to-transparent group-hover:w-8 transition-all duration-500"></div>
+              <div className="w-4 h-0.5 rounded-full mt-1 bg-gradient-to-r from-orange-400 to-transparent group-hover:w-6 transition-all duration-500" style={{ transitionDelay: '0.1s' }}></div>
+            </div>
+            
+            {/* Bottom Right Dot Pattern */}
+            <div className="absolute bottom-3 right-3 opacity-20 group-hover:opacity-40 transition-all duration-500">
+              <div className="flex gap-1">
+                <div className="w-1 h-1 rounded-full bg-orange-400 group-hover:scale-125 transition-transform duration-300"></div>
+                <div className="w-1 h-1 rounded-full bg-orange-400 group-hover:scale-125 transition-transform duration-300" style={{ transitionDelay: '0.1s' }}></div>
+                <div className="w-1 h-1 rounded-full bg-orange-400 group-hover:scale-125 transition-transform duration-300" style={{ transitionDelay: '0.2s' }}></div>
+              </div>
+            </div>
+            
+            {/* Main Content */}
+            <div className="relative z-10 text-lg font-bold text-white flex items-center justify-center transition-all duration-300 group-hover:scale-105">
+              <span className="text-orange-500 drop-shadow-lg group-hover:text-orange-400 transition-colors duration-300 whitespace-nowrap">مشتری یابی</span>
             </div>
           </div>
 
           {/* مسیر فروش */}
-          <div 
-            className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
-            style={{ backgroundColor: '#10091c' }}
+          <div
             onClick={() => {
               navigate('/sales-path-ai');
             }}
+            className="text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
+            style={{ backgroundColor: '#10091c' }}
           >
-            <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-              <Map size={16} className="text-purple-500 drop-shadow-lg" />
-              <span className="text-purple-500 drop-shadow-lg">مسیر فروش</span>
+            {/* Animated Background Pattern */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700">
+              <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-xl bg-purple-500/20 animate-pulse"></div>
+              <div className="absolute bottom-0 left-0 w-12 h-12 rounded-full blur-lg bg-purple-400/15 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+            </div>
+            
+            {/* Geometric Accent Lines */}
+            <div className="absolute top-3 left-3 opacity-30 group-hover:opacity-60 transition-all duration-500">
+              <div className="w-6 h-0.5 rounded-full bg-gradient-to-r from-purple-500 to-transparent group-hover:w-8 transition-all duration-500"></div>
+              <div className="w-4 h-0.5 rounded-full mt-1 bg-gradient-to-r from-purple-400 to-transparent group-hover:w-6 transition-all duration-500" style={{ transitionDelay: '0.1s' }}></div>
+            </div>
+            
+            {/* Bottom Right Dot Pattern */}
+            <div className="absolute bottom-3 right-3 opacity-20 group-hover:opacity-40 transition-all duration-500">
+              <div className="flex gap-1">
+                <div className="w-1 h-1 rounded-full bg-purple-400 group-hover:scale-125 transition-transform duration-300"></div>
+                <div className="w-1 h-1 rounded-full bg-purple-400 group-hover:scale-125 transition-transform duration-300" style={{ transitionDelay: '0.1s' }}></div>
+                <div className="w-1 h-1 rounded-full bg-purple-400 group-hover:scale-125 transition-transform duration-300" style={{ transitionDelay: '0.2s' }}></div>
+              </div>
+            </div>
+            
+            {/* Main Content */}
+            <div className="relative z-10 text-lg font-bold text-white flex items-center justify-center transition-all duration-300 group-hover:scale-105">
+              <span className="text-purple-500 drop-shadow-lg group-hover:text-purple-400 transition-colors duration-300 whitespace-nowrap">مسیر فروش</span>
             </div>
           </div>
+        </div>
 
-          {/* Sales Management System - Full Width */}
+        {/* Sales Management System Card */}
+        <div className="mt-3">
           <div 
-            className={`col-span-2 text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105`}
+            className="text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
             style={{ backgroundColor: '#10091c' }}
             onClick={() => {
               navigate('/crm');
             }}
           >
-            <div className="flex items-center justify-center mb-1">
-              <div className="text-xs text-white font-medium transition-colors duration-300">سیستم مدیریت فروش</div>
+            {/* Animated Background Pattern */}
+            <div className="absolute inset-0 opacity-100 group-hover:opacity-100 transition-all duration-700">
+              <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-xl bg-green-500/20 animate-pulse"></div>
+              <div className="absolute bottom-0 left-0 w-12 h-12 rounded-full blur-lg bg-green-400/15 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
             </div>
-            <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-              <BarChart3 size={16} className="text-green-500 drop-shadow-lg" />
-              <span className="text-green-500 drop-shadow-lg">مدیریت فروش</span>
+            
+            {/* Geometric Accent Lines */}
+            <div className="absolute top-3 left-3 opacity-30 group-hover:opacity-60 transition-all duration-500">
+              <div className="w-8 h-0.5 rounded-full bg-gradient-to-r from-green-500 to-transparent group-hover:w-10 transition-all duration-500"></div>
+              <div className="w-6 h-0.5 rounded-full mt-1 bg-gradient-to-r from-green-400 to-transparent group-hover:w-8 transition-all duration-500" style={{ transitionDelay: '0.1s' }}></div>
+            </div>
+            
+            {/* Bottom Right Dot Pattern */}
+            <div className="absolute bottom-3 right-3 opacity-20 group-hover:opacity-40 transition-all duration-500">
+              <div className="flex gap-1">
+                <div className="w-1 h-1 rounded-full bg-green-400 group-hover:scale-125 transition-transform duration-300"></div>
+                <div className="w-1 h-1 rounded-full bg-green-400 group-hover:scale-125 transition-transform duration-300" style={{ transitionDelay: '0.1s' }}></div>
+                <div className="w-1 h-1 rounded-full bg-green-400 group-hover:scale-125 transition-transform duration-300" style={{ transitionDelay: '0.2s' }}></div>
+              </div>
+            </div>
+            
+            {/* Main Content */}
+            <div className="relative z-10 text-lg font-bold text-white flex items-center justify-center transition-all duration-300 group-hover:scale-105">
+              <span className="text-green-500 drop-shadow-lg group-hover:text-green-400 transition-colors duration-300 whitespace-nowrap">مدیریت فروش</span>
             </div>
           </div>
         </div>

@@ -61,7 +61,7 @@ const COURSES: Record<string, Course> = {
 const CoursePlayer: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
-  const { userData } = useApp();
+  const { userData, addPoints } = useApp();
   const course = courseId ? COURSES[courseId] : undefined;
   const [current, setCurrent] = React.useState<Session | null>(course ? course.sessions[0] : null);
   
@@ -78,6 +78,27 @@ const CoursePlayer: React.FC = () => {
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const [showSubscriptionCard, setShowSubscriptionCard] = React.useState(false);
   const [pseudoFullscreen, setPseudoFullscreen] = React.useState(false);
+  const [showCelebration, setShowCelebration] = React.useState(false);
+  const [confetti, setConfetti] = React.useState(false);
+
+  // Celebration function
+  const triggerCelebration = () => {
+    setConfetti(true);
+    setShowCelebration(true);
+    
+    // Add 20 points to user's total
+    addPoints(20);
+    
+    // Hide confetti after 3 seconds
+    setTimeout(() => {
+      setConfetti(false);
+    }, 3000);
+    
+    // Hide celebration popup after 4 seconds
+    setTimeout(() => {
+      setShowCelebration(false);
+    }, 4000);
+  };
 
   // Check if user can access session
   const canAccessSession = (sessionIndex: number) => {
@@ -194,6 +215,156 @@ const CoursePlayer: React.FC = () => {
   return (
     <>
       <CourseSubscriptionCard show={showSubscriptionCard} onClose={() => setShowSubscriptionCard(false)} />
+      
+      {/* Professional Confetti Animation */}
+      {confetti && (
+        <div className="fixed inset-0 pointer-events-none z-[10000] overflow-hidden">
+          {[...Array(100)].map((_, i) => {
+            const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+            const shapes = ['circle', 'square', 'triangle'];
+            const shape = shapes[Math.floor(Math.random() * shapes.length)];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const size = Math.random() * 8 + 4; // 4-12px
+            const startX = Math.random() * window.innerWidth;
+            const startY = -20;
+            const endY = window.innerHeight + 20;
+            const drift = (Math.random() - 0.5) * 200; // Side drift
+            const rotation = Math.random() * 720; // 0-720 degrees
+            const duration = Math.random() * 2 + 2; // 2-4 seconds
+            const delay = Math.random() * 1; // 0-1 second delay
+            
+            return (
+              <div
+                key={i}
+                className="absolute"
+                style={{
+                  left: startX,
+                  top: startY,
+                  width: size,
+                  height: size,
+                  backgroundColor: shape === 'circle' ? color : 'transparent',
+                  borderRadius: shape === 'circle' ? '50%' : '0',
+                  animation: `confettiFall ${duration}s ${delay}s ease-out forwards`,
+                  '--end-y': `${endY}px`,
+                  '--drift': `${drift}px`,
+                  '--rotation': `${rotation}deg`
+                } as React.CSSProperties}
+              >
+                {shape === 'square' && (
+                  <div 
+                    className="w-full h-full"
+                    style={{ 
+                      backgroundColor: color,
+                      transform: `rotate(${Math.random() * 45}deg)`
+                    }}
+                  />
+                )}
+                {shape === 'triangle' && (
+                  <div 
+                    className="w-0 h-0"
+                    style={{ 
+                      borderLeft: `${size/2}px solid transparent`,
+                      borderRight: `${size/2}px solid transparent`,
+                      borderBottom: `${size}px solid ${color}`,
+                      transform: `rotate(${Math.random() * 180}deg)`
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })}
+          <style>{`
+            @keyframes confettiFall {
+              to {
+                transform: translateY(var(--end-y)) translateX(var(--drift)) rotate(var(--rotation));
+                opacity: 0;
+              }
+            }
+            @keyframes fadeIn {
+              from {
+                opacity: 0;
+              }
+              to {
+                opacity: 1;
+              }
+            }
+            @keyframes scaleIn {
+              from {
+                transform: scale(0.8);
+                opacity: 0;
+              }
+              to {
+                transform: scale(1);
+                opacity: 1;
+              }
+            }
+            .animate-fadeIn {
+              animation: fadeIn 0.3s ease-out forwards;
+            }
+            .animate-scaleIn {
+              animation: scaleIn 0.4s ease-out forwards;
+            }
+          `}</style>
+        </div>
+      )}
+      
+      {/* Professional Celebration Popup - Platform Style */}
+      {showCelebration && (
+        <div className="fixed inset-0 flex items-center justify-center z-[9999] pointer-events-none animate-fadeIn">
+          <div className="relative overflow-hidden backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-2xl max-w-sm mx-4 animate-scaleIn" style={{ backgroundColor: '#10091c' }}>
+            {/* Animated Background Pattern */}
+            <div className="absolute inset-0">
+              <div className="absolute top-0 right-0 w-20 h-20 rounded-full blur-xl bg-emerald-500/20 animate-pulse"></div>
+              <div className="absolute bottom-0 left-0 w-16 h-16 rounded-full blur-lg bg-yellow-400/15 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full blur-2xl bg-purple-500/10 animate-pulse" style={{ animationDelay: '1s' }}></div>
+            </div>
+            
+            {/* Geometric Accent Lines */}
+            <div className="absolute top-4 left-4 opacity-40">
+              <div className="w-8 h-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-transparent"></div>
+              <div className="w-6 h-0.5 rounded-full mt-1 bg-gradient-to-r from-yellow-400 to-transparent"></div>
+            </div>
+            
+            {/* Bottom Right Dot Pattern */}
+            <div className="absolute bottom-4 right-4 opacity-30">
+              <div className="flex gap-1">
+                <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></div>
+                <div className="w-1 h-1 rounded-full bg-yellow-400 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-1 h-1 rounded-full bg-purple-400 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="relative z-10 p-8 text-center">
+              {/* Icon Container */}
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/30 shadow-lg shadow-emerald-500/25 flex items-center justify-center">
+                <div className="text-2xl">🎉</div>
+              </div>
+              
+              {/* Title */}
+              <h3 className="text-white font-bold text-xl mb-2">عالی!</h3>
+              <p className="text-gray-400 text-sm mb-4 leading-relaxed">
+                جلسه با موفقیت تکمیل شد
+              </p>
+              
+              {/* Points Badge */}
+              <div className="inline-flex items-center gap-3 bg-gradient-to-r from-yellow-500/20 to-yellow-600/30 backdrop-blur-sm rounded-2xl px-4 py-3 border border-yellow-500/30">
+                <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-yellow-900 font-bold text-sm">+20</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-yellow-400 font-bold text-base">امتیاز دریافت شد</div>
+                  <div className="text-yellow-300/80 text-xs">به کیف امتیاز اضافه شد</div>
+                </div>
+              </div>
+              
+              {/* Subtle accent line */}
+              <div className="w-12 h-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-yellow-400 mx-auto mt-4"></div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
@@ -205,8 +376,8 @@ const CoursePlayer: React.FC = () => {
             <ArrowLeft size={20} className="text-white" />
           </button>
           <div className="text-right flex-1 mr-4">
-            <h1 className="text-xl font-bold text-white mb-1">{course.title}</h1>
-            <p className="text-xs text-gray-300">{course.description}</p>
+            <h1 className="text-xl font-bold text-white mb-1 whitespace-nowrap overflow-hidden text-ellipsis">{course.title}</h1>
+            <p className="text-xs text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis">{course.description}</p>
           </div>
           <div className="w-12"></div>
         </div>
@@ -356,7 +527,15 @@ const CoursePlayer: React.FC = () => {
                 <label
                   onClick={(e) => {
                     e.stopPropagation();
-                    setCompleted(prev => ({ ...prev, [s.id]: !prev[s.id] }));
+                    const wasCompleted = completed[s.id];
+                    const newCompleted = !wasCompleted;
+                    
+                    setCompleted(prev => ({ ...prev, [s.id]: newCompleted }));
+                    
+                    // Trigger celebration only when marking as completed (not when unchecking)
+                    if (newCompleted && !wasCompleted) {
+                      triggerCelebration();
+                    }
                   }}
                       className={`cursor-pointer w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 ${
                     isDone

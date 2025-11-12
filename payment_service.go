@@ -64,7 +64,7 @@ func GetPaymentConfig() PaymentConfig {
 		MerchantID:    getEnvOrDefault("ZARINPAL_MERCHANT_ID", "3ef8ccdc-8fc9-43ba-8931-ad68cf890c7e"),
 		Sandbox:       false,
 		CallbackURL:   getEnvOrDefault("ZARINPAL_CALLBACK_URL", "https://web.sianacademy.com/payment-result.html"),
-		StarterPrice:  990000,  // ۱,۰۰۰ تومان (موقت برای تست - باید به 990000 برگردد)
+		StarterPrice:  990000,  // ۹۹۰,۰۰۰ تومان (اشتراک ماهانه)
 		ProPrice:      3300000, // ۳,۳۰۰,۰۰۰ تومان (شش‌ماهه)
 		UltimatePrice: 7500000, // ۷,۵۰۰,۰۰۰ تومان (مادام‌العمر)
 	}

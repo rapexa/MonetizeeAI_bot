@@ -317,7 +317,19 @@ const AICoach: React.FC = () => {
                       timestamp={msg.timestamp}
                       isLatest={index === chatMessages.length - 1}
                       isNew={msg.isNew || false}
-                      onTypingComplete={scrollToBottom}
+                      onTypingComplete={() => {
+                        // Mark the latest AI message as not-new so it won't re-type again
+                        setChatMessages(prev => {
+                          if (prev.length === 0) return prev;
+                          const lastIndex = prev.length - 1;
+                          const updated = [...prev];
+                          if (updated[lastIndex].sender === 'ai' && updated[lastIndex].isNew) {
+                            updated[lastIndex] = { ...updated[lastIndex], isNew: false } as any;
+                          }
+                          return updated;
+                        });
+                        scrollToBottom();
+                      }}
                     />
                   </div>
                 )}

@@ -43,6 +43,16 @@ import {
   Clipboard
 } from 'lucide-react';
 
+interface BusinessResult {
+  businessName: string;
+  tagline: string;
+  description: string;
+  targetAudience: string;
+  products: string[];
+  monetization: string[];
+  firstAction: string;
+}
+
 const BusinessBuilderAI: React.FC = () => {
   const navigate = useNavigate();
   const { isAPIConnected, userData } = useApp();
@@ -54,10 +64,17 @@ const BusinessBuilderAI: React.FC = () => {
     skills: '',
     market: ''
   });
-  const [isGenerating, setIsGenerating] = React.useState(false);
-  const [result, setResult] = React.useState<any>(null);
+  const [isGenerating, setIsGenerating] = React.useState<boolean>(false);
+  const [result, setResult] = React.useState<BusinessResult | null>(null);
   const [activeTab, setActiveTab] = React.useState<'custom' | 'ideas'>('custom');
-  const [selectedIdea, setSelectedIdea] = React.useState<any>(null);
+  const [selectedIdea, setSelectedIdea] = React.useState<{
+    id: number;
+    title: string;
+    category: string;
+    description: string;
+    icon: any;
+    color: string;
+  } | null>(null);
 
   // Business Ideas Database
   const businessIdeas = [
@@ -446,17 +463,7 @@ const BusinessBuilderAI: React.FC = () => {
   // Check if user is free_trial
   const isFreeTrial = userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none';
   
-  // Check if free_trial user has already used this tool and redirect if needed
-  React.useEffect(() => {
-    if (isFreeTrial) {
-      const toolKey = 'business_builder_used';
-      const hasUsed = localStorage.getItem(toolKey) === 'true';
-      if (hasUsed) {
-        console.log('🚫 Free trial user already used Business Builder AI - redirecting...');
-        navigate('/tools');
-      }
-    }
-  }, [isFreeTrial, navigate]);
+  // Note: Removed automatic redirect - now handled via subscription modal instead
   
   // Check if user has used this tool before (on mount) - only for free_trial
   React.useEffect(() => {

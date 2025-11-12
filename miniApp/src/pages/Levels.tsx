@@ -548,8 +548,8 @@ const Levels: React.FC = () => {
         {
           id: 5,
           type: 'short',
-          question: 'یک جدول ساده بکش و ویژگی‌های ایده‌ات رو توش یادداشت کن.',
-          placeholder: 'جدول ویژگی‌های ایده...'
+          question: 'ویژگی‌های ایده‌ات را به صورت فهرست‌وار (۳ تا ۵ مورد) بنویس.',
+          placeholder: 'مثال: حل یک مشکل مشخص، بازار هدف واضح، قابلیت اجرا...'
         }
       ],
       3: [
@@ -624,8 +624,8 @@ const Levels: React.FC = () => {
         {
           id: 5,
           type: 'short',
-          question: 'یک جدول مقایسه بساز و ایده‌هات رو از نظر علاقه، سود، و آسانی اجرا امتیاز بده.',
-          placeholder: 'جدول مقایسه ایده‌ها...'
+          question: 'برای هر ایده امتیاز علاقه، سود و آسانی اجرا را (از ۱ تا ۵) بنویس و در یک جمله نتیجه نهایی را جمع‌بندی کن.',
+          placeholder: 'مثال: ایده A (علاقه ۵، سود ۴، آسانی ۳) — جمع‌بندی: ایده A بهتره.'
         }
       ],
       5: [
@@ -1242,8 +1242,8 @@ const Levels: React.FC = () => {
         {
           id: 3,
           type: 'long',
-          question: 'یک جدول ساده برای ثبت مشتری‌ها و وضعیت‌شون طراحی کن.',
-          placeholder: 'جدول مدیریت مشتری...'
+          question: 'اقلام اطلاعاتی لازم برای ثبت مشتری را فهرست کن (مثلاً: نام، راه ارتباط، وضعیت، یادداشت).',
+          placeholder: 'نام مشتری، راه ارتباط، وضعیت، یادداشت...'
         },
         {
           id: 4,
@@ -1260,8 +1260,8 @@ const Levels: React.FC = () => {
         {
           id: 5,
           type: 'short',
-          question: '۵ مشتری احتمالی رو لیست کن و اطلاعاتشون رو وارد جدول کن.',
-          placeholder: 'لیست و اطلاعات مشتریان...'
+          question: '۵ مشتری احتمالی را لیست کن و برای هرکدام یک راه ارتباط و وضعیت فعلی بنویس.',
+          placeholder: 'نام مشتری، راه ارتباط، وضعیت...'
         }
       ],
       22: [
@@ -1450,8 +1450,8 @@ const Levels: React.FC = () => {
         {
           id: 5,
           type: 'short',
-          question: 'یک جدول ۹۰ روزه برنامه رشدت بساز.',
-          placeholder: 'جدول برنامه ۹۰ روزه...'
+          question: 'برنامه ۹۰ روزه رشدت را به صورت خلاصه هفتگی (۵ تا ۷ خط) بنویس.',
+          placeholder: 'هفته ۱: ... هفته ۲: ... هفته ۳: ...'
         }
       ],
       27: [
@@ -3277,7 +3277,7 @@ const Levels: React.FC = () => {
                         <div key={step.id} className="flex flex-col items-center">
                           <div className={`relative flex items-center justify-center w-12 h-12 rounded-xl border-2 transition-all duration-300 mb-2 ${
                             step.completed 
-                              ? 'bg-green-500 border-green-400 text-white shadow-lg shadow-green-500/25' 
+                              ? 'bg-green-500 border-green-400 text-white' 
                               : 'bg-gray-800/50 border-gray-700 text-gray-300 hover:scale-105 hover:border-gray-600'
                           }`}>
                             {step.completed ? (
@@ -3594,9 +3594,9 @@ const Levels: React.FC = () => {
                   {/* Step 3: Quiz Section */}
                   <div className={`backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden transition-all duration-500 ${
                     stageQuizResults[selectedStage.id]?.passed 
-                      ? 'border-green-600/60 shadow-green-500/20' 
+                      ? 'border-green-600/40' 
                       : stageQuizResults[selectedStage.id] 
-                      ? 'border-red-600/60 shadow-red-500/20'
+                      ? 'border-red-600/40'
                       : 'border-gray-800/60'
                   }`} style={{ backgroundColor: '#11091C' }}>
                     {/* Header */}
@@ -3701,7 +3701,7 @@ const Levels: React.FC = () => {
                 onClick={() => setShowQuiz(true)}
                 className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl flex items-center justify-center gap-3 ${
                   stageQuizResults[selectedStage.id]?.passed 
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/30'
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white'
                     : 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white shadow-lg shadow-[#2c189a]/30'
                 }`}
               >
@@ -3725,22 +3725,32 @@ const Levels: React.FC = () => {
 
               </div>
 
-              {/* Next Stage Card - Always show */}
-              <div className="backdrop-blur-xl rounded-xl border border-white/20 dark:border-gray-700/20 shadow-lg overflow-hidden mx-6 mb-6" style={{ backgroundColor: '#11091C' }}>
-                <div className={`p-3 transition-all duration-500 ${
+              {/* Next Stage Card - Minimal Platform Style */}
+              <div className={`backdrop-blur-xl rounded-xl border shadow-lg overflow-hidden mx-6 mb-6 ${
+                stageQuizResults[selectedStage.id] && !stageQuizResults[selectedStage.id]?.passed
+                  ? 'border-red-400/40'
+                  : 'border-gray-800/60'
+              }`} style={{ backgroundColor: '#11091C' }}>
+                <div className={`p-4 transition-all duration-300 ${
                   stageQuizResults[selectedStage.id]?.passed 
-                    ? 'bg-gradient-to-r from-slate-700 via-gray-800 to-slate-700' 
-                    : 'bg-gradient-to-r from-gray-600 via-slate-600 to-gray-600'
+                    ? 'bg-gradient-to-r from-green-600/20 via-green-700/15 to-green-600/20' 
+                    : stageQuizResults[selectedStage.id] && !stageQuizResults[selectedStage.id]?.passed
+                    ? 'bg-gradient-to-r from-red-600/20 via-red-700/15 to-red-600/20'
+                    : 'bg-gradient-to-r from-slate-700 via-gray-800 to-slate-700'
                 }`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`transition-all duration-300 ${
                         stageQuizResults[selectedStage.id]?.passed 
                           ? 'text-green-400' 
+                          : stageQuizResults[selectedStage.id] && !stageQuizResults[selectedStage.id]?.passed
+                          ? 'text-red-400'
                           : 'text-gray-400'
                       }`}>
                         {stageQuizResults[selectedStage.id]?.passed ? (
                           <CheckCircle2 className="w-5 h-5" />
+                        ) : stageQuizResults[selectedStage.id] && !stageQuizResults[selectedStage.id]?.passed ? (
+                          <X className="w-5 h-5" />
                         ) : (
                           <Clock className="w-5 h-5" />
                         )}
@@ -3749,6 +3759,8 @@ const Levels: React.FC = () => {
                         <h4 className="text-sm font-bold text-white">
                           {stageQuizResults[selectedStage.id]?.passed 
                             ? 'آماده برای مرحله بعدی' 
+                            : stageQuizResults[selectedStage.id] && !stageQuizResults[selectedStage.id]?.passed
+                            ? 'آزمون مجدد لازم است'
                             : 'ابتدا آزمون را تکمیل کنید'
                           }
                         </h4>
@@ -3758,15 +3770,24 @@ const Levels: React.FC = () => {
                     <button
                       onClick={() => {
                         if (!stageQuizResults[selectedStage.id]?.passed) {
-                          alert('ابتدا باید آزمون این مرحله را با موفقیت بگذرانید!');
+                          // Show simple notification
+                          const notification = document.createElement('div');
+                          notification.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-[100]';
+                          notification.textContent = stageQuizResults[selectedStage.id] && !stageQuizResults[selectedStage.id]?.passed 
+                            ? 'ابتدا آزمون را مجدد بگذرانید!' 
+                            : 'ابتدا آزمون را بگذرانید!';
+                          document.body.appendChild(notification);
+                          setTimeout(() => document.body.removeChild(notification), 2000);
                           return;
                         }
                         navigateToNext();
                       }}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:scale-105 ${
                         stageQuizResults[selectedStage.id]?.passed
-                          ? 'bg-white/20 hover:bg-white/30 text-white border border-white/30'
-                          : 'bg-gray-500/20 hover:bg-gray-500/30 text-gray-300 border border-gray-500/30'
+                          ? 'bg-green-600/30 hover:bg-green-600/40 text-white border border-green-500/40'
+                          : stageQuizResults[selectedStage.id] && !stageQuizResults[selectedStage.id]?.passed
+                          ? 'bg-red-600/30 hover:bg-red-600/40 text-white border border-red-500/40'
+                          : 'bg-white/20 hover:bg-white/30 text-white border border-white/30'
                       }`}
                     >
                       <span>
@@ -3780,9 +3801,9 @@ const Levels: React.FC = () => {
                             const currentLevelIndex = levels.findIndex(l => l.id === selectedLevel?.id);
                             if (currentLevelIndex < levels.length - 1) {
                               const nextLevel = levels[currentLevelIndex + 1];
-                              return `سطح بعدی: ${nextLevel.title}`;
+                              return `سطح بعدی`;
                             }
-                            return 'مرحله آخر';
+                            return 'تمام شد';
                           }
                         })()}
                       </span>
@@ -4000,7 +4021,7 @@ const Levels: React.FC = () => {
                       {quizResult?.passed ? (
                         <button
                           onClick={goToNextStage}
-                          className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-300 flex items-center gap-2 shadow-lg shadow-green-500/30"
+                          className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-300 flex items-center gap-2"
                         >
                           <CheckCircle2 size={16} />
                           رفتن به مرحله بعدی

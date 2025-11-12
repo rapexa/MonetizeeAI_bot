@@ -558,23 +558,74 @@ const Tools: React.FC = () => {
                   onClick={() => {
                     navigate(tool.path);
                   }}
-                  className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
+                  className="text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
                   style={{ backgroundColor: '#10091c' }}
                 >
-                  <div className={`${tool.id === 'sell-kit' ? 'text-sm sm:text-base' : 'text-lg'} font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300`}>
-                    <Icon size={tool.id === 'sell-kit' ? 14 : 16} className={
-                      tool.id === 'business-builder' ? 'text-blue-500 drop-shadow-lg' :
-                      tool.id === 'sell-kit' ? 'text-green-500 drop-shadow-lg' :
-                      tool.id === 'client-finder' ? 'text-orange-500 drop-shadow-lg' :
-                      tool.id === 'sales-path' ? 'text-purple-500 drop-shadow-lg' : 'text-white'
-                    } />
+                  {/* Animated Background Pattern */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700">
+                    <div className={`absolute top-0 right-0 w-16 h-16 rounded-full blur-xl ${
+                      tool.id === 'business-builder' ? 'bg-blue-500/20' :
+                      tool.id === 'sell-kit' ? 'bg-green-500/20' :
+                      tool.id === 'client-finder' ? 'bg-orange-500/20' :
+                      tool.id === 'sales-path' ? 'bg-purple-500/20' : 'bg-gray-500/20'
+                    } animate-pulse`}></div>
+                    <div className={`absolute bottom-0 left-0 w-12 h-12 rounded-full blur-lg ${
+                      tool.id === 'business-builder' ? 'bg-blue-400/15' :
+                      tool.id === 'sell-kit' ? 'bg-green-400/15' :
+                      tool.id === 'client-finder' ? 'bg-orange-400/15' :
+                      tool.id === 'sales-path' ? 'bg-purple-400/15' : 'bg-gray-400/15'
+                    } animate-pulse`} style={{ animationDelay: '0.5s' }}></div>
+                  </div>
+                  
+                  {/* Geometric Accent Lines */}
+                  <div className="absolute top-3 left-3 opacity-30 group-hover:opacity-60 transition-all duration-500">
+                    <div className={`w-6 h-0.5 rounded-full ${
+                      tool.id === 'business-builder' ? 'bg-gradient-to-r from-blue-500 to-transparent' :
+                      tool.id === 'sell-kit' ? 'bg-gradient-to-r from-green-500 to-transparent' :
+                      tool.id === 'client-finder' ? 'bg-gradient-to-r from-orange-500 to-transparent' :
+                      tool.id === 'sales-path' ? 'bg-gradient-to-r from-purple-500 to-transparent' : 'bg-gradient-to-r from-gray-500 to-transparent'
+                    } group-hover:w-8 transition-all duration-500`}></div>
+                    <div className={`w-4 h-0.5 rounded-full mt-1 ${
+                      tool.id === 'business-builder' ? 'bg-gradient-to-r from-blue-400 to-transparent' :
+                      tool.id === 'sell-kit' ? 'bg-gradient-to-r from-green-400 to-transparent' :
+                      tool.id === 'client-finder' ? 'bg-gradient-to-r from-orange-400 to-transparent' :
+                      tool.id === 'sales-path' ? 'bg-gradient-to-r from-purple-400 to-transparent' : 'bg-gradient-to-r from-gray-400 to-transparent'
+                    } group-hover:w-6 transition-all duration-500`} style={{ transitionDelay: '0.1s' }}></div>
+                  </div>
+                  
+                  {/* Bottom Right Dot Pattern */}
+                  <div className="absolute bottom-3 right-3 opacity-20 group-hover:opacity-40 transition-all duration-500">
+                    <div className="flex gap-1">
+                      <div className={`w-1 h-1 rounded-full ${
+                        tool.id === 'business-builder' ? 'bg-blue-400' :
+                        tool.id === 'sell-kit' ? 'bg-green-400' :
+                        tool.id === 'client-finder' ? 'bg-orange-400' :
+                        tool.id === 'sales-path' ? 'bg-purple-400' : 'bg-gray-400'
+                      } group-hover:scale-125 transition-transform duration-300`}></div>
+                      <div className={`w-1 h-1 rounded-full ${
+                        tool.id === 'business-builder' ? 'bg-blue-400' :
+                        tool.id === 'sell-kit' ? 'bg-green-400' :
+                        tool.id === 'client-finder' ? 'bg-orange-400' :
+                        tool.id === 'sales-path' ? 'bg-purple-400' : 'bg-gray-400'
+                      } group-hover:scale-125 transition-transform duration-300`} style={{ transitionDelay: '0.1s' }}></div>
+                      <div className={`w-1 h-1 rounded-full ${
+                        tool.id === 'business-builder' ? 'bg-blue-400' :
+                        tool.id === 'sell-kit' ? 'bg-green-400' :
+                        tool.id === 'client-finder' ? 'bg-orange-400' :
+                        tool.id === 'sales-path' ? 'bg-purple-400' : 'bg-gray-400'
+                      } group-hover:scale-125 transition-transform duration-300`} style={{ transitionDelay: '0.2s' }}></div>
+                    </div>
+                  </div>
+                  
+                  {/* Main Content */}
+                  <div className="relative z-10 text-lg font-bold text-white flex items-center justify-center transition-all duration-300 group-hover:scale-105">
                     <span
                       className={`${
-                        tool.id === 'business-builder' ? 'text-blue-500 drop-shadow-lg' :
-                        tool.id === 'sell-kit' ? 'text-green-500 drop-shadow-lg' :
-                        tool.id === 'client-finder' ? 'text-orange-500 drop-shadow-lg' :
-                        tool.id === 'sales-path' ? 'text-purple-500 drop-shadow-lg' : 'text-white'
-                      } ${tool.id === 'sell-kit' ? 'whitespace-nowrap' : ''}`}
+                        tool.id === 'business-builder' ? 'text-blue-500 drop-shadow-lg group-hover:text-blue-400' :
+                        tool.id === 'sell-kit' ? 'text-green-500 drop-shadow-lg group-hover:text-green-400' :
+                        tool.id === 'client-finder' ? 'text-orange-500 drop-shadow-lg group-hover:text-orange-400' :
+                        tool.id === 'sales-path' ? 'text-purple-500 drop-shadow-lg group-hover:text-purple-400' : 'text-white'
+                      } transition-colors duration-300 whitespace-nowrap`}
                     >
                       {tool.title}
                     </span>
@@ -586,15 +637,36 @@ const Tools: React.FC = () => {
 
           {/* Large Sales Management System Card - below all small buttons */}
           <div 
-            className={`mt-3 text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105`}
+            className={`mt-3 text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5`}
             style={{ backgroundColor: '#10091c' }}
             onClick={() => {
               navigate('/crm');
             }}
           >
-            <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-              <BarChart3 size={16} className="text-green-500 drop-shadow-lg" />
-              <span className="text-green-500 drop-shadow-lg">مدیریت فروش</span>
+            {/* Animated Background Pattern */}
+            <div className="absolute inset-0 opacity-100 group-hover:opacity-100 transition-all duration-700">
+              <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-xl bg-green-500/20 animate-pulse"></div>
+              <div className="absolute bottom-0 left-0 w-12 h-12 rounded-full blur-lg bg-green-400/15 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+            </div>
+            
+            {/* Geometric Accent Lines */}
+            <div className="absolute top-3 left-3 opacity-30 group-hover:opacity-60 transition-all duration-500">
+              <div className="w-8 h-0.5 rounded-full bg-gradient-to-r from-green-500 to-transparent group-hover:w-10 transition-all duration-500"></div>
+              <div className="w-6 h-0.5 rounded-full mt-1 bg-gradient-to-r from-green-400 to-transparent group-hover:w-8 transition-all duration-500" style={{ transitionDelay: '0.1s' }}></div>
+            </div>
+            
+            {/* Bottom Right Dot Pattern */}
+            <div className="absolute bottom-3 right-3 opacity-20 group-hover:opacity-40 transition-all duration-500">
+              <div className="flex gap-1">
+                <div className="w-1 h-1 rounded-full bg-green-400 group-hover:scale-125 transition-transform duration-300"></div>
+                <div className="w-1 h-1 rounded-full bg-green-400 group-hover:scale-125 transition-transform duration-300" style={{ transitionDelay: '0.1s' }}></div>
+                <div className="w-1 h-1 rounded-full bg-green-400 group-hover:scale-125 transition-transform duration-300" style={{ transitionDelay: '0.2s' }}></div>
+              </div>
+            </div>
+            
+            {/* Main Content */}
+            <div className="relative z-10 text-lg font-bold text-white flex items-center justify-center transition-all duration-300 group-hover:scale-105">
+              <span className="text-green-500 drop-shadow-lg group-hover:text-green-400 transition-colors duration-300">مدیریت فروش</span>
             </div>
           </div>
         </div>
