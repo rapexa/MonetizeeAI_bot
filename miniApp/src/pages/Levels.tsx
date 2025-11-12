@@ -3671,13 +3671,9 @@ const Levels: React.FC = () => {
                       }`}>
                         {stageQuizResults[selectedStage.id].passed ? '🎉 تبریک! شما در آزمون موفق شدید!' : '📚 متأسفانه در آزمون موفق نشدید'}
                       </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        امتیاز: <span className="font-semibold">{stageQuizResults[selectedStage.id].score}%</span> • 
-                        تلاش: <span className="font-semibold">{stageQuizResults[selectedStage.id].attempts}</span>
-                      </p>
                       {stageQuizResults[selectedStage.id].passed && (
                         <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-                          ✅ این مرحله برای شما باز شده است
+                          ✅ مرحله بعدی برای شما باز شد
                         </p>
                       )}
                     </div>
@@ -3697,26 +3693,21 @@ const Levels: React.FC = () => {
                 </div>
               )}
               
-              <button 
-                onClick={() => setShowQuiz(true)}
-                className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl flex items-center justify-center gap-3 ${
-                  stageQuizResults[selectedStage.id]?.passed 
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white'
-                    : 'bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white shadow-lg shadow-[#2c189a]/30'
-                }`}
-              >
-                {stageQuizResults[selectedStage.id]?.passed ? (
-                  <>
-                    <RefreshCw className="w-6 h-6" />
-                    آزمون مجدد
-                  </>
-                ) : (
+              {/* Show quiz button only when not passed */}
+              {!stageQuizResults[selectedStage.id]?.passed && (
+                <button 
+                  onClick={() => setShowQuiz(true)}
+                  className={
+                    'w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl flex items-center justify-center gap-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white shadow-lg shadow-[#2c189a]/30'
+                  }
+                >
                   <>
                     <ClipboardCheck className="w-6 h-6" />
                     شروع آزمون
                   </>
-                )}
-              </button>
+                </button>
+              )}
+
                 </div>
                 </div>
                     </div>
