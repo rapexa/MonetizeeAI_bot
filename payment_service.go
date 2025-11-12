@@ -60,7 +60,11 @@ type PaymentResponse struct {
 		FeeType   string `json:"fee_type"`
 		Fee       int    `json:"fee"`
 	} `json:"data"`
-	Errors []interface{} `json:"errors"`
+	Errors struct {
+		Message     string      `json:"message"`
+		Code        int         `json:"code"`
+		Validations interface{} `json:"validations"`
+	} `json:"errors"`
 }
 
 // PaymentVerify - ساختار درخواست تایید
@@ -81,7 +85,11 @@ type PaymentVerifyResponse struct {
 		FeeType  string `json:"fee_type"`
 		Fee      int    `json:"fee"`
 	} `json:"data"`
-	Errors []interface{} `json:"errors"`
+	Errors struct {
+		Message     string      `json:"message"`
+		Code        int         `json:"code"`
+		Validations interface{} `json:"validations"`
+	} `json:"errors"`
 }
 
 // PaymentService handles payment operations with ZarinPal
@@ -190,10 +198,15 @@ func (s *PaymentService) CreatePaymentRequest(
 
 	// 6. بررسی پاسخ - Code 100 یعنی موفق
 	if response.Data.Code != 100 {
+		// Prefer error message from errors.message if data.message is empty
+		errMsg := response.Data.Message
+		if errMsg == "" {
+			errMsg = response.Errors.Message
+		}
 		logger.Error("Payment request failed",
 			zap.Int("code", response.Data.Code),
-			zap.String("message", response.Data.Message))
-		return nil, "", fmt.Errorf("payment request failed: %s", response.Data.Message)
+			zap.String("message", errMsg))
+		return nil, "", fmt.Errorf("payment request failed: %s", errMsg)
 	}
 
 	// 7. به‌روزرسانی تراکنش با Authority از ZarinPal
