@@ -97,15 +97,10 @@ func (g *GroqClient) GenerateMonetizeAIResponse(userMessage string) (string, err
 - خروجی باید ۱۰۰٪ فارسی باشه؛ هیچ جمله یا کاراکتر غیر فارسی (مثل چینی یا انگلیسی) ننویس.
 - لحن خودمونی، روشن، کوتاه و کاربردی.
 - مرحله‌به‌مرحله و قابل اجرا راهنمایی کن.
+ - کاربر را با «مانیتایزر عزیز» خطاب کن.
+- حوزه‌ها: بیزینس، مارکتینگ، فروش، و هوش مصنوعی.
 
-ویژگی‌های تو:
-- همیشه به فارسی پاسخ می‌دهی
-- پاسخ‌هایت عملی، مرحله‌به‌مرحله و قابل اجرا هستند
-- کاربران رو با عنوان "مانیتایزر عزیز" خطاب می‌کنی
-- در زمینه‌های بیزینس، مارکتینگ، فروش و هوش مصنوعی تخصص داری
-- پاسخ‌هایت مختصر، مفید و انگیزه‌بخش هستند
-
-مأموریت تو: کمک به کاربران برای ساختن مسیر درآمد دلاری با AI`
+ماموریت: کمک عملی برای ساخت مسیر درآمد با AI، با مثال و اقدام مشخص.`
 
 	return g.GenerateChatResponse(systemPrompt, userMessage, 4000)
 }
@@ -113,6 +108,7 @@ func (g *GroqClient) GenerateMonetizeAIResponse(userMessage string) (string, err
 // GenerateExerciseEvaluation evaluates student exercise submissions
 func (g *GroqClient) GenerateExerciseEvaluation(sessionTitle, sessionDesc, videoTitle, videoDesc, submission string) (bool, string, error) {
 	systemPrompt := `تو یک مربی حرفه‌ای هستی که تمرین‌های دانشجوها رو ارزیابی می‌کنی و فقط به فارسیِ روان و خودمونی جواب می‌دی.
+کاربر را با «مانیتایزر عزیز» خطاب کن.
 
 معیارهای ارزیابی:
 1. همخوانی با اهداف یادگیری
@@ -164,6 +160,7 @@ FEEDBACK: [بازخورد دقیق، سازنده و کاربردی به فار�
 // GenerateBusinessBuilderResponse generates response for Business Builder AI
 func (g *GroqClient) GenerateBusinessBuilderResponse(userMessage string) (string, error) {
 	systemPrompt := `تو مشاور بیزینس هستی و باید فقط به فارسیِ روان و خودمونی جواب بدی.
+کاربر را با «مانیتایزر عزیز» خطاب کن.
 
 ویژگی‌ها:
 - تحلیل دقیق و عملی
@@ -176,6 +173,7 @@ func (g *GroqClient) GenerateBusinessBuilderResponse(userMessage string) (string
 // GenerateSellKitResponse generates response for SellKit AI
 func (g *GroqClient) GenerateSellKitResponse(userMessage string) (string, error) {
 	systemPrompt := `تو متخصص فروش و مارکتینگ هستی و فقط به فارسیِ روان و خودمونی جواب می‌دی.
+کاربر را با «مانیتایزر عزیز» خطاب کن.
 
 ویژگی‌ها:
 - استراتژی‌های عملی
@@ -188,6 +186,7 @@ func (g *GroqClient) GenerateSellKitResponse(userMessage string) (string, error)
 // GenerateClientFinderResponse generates response for ClientFinder AI
 func (g *GroqClient) GenerateClientFinderResponse(userMessage string) (string, error) {
 	systemPrompt := `تو متخصص جذب مشتری هستی و باید فقط به فارسیِ روان و خودمونی جواب بدی.
+کاربر را با «مانیتایزر عزیز» خطاب کن.
 
 ویژگی‌ها:
 - شناسایی دقیق مشتری هدف
@@ -200,6 +199,7 @@ func (g *GroqClient) GenerateClientFinderResponse(userMessage string) (string, e
 // GenerateSalesPathResponse generates response for SalesPath AI
 func (g *GroqClient) GenerateSalesPathResponse(userMessage string) (string, error) {
 	systemPrompt := `تو مشاور مسیر فروش هستی و باید فقط به فارسیِ روان و خودمونی جواب بدی.
+کاربر را با «مانیتایزر عزیز» خطاب کن.
 
 ویژگی‌ها:
 - طراحی قیف فروش

@@ -1747,75 +1747,39 @@ func handleQuizEvaluation(c *gin.Context) {
 	answersJSON, _ := json.Marshal(req.Answers)
 	answersStr := string(answersJSON)
 
-	// Create evaluation prompt similar to exercise submission
-	context := fmt.Sprintf(`Stage Title: %s
-Stage Description: %s
-Stage ID: %d
-
-Student's Quiz Answers:
-%s
-
-Please evaluate this quiz submission according to these criteria:
-1. Check if the answers demonstrate understanding of the stage's learning objectives
-2. Evaluate the quality and depth of responses
-3. If the answers are insufficient:
-   - Provide specific feedback on what's missing
-   - Give helpful guidance for improvement
-   - Explain what they should study more
-4. If the answers are good:
-   - Provide positive reinforcement
-   - Give permission to move to next stage
-5. Keep the tone friendly and encouraging
-6. Always address the user as 'مانیتایزر عزیز' (dear monetizer)
-7. Respond in Persian
-
-Rate the performance on a scale of 0-100 and determine if they should pass (≥70).
-
-Format your response as:
-APPROVED: [yes/no]
-SCORE: [0-100]
-FEEDBACK: [your detailed feedback in Persian]`,
+	// Evaluate using dedicated Groq evaluation (Persian-only, colloquial)
+	approved, feedback, evalErr := groqClient.GenerateExerciseEvaluation(
 		session.Title,
 		session.Description,
-		req.StageID,
-		answersStr)
-
-	// Get evaluation from ChatGPT
-	evaluation := handleChatGPTMessageAPI(&user, context)
-
-	// Parse the response
-	var approved bool
-	var score int
-	var feedback string
-
-	// Split the response into lines
-	lines := strings.Split(evaluation, "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "APPROVED:") {
-			approved = strings.Contains(strings.ToLower(line), "yes")
-		} else if strings.HasPrefix(line, "SCORE:") {
-			scoreStr := strings.TrimSpace(strings.TrimPrefix(line, "SCORE:"))
-			if parsedScore, err := strconv.Atoi(scoreStr); err == nil {
-				score = parsedScore
-			}
-		} else if strings.HasPrefix(line, "FEEDBACK:") {
-			feedback = strings.TrimSpace(strings.TrimPrefix(line, "FEEDBACK:"))
+		"",
+		"",
+		answersStr,
+	)
+	if evalErr != nil {
+		logger.Error("Groq evaluation error",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Int("stage_id", req.StageID),
+			zap.Error(evalErr))
+		// Fallback: do not pass automatically; provide generic feedback
+		approved = false
+		if feedback == "" {
+			feedback = "ارزیابی با خطا مواجه شد. لطفاً دوباره ارسال کن یا پاسخ‌ها رو کمی دقیق‌تر بنویس."
 		}
+	}
+	// Default score based on approval (Groq evaluation doesn't return SCORE)
+	score := 0
+	if approved {
+		score = 80
+	} else {
+		score = 50
 	}
 
 	// Fallback values if parsing failed
 	if feedback == "" {
 		if approved {
-			feedback = "عالی! مانیتایزر عزیز، شما با موفقیت این مرحله را تکمیل کردید و آماده ورود به مرحله بعدی هستید."
+			feedback = "عالی! این مرحله رو با موفقیت رد کردی و می‌تونی بری سراغ مرحله بعد."
 		} else {
-			feedback = "نیاز به بهبود دارید. مانیتایزر عزیز، لطفا مطالب را مرور کنید و دوباره تلاش کنید."
-		}
-	}
-	if score == 0 {
-		if approved {
-			score = 80
-		} else {
-			score = 50
+			feedback = "چند نکته کم بود. دوباره مرور کن و با نکات دقیق‌تر ارسال کن تا قبول شی."
 		}
 	}
 
