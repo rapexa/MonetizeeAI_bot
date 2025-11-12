@@ -604,21 +604,6 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 		bot.Send(msg)
 
 	case "no_license":
-		// User doesn't have license, offer free trial
-		// Clear the state so user won't be stuck in license waiting mode
-		userStates[userID] = StateWaitingForLicenseChoice
-		msg := tgbotapi.NewMessage(userID, "🎉 عالی! ما یک پیشنهاد ویژه برای شما داریم:\n\n🆓 اشتراک رایگان 3 روزه\n\n✅ دسترسی کامل به تمام امکانات\n✅ چت با هوش مصنوعی\n✅ دوره‌های آموزشی\n✅ ابزارهای کسب‌وکار\n\n⚠️ محدودیت‌ها:\n• حداکثر 5 پیام چت در روز\n• فقط 3 قسمت اول هر دوره\n\nآیا می‌خواهید اشتراک رایگان را شروع کنید؟")
-
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🚀 بله، شروع کنم", "start_free_trial"),
-				tgbotapi.NewInlineKeyboardButtonData("❌ نه، ممنون", "decline_trial"),
-			),
-		)
-		msg.ReplyMarkup = keyboard
-		bot.Send(msg)
-
-	case "start_free_trial":
 		// Start free trial
 		user.StartFreeTrial()
 		user.IsVerified = true // Mark user as verified so they can use the bot
@@ -683,7 +668,15 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 				userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
 			}
 
-			msg := tgbotapi.NewMessage(userID, fmt.Sprintf("💎 عالی %s!\n\n✅ اشتراک رایگان برای دسترسی به مینی اپ فعال شد.\n\n🔗 حالا می‌تونی وارد صفحه اشتراک‌ها بشی و اشتراک مورد نظرت رو انتخاب کنی:", userName))
+			msg := tgbotapi.NewMessage(userID, fmt.Sprintf("💎 وقتشه مسیر واقعیتو فعال کنی\n\n"+
+				"مانیتایزai فقط یه ابزار نیست!\n"+
+				"یه سیستم هوش مصنوعی خودکاره که مثل یه تیم ۱۰ نفره، ۲۴ ساعته برات کار می‌کنه 🤖💼\n\n"+
+				"با نسخه‌ی کامل، همه‌چیز باز میشه:\n"+
+				"✅ مراحل کامل آموزش و اجرا\n"+
+				"✅ ابزارهای ایده، فروش و مشتری‌یابی\n"+
+				"✅ کوچ اختصاصی هوش مصنوعی بدون محدودیت\n\n"+
+				"⚡ تصمیم امروزت، تفاوت بین «تجربه» و «نتیجه»‌ست.\n"+
+				"الان فعالش کن تا سیستم شروع به کار کنه 💸", userName))
 
 			// Create inline keyboard with Mini App button
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
