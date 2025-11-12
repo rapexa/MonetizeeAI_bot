@@ -37,10 +37,9 @@ function AppRouter() {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
       const startParam = window.Telegram.WebApp.initDataUnsafe.start_param;
       
-      // If start_param is "subscription", navigate to profile page
-      // The Profile component will handle opening the subscription modal
-      if (startParam === 'subscription' && location.pathname !== '/profile') {
-        navigate('/profile?startapp=subscription', { replace: true });
+      // If start_param is "subscription", navigate to the Subscription Management page
+      if (startParam === 'subscription' && location.pathname !== '/subscription-management') {
+        navigate('/subscription-management', { replace: true });
       }
     }
   }, [navigate, location.pathname]);
