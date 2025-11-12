@@ -36,23 +36,23 @@ const Tools: React.FC = () => {
   const internalTools = [
     {
       id: 'business-builder',
-      title: 'سازنده ۱ دقیقه‌ای',
-      description: 'ایجاد کسب‌وکار در ۱ دقیقه',
+      title: 'ایده یابی',
+      description: 'ایده یابی سریع با AI',
       icon: Rocket,
       color: 'from-monetize-primary-600 via-monetize-primary-700 to-monetize-primary-800',
       path: '/business-builder-ai'
     },
     {
       id: 'sell-kit',
-      title: 'کیت فروش فوری',
-      description: 'ابزارهای فروش فوری',
+      title: 'سازنده محصول',
+      description: 'ساخت سریع محصول با AI',
       icon: Package,
       color: 'from-monetize-success-600 via-monetize-success-700 to-monetize-success-800',
       path: '/sell-kit-ai'
     },
     {
       id: 'client-finder',
-      title: 'یابنده مشتری فوری',
+      title: 'مشتری یابی',
       description: 'یافتن مشتریان جدید',
       icon: Search,
       color: 'from-monetize-warning-600 via-monetize-warning-700 to-monetize-danger-600',
@@ -60,8 +60,8 @@ const Tools: React.FC = () => {
     },
     {
       id: 'sales-path',
-      title: 'مسیر فروش سریع',
-      description: 'استراتژی‌های فروش سریع',
+      title: 'مسیر فروش',
+      description: 'استراتژی‌های فروش',
       icon: Map,
               color: 'from-[#5a0ecc] via-violet-800 to-[#5a0ecc]',
       path: '/sales-path-ai'
@@ -561,24 +561,22 @@ const Tools: React.FC = () => {
                   className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
                   style={{ backgroundColor: '#10091c' }}
                 >
-                  <div className="flex items-center justify-center mb-1">
-                    <div className="text-xs text-white font-medium transition-colors duration-300">
+                  <div className={`${tool.id === 'sell-kit' ? 'text-sm sm:text-base' : 'text-lg'} font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300`}>
+                    <Icon size={tool.id === 'sell-kit' ? 14 : 16} className={
+                      tool.id === 'business-builder' ? 'text-blue-500 drop-shadow-lg' :
+                      tool.id === 'sell-kit' ? 'text-green-500 drop-shadow-lg' :
+                      tool.id === 'client-finder' ? 'text-orange-500 drop-shadow-lg' :
+                      tool.id === 'sales-path' ? 'text-purple-500 drop-shadow-lg' : 'text-white'
+                    } />
+                    <span
+                      className={`${
+                        tool.id === 'business-builder' ? 'text-blue-500 drop-shadow-lg' :
+                        tool.id === 'sell-kit' ? 'text-green-500 drop-shadow-lg' :
+                        tool.id === 'client-finder' ? 'text-orange-500 drop-shadow-lg' :
+                        tool.id === 'sales-path' ? 'text-purple-500 drop-shadow-lg' : 'text-white'
+                      } ${tool.id === 'sell-kit' ? 'whitespace-nowrap' : ''}`}
+                    >
                       {tool.title}
-                    </div>
-                  </div>
-                  <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
-                    <Icon size={16} className={tool.title.includes('سازنده') ? 'text-blue-500 drop-shadow-lg' : 
-                                                 tool.title.includes('کیت') ? 'text-green-500 drop-shadow-lg' :
-                                                 tool.title.includes('یابنده') ? 'text-orange-500 drop-shadow-lg' :
-                                                 tool.title.includes('مسیر') ? 'text-purple-500 drop-shadow-lg' : 'text-white'} />
-                    <span className={tool.title.includes('سازنده') ? 'text-blue-500 drop-shadow-lg' : 
-                                       tool.title.includes('کیت') ? 'text-green-500 drop-shadow-lg' :
-                                       tool.title.includes('یابنده') ? 'text-orange-500 drop-shadow-lg' :
-                                       tool.title.includes('مسیر') ? 'text-purple-500 drop-shadow-lg' : 'text-white'}>
-                      {tool.title.includes('سازنده') ? 'کسب‌وکار' : 
-                       tool.title.includes('کیت') ? 'فوری' :
-                       tool.title.includes('یابنده') ? 'فوری' :
-                       tool.title.includes('مسیر') ? 'سریع' : 'AI'}
                     </span>
                   </div>
                 </div>
@@ -594,9 +592,6 @@ const Tools: React.FC = () => {
               navigate('/crm');
             }}
           >
-            <div className="flex items-center justify-center mb-1">
-              <div className="text-xs text-white font-medium transition-colors duration-300">سیستم مدیریت فروش</div>
-            </div>
             <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
               <BarChart3 size={16} className="text-green-500 drop-shadow-lg" />
               <span className="text-green-500 drop-shadow-lg">مدیریت فروش</span>

@@ -3963,7 +3963,6 @@ const Levels: React.FC = () => {
                 )}
               </div>
               {/* Add minimal bottom padding for scrolling */}
-              <div className="h-4"></div>
             </div>
           </div>
         )}

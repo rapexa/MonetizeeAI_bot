@@ -1104,7 +1104,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          {/* 1-Minute Business Builder */}
+          {/* ایده یابی */}
           <div 
             className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
             style={{ backgroundColor: '#10091c' }}
@@ -1112,16 +1112,13 @@ const Dashboard: React.FC = () => {
               navigate('/business-builder-ai');
             }}
           >
-            <div className="flex items-center justify-center mb-1">
-              <div className="text-xs text-white font-medium transition-colors duration-300">سازنده ۱ دقیقه‌ای</div>
-            </div>
             <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
               <Rocket size={16} className="text-blue-500 drop-shadow-lg" />
-              <span className="text-blue-500 drop-shadow-lg">کسب‌وکار</span>
+              <span className="text-blue-500 drop-shadow-lg">ایده یابی</span>
             </div>
           </div>
 
-          {/* Instant Sell Kit */}
+          {/* سازنده محصول */}
           <div 
             className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
             style={{ backgroundColor: '#10091c' }}
@@ -1129,16 +1126,13 @@ const Dashboard: React.FC = () => {
               navigate('/sell-kit-ai');
             }}
           >
-            <div className="flex items-center justify-center mb-1">
-              <div className="text-xs text-white font-medium transition-colors duration-300">کیت فروش</div>
-            </div>
             <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
               <Package size={16} className="text-green-500 drop-shadow-lg" />
-              <span className="text-green-500 drop-shadow-lg">فوری</span>
+              <span className="text-green-500 drop-shadow-lg">سازنده محصول</span>
             </div>
           </div>
 
-          {/* Instant Client Finder */}
+          {/* مشتری یابی */}
           <div 
             className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
             style={{ backgroundColor: '#10091c' }}
@@ -1146,16 +1140,13 @@ const Dashboard: React.FC = () => {
               navigate('/client-finder-ai');
             }}
           >
-            <div className="flex items-center justify-center mb-1">
-              <div className="text-xs text-white font-medium transition-colors duration-300">یابنده مشتری</div>
-            </div>
             <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
               <Search size={16} className="text-orange-500 drop-shadow-lg" />
-              <span className="text-orange-500 drop-shadow-lg">فوری</span>
+              <span className="text-orange-500 drop-shadow-lg">مشتری یابی</span>
             </div>
           </div>
 
-          {/* Fast Sales Path */}
+          {/* مسیر فروش */}
           <div 
             className="text-center group transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-xl hover:scale-105"
             style={{ backgroundColor: '#10091c' }}
@@ -1163,12 +1154,9 @@ const Dashboard: React.FC = () => {
               navigate('/sales-path-ai');
             }}
           >
-            <div className="flex items-center justify-center mb-1">
-              <div className="text-xs text-white font-medium transition-colors duration-300">مسیر فروش</div>
-            </div>
             <div className="text-lg font-bold text-white flex items-center justify-center gap-1 transition-colors duration-300">
               <Map size={16} className="text-purple-500 drop-shadow-lg" />
-              <span className="text-purple-500 drop-shadow-lg">سریع</span>
+              <span className="text-purple-500 drop-shadow-lg">مسیر فروش</span>
             </div>
           </div>
 
