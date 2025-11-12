@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import apiService from '../services/api';
 import ChatModal from '../components/ChatModal';
-import SubscriptionModal from '../components/SubscriptionModal';
+// SubscriptionModal removed per request
+import NextLevelPaywall from '../components/NextLevelPaywall';
 import AIMessage from '../components/AIMessage';
 import { useAutoScroll } from '../hooks/useAutoScroll';
 import { 
@@ -181,7 +182,8 @@ const Levels: React.FC = () => {
   const [isEditingPrompt, setIsEditingPrompt] = useState<boolean>(false);
   const [chatMessages, setChatMessages] = useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string, isNew?: boolean}>>([]);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
-  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [isNextLevelPopupOpen, setIsNextLevelPopupOpen] = useState(false);
   const [showSubscriptionCard, setShowSubscriptionCard] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
@@ -249,6 +251,15 @@ const Levels: React.FC = () => {
   const goToNextStage = () => {
     const currentId = selectedStage?.id || 1;
     const nextId = currentId + 1;
+    // Free trial guard: block moving beyond Level 1 (stage 5)
+    if (
+      (userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none') &&
+      nextId > 5
+    ) {
+      console.log('⛔ Free trial - blocking navigation to stage', nextId, 'from quiz modal');
+      setIsNextLevelPopupOpen(true);
+      return;
+    }
     // find next stage
     let nextLevel: Level | null = null;
     let nextStage: Stage | null = null;
@@ -341,11 +352,11 @@ const Levels: React.FC = () => {
         return true;
       }
       
-      // For free trial users AND users without subscription (legacy/none): only first 3 stages
+      // For free trial users AND users without subscription (legacy/none): allow all Level 1 (first 5 stages)
       if (userData.subscriptionType === 'free_trial' || 
           !userData.subscriptionType || 
           userData.subscriptionType === 'none') {
-        return stageId <= 3;
+        return stageId <= 5;
       }
       
       // If user has no subscription, they can't access any stages
@@ -1801,6 +1812,15 @@ const Levels: React.FC = () => {
     
     // Try to find next stage in current level
     const nextStageId = selectedStage.id + 1;
+    // Free trial guard: block moving beyond Level 1 (stage 5)
+    if (
+      (userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none') &&
+      nextStageId > 5
+    ) {
+      console.log('⛔ Free trial - blocking navigation to stage', nextStageId);
+      setIsNextLevelPopupOpen(true);
+      return;
+    }
     const nextStage = selectedLevel.stages.find(s => s.id === nextStageId);
     
     if (nextStage) {
@@ -1812,6 +1832,12 @@ const Levels: React.FC = () => {
       // Try to move to next level
       const currentLevelIndex = levels.findIndex(l => l.id === selectedLevel.id);
       if (currentLevelIndex < levels.length - 1) {
+        // Free trial guard: block moving into next level entirely
+        if (userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none') {
+          console.log('⛔ Free trial - blocking navigation to next level');
+          setIsNextLevelPopupOpen(true);
+          return;
+        }
         const nextLevel = levels[currentLevelIndex + 1];
         const firstStageOfNextLevel = nextLevel.stages[0];
         if (firstStageOfNextLevel) {
@@ -3100,12 +3126,12 @@ const Levels: React.FC = () => {
                           console.log('✅ [Levels] User has paid subscription - access granted');
                           return true;
                         }
-                        // For free trial users AND users without subscription (legacy/none): only first 3 stages
+                        // For free trial users AND users without subscription (legacy/none): allow all Level 1 (first 5 stages)
                         if (userData.subscriptionType === 'free_trial' ||
                             !userData.subscriptionType ||
                             userData.subscriptionType === 'none') {
-                          const allowed = stage.id <= 3;
-                          console.log(`🔵 [Levels] Free trial/None user - Stage ${stage.id} <= 3? ${allowed}`);
+                          const allowed = stage.id <= 5;
+                          console.log(`🔵 [Levels] Free trial/None user - Stage ${stage.id} <= 5? ${allowed}`);
                           return allowed;
                         }
                         console.log('❌ [Levels] Unknown subscription type - access denied');
@@ -3312,7 +3338,7 @@ const Levels: React.FC = () => {
                         </div>
                         <div>
                           <h3 className="text-lg font-bold text-white">قدم اول: مشاهده ویدئو آموزشی</h3>
-                          <p className="text-gray-300 text-sm mt-1">پایه و اساس یادگیری شما</p>
+                          <p className="text-gray-300 text-sm mt-1">قدم اول دیدن آموزش های مرحله است</p>
                         </div>
                       </div>
                     </div>
@@ -3425,8 +3451,8 @@ const Levels: React.FC = () => {
                           <Rocket className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-white">قدم دوم: AI Coach</h3>
-                          <p className="text-gray-300 text-sm mt-1">با کمک AI کوچ و ابزارهای حرفه‌ای</p>
+                          <h3 className="text-lg font-bold text-white">قدم دوم: ساخت با ای آی کوچ</h3>
+                          <p className="text-gray-300 text-sm mt-1">همین الان این بخش بیزینست رو بساز</p>
                         </div>
                       </div>
                     </div>
@@ -3717,7 +3743,7 @@ const Levels: React.FC = () => {
               </div>
 
               {/* Next Stage Card - Minimal Platform Style */}
-              <div className={`backdrop-blur-xl rounded-xl border shadow-lg overflow-hidden mx-6 mb-6 ${
+              <div className={`backdrop-blur-xl rounded-xl border shadow-lg overflow-hidden mx-6 mt-12 mb-12 ${
                 stageQuizResults[selectedStage.id] && !stageQuizResults[selectedStage.id]?.passed
                   ? 'border-red-400/40'
                   : 'border-gray-800/60'
@@ -4144,7 +4170,7 @@ const Levels: React.FC = () => {
         </div>
 
         {/* Levels Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative mt-14 mb-16 pb-12">
           {/* Decorative Line */}
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-green-500/50 to-transparent transform -translate-y-1/2"></div>
@@ -4155,7 +4181,7 @@ const Levels: React.FC = () => {
           {/* Vertical Dashed Line */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-0.5 pointer-events-none">
             <div 
-              className="absolute top-[10rem] bottom-[2rem] w-full"
+              className="absolute top-[10rem] bottom-[-0.75rem] w-full"
               style={{
                 backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 2px, #10b981 2px, #10b981 8px)',
                 backgroundSize: '1px 10px',
@@ -4165,7 +4191,7 @@ const Levels: React.FC = () => {
             <div 
               className="absolute left-1/2 -translate-x-1/2 w-4 h-4 rotate-45"
               style={{
-                bottom: '2rem',
+                bottom: '-0.75rem',
                 borderBottom: '3px solid #10b981',
                 borderRight: '3px solid #10b981',
               }}
@@ -4181,7 +4207,7 @@ const Levels: React.FC = () => {
                   setViewMode('detail');
                 }
               }}
-              className={`relative overflow-hidden rounded-3xl border transition-all duration-500 ${
+              className={`relative overflow-hidden rounded-3xl border transition-all duration-500 mb-4 ${
                 level.isUnlocked 
                   ? 'cursor-pointer hover:scale-105 hover:-translate-y-2 border-gray-700/60 shadow-lg hover:shadow-xl' 
                   : 'border-gray-700/50 shadow-sm'
@@ -4257,22 +4283,50 @@ const Levels: React.FC = () => {
           ))}
         </div>
 
+        {/* Bottom Target Card for arrow destination */}
+        <div className="flex justify-center -mt-6 mb-16">
+          <button
+            type="button"
+            onClick={() => setIsGoalModalOpen(true)}
+            className="backdrop-blur-xl rounded-2xl px-6 py-4 border flex items-center gap-3 transition-colors cursor-pointer"
+            style={{ backgroundColor: '#11091C', borderColor: 'rgba(16,185,129,0.6)' }}
+          >
+            <div className="p-2 rounded-xl bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white">
+              <Target className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <h4 className="text-sm font-bold text-white">هدف نهایی: سیستم خودکار پولسازی</h4>
+            </div>
+          </button>
+        </div>
+
         {/* Level Detail Modal */}
         {/* پاپ‌آپ قدیمی حذف شد - حالا از صفحه جداگانه استفاده می‌کنیم */}
 
 
       </div>
       
-      {/* Subscription Required Modal */}
-      {isSubscriptionModalOpen && (
-        <SubscriptionModal
-          isOpen={isSubscriptionModalOpen}
-          onClose={() => setIsSubscriptionModalOpen(false)}
-          onActivate={() => {
-            setIsSubscriptionModalOpen(false);
-            navigate('/profile');
-          }}
-        />
+
+      {/* Goal Info Modal */}
+      {isGoalModalOpen && (
+        <div className="fixed inset-0 z-[99999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsGoalModalOpen(false)}>
+          <div className="w-full max-w-md rounded-2xl border border-emerald-500/40 bg-[#11091C] text-white p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start gap-3 mb-3">
+              <div className="p-2 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-300">
+                <Target className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold mb-1">هدف نهایی: سیستم خودکار پولسازی</h3>
+                <p className="text-sm text-gray-300 leading-6">
+                  وقتی همه سطح‌ها رو گذرونی، یک سیستم خودکار پولسازی داری که همیشه برات کار می‌کنه و درآمد می‌سازه. تو فقط هر روز بهترش می‌کنی و بهینه‌ترش می‌کنی.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button className="px-4 py-2 rounded-lg text-sm border border-gray-600 text-gray-200 hover:bg-gray-700/40" onClick={() => setIsGoalModalOpen(false)}>بستن</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Chat Modal for AI Coach */}

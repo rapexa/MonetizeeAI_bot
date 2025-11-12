@@ -1290,12 +1290,12 @@ const Dashboard: React.FC = () => {
       <div className="w-64 h-px bg-gray-200/30 dark:bg-gray-700/30 my-6 mx-auto"></div>
 
       {/* AI Coach Chat */}
-      <div>
+      <div className="mb-6">
                   <div className="text-center">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">AI کوچ شخصی</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">مربی هوشمند شما برای رشد کسب‌وکار</p>
           </div>
-        <div className="backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg transition-all duration-300" style={{ backgroundColor: '#10091c' }}>
+        <div className="backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg transition-all duration-300 mb-10" style={{ backgroundColor: '#10091c' }}>
           <div className="space-y-4">
             {/* Header with AI Coach */}
             <div className="flex items-center justify-between">
