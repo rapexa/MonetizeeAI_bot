@@ -27,12 +27,12 @@ func NewGroqClient() *GroqClient {
 
 	config := openai.DefaultConfig(apiKey)
 	config.BaseURL = "https://api.groq.com/openai/v1"
-	
+
 	client := openai.NewClientWithConfig(config)
-	
+
 	logger.Info("Groq client initialized successfully",
 		zap.String("base_url", config.BaseURL))
-	
+
 	return &GroqClient{
 		client: client,
 	}
@@ -46,7 +46,7 @@ func (g *GroqClient) GenerateChatResponse(systemPrompt, userMessage string, maxT
 
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
-	
+
 	messages := []openai.ChatCompletionMessage{
 		{
 			Role:    openai.ChatMessageRoleSystem,
@@ -57,7 +57,7 @@ func (g *GroqClient) GenerateChatResponse(systemPrompt, userMessage string, maxT
 			Content: userMessage,
 		},
 	}
-	
+
 	resp, err := g.client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
@@ -67,25 +67,25 @@ func (g *GroqClient) GenerateChatResponse(systemPrompt, userMessage string, maxT
 			Temperature: 0.7,
 		},
 	)
-	
+
 	if err != nil {
 		logger.Error("Groq API error",
 			zap.Error(err),
 			zap.String("model", "llama-3.3-70b-versatile"))
 		return "", fmt.Errorf("groq API error: %v", err)
 	}
-	
+
 	if len(resp.Choices) == 0 {
 		logger.Error("No response from Groq API")
 		return "", fmt.Errorf("no response from Groq")
 	}
-	
+
 	response := resp.Choices[0].Message.Content
-	
+
 	logger.Info("Groq response received",
 		zap.Int("response_length", len(response)),
 		zap.String("model", "llama-3.3-70b-versatile"))
-	
+
 	return response, nil
 }
 
@@ -97,10 +97,15 @@ func (g *GroqClient) GenerateMonetizeAIResponse(userMessage string) (string, err
 - خروجی باید ۱۰۰٪ فارسی باشه؛ هیچ جمله یا کاراکتر غیر فارسی (مثل چینی یا انگلیسی) ننویس.
 - لحن خودمونی، روشن، کوتاه و کاربردی.
 - مرحله‌به‌مرحله و قابل اجرا راهنمایی کن.
-- از خطاب‌های رسمی یا لقبی مثل «مانیتایزر عزیز» استفاده نکن.
-- حوزه‌ها: بیزینس، مارکتینگ، فروش، و هوش مصنوعی.
 
-ماموریت: کمک عملی برای ساخت مسیر درآمد با AI، با مثال و اقدام مشخص.`
+ویژگی‌های تو:
+- همیشه به فارسی پاسخ می‌دهی
+- پاسخ‌هایت عملی، مرحله‌به‌مرحله و قابل اجرا هستند
+- کاربران رو با عنوان "مانیتایزر عزیز" خطاب می‌کنی
+- در زمینه‌های بیزینس، مارکتینگ، فروش و هوش مصنوعی تخصص داری
+- پاسخ‌هایت مختصر، مفید و انگیزه‌بخش هستند
+
+مأموریت تو: کمک به کاربران برای ساختن مسیر درآمد دلاری با AI`
 
 	return g.GenerateChatResponse(systemPrompt, userMessage, 4000)
 }
@@ -134,11 +139,11 @@ FEEDBACK: [بازخورد دقیق، سازنده و کاربردی به فار�
 	if err != nil {
 		return false, "", err
 	}
-	
+
 	// Parse response
 	approved := false
 	feedback := ""
-	
+
 	lines := splitLines(response)
 	for _, line := range lines {
 		if contains(line, "APPROVED:") {
@@ -147,12 +152,12 @@ FEEDBACK: [بازخورد دقیق، سازنده و کاربردی به فار�
 			feedback = trimSpace(trimPrefix(line, "FEEDBACK:"))
 		}
 	}
-	
+
 	// اگر feedback خالی بود، از کل response استفاده کن
 	if feedback == "" {
 		feedback = response
 	}
-	
+
 	return approved, feedback, nil
 }
 
@@ -262,15 +267,15 @@ func toLowerCase(s string) string {
 func trimSpace(s string) string {
 	start := 0
 	end := len(s)
-	
+
 	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
 		start++
 	}
-	
+
 	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
 		end--
 	}
-	
+
 	return s[start:end]
 }
 
