@@ -30,7 +30,7 @@ func GetPaymentConfig() PaymentConfig {
 	return PaymentConfig{
 		MerchantID:    getEnvOrDefault("ZARINPAL_MERCHANT_ID", "3ef8ccdc-8fc9-43ba-8931-ad68cf890c7e"),
 		Sandbox:       false,
-		CallbackURL:   getEnvOrDefault("ZARINPAL_CALLBACK_URL", "https://www.sianacademy.com/payment/callback"),
+		CallbackURL:   getEnvOrDefault("ZARINPAL_CALLBACK_URL", "https://web.sianacademy.com/payment-result.html"),
 		StarterPrice:  1000,    // ۱,۰۰۰ تومان (موقت برای تست - باید به 790000 برگردد)
 		ProPrice:      3300000, // ۳,۳۰۰,۰۰۰ تومان (شش‌ماهه)
 		UltimatePrice: 7500000, // ۷,۵۰۰,۰۰۰ تومان (مادام‌العمر)
@@ -426,11 +426,11 @@ func (s *PaymentService) UpdateUserSubscription(userID uint, planType string) er
 	// تعیین نقطه شروع برای محاسبه انقضا
 	var baseTime time.Time
 	var keepCurrentPlanName bool = false
-	
+
 	if user.SubscriptionExpiry != nil && user.SubscriptionExpiry.After(time.Now()) {
 		// اگر کاربر قبلاً اشتراک داشته و هنوز منقضی نشده، از تاریخ انقضای فعلی ادامه می‌دهیم
 		baseTime = *user.SubscriptionExpiry
-		
+
 		// اگر Pro → Starter و هنوز Pro منقضی نشده، اسم رو Pro نگه می‌داریم
 		if user.PlanName == "pro" && planType == "starter" {
 			keepCurrentPlanName = true
@@ -457,13 +457,13 @@ func (s *PaymentService) UpdateUserSubscription(userID uint, planType string) er
 		// اشتراک یک ماهه - اضافه کردن به تاریخ پایه
 		expiry := baseTime.AddDate(0, 1, 0)
 		user.SubscriptionType = "paid"
-		
+
 		// اگر Pro → Starter و منقضی نشده، اسم Pro رو نگه می‌داریم
 		if !keepCurrentPlanName {
 			user.PlanName = "starter"
 		}
 		// اگر keepCurrentPlanName = true باشه، PlanName تغییر نمی‌کنه
-		
+
 		user.SubscriptionExpiry = &expiry
 		user.IsVerified = true
 		// Cancel remaining SMS notifications
