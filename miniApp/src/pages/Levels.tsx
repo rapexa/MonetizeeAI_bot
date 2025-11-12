@@ -217,6 +217,61 @@ const Levels: React.FC = () => {
     console.log('🎴 [Levels] showSubscriptionCard state changed to:', showSubscriptionCard);
   }, [showSubscriptionCard]);
 
+  // Confetti utility (no external deps)
+  const confettiRef = React.useRef<HTMLDivElement | null>(null);
+  const launchConfetti = useCallback(() => {
+    const container = confettiRef.current;
+    if (!container) return;
+    const colors = ['#10b981','#22c55e','#60a5fa','#a78bfa','#f59e0b','#ef4444'];
+    const count = 80;
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('span');
+      el.style.position = 'absolute';
+      el.style.top = '-10px';
+      el.style.left = Math.random() * 100 + '%';
+      el.style.width = '6px';
+      el.style.height = '10px';
+      el.style.background = colors[i % colors.length];
+      el.style.opacity = '0.9';
+      el.style.transform = `rotate(${Math.random()*360}deg)`;
+      const duration = 1200 + Math.random()*1200;
+      el.animate([
+        { transform: `translateY(0) rotate(0deg)`, opacity: 1 },
+        { transform: `translateY(120vh) rotate(${Math.random()*720}deg)`, opacity: 0.7 }
+      ], { duration, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+      container.appendChild(el);
+      setTimeout(() => { try { container.removeChild(el); } catch {} }, duration + 100);
+    }
+  }, []);
+
+  // When quiz passed, grant reward once and launch confetti (declared after points state below)
+
+  const goToNextStage = () => {
+    const currentId = selectedStage?.id || 1;
+    const nextId = currentId + 1;
+    // find next stage
+    let nextLevel: Level | null = null;
+    let nextStage: Stage | null = null;
+    for (const lvl of levels) {
+      const st = lvl.stages.find(s => s.id === nextId);
+      if (st) { nextLevel = lvl; nextStage = st; break; }
+    }
+    if (nextLevel && nextStage) {
+      setSelectedLevel(nextLevel);
+      setSelectedStage(nextStage);
+      setViewMode('stage-detail');
+      // reset quiz states for next stage
+      setCurrentQuestion(0);
+      setUserAnswers({});
+      setQuizCompleted(false);
+      setQuizResult(null);
+      setRewardGranted(false);
+    } else {
+      // If no next stage, go back to list
+      setViewMode('list');
+    }
+  };
+
   // Debug userData changes
   useEffect(() => {
     console.log('👤 [Levels] userData changed:', {
@@ -248,6 +303,11 @@ const Levels: React.FC = () => {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [quizResult, setQuizResult] = useState<{passed: boolean, score: number, feedback: string} | null>(null);
+  // Gamification: points and celebration
+  const [totalPoints, setTotalPoints] = useState<number>(() => {
+    try { return parseInt(localStorage.getItem('monetize-total-points') || '0', 10) || 0; } catch { return 0; }
+  });
+  const [rewardGranted, setRewardGranted] = useState(false);
 
 
 
@@ -3899,15 +3959,19 @@ const Levels: React.FC = () => {
                       {quizResult?.passed ? '🎉 قبول شدید!' : '❌ نیاز به تلاش بیشتر'}
                     </h3>
 
-                    {/* Score */}
-                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-2xl p-4 mb-6 border border-white/20 dark:border-gray-700/20">
-                      <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                        {quizResult?.score}%
+                    {/* Reward Summary (replaces score) */}
+                    {quizResult?.passed ? (
+                      <div className="relative bg-white/60 dark:bg-gray-800/60 rounded-2xl p-4 mb-6 border border-white/20 dark:border-gray-700/20 overflow-hidden">
+                        <div ref={confettiRef} className="pointer-events-none absolute inset-0"></div>
+                        <div className="text-2xl font-extrabold text-gray-900 dark:text-white mb-1">۵۰ امتیاز به امتیازهای شما اضافه شد 🎉</div>
+                        <div className="text-gray-700 dark:text-gray-300 text-sm">مجموع امتیازها: {totalPoints}</div>
                       </div>
-                      <div className="text-gray-600 dark:text-gray-400 text-sm">
-                        امتیاز شما
+                    ) : (
+                      <div className="bg-white/60 dark:bg-gray-800/60 rounded-2xl p-4 mb-6 border border-white/20 dark:border-gray-700/20">
+                        <div className="text-2xl font-extrabold text-gray-900 dark:text-white mb-1">۰ امتیاز به امتیازهای شما اضافه شد</div>
+                        <div className="text-gray-700 dark:text-gray-300 text-sm">مجموع امتیازها: {totalPoints}</div>
                       </div>
-                    </div>
+                    )}
 
                     {/* AI Feedback */}
                     <div className="bg-gradient-to-br from-purple-100/80 to-blue-100/80 dark:from-purple-500/20 dark:to-blue-500/20 rounded-2xl p-6 mb-6 border border-purple-200/50 dark:border-purple-500/30 text-right">
@@ -3935,14 +3999,11 @@ const Levels: React.FC = () => {
                       
                       {quizResult?.passed ? (
                         <button
-                          onClick={() => {
-                            resetQuiz();
-                            // Mark stage as completed
-                          }}
+                          onClick={goToNextStage}
                           className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-300 flex items-center gap-2 shadow-lg shadow-green-500/30"
                         >
                           <CheckCircle2 size={16} />
-                          تکمیل مرحله
+                          رفتن به مرحله بعدی
                         </button>
                       ) : (
                         <button
