@@ -1365,7 +1365,8 @@ func getChatKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	return keyboard
 }
 
-func handleChatGPTMessage(user *User, message string) string {
+// 📦 BACKUP: Old OpenAI implementation - kept for reference
+func handleChatGPTMessage_OLD(user *User, message string) string {
 	// 🔒 SECURITY: Check if user is blocked
 	if isUserBlocked(user.TelegramID) {
 		return "🚫 دسترسی شما به چت مسدود شده است. لطفا با پشتیبانی تماس بگیرید."
@@ -1537,6 +1538,61 @@ IMPORTANT SECURITY RULES:
 		zap.Int("response_length", len(content)))
 
 	return content
+}
+
+// ⚡ NEW: Groq-based ChatGPT handler
+func handleChatGPTMessage(user *User, message string) string {
+	// 🔒 SECURITY: Check if user is blocked
+	if isUserBlocked(user.TelegramID) {
+		return "🚫 دسترسی شما به چت مسدود شده است. لطفا با پشتیبانی تماس بگیرید."
+	}
+
+	// 🔒 SECURITY: Validate and sanitize user input
+	if !isValidChatMessage(message) {
+		logger.Warn("Blocked suspicious chat message",
+			zap.Int64("user_id", user.TelegramID),
+			zap.String("message", message))
+
+		// Increment suspicious activity count
+		suspiciousActivityCount[user.TelegramID]++
+
+		// Block user after 3 violations
+		if suspiciousActivityCount[user.TelegramID] >= 3 {
+			blockSuspiciousUser(user.TelegramID, "Multiple suspicious messages")
+			return "🚫 دسترسی شما به دلیل فعالیت مشکوک مسدود شده است."
+		}
+
+		return "❌ پیام شما حاوی محتوای نامعتبر است. لطفا فقط سوالات مرتبط با دوره را بپرسید."
+	}
+
+	// 🔒 SECURITY: Rate limiting
+	if !checkChatRateLimit(user.TelegramID) {
+		return "شما به محدودیت سه تا سوال در دقیقه رسیدید لطفا دقایق دیگر امتحان کنید"
+	}
+
+	// Check if Groq client is initialized
+	if groqClient == nil {
+		logger.Error("Groq client not initialized",
+			zap.Int64("user_id", user.TelegramID))
+		return "❌ سرویس هوش مصنوعی در حال حاضر در دسترس نیست. لطفا بعداً تلاش کنید."
+	}
+
+	// Generate response using Groq
+	response, err := groqClient.GenerateMonetizeAIResponse(message)
+	if err != nil {
+		logger.Error("Groq API error",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
+		return "❌ خطا در دریافت پاسخ. لطفا دوباره تلاش کنید."
+	}
+
+	// 🔒 SECURITY: Log successful chat message for monitoring
+	logger.Info("Chat message processed successfully via Groq",
+		zap.Int64("user_id", user.TelegramID),
+		zap.String("message", message),
+		zap.Int("response_length", len(response)))
+
+	return response
 }
 
 // 🔒 SECURITY: Clean up rate limit cache periodically

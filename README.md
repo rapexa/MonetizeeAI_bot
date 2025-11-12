@@ -27,7 +27,8 @@ A powerful Telegram bot for managing and delivering educational content, built w
 - **Telegram API**: go-telegram-bot-api
 - **ORM**: GORM
 - **Environment**: godotenv
-- **AI Integration**: OpenAI GPT-4
+- **AI Integration**: Groq (Llama 3.3 70B Versatile)
+  - _Previously OpenAI GPT-4, migrated to Groq for better performance and cost efficiency_
 
 ## 📋 Project Structure
 

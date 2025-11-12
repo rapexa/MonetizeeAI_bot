@@ -19,8 +19,9 @@ import (
 )
 
 var (
-	bot *tgbotapi.BotAPI
-	db  *gorm.DB
+	bot        *tgbotapi.BotAPI
+	db         *gorm.DB
+	groqClient *GroqClient
 )
 
 func initDB() {
@@ -85,6 +86,14 @@ func init() {
 
 	// Initialize database
 	initDB()
+
+	// Initialize Groq AI client
+	groqClient = NewGroqClient()
+	if groqClient == nil {
+		logger.Warn("Groq client initialization failed - AI features may not work")
+	} else {
+		logger.Info("Groq AI client initialized successfully")
+	}
 
 	// Start Web API server (optional, controlled by environment variable)
 	StartWebAPI()
@@ -277,6 +286,18 @@ func handleMessage(update tgbotapi.Update) {
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "منوی ادمین:")
 		msg.ReplyMarkup = getAdminKeyboard()
 		bot.Send(msg)
+		return
+	}
+
+	// 📢 CHANNEL MEMBERSHIP CHECK (for non-admin users only)
+	// Check if user is member of required channel
+	if !checkChannelMembership(update.Message.From.ID) {
+		logger.Info("User not member of required channel",
+			zap.Int64("user_id", update.Message.From.ID),
+			zap.String("username", update.Message.From.UserName))
+		
+		// Send join channel message
+		sendJoinChannelMessage(update.Message.From.ID)
 		return
 	}
 

@@ -371,6 +371,12 @@ func handleCallbackQuery(update tgbotapi.Update) {
 	callback := update.CallbackQuery
 	data := callback.Data
 
+	// Check if it's a channel membership check callback
+	if data == "check_membership" {
+		handleMembershipCheckCallback(callback)
+		return
+	}
+
 	// Check if it's a user callback (not admin)
 	if strings.HasPrefix(data, "has_license") || strings.HasPrefix(data, "no_license") || strings.HasPrefix(data, "start_free_trial") || data == "enter_license" || strings.HasPrefix(data, "payment:") || data == "buy_subscription" || strings.HasPrefix(data, "check_payment:") {
 		handleUserCallbackQuery(update)

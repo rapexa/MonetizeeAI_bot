@@ -357,6 +357,15 @@ func getUserInfo(c *gin.Context) {
 		return
 	}
 
+	// 📢 Check channel membership
+	if errMsg := checkChannelMembershipAPI(telegramID); errMsg != "" {
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   errMsg,
+		})
+		return
+	}
+
 	var user User
 	if err := db.Where("telegram_id = ?", telegramID).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, APIResponse{
@@ -585,6 +594,15 @@ func handleChatRequest(c *gin.Context) {
 		return
 	}
 
+	// 📢 Check channel membership
+	if errMsg := checkChannelMembershipAPI(requestData.TelegramID); errMsg != "" {
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   errMsg,
+		})
+		return
+	}
+
 	// Verify user exists
 	var user User
 	result := db.Where("telegram_id = ?", requestData.TelegramID).First(&user)
@@ -659,8 +677,8 @@ func handleChatGPTMessageAPI(user *User, message string) string {
 	return makeChatGPTRequest(user, message)
 }
 
-// makeChatGPTRequest makes the actual ChatGPT API request
-func makeChatGPTRequest(user *User, message string) string {
+// 📦 BACKUP: Old OpenAI implementation - kept for reference
+func makeChatGPTRequest_OLD(user *User, message string) string {
 	// Create the API request
 	url := "https://api.openai.com/v1/chat/completions"
 
@@ -765,6 +783,31 @@ func makeChatGPTRequest(user *User, message string) string {
 		zap.Int64("user_id", user.TelegramID),
 		zap.Int("response_length", len(response)),
 		zap.String("response_preview", response[:min(len(response), 200)]))
+
+	return response
+}
+
+// ⚡ NEW: Groq-based ChatGPT handler for API
+func makeChatGPTRequest(user *User, message string) string {
+	// Check if Groq client is initialized
+	if groqClient == nil {
+		logger.Error("Groq client not initialized",
+			zap.Int64("user_id", user.TelegramID))
+		return "❌ سرویس هوش مصنوعی در حال حاضر در دسترس نیست. لطفا بعداً تلاش کنید."
+	}
+
+	// Generate response using Groq
+	response, err := groqClient.GenerateMonetizeAIResponse(message)
+	if err != nil {
+		logger.Error("Groq API error in web_api",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Error(err))
+		return "❌ خطا در دریافت پاسخ. لطفا دوباره تلاش کنید."
+	}
+
+	logger.Info("Groq response received in web_api",
+		zap.Int64("user_id", user.TelegramID),
+		zap.Int("response_length", len(response)))
 
 	return response
 }
@@ -980,6 +1023,15 @@ func handleBusinessBuilderRequest(c *gin.Context) {
 		return
 	}
 
+	// 📢 Check channel membership
+	if errMsg := checkChannelMembershipAPI(req.TelegramID); errMsg != "" {
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   errMsg,
+		})
+		return
+	}
+
 	// Validate required fields
 	if req.UserName == "" || req.Interests == "" || req.Market == "" {
 		c.JSON(http.StatusBadRequest, APIResponse{
@@ -1099,6 +1151,15 @@ func handleSellKitRequest(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, APIResponse{
 			Success: false,
 			Error:   "Invalid request format",
+		})
+		return
+	}
+
+	// 📢 Check channel membership
+	if errMsg := checkChannelMembershipAPI(req.TelegramID); errMsg != "" {
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   errMsg,
 		})
 		return
 	}
@@ -1225,6 +1286,15 @@ func handleClientFinderRequest(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, APIResponse{
 			Success: false,
 			Error:   "Invalid request format",
+		})
+		return
+	}
+
+	// 📢 Check channel membership
+	if errMsg := checkChannelMembershipAPI(req.TelegramID); errMsg != "" {
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   errMsg,
 		})
 		return
 	}
@@ -1366,6 +1436,15 @@ func handleSalesPathRequest(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, APIResponse{
 			Success: false,
 			Error:   "Invalid request format",
+		})
+		return
+	}
+
+	// 📢 Check channel membership
+	if errMsg := checkChannelMembershipAPI(req.TelegramID); errMsg != "" {
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   errMsg,
 		})
 		return
 	}
