@@ -101,6 +101,9 @@ func init() {
 	// Start payment checker background job
 	StartPaymentChecker()
 
+	// Start SMS scheduler for timed SMS (free trial day 2/3 and expiry)
+	startSMSScheduler()
+
 	// Initialize bot
 	var err error
 	bot, err = tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_TOKEN"))
