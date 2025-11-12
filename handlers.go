@@ -46,92 +46,92 @@ type UserState struct {
 // completePhoneStep finalizes the phone step after we've saved user.Phone
 // It sends the signup SMS (once), prompts the user for license choice, and advances state
 func completePhoneStep(user *User) {
-    // Remove custom keyboards
-    removeKb := tgbotapi.NewRemoveKeyboard(true)
+	// Remove custom keyboards
+	removeKb := tgbotapi.NewRemoveKeyboard(true)
 
-    // Send registration success message and introduce premium version
-    userName := user.FirstName
-    if user.LastName != "" {
-        userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
-    }
+	// Send registration success message and introduce premium version
+	userName := user.FirstName
+	if user.LastName != "" {
+		userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
+	}
 
-    // Send sign-up SMS immediately after registration (only once per phone)
-    if user.Phone != "" && !user.SignUpSMSSent {
-        go func(phoneNum, name string, userID int64, userPtr *User) {
-            smsConfig := GetSMSConfig()
-            // Check if SMS was already sent to this phone number (to prevent duplicates)
-            var existingUser User
-            if err := db.Where("phone = ? AND sign_up_sms_sent = ?", phoneNum, true).First(&existingUser).Error; err == nil {
-                logger.Info("Sign-up SMS already sent to this phone number, skipping",
-                    zap.String("phone", phoneNum))
-                return
-            }
+	// Send sign-up SMS immediately after registration (only once per phone)
+	if user.Phone != "" && !user.SignUpSMSSent {
+		go func(phoneNum, name string, userID int64, userPtr *User) {
+			smsConfig := GetSMSConfig()
+			// Check if SMS was already sent to this phone number (to prevent duplicates)
+			var existingUser User
+			if err := db.Where("phone = ? AND sign_up_sms_sent = ?", phoneNum, true).First(&existingUser).Error; err == nil {
+				logger.Info("Sign-up SMS already sent to this phone number, skipping",
+					zap.String("phone", phoneNum))
+				return
+			}
 
-            err := sendPatternSMS(smsConfig.PatternSignUp, phoneNum, map[string]string{
-                "name": name,
-            })
-            if err != nil {
-                logger.Error("Failed to send sign-up SMS",
-                    zap.Int64("user_id", userID),
-                    zap.String("phone", phoneNum),
-                    zap.Error(err))
-            } else {
-                // Mark as sent to prevent duplicate sending
-                userPtr.SignUpSMSSent = true
-                db.Save(userPtr)
-                logger.Info("Sign-up SMS sent successfully",
-                    zap.Int64("user_id", userID),
-                    zap.String("phone", phoneNum))
-            }
-        }(user.Phone, userName, user.TelegramID, user)
-    }
+			err := sendPatternSMS(smsConfig.PatternSignUp, phoneNum, map[string]string{
+				"name": name,
+			})
+			if err != nil {
+				logger.Error("Failed to send sign-up SMS",
+					zap.Int64("user_id", userID),
+					zap.String("phone", phoneNum),
+					zap.Error(err))
+			} else {
+				// Mark as sent to prevent duplicate sending
+				userPtr.SignUpSMSSent = true
+				db.Save(userPtr)
+				logger.Info("Sign-up SMS sent successfully",
+					zap.Int64("user_id", userID),
+					zap.String("phone", phoneNum))
+			}
+		}(user.Phone, userName, user.TelegramID, user)
+	}
 
-    msg := tgbotapi.NewMessage(user.TelegramID, "✅ مرحله ۳: ثبت‌نام موفق\n\n"+
-        "از این لحظه، سیستم هوش مصنوعیِ شخصی تو فعال شد.\n\n"+
-        "یه ساختار خودکار شروع کرده برایت کار کنه🤖\n"+
-        "سیستمی که مثل یه تیم 10 نفره، 24 کنارته\n"+
-        "تا سیستم پولسازیت رو از صفر تا صد واست بسازه ⚙️💸\n\n"+
-        "اینجا هر بخش از سیستم یه مأموریت داره:\n"+
-        "یکی برات ایده می‌سازه، یکی مسیر فروش می‌چینه،\n"+
-        "یکی رشدتو تحلیل می‌کنه و یکی همه‌چیزو خودکار نگه می‌داره.\n"+
-        "همه با هم، یه تیم هوش مصنوعی واحد که برای تو کار می‌کنن.\n\n"+
-        "✨ حالا وقتشه مسیرت رو مشخص کنی 👇🏼\n"+
-        "می‌خوای تجربه‌ی واقعی‌ت رو با نسخه رایگان شروع کنی\n"+
-        "یا مستقیم وارد نسخه کامل بشی و سیستم درآمد خودکارت رو بسازی؟")
-    msg.ReplyMarkup = removeKb
+	msg := tgbotapi.NewMessage(user.TelegramID, "✅ مرحله ۳: ثبت‌نام موفق\n\n"+
+		"از این لحظه، سیستم هوش مصنوعیِ شخصی تو فعال شد.\n\n"+
+		"یه ساختار خودکار شروع کرده برایت کار کنه🤖\n"+
+		"سیستمی که مثل یه تیم 10 نفره، 24 کنارته\n"+
+		"تا سیستم پولسازیت رو از صفر تا صد واست بسازه ⚙️💸\n\n"+
+		"اینجا هر بخش از سیستم یه مأموریت داره:\n"+
+		"یکی برات ایده می‌سازه، یکی مسیر فروش می‌چینه،\n"+
+		"یکی رشدتو تحلیل می‌کنه و یکی همه‌چیزو خودکار نگه می‌داره.\n"+
+		"همه با هم، یه تیم هوش مصنوعی واحد که برای تو کار می‌کنن.\n\n"+
+		"✨ حالا وقتشه مسیرت رو مشخص کنی 👇🏼\n"+
+		"می‌خوای تجربه‌ی واقعی‌ت رو با نسخه رایگان شروع کنی\n"+
+		"یا مستقیم وارد نسخه کامل بشی و سیستم درآمد خودکارت رو بسازی؟")
+	msg.ReplyMarkup = removeKb
 
-    // Create inline keyboard for license choice
-    keyboard := tgbotapi.NewInlineKeyboardMarkup(
-        tgbotapi.NewInlineKeyboardRow(
-            tgbotapi.NewInlineKeyboardButtonData("🔸 استفاد از نسخه رایگان", "no_license"),
-        ),
-        tgbotapi.NewInlineKeyboardRow(
-            tgbotapi.NewInlineKeyboardButtonData("💎 تهیه اشتراک ویژه", "buy_subscription"),
-            tgbotapi.NewInlineKeyboardButtonData("🔹 لایسنس دارم", "has_license"),
-        ),
-    )
-    msg.ReplyMarkup = keyboard
-    bot.Send(msg)
+	// Create inline keyboard for license choice
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("🔸 استفاد از نسخه رایگان", "no_license"),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("💎 تهیه اشتراک ویژه", "buy_subscription"),
+			tgbotapi.NewInlineKeyboardButtonData("🔹 لایسنس دارم", "has_license"),
+		),
+	)
+	msg.ReplyMarkup = keyboard
+	bot.Send(msg)
 
-    // Set state to wait for license choice
-    userStates[user.TelegramID] = StateWaitingForLicenseChoice
+	// Set state to wait for license choice
+	userStates[user.TelegramID] = StateWaitingForLicenseChoice
 }
 
 func completePhoneStepWithContact(user *User, contact *tgbotapi.Contact) {
-    // Normalize to 09xxxxxxxxx
-    normalized := normalizePhoneNumber(contact.PhoneNumber)
-    if normalized == "" {
-        user.Phone = contact.PhoneNumber
-    } else {
-        user.Phone = normalized
-    }
-    db.Save(user)
-    completePhoneStep(user)
+	// Normalize to 09xxxxxxxxx
+	normalized := normalizePhoneNumber(contact.PhoneNumber)
+	if normalized == "" {
+		user.Phone = contact.PhoneNumber
+	} else {
+		user.Phone = normalized
+	}
+	db.Save(user)
+	completePhoneStep(user)
 }
 
 type SMSResponse struct {
-    RecID  int64  `json:"recId"`
-    Status string `json:"status"`
+	RecID  int64  `json:"recId"`
+	Status string `json:"status"`
 }
 
 type SMSMultiResponse struct {
@@ -746,17 +746,16 @@ func processUserInput(input string, user *User) string {
 		userStates[user.TelegramID] = StateWaitingForPhone
 		// Send phone request with contact sharing option
 		phoneMsg := tgbotapi.NewMessage(user.TelegramID, "📱 حالا شماره موبایلت رو بفرست تا سیستم هوشمند MonetizeAI برای تو فعال بشه.\n\nمی‌تونی یکی از این دو روش رو انتخاب کنی:\n• ✍️ خودت شماره رو تایپ کن (مثلاً 0912xxxxxxx)\n• 📲 دکمه ‘اشتراک‌گذاری شماره’ رو بزنی")
-		        // Build reply keyboard with request_contact button (typing is always allowed without a button)
-        shareBtn := tgbotapi.KeyboardButton{Text: "📲 اشتراک‌گذاری شماره", RequestContact: true}
-        phoneKb := tgbotapi.NewReplyKeyboard(
-            tgbotapi.NewKeyboardButtonRow(shareBtn),
-        )
+		// Build reply keyboard with request_contact button (typing is always allowed without a button)
+		shareBtn := tgbotapi.KeyboardButton{Text: "📲 اشتراک‌گذاری شماره", RequestContact: true}
+		phoneKb := tgbotapi.NewReplyKeyboard(
+			tgbotapi.NewKeyboardButtonRow(shareBtn),
+		)
 		phoneKb.ResizeKeyboard = true
 		phoneKb.OneTimeKeyboard = true
 		phoneMsg.ReplyMarkup = phoneKb
 		bot.Send(phoneMsg)
 		return ""
-	}
 
 	case StateWaitingForPhone:
 		// Handle typed phone numbers (contact shares are handled in main.go)
@@ -771,7 +770,7 @@ func processUserInput(input string, user *User) string {
 		completePhoneStep(user)
 		return ""
 
-}
+	}
 
 	// Check if subscription has expired - handle expired subscription users
 	if !user.HasActiveSubscription() {
