@@ -1425,11 +1425,6 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 	// First try to fix malformed JSON with empty keys
 	fixedResponse := fixMalformedClientFinderJSON(cleanResponse)
 	
-	// Debug log to see the transformation
-	logger.Info("ClientFinder JSON transformation",
-		zap.String("original", cleanResponse),
-		zap.String("fixed", fixedResponse))
-	
 	if err := json.Unmarshal([]byte(fixedResponse), &clientFinder); err != nil {
 		// If JSON parsing fails, log detailed error and return fallback response
 		logger.Error("Failed to parse ChatGPT JSON response for clientfinder",
@@ -1824,15 +1819,39 @@ func fixMalformedSalesPathJSON(jsonStr string) string {
 	
 	result := jsonStr
 	
-	// Replace empty keys with unique placeholders (SalesPath has 3 fields)
-	result = strings.Replace(result, `"":`, `"__FIELD1__":`, 1) // dailyPlan (array)
-	result = strings.Replace(result, `"":`, `"__FIELD2__":`, 1) // salesTips (array)
-	result = strings.Replace(result, `"":`, `"__FIELD3__":`, 1) // engagement (array)
+	// SalesPath has nested structure with many empty keys
+	// Main structure: dailyPlan (array), salesTips (array), engagement (array)
+	// Each dailyPlan object has empty keys: day, title, description
 	
-	// Replace placeholders with correct field names
-	result = strings.Replace(result, `"__FIELD1__":`, `"dailyPlan":`, 1)
-	result = strings.Replace(result, `"__FIELD2__":`, `"salesTips":`, 1)
-	result = strings.Replace(result, `"__FIELD3__":`, `"engagement":`, 1)
+	// Replace main level empty keys first
+	result = strings.Replace(result, `"":`, `"dailyPlan":`, 1)     // First main field
+	
+	// Replace nested empty keys in dailyPlan array (day, title, description for each day - 7 days)
+	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 1 day
+	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 1 title
+	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 1 description
+	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 2 day
+	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 2 title  
+	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 2 description
+	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 3 day
+	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 3 title
+	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 3 description
+	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 4 day
+	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 4 title
+	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 4 description
+	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 5 day
+	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 5 title
+	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 5 description
+	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 6 day
+	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 6 title
+	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 6 description
+	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 7 day
+	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 7 title
+	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 7 description
+	
+	// Replace remaining main level fields
+	result = strings.Replace(result, `"":`, `"salesTips":`, 1)     // Second main field  
+	result = strings.Replace(result, `"":`, `"engagement":`, 1)    // Third main field
 	
 	return result
 }
