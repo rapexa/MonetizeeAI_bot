@@ -97,6 +97,8 @@ func (g *GroqClient) GenerateMonetizeAIResponse(userMessage string) (string, err
 - زبان اصلی پاسخ فارسی باشه
 - در مواقع ضروری (مثل کد نویسی، نام ابزارها، آدرس وب‌سایت) از انگلیسی استفاده کن
 - اعداد رو با رقم انگلیسی بنویس (1, 2, 3 نه ۱، ۲، ۳)
+- هیچ‌وقت از چینی، ژاپنی، کره‌ای یا زبان‌های دیگر استفاده نکن
+- فقط فارسی + انگلیسی در مواقع ضروری
 - لحن خودمونی، روشن، کوتاه و کاربردی
 - مرحله‌به‌مرحله و قابل اجرا راهنمایی کن
 - کاربر را با «مانیتایزر عزیز» خطاب کن
@@ -108,7 +110,7 @@ func (g *GroqClient) GenerateMonetizeAIResponse(userMessage string) (string, err
 	if err != nil {
 		return "", err
 	}
-	return resp, nil
+	return sanitizePersianText(resp), nil
 }
 
 // GenerateExerciseEvaluation evaluates student exercise submissions
