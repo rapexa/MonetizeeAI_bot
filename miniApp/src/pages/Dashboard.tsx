@@ -822,24 +822,7 @@ const Dashboard: React.FC = () => {
       {(hasRealData || (!loadingUser && !isAPIConnected)) && (
         <>
         
-      {/* API Status Indicator */}
-      {!loadingUser && (
-        <div className={`fixed top-4 left-4 z-50 flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
-          isAPIConnected 
-            ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-            : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-        }`}>
-          <div className={`w-2 h-2 rounded-full ${isAPIConnected ? 'bg-green-400' : 'bg-orange-400'} animate-pulse`}></div>
-          {isAPIConnected ? 'متصل به ربات' : 'حالت آفلاین'}
-          {isInTelegram ? (
-            <span className="text-blue-400">• تلگرام</span>
-          ) : (
-            <span className="text-yellow-400">• تست (ID: 76599340)</span>
-          )}
-        </div>
-      )}
-
-      {/* Enhanced Profile Header */}
+          {/* Enhanced Profile Header */}
               <div className="flex items-center justify-between mb-6 backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
         <div 
           className="flex items-center gap-3 cursor-pointer group"

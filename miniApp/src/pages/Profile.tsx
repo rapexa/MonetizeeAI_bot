@@ -15,7 +15,7 @@ import {
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { userData, isAPIConnected, refreshUserData } = useApp();
+  const { userData, isAPIConnected, isInTelegram, refreshUserData } = useApp();
   const [showEditModal, setShowEditModal] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -515,6 +515,22 @@ const Profile: React.FC = () => {
                 <span className="px-3 py-1 rounded-2xl text-white bg-gradient-to-r from-[#2c189a] to-[#5a189a] shadow-md font-bold">
                   {userData.points || 0}
                 </span>
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-400">وضعیت اتصال:</span>
+              <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-2xl text-xs font-medium ${
+                isAPIConnected 
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                  : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${isAPIConnected ? 'bg-green-400' : 'bg-orange-400'} animate-pulse`}></div>
+                {isAPIConnected ? 'متصل به ربات' : 'حالت آفلاین'}
+                {isInTelegram ? (
+                  <span className="text-blue-400">• تلگرام</span>
+                ) : (
+                  <span className="text-yellow-400">• تست (ID: 76599340)</span>
+                )}
               </span>
             </div>
           </div>
