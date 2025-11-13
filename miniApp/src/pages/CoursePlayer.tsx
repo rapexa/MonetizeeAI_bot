@@ -73,6 +73,15 @@ const CoursePlayer: React.FC = () => {
     }
     return {};
   });
+
+  // Track sessions that have already given points to prevent duplicate rewards
+  const [pointsGiven, setPointsGiven] = React.useState<Record<string, boolean>>(() => {
+    if (courseId) {
+      const saved = localStorage.getItem(`course-points-given-${courseId}`);
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  });
   
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -127,6 +136,13 @@ const CoursePlayer: React.FC = () => {
       localStorage.setItem(`course-completed-${courseId}`, JSON.stringify(completed));
     }
   }, [completed, courseId]);
+
+  // Save points given to localStorage whenever it changes
+  React.useEffect(() => {
+    if (courseId) {
+      localStorage.setItem(`course-points-given-${courseId}`, JSON.stringify(pointsGiven));
+    }
+  }, [pointsGiven, courseId]);
 
   React.useEffect(() => {
     if (course && (!current || !course.sessions.find(s => s.id === current.id))) {
@@ -533,7 +549,10 @@ const CoursePlayer: React.FC = () => {
                     setCompleted(prev => ({ ...prev, [s.id]: newCompleted }));
                     
                     // Trigger celebration only when marking as completed (not when unchecking)
-                    if (newCompleted && !wasCompleted) {
+                    // AND only if points haven't been given for this session yet
+                    if (newCompleted && !wasCompleted && !pointsGiven[s.id]) {
+                      // Mark that points have been given for this session
+                      setPointsGiven(prev => ({ ...prev, [s.id]: true }));
                       triggerCelebration();
                     }
                   }}
