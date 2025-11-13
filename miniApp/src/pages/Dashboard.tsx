@@ -1046,9 +1046,14 @@ const Dashboard: React.FC = () => {
                     <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden shadow-inner">
                     <div
                         className="h-full rounded-full transition-all duration-1000 shadow-lg relative"
-                        style={{ width: `${stagesPercent}%`, backgroundColor: '#22c55e' }}
+                        style={{
+                          width: `${stagesPercent}%`,
+                          backgroundImage: 'linear-gradient(90deg, #22c55e 0%, #16a34a 45%, #059669 100%)',
+                          boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.15), 0 2px 8px rgba(16,185,129,0.35)'
+                        }}
                     >
-                        <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-0 h-0 border-l-4 border-l-[#22c55e] border-t-2 border-t-transparent border-b-2 border-b-transparent shadow-sm"></div>
+                        <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-0 h-0 border-l-4 border-t-2 border-b-2 border-t-transparent border-b-transparent shadow-sm"
+                             style={{ borderLeftColor: '#16a34a' }}></div>
                       </div>
 
                     </div>
