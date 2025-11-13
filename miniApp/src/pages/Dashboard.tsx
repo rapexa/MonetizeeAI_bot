@@ -903,10 +903,7 @@ const Dashboard: React.FC = () => {
         
         {/* Animated Green Lights */}
         <div className="absolute inset-0 bg-gradient-to-br from-green-400/15 via-green-500/10 to-transparent rounded-3xl"></div>
-        <div className="absolute inset-0 opacity-100 group-hover:opacity-100 transition-all duration-700">
-          <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-xl bg-green-500/30 animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-20 h-20 rounded-full blur-lg bg-green-400/25 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-        </div>
+        <div className="absolute inset-0 opacity-100 group-hover:opacity-100 transition-all duration-700"></div>
         
         {/* Background Pattern */}
         <div className="absolute inset-4 opacity-5">
