@@ -1792,18 +1792,25 @@ func fixMalformedClientFinderJSON(jsonStr string) string {
 	
 	result := jsonStr
 	
-	// Replace empty keys with unique placeholders 
-	// Order based on AI response: channels, outreachMessage, hashtags, actionPlan
-	result = strings.Replace(result, `"":`, `"__FIELD1__":`, 1) // channels (array) - first
-	result = strings.Replace(result, `"":`, `"__FIELD2__":`, 1) // outreachMessage - second  
-	result = strings.Replace(result, `"":`, `"__FIELD3__":`, 1) // hashtags (array) - third
-	result = strings.Replace(result, `"":`, `"__FIELD4__":`, 1) // actionPlan (array) - fourth
+	// ClientFinder has nested structure with many empty keys
+	// Main structure: channels (array), outreachMessage (string), hashtags (array), actionPlan (array)
+	// Each channel object also has empty keys: name, reason
 	
-	// Replace placeholders with correct field names
-	result = strings.Replace(result, `"__FIELD1__":`, `"channels":`, 1)
-	result = strings.Replace(result, `"__FIELD2__":`, `"outreachMessage":`, 1)
-	result = strings.Replace(result, `"__FIELD3__":`, `"hashtags":`, 1)
-	result = strings.Replace(result, `"__FIELD4__":`, `"actionPlan":`, 1)
+	// Replace main level empty keys first
+	result = strings.Replace(result, `"":`, `"channels":`, 1)     // First main field
+	
+	// Replace nested empty keys in channels array (name, reason for each channel)
+	result = strings.Replace(result, `"":`, `"name":`, 1)        // First channel name
+	result = strings.Replace(result, `"":`, `"reason":`, 1)      // First channel reason
+	result = strings.Replace(result, `"":`, `"name":`, 1)        // Second channel name  
+	result = strings.Replace(result, `"":`, `"reason":`, 1)      // Second channel reason
+	result = strings.Replace(result, `"":`, `"name":`, 1)        // Third channel name
+	result = strings.Replace(result, `"":`, `"reason":`, 1)      // Third channel reason
+	
+	// Replace remaining main level fields
+	result = strings.Replace(result, `"":`, `"outreachMessage":`, 1) // Second main field
+	result = strings.Replace(result, `"":`, `"hashtags":`, 1)        // Third main field  
+	result = strings.Replace(result, `"":`, `"actionPlan":`, 1)      // Fourth main field
 	
 	return result
 }
