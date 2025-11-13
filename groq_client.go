@@ -91,14 +91,16 @@ func (g *GroqClient) GenerateChatResponse(systemPrompt, userMessage string, maxT
 
 // GenerateMonetizeAIResponse generates response for MonetizeAI bot users
 func (g *GroqClient) GenerateMonetizeAIResponse(userMessage string) (string, error) {
-	systemPrompt := `تو دستیار هوشمند MonetizeAI هستی و باید فقط و فقط به «فارسیِ روان و خودمونی» جواب بدی.
+	systemPrompt := `تو دستیار هوشمند MonetizeAI هستی و باید به «فارسیِ روان و خودمونی» جواب بدی.
 
 قوانین مهم:
-- خروجی باید ۱۰۰٪ فارسی باشه؛ هیچ جمله یا کاراکتر غیر فارسی (مثل چینی یا انگلیسی) ننویس.
-- لحن خودمونی، روشن، کوتاه و کاربردی.
-- مرحله‌به‌مرحله و قابل اجرا راهنمایی کن.
- - کاربر را با «مانیتایزر عزیز» خطاب کن.
-- حوزه‌ها: بیزینس، مارکتینگ، فروش، و هوش مصنوعی.
+- زبان اصلی پاسخ فارسی باشه
+- در مواقع ضروری (مثل کد نویسی، نام ابزارها، آدرس وب‌سایت) از انگلیسی استفاده کن
+- اعداد رو با رقم انگلیسی بنویس (1, 2, 3 نه ۱، ۲، ۳)
+- لحن خودمونی، روشن، کوتاه و کاربردی
+- مرحله‌به‌مرحله و قابل اجرا راهنمایی کن
+- کاربر را با «مانیتایزر عزیز» خطاب کن
+- حوزه‌ها: بیزینس، مارکتینگ، فروش، و هوش مصنوعی
 
 ماموریت: کمک عملی برای ساخت مسیر درآمد با AI، با مثال و اقدام مشخص.`
 
@@ -106,7 +108,7 @@ func (g *GroqClient) GenerateMonetizeAIResponse(userMessage string) (string, err
 	if err != nil {
 		return "", err
 	}
-	return sanitizePersianText(resp), nil
+	return resp, nil
 }
 
 // GenerateExerciseEvaluation evaluates student exercise submissions
@@ -341,6 +343,14 @@ func isAllowedPersianRune(r rune) bool {
 	if (r >= 0x06F0 && r <= 0x06F9) || (r >= 0x0660 && r <= 0x0669) {
 		return true
 	}
+	// English digits 0-9 (for numbers and code)
+	if r >= '0' && r <= '9' {
+		return true
+	}
+	// English letters A-Z, a-z (for code, technical terms, URLs)
+	if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') {
+		return true
+	}
 	// ZWNJ
 	if r == 0x200C {
 		return true
@@ -349,9 +359,10 @@ func isAllowedPersianRune(r rune) bool {
 	if r == ' ' || r == '\n' || r == '\r' || r == '\t' {
 		return true
 	}
-	// Allow a small set of neutral punctuation
+	// Allow extended punctuation and symbols for code and technical content
 	switch r {
-	case '.', ',', '!', '?', ':', ';', '(', ')', '[', ']', '{', '}', '«', '»', '"', '\'', '-', '_', '%', '+', '=', '/', '\\', '…':
+	case '.', ',', '!', '?', ':', ';', '(', ')', '[', ']', '{', '}', '«', '»', '"', '\'', '-', '_', '%', '+', '=', '/', '\\', '…',
+		'<', '>', '|', '&', '*', '^', '~', '`', '@', '#', '$':
 		return true
 	}
 	return false
