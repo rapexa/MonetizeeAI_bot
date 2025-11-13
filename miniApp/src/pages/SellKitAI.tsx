@@ -671,7 +671,7 @@ const SellKitAI: React.FC = () => {
                   <div className="bg-gray-700/50 rounded-xl p-4">
                     <h4 className="text-monetize-success-400 font-semibold mb-2">مزایای اصلی</h4>
                     <ul className="text-gray-300 space-y-2">
-                      {result.benefits.map((benefit: string, index: number) => (
+                      {(result.benefits || []).map((benefit: string, index: number) => (
                         <li key={index} className="flex items-start gap-2">
                           <CheckCircle size={16} className="text-monetize-success-400 mt-1 flex-shrink-0" />
                           {benefit}

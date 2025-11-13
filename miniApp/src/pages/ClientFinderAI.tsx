@@ -527,13 +527,13 @@ const ClientFinderAI: React.FC = () => {
                       3 کانال برتر یافتن مشتری
                     </h4>
                     <div className="space-y-3">
-                      {result.channels.map((channel: any, index: number) => (
+                      {(result.channels || []).map((channel: any, index: number) => (
                         <div key={index} className="flex items-start gap-3 p-3 bg-gray-700/40 rounded-lg border border-gray-600/30">
                           <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
                             {index + 1}
                           </div>
-                          <div>
-                            <h5 className="text-white font-medium">{channel.name}</h5>
+                          <div className="flex-1">
+                            <h5 className="text-white font-semibold mb-1">{channel.name}</h5>
                             <p className="text-gray-300 text-sm">{channel.reason}</p>
                           </div>
                         </div>
@@ -557,7 +557,7 @@ const ClientFinderAI: React.FC = () => {
                       هشتگ‌های پیشنهادی
                     </h4>
                     <div className="flex flex-wrap gap-2">
-                      {result.hashtags.map((hashtag: string, index: number) => (
+                      {(result.hashtags || []).map((hashtag: string, index: number) => (
                         <span key={index} className="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-sm font-medium">
                           {hashtag}
                         </span>
@@ -575,7 +575,7 @@ const ClientFinderAI: React.FC = () => {
                               برنامه عملیاتی ۳ روزه
                             </h4>
                             <div className="space-y-3">
-                              {result.actionPlan.map((action: string, index: number) => (
+                              {(result.actionPlan || []).map((action: string, index: number) => (
                                 <div key={index} className="flex items-start gap-3">
                                   <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
                                   <p className="text-gray-200 font-medium">{action}</p>
@@ -596,7 +596,7 @@ const ClientFinderAI: React.FC = () => {
                             برنامه عملیاتی ۳ روزه
                           </h4>
                           <div className="space-y-3">
-                            {result.actionPlan.map((action: string, index: number) => (
+                            {(result.actionPlan || []).map((action: string, index: number) => (
                               <div key={index} className="flex items-start gap-3">
                                 <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
                                 <p className="text-gray-200 font-medium">{action}</p>
@@ -613,7 +613,7 @@ const ClientFinderAI: React.FC = () => {
                         برنامه عملیاتی ۳ روزه
                       </h4>
                       <div className="space-y-3">
-                        {result.actionPlan.map((action: string, index: number) => (
+                        {(result.actionPlan || []).map((action: string, index: number) => (
                           <div key={index} className="flex items-start gap-3">
                             <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
                             <p className="text-gray-200 font-medium">{action}</p>

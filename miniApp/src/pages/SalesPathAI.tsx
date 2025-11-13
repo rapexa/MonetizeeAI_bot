@@ -569,13 +569,13 @@ const SalesPathAI: React.FC = () => {
                       برنامه فروش ۷ روزه
                     </h4>
                     <div className="space-y-3">
-                      {result.dailyPlan.map((day: any, index: number) => (
+                      {(result.dailyPlan || []).map((day: any, index: number) => (
                         <div key={index} className="flex gap-3 p-3 bg-gray-700/40 rounded-lg border border-gray-600/30">
                           <div className="w-8 h-8 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-full flex items-center justify-center text-sm font-bold">
                             {day.day}
                           </div>
                           <div className="flex-1">
-                            <h5 className="text-white font-medium">{day.action}</h5>
+                            <h5 className="text-white font-semibold mb-1">{day.action}</h5>
                             <p className="text-gray-300 text-sm">{day.content}</p>
                           </div>
                         </div>
@@ -589,7 +589,7 @@ const SalesPathAI: React.FC = () => {
                       نکات کلیدی فروش
                     </h4>
                     <div className="space-y-3">
-                      {result.salesTips.map((tip: string, index: number) => (
+                      {(result.salesTips || []).map((tip: string, index: number) => (
                         <div key={index} className="flex items-start gap-3">
                           <Star size={16} className="text-yellow-400 mt-1 flex-shrink-0" />
                           <p className="text-gray-200 font-medium">{tip}</p>
@@ -608,7 +608,7 @@ const SalesPathAI: React.FC = () => {
                               تاکتیک‌های تعامل
                             </h4>
                             <div className="flex flex-wrap gap-2">
-                              {result.engagement.map((tactic: string, index: number) => (
+                              {(result.engagement || []).map((tactic: string, index: number) => (
                                 <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm font-medium">
                                   {tactic}
                                 </span>
@@ -628,7 +628,7 @@ const SalesPathAI: React.FC = () => {
                             تاکتیک‌های تعامل
                           </h4>
                           <div className="flex flex-wrap gap-2">
-                            {result.engagement.map((tactic: string, index: number) => (
+                            {(result.engagement || []).map((tactic: string, index: number) => (
                               <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm font-medium">
                                 {tactic}
                               </span>
@@ -644,7 +644,7 @@ const SalesPathAI: React.FC = () => {
                         تاکتیک‌های تعامل
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {result.engagement.map((tactic: string, index: number) => (
+                        {(result.engagement || []).map((tactic: string, index: number) => (
                           <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm font-medium">
                             {tactic}
                           </span>

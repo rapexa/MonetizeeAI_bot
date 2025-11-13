@@ -732,7 +732,7 @@ const BusinessBuilderAI: React.FC = () => {
                                 محصولات/خدمات
                               </h4>
                               <ul className="text-gray-200 space-y-2">
-                                {result.products.map((product: string, index: number) => (
+                                {(result.products || []).map((product: string, index: number) => (
                                   <li key={index} className="flex items-center gap-3">
                                     <CheckCircle size={16} className="text-blue-500 flex-shrink-0" />
                                     <span className="font-medium">{product}</span>
@@ -754,7 +754,7 @@ const BusinessBuilderAI: React.FC = () => {
                                 روش‌های درآمدزایی
                               </h4>
                               <ul className="text-gray-200 space-y-2">
-                                {result.monetization.map((method: string, index: number) => (
+                                {(result.monetization || []).map((method: string, index: number) => (
                                   <li key={index} className="flex items-center gap-3">
                                     <CheckCircle size={16} className="text-green-400 flex-shrink-0" />
                                     <span className="font-medium">{method}</span>
@@ -792,7 +792,7 @@ const BusinessBuilderAI: React.FC = () => {
                               محصولات/خدمات
                             </h4>
                             <ul className="text-gray-200 space-y-2">
-                              {result.products.map((product: string, index: number) => (
+                              {(result.products || []).map((product: string, index: number) => (
                                 <li key={index} className="flex items-center gap-3">
                                   <CheckCircle size={16} className="text-blue-500 flex-shrink-0" />
                                   <span className="font-medium">{product}</span>
@@ -807,7 +807,7 @@ const BusinessBuilderAI: React.FC = () => {
                               روش‌های درآمدزایی
                             </h4>
                             <ul className="text-gray-200 space-y-2">
-                              {result.monetization.map((method: string, index: number) => (
+                              {(result.monetization || []).map((method: string, index: number) => (
                                 <li key={index} className="flex items-center gap-3">
                                   <CheckCircle size={16} className="text-green-400 flex-shrink-0" />
                                   <span className="font-medium">{method}</span>
@@ -834,7 +834,7 @@ const BusinessBuilderAI: React.FC = () => {
                           محصولات/خدمات
                         </h4>
                         <ul className="text-gray-200 space-y-2">
-                          {result.products.map((product: string, index: number) => (
+                          {(result.products || []).map((product: string, index: number) => (
                             <li key={index} className="flex items-center gap-3">
                               <CheckCircle size={16} className="text-blue-500 flex-shrink-0" />
                               <span className="font-medium">{product}</span>
@@ -849,7 +849,7 @@ const BusinessBuilderAI: React.FC = () => {
                           روش‌های درآمدزایی
                         </h4>
                         <ul className="text-gray-200 space-y-2">
-                          {result.monetization.map((method: string, index: number) => (
+                          {(result.monetization || []).map((method: string, index: number) => (
                             <li key={index} className="flex items-center gap-3">
                               <CheckCircle size={16} className="text-green-400 flex-shrink-0" />
                               <span className="font-medium">{method}</span>
