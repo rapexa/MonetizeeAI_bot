@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -1101,12 +1102,17 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 
 	// Try to parse the JSON response
 	var businessPlan BusinessBuilderResponse
-	if err := json.Unmarshal([]byte(cleanResponse), &businessPlan); err != nil {
+	
+	// First try to fix malformed JSON with empty keys
+	fixedResponse := fixMalformedBusinessJSON(cleanResponse)
+	
+	if err := json.Unmarshal([]byte(fixedResponse), &businessPlan); err != nil {
 		// If JSON parsing fails, log detailed error and return fallback response
 		logger.Error("Failed to parse ChatGPT JSON response for business builder",
 			zap.Error(err),
 			zap.String("response", response),
 			zap.String("clean_response", cleanResponse),
+			zap.String("fixed_response", fixedResponse),
 			zap.String("error_detail", err.Error()))
 
 		// Return a fallback business plan based on user input
@@ -1695,6 +1701,34 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 		Success: true,
 		Data:    salesPath,
 	})
+}
+
+// fixMalformedBusinessJSON fixes JSON with empty field names by using regex replacement
+func fixMalformedBusinessJSON(jsonStr string) string {
+	// Replace empty field names with correct field names in order
+	replacements := []struct {
+		pattern string
+		replacement string
+	}{
+		{`""\s*:\s*"([^"]*)"`, `"businessName": "$1"`},      // First empty key -> businessName
+		{`""\s*:\s*"([^"]*)"`, `"tagline": "$1"`},          // Second empty key -> tagline  
+		{`""\s*:\s*"([^"]*)"`, `"description": "$1"`},      // Third empty key -> description
+		{`""\s*:\s*"([^"]*)"`, `"targetAudience": "$1"`},   // Fourth empty key -> targetAudience
+		{`""\s*:\s*\[([^\]]*)\]`, `"products": [$1]`},      // Fifth empty key -> products (array)
+		{`""\s*:\s*\[([^\]]*)\]`, `"monetization": [$1]`},  // Sixth empty key -> monetization (array)
+		{`""\s*:\s*"([^"]*)"`, `"firstAction": "$1"`},      // Seventh empty key -> firstAction
+	}
+
+	result := jsonStr
+	for _, repl := range replacements {
+		// Only replace the first occurrence each time
+		re := regexp.MustCompile(repl.pattern)
+		if re.MatchString(result) {
+			result = re.ReplaceAllString(result, repl.replacement)
+		}
+	}
+
+	return result
 }
 
 // extractJSONFromResponse extracts JSON from ChatGPT response (handles markdown code blocks)
