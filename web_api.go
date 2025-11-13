@@ -1425,6 +1425,11 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 	// First try to fix malformed JSON with empty keys
 	fixedResponse := fixMalformedClientFinderJSON(cleanResponse)
 	
+	// Debug log to see the transformation
+	logger.Info("ClientFinder JSON transformation",
+		zap.String("original", cleanResponse),
+		zap.String("fixed", fixedResponse))
+	
 	if err := json.Unmarshal([]byte(fixedResponse), &clientFinder); err != nil {
 		// If JSON parsing fails, log detailed error and return fallback response
 		logger.Error("Failed to parse ChatGPT JSON response for clientfinder",
@@ -1788,7 +1793,7 @@ func fixMalformedClientFinderJSON(jsonStr string) string {
 	result := jsonStr
 	
 	// Replace empty keys with unique placeholders 
-	// Order based on prompt: channels, outreachMessage, hashtags, actionPlan
+	// Order based on AI response: channels, outreachMessage, hashtags, actionPlan
 	result = strings.Replace(result, `"":`, `"__FIELD1__":`, 1) // channels (array) - first
 	result = strings.Replace(result, `"":`, `"__FIELD2__":`, 1) // outreachMessage - second  
 	result = strings.Replace(result, `"":`, `"__FIELD3__":`, 1) // hashtags (array) - third
