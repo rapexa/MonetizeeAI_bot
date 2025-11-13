@@ -1787,11 +1787,12 @@ func fixMalformedClientFinderJSON(jsonStr string) string {
 	
 	result := jsonStr
 	
-	// Replace empty keys with unique placeholders (ClientFinder has 4 fields)
-	result = strings.Replace(result, `"":`, `"__FIELD1__":`, 1) // channels (array)
-	result = strings.Replace(result, `"":`, `"__FIELD2__":`, 1) // outreachMessage
-	result = strings.Replace(result, `"":`, `"__FIELD3__":`, 1) // hashtags (array)
-	result = strings.Replace(result, `"":`, `"__FIELD4__":`, 1) // actionPlan (array)
+	// Replace empty keys with unique placeholders 
+	// Order based on prompt: channels, outreachMessage, hashtags, actionPlan
+	result = strings.Replace(result, `"":`, `"__FIELD1__":`, 1) // channels (array) - first
+	result = strings.Replace(result, `"":`, `"__FIELD2__":`, 1) // outreachMessage - second  
+	result = strings.Replace(result, `"":`, `"__FIELD3__":`, 1) // hashtags (array) - third
+	result = strings.Replace(result, `"":`, `"__FIELD4__":`, 1) // actionPlan (array) - fourth
 	
 	// Replace placeholders with correct field names
 	result = strings.Replace(result, `"__FIELD1__":`, `"channels":`, 1)
