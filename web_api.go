@@ -1255,12 +1255,17 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 
 	// Try to parse the JSON response
 	var sellKit SellKitResponse
-	if err := json.Unmarshal([]byte(cleanResponse), &sellKit); err != nil {
+	
+	// First try to fix malformed JSON with empty keys
+	fixedResponse := fixMalformedSellKitJSON(cleanResponse)
+	
+	if err := json.Unmarshal([]byte(fixedResponse), &sellKit); err != nil {
 		// If JSON parsing fails, log detailed error and return fallback response
 		logger.Error("Failed to parse ChatGPT JSON response for sellkit",
 			zap.Error(err),
 			zap.String("response", response),
 			zap.String("clean_response", cleanResponse),
+			zap.String("fixed_response", fixedResponse),
 			zap.String("error_detail", err.Error()))
 
 		// Return a fallback sell kit based on user input
@@ -1416,12 +1421,17 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 
 	// Try to parse the JSON response
 	var clientFinder ClientFinderResponse
-	if err := json.Unmarshal([]byte(cleanResponse), &clientFinder); err != nil {
+	
+	// First try to fix malformed JSON with empty keys
+	fixedResponse := fixMalformedClientFinderJSON(cleanResponse)
+	
+	if err := json.Unmarshal([]byte(fixedResponse), &clientFinder); err != nil {
 		// If JSON parsing fails, log detailed error and return fallback response
 		logger.Error("Failed to parse ChatGPT JSON response for clientfinder",
 			zap.Error(err),
 			zap.String("response", response),
 			zap.String("clean_response", cleanResponse),
+			zap.String("fixed_response", fixedResponse),
 			zap.String("error_detail", err.Error()))
 
 		// Return a fallback client finder based on user input
@@ -1645,12 +1655,17 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 
 	// Try to parse the JSON response
 	var salesPath SalesPathResponse
-	if err := json.Unmarshal([]byte(cleanResponse), &salesPath); err != nil {
+	
+	// First try to fix malformed JSON with empty keys
+	fixedResponse := fixMalformedSalesPathJSON(cleanResponse)
+	
+	if err := json.Unmarshal([]byte(fixedResponse), &salesPath); err != nil {
 		// If JSON parsing fails, log detailed error and return default response for testing
 		logger.Error("Failed to parse ChatGPT JSON response for salespath",
 			zap.Error(err),
 			zap.String("response", response),
 			zap.String("clean_response", cleanResponse),
+			zap.String("fixed_response", fixedResponse),
 			zap.String("error_detail", err.Error()))
 
 		// For testing purposes, return a default response if JSON parsing fails
@@ -1729,6 +1744,82 @@ func fixMalformedBusinessJSON(jsonStr string) string {
 	result = strings.Replace(result, `"__FIELD5__":`, `"products":`, 1)
 	result = strings.Replace(result, `"__FIELD6__":`, `"monetization":`, 1)
 	result = strings.Replace(result, `"__FIELD7__":`, `"firstAction":`, 1)
+	
+	return result
+}
+
+// fixMalformedSellKitJSON fixes JSON with empty field names for SellKit
+func fixMalformedSellKitJSON(jsonStr string) string {
+	// If JSON doesn't have empty keys, return as is
+	if !strings.Contains(jsonStr, `"":`) {
+		return jsonStr
+	}
+	
+	result := jsonStr
+	
+	// Replace empty keys with unique placeholders (SellKit has 7 fields)
+	result = strings.Replace(result, `"":`, `"__FIELD1__":`, 1) // title
+	result = strings.Replace(result, `"":`, `"__FIELD2__":`, 1) // headline
+	result = strings.Replace(result, `"":`, `"__FIELD3__":`, 1) // description
+	result = strings.Replace(result, `"":`, `"__FIELD4__":`, 1) // benefits (array)
+	result = strings.Replace(result, `"":`, `"__FIELD5__":`, 1) // priceRange
+	result = strings.Replace(result, `"":`, `"__FIELD6__":`, 1) // offer
+	result = strings.Replace(result, `"":`, `"__FIELD7__":`, 1) // visualSuggestion
+	
+	// Replace placeholders with correct field names
+	result = strings.Replace(result, `"__FIELD1__":`, `"title":`, 1)
+	result = strings.Replace(result, `"__FIELD2__":`, `"headline":`, 1)
+	result = strings.Replace(result, `"__FIELD3__":`, `"description":`, 1)
+	result = strings.Replace(result, `"__FIELD4__":`, `"benefits":`, 1)
+	result = strings.Replace(result, `"__FIELD5__":`, `"priceRange":`, 1)
+	result = strings.Replace(result, `"__FIELD6__":`, `"offer":`, 1)
+	result = strings.Replace(result, `"__FIELD7__":`, `"visualSuggestion":`, 1)
+	
+	return result
+}
+
+// fixMalformedClientFinderJSON fixes JSON with empty field names for ClientFinder
+func fixMalformedClientFinderJSON(jsonStr string) string {
+	// If JSON doesn't have empty keys, return as is
+	if !strings.Contains(jsonStr, `"":`) {
+		return jsonStr
+	}
+	
+	result := jsonStr
+	
+	// Replace empty keys with unique placeholders (ClientFinder has 4 fields)
+	result = strings.Replace(result, `"":`, `"__FIELD1__":`, 1) // channels (array)
+	result = strings.Replace(result, `"":`, `"__FIELD2__":`, 1) // outreachMessage
+	result = strings.Replace(result, `"":`, `"__FIELD3__":`, 1) // hashtags (array)
+	result = strings.Replace(result, `"":`, `"__FIELD4__":`, 1) // actionPlan (array)
+	
+	// Replace placeholders with correct field names
+	result = strings.Replace(result, `"__FIELD1__":`, `"channels":`, 1)
+	result = strings.Replace(result, `"__FIELD2__":`, `"outreachMessage":`, 1)
+	result = strings.Replace(result, `"__FIELD3__":`, `"hashtags":`, 1)
+	result = strings.Replace(result, `"__FIELD4__":`, `"actionPlan":`, 1)
+	
+	return result
+}
+
+// fixMalformedSalesPathJSON fixes JSON with empty field names for SalesPath
+func fixMalformedSalesPathJSON(jsonStr string) string {
+	// If JSON doesn't have empty keys, return as is
+	if !strings.Contains(jsonStr, `"":`) {
+		return jsonStr
+	}
+	
+	result := jsonStr
+	
+	// Replace empty keys with unique placeholders (SalesPath has 3 fields)
+	result = strings.Replace(result, `"":`, `"__FIELD1__":`, 1) // dailyPlan (array)
+	result = strings.Replace(result, `"":`, `"__FIELD2__":`, 1) // salesTips (array)
+	result = strings.Replace(result, `"":`, `"__FIELD3__":`, 1) // engagement (array)
+	
+	// Replace placeholders with correct field names
+	result = strings.Replace(result, `"__FIELD1__":`, `"dailyPlan":`, 1)
+	result = strings.Replace(result, `"__FIELD2__":`, `"salesTips":`, 1)
+	result = strings.Replace(result, `"__FIELD3__":`, `"engagement":`, 1)
 	
 	return result
 }
