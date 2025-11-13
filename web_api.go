@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -1703,31 +1702,34 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 	})
 }
 
-// fixMalformedBusinessJSON fixes JSON with empty field names by using regex replacement
+// fixMalformedBusinessJSON fixes JSON with empty field names by simple string replacement
 func fixMalformedBusinessJSON(jsonStr string) string {
-	// Replace empty field names with correct field names in order
-	replacements := []struct {
-		pattern string
-		replacement string
-	}{
-		{`""\s*:\s*"([^"]*)"`, `"businessName": "$1"`},      // First empty key -> businessName
-		{`""\s*:\s*"([^"]*)"`, `"tagline": "$1"`},          // Second empty key -> tagline  
-		{`""\s*:\s*"([^"]*)"`, `"description": "$1"`},      // Third empty key -> description
-		{`""\s*:\s*"([^"]*)"`, `"targetAudience": "$1"`},   // Fourth empty key -> targetAudience
-		{`""\s*:\s*\[([^\]]*)\]`, `"products": [$1]`},      // Fifth empty key -> products (array)
-		{`""\s*:\s*\[([^\]]*)\]`, `"monetization": [$1]`},  // Sixth empty key -> monetization (array)
-		{`""\s*:\s*"([^"]*)"`, `"firstAction": "$1"`},      // Seventh empty key -> firstAction
+	// If JSON doesn't have empty keys, return as is
+	if !strings.Contains(jsonStr, `"":`) {
+		return jsonStr
 	}
-
+	
+	// Simple approach: replace empty keys with placeholders first, then replace placeholders
 	result := jsonStr
-	for _, repl := range replacements {
-		// Only replace the first occurrence each time
-		re := regexp.MustCompile(repl.pattern)
-		if re.MatchString(result) {
-			result = re.ReplaceAllString(result, repl.replacement)
-		}
-	}
-
+	
+	// Replace empty keys with unique placeholders
+	result = strings.Replace(result, `"":`, `"__FIELD1__":`, 1)
+	result = strings.Replace(result, `"":`, `"__FIELD2__":`, 1)
+	result = strings.Replace(result, `"":`, `"__FIELD3__":`, 1)
+	result = strings.Replace(result, `"":`, `"__FIELD4__":`, 1)
+	result = strings.Replace(result, `"":`, `"__FIELD5__":`, 1)
+	result = strings.Replace(result, `"":`, `"__FIELD6__":`, 1)
+	result = strings.Replace(result, `"":`, `"__FIELD7__":`, 1)
+	
+	// Replace placeholders with correct field names
+	result = strings.Replace(result, `"__FIELD1__":`, `"businessName":`, 1)
+	result = strings.Replace(result, `"__FIELD2__":`, `"tagline":`, 1)
+	result = strings.Replace(result, `"__FIELD3__":`, `"description":`, 1)
+	result = strings.Replace(result, `"__FIELD4__":`, `"targetAudience":`, 1)
+	result = strings.Replace(result, `"__FIELD5__":`, `"products":`, 1)
+	result = strings.Replace(result, `"__FIELD6__":`, `"monetization":`, 1)
+	result = strings.Replace(result, `"__FIELD7__":`, `"firstAction":`, 1)
+	
 	return result
 }
 
