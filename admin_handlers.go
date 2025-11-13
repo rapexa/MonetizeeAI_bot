@@ -780,7 +780,7 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 				),
 			)
 
-			msg := tgbotapi.NewMessage(userID, "🏠 برای ورود به داشبورد روی دکمه زیر کلیک کنید:")
+			msg := tgbotapi.NewMessage(userID, "آماده‌ای وارد داشبوردت بشی؟🚀\nجایی که ساخت سیستم پول‌سازیت با AI شروع میشه 💡\n\n⚠️ یادت نره: برای اجرای درست پلتفرم، از VPN استفاده کن (نه پروکسی).\n\nورود به داشبورد👇🏼")
 			msg.ReplyMarkup = keyboard
 			bot.Send(msg)
 		} else {
