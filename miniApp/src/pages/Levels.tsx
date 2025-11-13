@@ -320,6 +320,16 @@ const Levels: React.FC = () => {
   });
   const [rewardGranted, setRewardGranted] = useState(false);
 
+  // Track stages that have already given points to prevent duplicate rewards
+  const [stagePointsGiven, setStagePointsGiven] = useState<Record<number, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('stage-points-given');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
 
 
   // Initialize stages based on user progress from API
@@ -442,6 +452,41 @@ const Levels: React.FC = () => {
       console.error('❌ Error saving quiz results to localStorage:', error);
     }
   }, [stageQuizResults]);
+
+  // Save stage points given to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('stage-points-given', JSON.stringify(stagePointsGiven));
+      console.log('💾 Saved stage points given to localStorage:', stagePointsGiven);
+    } catch (error) {
+      console.error('❌ Error saving stage points given to localStorage:', error);
+    }
+  }, [stagePointsGiven]);
+
+  // Award points when quiz is passed (only once per stage)
+  useEffect(() => {
+    if (quizResult?.passed && selectedStage && !stagePointsGiven[selectedStage.id] && !rewardGranted) {
+      const stageId = selectedStage.id;
+      
+      // Mark that points have been given for this stage
+      setStagePointsGiven(prev => ({ ...prev, [stageId]: true }));
+      
+      // Add 50 points to total
+      setTotalPoints(prev => {
+        const newTotal = prev + 50;
+        localStorage.setItem('monetize-total-points', newTotal.toString());
+        return newTotal;
+      });
+      
+      // Mark reward as granted to prevent duplicate
+      setRewardGranted(true);
+      
+      // Launch confetti celebration
+      launchConfetti();
+      
+      console.log('🎉 Awarded 50 points for stage', stageId, 'quiz completion!');
+    }
+  }, [quizResult, selectedStage, stagePointsGiven, rewardGranted, launchConfetti]);
 
   // Define levels state - will be initialized after generateLevels function definition
   const [levels, setLevels] = useState<Level[]>([]);
