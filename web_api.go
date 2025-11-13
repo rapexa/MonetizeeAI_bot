@@ -1821,33 +1821,33 @@ func fixMalformedSalesPathJSON(jsonStr string) string {
 	
 	// SalesPath has nested structure with many empty keys
 	// Main structure: dailyPlan (array), salesTips (array), engagement (array)
-	// Each dailyPlan object has empty keys: day, title, description
+	// Each dailyPlan object has empty keys: day, action, content
 	
 	// Replace main level empty keys first
 	result = strings.Replace(result, `"":`, `"dailyPlan":`, 1)     // First main field
 	
-	// Replace nested empty keys in dailyPlan array (day, title, description for each day - 7 days)
+	// Replace nested empty keys in dailyPlan array (day, action, content for each day - 7 days)
 	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 1 day
-	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 1 title
-	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 1 description
+	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 1 action
+	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 1 content
 	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 2 day
-	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 2 title  
-	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 2 description
+	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 2 action  
+	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 2 content
 	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 3 day
-	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 3 title
-	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 3 description
+	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 3 action
+	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 3 content
 	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 4 day
-	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 4 title
-	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 4 description
+	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 4 action
+	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 4 content
 	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 5 day
-	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 5 title
-	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 5 description
+	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 5 action
+	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 5 content
 	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 6 day
-	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 6 title
-	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 6 description
+	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 6 action
+	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 6 content
 	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 7 day
-	result = strings.Replace(result, `"":`, `"title":`, 1)         // Day 7 title
-	result = strings.Replace(result, `"":`, `"description":`, 1)   // Day 7 description
+	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 7 action
+	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 7 content
 	
 	// Replace remaining main level fields
 	result = strings.Replace(result, `"":`, `"salesTips":`, 1)     // Second main field  
