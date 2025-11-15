@@ -43,6 +43,14 @@ function AppRouter() {
       // If start_param is "subscription", navigate to the Subscription Management page
       if (startParam === 'subscription' && location.pathname !== '/subscription-management') {
         navigate('/subscription-management', { replace: true });
+      } else if (startParam === 'dashboard' && location.pathname !== '/') {
+        navigate('/', { replace: true });
+      } else if (startParam === 'levels' && location.pathname !== '/levels') {
+        navigate('/levels', { replace: true });
+      } else if (startParam === 'tools' && location.pathname !== '/tools') {
+        navigate('/tools', { replace: true });
+      } else if (startParam === 'profile' && location.pathname !== '/profile') {
+        navigate('/profile', { replace: true });
       }
     }
   }, [navigate, location.pathname]);
