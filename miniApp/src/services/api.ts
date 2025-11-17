@@ -203,11 +203,29 @@ class APIService {
       const url = `${this.baseURL}${endpoint}`;
       logger.debug(`📡 ${method} ${url}`, data || '');
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add Telegram WebApp authentication headers
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+        // Add init data if available
+        if (window.Telegram.WebApp.initData) {
+          headers['X-Telegram-Init-Data'] = window.Telegram.WebApp.initData;
+        }
+        
+        // Add user agent info to help with authentication
+        headers['X-Telegram-WebApp'] = 'true';
+        
+        // Add start param if available
+        if (window.Telegram.WebApp.initDataUnsafe?.start_param) {
+          headers['X-Telegram-Start-Param'] = window.Telegram.WebApp.initDataUnsafe.start_param;
+        }
+      }
+
       const config: RequestInit = {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
       };
 
       if (data && (method === 'POST' || method === 'PUT')) {

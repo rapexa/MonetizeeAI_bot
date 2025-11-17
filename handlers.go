@@ -883,14 +883,7 @@ func processUserInput(input string, user *User) string {
 		if name == "" {
 			name = user.Username
 		}
-		subscriptionStatus := "غیرفعال"
-		if user.HasActiveSubscription() {
-			if user.PlanName != "" {
-				subscriptionStatus = fmt.Sprintf("فعال (%s)", user.PlanName)
-			} else {
-				subscriptionStatus = "فعال"
-			}
-		}
+		subscriptionStatus := user.GetSubscriptionStatusText()
 
 		miniAppURL := os.Getenv("MINI_APP_URL")
 		if miniAppURL != "" {

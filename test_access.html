@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تست دسترسی MonetizeeAI</title>
+    <style>
+        body {
+            font-family: 'Tahoma', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        .title {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: right;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🔒 تست امنیت MonetizeeAI</h1>
+        
+        <div id="status" class="status info">
+            در حال بررسی دسترسی...
+        </div>
+        
+        <div>
+            <button class="btn" onclick="testAPI()">تست API</button>
+            <button class="btn" onclick="testUserInfo()">تست اطلاعات کاربر</button>
+            <button class="btn" onclick="checkTelegramEnv()">بررسی محیط تلگرام</button>
+        </div>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Check initial environment
+        window.onload = function() {
+            checkEnvironment();
+        };
+
+        function checkEnvironment() {
+            const statusDiv = document.getElementById('status');
+            
+            // Check if we're in Telegram WebApp
+            if (window.Telegram && window.Telegram.WebApp) {
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = '✅ در محیط Telegram WebApp هستید';
+            } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                statusDiv.className = 'status info';
+                statusDiv.innerHTML = '🔧 در حالت توسعه (localhost) هستید';
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = '❌ دسترسی از مرورگر مسدود است - فقط از طریق تلگرام';
+            }
+        }
+
+        function showResult(data) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = JSON.stringify(data, null, 2);
+        }
+
+        async function testAPI() {
+            try {
+                const response = await fetch('https://sianmarketing.com/api/health', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Telegram-WebApp': 'true'
+                    }
+                });
+                
+                const data = await response.json();
+                showResult({
+                    status: response.status,
+                    ok: response.ok,
+                    data: data
+                });
+            } catch (error) {
+                showResult({
+                    error: error.message
+                });
+            }
+        }
+
+        async function testUserInfo() {
+            try {
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+
+                // Add Telegram headers if available
+                if (window.Telegram && window.Telegram.WebApp) {
+                    headers['X-Telegram-WebApp'] = 'true';
+                    if (window.Telegram.WebApp.initData) {
+                        headers['X-Telegram-Init-Data'] = window.Telegram.WebApp.initData;
+                    }
+                }
+
+                const response = await fetch('https://sianmarketing.com/api/api/v1/user/76599340', {
+                    method: 'GET',
+                    headers: headers
+                });
+                
+                const data = await response.json();
+                showResult({
+                    status: response.status,
+                    ok: response.ok,
+                    data: data
+                });
+            } catch (error) {
+                showResult({
+                    error: error.message
+                });
+            }
+        }
+
+        function checkTelegramEnv() {
+            const telegramInfo = {
+                hasTelegram: !!window.Telegram,
+                hasWebApp: !!(window.Telegram && window.Telegram.WebApp),
+                initData: window.Telegram?.WebApp?.initData || 'N/A',
+                initDataUnsafe: window.Telegram?.WebApp?.initDataUnsafe || 'N/A',
+                userAgent: navigator.userAgent,
+                hostname: window.location.hostname,
+                href: window.location.href
+            };
+            
+            showResult(telegramInfo);
+        }
+    </script>
+</body>
+</html>

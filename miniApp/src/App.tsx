@@ -27,6 +27,7 @@ import GuideTutorial from './pages/GuideTutorial';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import TelegramWebAppGuard from './components/TelegramWebAppGuard';
 import TestPage from './pages/TestPage';
 
 // Component to handle Telegram WebApp start_param navigation
@@ -99,34 +100,36 @@ function AppRouter() {
 function App() {
   return (
     <ErrorBoundary>
-      <div className="min-h-screen transition-colors duration-300 app-container" dir="rtl" style={{ backgroundColor: '#0e0817', fontFamily: 'IranSansX, Vazir, system-ui, sans-serif' }}>
-        <style dangerouslySetInnerHTML={{
-          __html: `
-            html.dark .app-container {
-              background: #08000f !important;
-            }
-            @media (prefers-color-scheme: dark) {
-              .app-container {
+      <TelegramWebAppGuard>
+        <div className="min-h-screen transition-colors duration-300 app-container" dir="rtl" style={{ backgroundColor: '#0e0817', fontFamily: 'IranSansX, Vazir, system-ui, sans-serif' }}>
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              html.dark .app-container {
                 background: #08000f !important;
               }
-            }
-            /* Global font application */
-            * {
-              font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
-            }
-            body, html {
-              font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
-            }
-          `
-        }} />
-      <ThemeProvider>
-        <AppProvider>
-          <Router>
-            <AppRouter />
-          </Router>
-        </AppProvider>
-      </ThemeProvider>
-    </div>
+              @media (prefers-color-scheme: dark) {
+                .app-container {
+                  background: #08000f !important;
+                }
+              }
+              /* Global font application */
+              * {
+                font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
+              }
+              body, html {
+                font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
+              }
+            `
+          }} />
+        <ThemeProvider>
+          <AppProvider>
+            <Router>
+              <AppRouter />
+            </Router>
+          </AppProvider>
+        </ThemeProvider>
+      </div>
+      </TelegramWebAppGuard>
     </ErrorBoundary>
   );
 }
