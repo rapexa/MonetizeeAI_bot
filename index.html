@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>دسترسی محدود شده</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Vazirmatn', Tahoma, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #ffeef5 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      direction: rtl;
+    }
+    
+    .restriction-card {
+      background: #ffffff;
+      border-radius: 1.5rem;
+      padding: 2.5rem 2rem;
+      max-width: 450px;
+      width: 100%;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    
+    .icon-container {
+      width: 80px;
+      height: 80px;
+      background: #fee2e2;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+    }
+    
+    .icon-container svg {
+      width: 40px;
+      height: 40px;
+      color: #dc2626;
+    }
+    
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #1e293b;
+      margin-bottom: 1rem;
+    }
+    
+    .warning-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #fef3c7;
+      color: #92400e;
+      padding: 0.5rem 1rem;
+      border-radius: 0.75rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+    
+    .warning-icon {
+      width: 20px;
+      height: 20px;
+    }
+    
+    .description {
+      color: #475569;
+      font-size: 1rem;
+      line-height: 1.7;
+      margin-bottom: 2rem;
+    }
+    
+    .instructions {
+      text-align: right;
+      margin-bottom: 2rem;
+    }
+    
+    .instructions-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 1rem;
+      text-align: right;
+    }
+    
+    .instruction-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      text-align: right;
+    }
+    
+    .instruction-number {
+      background: #3b82f6;
+      color: #fff;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    
+    .instruction-text {
+      color: #475569;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      flex: 1;
+      text-align: right;
+    }
+    
+    .instruction-icon {
+      width: 18px;
+      height: 18px;
+      margin-left: 0.25rem;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    
+    .telegram-button {
+      width: 100%;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #fff;
+      border: none;
+      padding: 1rem 1.5rem;
+      border-radius: 0.875rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.3s;
+      font-family: 'Vazirmatn', Tahoma, sans-serif;
+      text-decoration: none;
+    }
+    
+    .telegram-button:hover {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
+    
+    .telegram-button:active {
+      transform: translateY(0);
+    }
+    
+    .button-icon {
+      width: 20px;
+      height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="restriction-card">
+    <div class="icon-container">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+      </svg>
+    </div>
+    
+    <h1>دسترسی محدود شده</h1>
+    
+    <div class="warning-badge">
+      <svg class="warning-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <span>فقط از طریق تلگرام</span>
+    </div>
+    
+    <p class="description">
+      این سرویس فقط از طریق Mini App تلگرام قابل دسترسی است.
+    </p>
+    
+    <div class="instructions">
+      <h2 class="instructions-title">نحوه دسترسی:</h2>
+      
+      <div class="instruction-item">
+        <div class="instruction-number">۱</div>
+        <div class="instruction-text">وارد ربات @MonetizeeAI_bot شوید</div>
+      </div>
+      
+      <div class="instruction-item">
+        <div class="instruction-number">۲</div>
+        <div class="instruction-text">
+          روی دکمه 
+          <svg class="instruction-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <strong>داشبورد</strong> کلیک کنید
+        </div>
+      </div>
+      
+      <div class="instruction-item">
+        <div class="instruction-number">۳</div>
+        <div class="instruction-text">از Mini App استفاده کنید</div>
+      </div>
+    </div>
+    
+    <a href="https://t.me/MonetizeeAI_bot" target="_blank" class="telegram-button">
+      <svg class="button-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+      </svg>
+      ورود به ربات تلگرام
+    </a>
+  </div>
+</body>
+</html>
+

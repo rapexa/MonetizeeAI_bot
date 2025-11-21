@@ -1,0 +1,22 @@
+# Enable Rewrite Engine
+RewriteEngine On
+RewriteBase /
+
+# Allow access to landing.html and landing (no restriction)
+RewriteCond %{REQUEST_URI} ^/landing/?$ [OR]
+RewriteCond %{REQUEST_URI} ^/landing\.html$
+RewriteRule ^(.*)$ landing.html [L]
+
+# Block direct access to index.html (redirect to root)
+RewriteCond %{REQUEST_URI} ^/index\.html$
+RewriteRule ^index\.html$ / [L,R=301]
+
+# For all other pages (except landing), show restriction page
+# Allow access to common files (CSS, JS, images, etc.)
+RewriteCond %{REQUEST_URI} !^/landing
+RewriteCond %{REQUEST_URI} !^/landing\.html
+RewriteCond %{REQUEST_URI} !\.(css|js|jpg|jpeg|png|gif|svg|ico|woff|woff2|ttf|eot)$ [NC]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.html [L]
+
