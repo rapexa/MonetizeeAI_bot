@@ -877,23 +877,65 @@ func processUserInput(input string, user *User) string {
 		}
 		return ""
 	case "👤 پروفایل":
-		// Show user profile (previously 📊 پیشرفت)
+		// Rich profile message with inline button to Mini App profile
 		level := GetUserLevel(user.CurrentSession)
-		progress := GetUserProgress(user.CurrentSession)
-		progressBar := GetProgressBar(progress)
+		name := strings.TrimSpace(strings.Join([]string{user.FirstName, user.LastName}, " "))
+		if name == "" {
+			name = user.Username
+		}
+		subscriptionStatus := user.GetSubscriptionStatusText()
 
-		profileText := fmt.Sprintf(`👤 پروفایل شما:
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL != "" {
+			miniAppWithParams := fmt.Sprintf("https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=profile")
+			msg := tgbotapi.NewMessage(user.TelegramID, fmt.Sprintf("👤 پروفایل شما\n\nنام: %s\nسطح فعلی: %d\nمرحله فعلی: %d\nوضعیت اشتراک: %s\n\nبرای مشاهده پروفایل کامل و تنظیمات، اینجا کلیک کن 👇🏼", name, level.Level, user.CurrentSession, subscriptionStatus))
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonURL("👤 ورود به پروفایل کامل", miniAppWithParams),
+				),
+			)
+			msg.ReplyMarkup = keyboard
+			bot.Send(msg)
+			return ""
+		}
+		return "❌ پروفایل در حال حاضر در دسترس نیست."
 
-👋 نام کاربری: %s
-🎯 سطح فعلی: %d
-📍 مرحله فعلی: %d
-📊 پیشرفت: %s (%d%%)
-✅ مراحل تکمیل شده: %d
+	case "🎯 مسیر شما":
+		// Show user's current level and stage with entry to Mini App
+		level := GetUserLevel(user.CurrentSession)
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL != "" {
+			miniAppWithParams := fmt.Sprintf("https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=levels")
+			text := fmt.Sprintf("🎯 مسیر شما\n\n• سطح: Level %d\n• مرحله فعال: Stage %d\n\nادامه مسیر و مشاهده مراحل 👇🏼", level.Level, user.CurrentSession)
+			msg := tgbotapi.NewMessage(user.TelegramID, text)
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonURL("🚀 ورود به مسیر", miniAppWithParams),
+				),
+			)
+			msg.ReplyMarkup = keyboard
+			bot.Send(msg)
+			return ""
+		}
+		return "❌ مسیر در حال حاضر در دسترس نیست."
 
-%s`,
-			user.Username, level.Level, user.CurrentSession, progressBar, progress, user.CurrentSession-1, GetLevelUpMessage(level))
-
-		return profileText
+	case "🧰 ابزارها":
+		// Show tools intro with Mini App button
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL != "" {
+			miniAppWithParams := fmt.Sprintf("https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=tools")
+			text := "🧰 ابزارهای MonetizeAI\n\nهمه ابزار های که برای ساخت سیستم پولسازیت نیاز داری🤌🏼\nاز ایده یابی و طراحی محصول تا مشتری یابی و مدیریت فروش🛠️\n\nبرای مشاهده و استفاده رو دکمه زیر کلیک کن👇🏼"
+			msg := tgbotapi.NewMessage(user.TelegramID, text)
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonURL("🧰 مشاهده ابزارها", miniAppWithParams),
+				),
+			)
+			msg.ReplyMarkup = keyboard
+			bot.Send(msg)
+			return ""
+		}
+		return "❌ ابزارها در حال حاضر در دسترس نیست."
 	case "❇️ دیدن همه مسیر":
 		userStates[user.TelegramID] = ""
 		return getFullRoadmap(user)
@@ -971,9 +1013,18 @@ func processUserInput(input string, user *User) string {
 			exercise.Content)
 		bot.Send(tgbotapi.NewMessage(user.TelegramID, exerciseMsg))
 		return ""
-	case "🆘 پشتیبانی":
-		userStates[user.TelegramID] = ""
-		return getSupportMessage(user)
+	case "🧩 پشتیبانی", "🆘 پشتیبانی":
+		// Send support contact with direct link
+		supportURL := "https://t.me/sian_academy_support"
+		msg := tgbotapi.NewMessage(user.TelegramID, "💬 پشتیبانی MonetizeAI\n\nاگر در هر بخش از پلتفرم سؤال یا مشکلی دارید،\nتیم پشتیبانی آماده پاسخ‌گویی است.\n\nبرای ارتباط با پشتیبانی کلیک کنید 👇🏼")
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonURL("ارتباط با پشتیبانی", supportURL),
+			),
+		)
+		msg.ReplyMarkup = keyboard
+		bot.Send(msg)
+		return ""
 	case "🔙 بازگشت":
 		userStates[user.TelegramID] = ""
 		msg := tgbotapi.NewMessage(user.TelegramID, "به منوی اصلی بازگشتید.")
@@ -1339,17 +1390,14 @@ func getMainMenuKeyboard(user *User) tgbotapi.ReplyKeyboardMarkup {
 	rows := [][]tgbotapi.KeyboardButton{
 		{
 			tgbotapi.NewKeyboardButton("🏠 ورود به داشبورد"),
+		},
+		{
+			tgbotapi.NewKeyboardButton("🎯 مسیر شما"),
+			tgbotapi.NewKeyboardButton("🧰 ابزارها"),
+		},
+		{
 			tgbotapi.NewKeyboardButton("👤 پروفایل"),
-		},
-		{
-			tgbotapi.NewKeyboardButton("❇️ دیدن همه مسیر"),
-			tgbotapi.NewKeyboardButton("🆘 پشتیبانی"),
-		},
-		{
-			tgbotapi.NewKeyboardButton("🎯 استخدام"),
-		},
-		{
-			tgbotapi.NewKeyboardButton("💬 چت با دستیار هوشمند"),
+			tgbotapi.NewKeyboardButton("🧩 پشتیبانی"),
 		},
 	}
 

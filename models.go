@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -271,4 +272,74 @@ func (u *User) StartFreeTrial() {
 	u.FreeTrialUsed = true
 	u.ChatMessagesUsed = 0
 	u.CourseSessionsUsed = 0
+}
+
+// GetSubscriptionStatusText returns formatted subscription status with name and duration
+func (u *User) GetSubscriptionStatusText() string {
+	if !u.HasActiveSubscription() {
+		return "غیرفعال"
+	}
+
+	// Map plan names to Persian
+	planNames := map[string]string{
+		"free_trial": "آزمایشی رایگان",
+		"starter":    "استارتر",
+		"pro":        "پرو",
+		"ultimate":   "آلتیمیت",
+	}
+
+	planDisplayName := planNames[u.PlanName]
+	if planDisplayName == "" {
+		planDisplayName = u.PlanName
+	}
+
+	// Handle lifetime subscription (ultimate with no expiry)
+	if u.PlanName == "ultimate" && u.SubscriptionExpiry == nil {
+		return fmt.Sprintf("%s (مادام‌العمر)", planDisplayName)
+	}
+
+	// Handle subscriptions with expiry date
+	if u.SubscriptionExpiry != nil {
+		now := time.Now()
+		expiry := *u.SubscriptionExpiry
+
+		// Calculate remaining time
+		duration := expiry.Sub(now)
+
+		if duration <= 0 {
+			return "منقضی شده"
+		}
+
+		days := int(duration.Hours() / 24)
+
+		if days >= 365 {
+			years := days / 365
+			if years == 1 {
+				return fmt.Sprintf("%s (۱ سال باقی‌مانده)", planDisplayName)
+			}
+			return fmt.Sprintf("%s (%d سال باقی‌مانده)", planDisplayName, years)
+		} else if days >= 30 {
+			months := days / 30
+			if months == 1 {
+				return fmt.Sprintf("%s (۱ ماه باقی‌مانده)", planDisplayName)
+			}
+			return fmt.Sprintf("%s (%d ماه باقی‌مانده)", planDisplayName, months)
+		} else if days > 0 {
+			if days == 1 {
+				return fmt.Sprintf("%s (۱ روز باقی‌مانده)", planDisplayName)
+			}
+			return fmt.Sprintf("%s (%d روز باقی‌مانده)", planDisplayName, days)
+		} else {
+			hours := int(duration.Hours())
+			if hours > 0 {
+				if hours == 1 {
+					return fmt.Sprintf("%s (۱ ساعت باقی‌مانده)", planDisplayName)
+				}
+				return fmt.Sprintf("%s (%d ساعت باقی‌مانده)", planDisplayName, hours)
+			}
+			return fmt.Sprintf("%s (کمتر از ۱ ساعت باقی‌مانده)", planDisplayName)
+		}
+	}
+
+	return fmt.Sprintf("%s (فعال)", planDisplayName)
 }

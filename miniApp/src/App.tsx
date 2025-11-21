@@ -27,6 +27,7 @@ import GuideTutorial from './pages/GuideTutorial';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import TelegramWebAppGuard from './components/TelegramWebAppGuard';
 import TestPage from './pages/TestPage';
 
 // Component to handle Telegram WebApp start_param navigation
@@ -43,6 +44,14 @@ function AppRouter() {
       // If start_param is "subscription", navigate to the Subscription Management page
       if (startParam === 'subscription' && location.pathname !== '/subscription-management') {
         navigate('/subscription-management', { replace: true });
+      } else if (startParam === 'dashboard' && location.pathname !== '/') {
+        navigate('/', { replace: true });
+      } else if (startParam === 'levels' && location.pathname !== '/levels') {
+        navigate('/levels', { replace: true });
+      } else if (startParam === 'tools' && location.pathname !== '/tools') {
+        navigate('/tools', { replace: true });
+      } else if (startParam === 'profile' && location.pathname !== '/profile') {
+        navigate('/profile', { replace: true });
       }
     }
   }, [navigate, location.pathname]);
@@ -91,34 +100,36 @@ function AppRouter() {
 function App() {
   return (
     <ErrorBoundary>
-      <div className="min-h-screen transition-colors duration-300 app-container" dir="rtl" style={{ backgroundColor: '#0e0817', fontFamily: 'IranSansX, Vazir, system-ui, sans-serif' }}>
-        <style dangerouslySetInnerHTML={{
-          __html: `
-            html.dark .app-container {
-              background: #08000f !important;
-            }
-            @media (prefers-color-scheme: dark) {
-              .app-container {
+      <TelegramWebAppGuard>
+        <div className="min-h-screen transition-colors duration-300 app-container" dir="rtl" style={{ backgroundColor: '#0e0817', fontFamily: 'IranSansX, Vazir, system-ui, sans-serif' }}>
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              html.dark .app-container {
                 background: #08000f !important;
               }
-            }
-            /* Global font application */
-            * {
-              font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
-            }
-            body, html {
-              font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
-            }
-          `
-        }} />
-      <ThemeProvider>
-        <AppProvider>
-          <Router>
-            <AppRouter />
-          </Router>
-        </AppProvider>
-      </ThemeProvider>
-    </div>
+              @media (prefers-color-scheme: dark) {
+                .app-container {
+                  background: #08000f !important;
+                }
+              }
+              /* Global font application */
+              * {
+                font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
+              }
+              body, html {
+                font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
+              }
+            `
+          }} />
+        <ThemeProvider>
+          <AppProvider>
+            <Router>
+              <AppRouter />
+            </Router>
+          </AppProvider>
+        </ThemeProvider>
+      </div>
+      </TelegramWebAppGuard>
     </ErrorBoundary>
   );
 }

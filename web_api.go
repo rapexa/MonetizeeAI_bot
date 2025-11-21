@@ -99,6 +99,115 @@ func cleanupMiniAppRateLimitCache() {
 	}()
 }
 
+// 🔒 SECURITY: Telegram WebApp Authentication Middleware
+func telegramWebAppAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Skip authentication for health check and static files
+		if c.Request.URL.Path == "/health" ||
+			strings.HasPrefix(c.Request.URL.Path, "/static/") ||
+			strings.HasPrefix(c.Request.URL.Path, "/assets/") {
+			c.Next()
+			return
+		}
+
+		// Check for Telegram WebApp indicators
+		userAgent := c.GetHeader("User-Agent")
+		referer := c.GetHeader("Referer")
+		initData := c.GetHeader("X-Telegram-Init-Data")
+		telegramWebApp := c.GetHeader("X-Telegram-WebApp")
+		startParam := c.GetHeader("X-Telegram-Start-Param")
+
+		// Log the request for debugging
+		logger.Debug("🔍 WebApp Auth Check",
+			zap.String("path", c.Request.URL.Path),
+			zap.String("user_agent", userAgent),
+			zap.String("referer", referer),
+			zap.Bool("has_init_data", initData != ""),
+			zap.String("remote_addr", c.ClientIP()))
+
+		// Check if request comes from Telegram WebApp
+		isTelegramWebApp := false
+
+		// Method 1: Check User-Agent for Telegram indicators
+		if strings.Contains(strings.ToLower(userAgent), "telegram") {
+			isTelegramWebApp = true
+			logger.Debug("✅ Telegram detected in User-Agent")
+		}
+
+		// Method 2: Check Referer for Telegram domains
+		if referer != "" && (strings.Contains(referer, "t.me") ||
+			strings.Contains(referer, "telegram.org") ||
+			strings.Contains(referer, "telegram.me")) {
+			isTelegramWebApp = true
+			logger.Debug("✅ Telegram detected in Referer")
+		}
+
+		// Method 3: Check for Telegram WebApp init data header
+		if initData != "" {
+			isTelegramWebApp = true
+			logger.Debug("✅ Telegram init data found")
+		}
+
+		// Method 3.1: Check for X-Telegram-WebApp header
+		if telegramWebApp == "true" {
+			isTelegramWebApp = true
+			logger.Debug("✅ Telegram WebApp header found")
+		}
+
+		// Method 3.2: Check for start param header
+		if startParam != "" {
+			isTelegramWebApp = true
+			logger.Debug("✅ Telegram start param found")
+		}
+
+		// Method 4: Check for specific Telegram WebApp User-Agent patterns
+		telegramPatterns := []string{
+			"TelegramBot",
+			"Telegram",
+			"tdesktop",
+			"Telegram Desktop",
+			"Telegram Web",
+		}
+
+		for _, pattern := range telegramPatterns {
+			if strings.Contains(userAgent, pattern) {
+				isTelegramWebApp = true
+				logger.Debug("✅ Telegram pattern matched", zap.String("pattern", pattern))
+				break
+			}
+		}
+
+		// Allow requests from localhost for development (only if DEVELOPMENT_MODE is enabled)
+		isDevelopment := strings.ToLower(os.Getenv("DEVELOPMENT_MODE")) == "true"
+		if isDevelopment && (strings.Contains(c.ClientIP(), "127.0.0.1") ||
+			strings.Contains(c.ClientIP(), "::1") ||
+			c.ClientIP() == "localhost") {
+			logger.Debug("✅ Localhost access allowed for development")
+			c.Next()
+			return
+		}
+
+		// Block non-Telegram requests
+		if !isTelegramWebApp {
+			logger.Warn("🚫 Non-Telegram access blocked",
+				zap.String("ip", c.ClientIP()),
+				zap.String("user_agent", userAgent),
+				zap.String("referer", referer),
+				zap.String("path", c.Request.URL.Path))
+
+			c.JSON(http.StatusForbidden, APIResponse{
+				Success: false,
+				Error:   "Access denied. This service is only available through Telegram Mini App.",
+			})
+			c.Abort()
+			return
+		}
+
+		logger.Debug("✅ Telegram WebApp access granted")
+		c.Next()
+	}
+}
+
 // API Response structures
 type APIResponse struct {
 	Success bool        `json:"success"`
@@ -149,9 +258,26 @@ func StartWebAPI() {
 
 	// Add CORS middleware
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"*"} // In production, restrict this to your domain
+	// Restrict CORS origins for production
+	if strings.ToLower(os.Getenv("DEVELOPMENT_MODE")) == "true" {
+		config.AllowOrigins = []string{"*"} // Allow all origins in development
+		logger.Debug("🔧 CORS: Development mode - allowing all origins")
+	} else {
+		// Production: Only allow Telegram domains and our own domains
+		config.AllowOrigins = []string{
+			"https://web.telegram.org",
+			"https://k.web.telegram.org",
+			"https://z.web.telegram.org",
+			"https://a.web.telegram.org",
+			"https://sianmarketing.com",
+			"https://www.sianmarketing.com",
+			"https://sianacademy.com",
+			"https://www.sianacademy.com",
+		}
+		logger.Debug("🔒 CORS: Production mode - restricted origins")
+	}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Telegram-Init-Data"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Telegram-Init-Data", "X-Telegram-WebApp", "X-Telegram-Start-Param"}
 	r.Use(cors.New(config))
 
 	// Middleware for logging
@@ -171,6 +297,9 @@ func StartWebAPI() {
 
 	// Recovery middleware
 	r.Use(gin.Recovery())
+
+	// 🔒 SECURITY: Telegram WebApp Authentication Middleware
+	r.Use(telegramWebAppAuthMiddleware())
 
 	// Health check endpoint
 	r.GET("/health", func(c *gin.Context) {
@@ -1101,10 +1230,10 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 
 	// Try to parse the JSON response
 	var businessPlan BusinessBuilderResponse
-	
+
 	// First try to fix malformed JSON with empty keys
 	fixedResponse := fixMalformedBusinessJSON(cleanResponse)
-	
+
 	if err := json.Unmarshal([]byte(fixedResponse), &businessPlan); err != nil {
 		// If JSON parsing fails, log detailed error and return fallback response
 		logger.Error("Failed to parse ChatGPT JSON response for business builder",
@@ -1255,10 +1384,10 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 
 	// Try to parse the JSON response
 	var sellKit SellKitResponse
-	
+
 	// First try to fix malformed JSON with empty keys
 	fixedResponse := fixMalformedSellKitJSON(cleanResponse)
-	
+
 	if err := json.Unmarshal([]byte(fixedResponse), &sellKit); err != nil {
 		// If JSON parsing fails, log detailed error and return fallback response
 		logger.Error("Failed to parse ChatGPT JSON response for sellkit",
@@ -1421,10 +1550,10 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 
 	// Try to parse the JSON response
 	var clientFinder ClientFinderResponse
-	
+
 	// First try to fix malformed JSON with empty keys
 	fixedResponse := fixMalformedClientFinderJSON(cleanResponse)
-	
+
 	if err := json.Unmarshal([]byte(fixedResponse), &clientFinder); err != nil {
 		// If JSON parsing fails, log detailed error and return fallback response
 		logger.Error("Failed to parse ChatGPT JSON response for clientfinder",
@@ -1655,10 +1784,10 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 
 	// Try to parse the JSON response
 	var salesPath SalesPathResponse
-	
+
 	// First try to fix malformed JSON with empty keys
 	fixedResponse := fixMalformedSalesPathJSON(cleanResponse)
-	
+
 	if err := json.Unmarshal([]byte(fixedResponse), &salesPath); err != nil {
 		// If JSON parsing fails, log detailed error and return default response for testing
 		logger.Error("Failed to parse ChatGPT JSON response for salespath",
@@ -1723,10 +1852,10 @@ func fixMalformedBusinessJSON(jsonStr string) string {
 	if !strings.Contains(jsonStr, `"":`) {
 		return jsonStr
 	}
-	
+
 	// Simple approach: replace empty keys with placeholders first, then replace placeholders
 	result := jsonStr
-	
+
 	// Replace empty keys with unique placeholders
 	result = strings.Replace(result, `"":`, `"__FIELD1__":`, 1)
 	result = strings.Replace(result, `"":`, `"__FIELD2__":`, 1)
@@ -1735,7 +1864,7 @@ func fixMalformedBusinessJSON(jsonStr string) string {
 	result = strings.Replace(result, `"":`, `"__FIELD5__":`, 1)
 	result = strings.Replace(result, `"":`, `"__FIELD6__":`, 1)
 	result = strings.Replace(result, `"":`, `"__FIELD7__":`, 1)
-	
+
 	// Replace placeholders with correct field names
 	result = strings.Replace(result, `"__FIELD1__":`, `"businessName":`, 1)
 	result = strings.Replace(result, `"__FIELD2__":`, `"tagline":`, 1)
@@ -1744,7 +1873,7 @@ func fixMalformedBusinessJSON(jsonStr string) string {
 	result = strings.Replace(result, `"__FIELD5__":`, `"products":`, 1)
 	result = strings.Replace(result, `"__FIELD6__":`, `"monetization":`, 1)
 	result = strings.Replace(result, `"__FIELD7__":`, `"firstAction":`, 1)
-	
+
 	return result
 }
 
@@ -1754,9 +1883,9 @@ func fixMalformedSellKitJSON(jsonStr string) string {
 	if !strings.Contains(jsonStr, `"":`) {
 		return jsonStr
 	}
-	
+
 	result := jsonStr
-	
+
 	// Replace empty keys with unique placeholders (SellKit has 7 fields)
 	result = strings.Replace(result, `"":`, `"__FIELD1__":`, 1) // title
 	result = strings.Replace(result, `"":`, `"__FIELD2__":`, 1) // headline
@@ -1765,7 +1894,7 @@ func fixMalformedSellKitJSON(jsonStr string) string {
 	result = strings.Replace(result, `"":`, `"__FIELD5__":`, 1) // priceRange
 	result = strings.Replace(result, `"":`, `"__FIELD6__":`, 1) // offer
 	result = strings.Replace(result, `"":`, `"__FIELD7__":`, 1) // visualSuggestion
-	
+
 	// Replace placeholders with correct field names
 	result = strings.Replace(result, `"__FIELD1__":`, `"title":`, 1)
 	result = strings.Replace(result, `"__FIELD2__":`, `"headline":`, 1)
@@ -1774,7 +1903,7 @@ func fixMalformedSellKitJSON(jsonStr string) string {
 	result = strings.Replace(result, `"__FIELD5__":`, `"priceRange":`, 1)
 	result = strings.Replace(result, `"__FIELD6__":`, `"offer":`, 1)
 	result = strings.Replace(result, `"__FIELD7__":`, `"visualSuggestion":`, 1)
-	
+
 	return result
 }
 
@@ -1784,29 +1913,29 @@ func fixMalformedClientFinderJSON(jsonStr string) string {
 	if !strings.Contains(jsonStr, `"":`) {
 		return jsonStr
 	}
-	
+
 	result := jsonStr
-	
+
 	// ClientFinder has nested structure with many empty keys
 	// Main structure: channels (array), outreachMessage (string), hashtags (array), actionPlan (array)
 	// Each channel object also has empty keys: name, reason
-	
+
 	// Replace main level empty keys first
-	result = strings.Replace(result, `"":`, `"channels":`, 1)     // First main field
-	
+	result = strings.Replace(result, `"":`, `"channels":`, 1) // First main field
+
 	// Replace nested empty keys in channels array (name, reason for each channel)
-	result = strings.Replace(result, `"":`, `"name":`, 1)        // First channel name
-	result = strings.Replace(result, `"":`, `"reason":`, 1)      // First channel reason
-	result = strings.Replace(result, `"":`, `"name":`, 1)        // Second channel name  
-	result = strings.Replace(result, `"":`, `"reason":`, 1)      // Second channel reason
-	result = strings.Replace(result, `"":`, `"name":`, 1)        // Third channel name
-	result = strings.Replace(result, `"":`, `"reason":`, 1)      // Third channel reason
-	
+	result = strings.Replace(result, `"":`, `"name":`, 1)   // First channel name
+	result = strings.Replace(result, `"":`, `"reason":`, 1) // First channel reason
+	result = strings.Replace(result, `"":`, `"name":`, 1)   // Second channel name
+	result = strings.Replace(result, `"":`, `"reason":`, 1) // Second channel reason
+	result = strings.Replace(result, `"":`, `"name":`, 1)   // Third channel name
+	result = strings.Replace(result, `"":`, `"reason":`, 1) // Third channel reason
+
 	// Replace remaining main level fields
 	result = strings.Replace(result, `"":`, `"outreachMessage":`, 1) // Second main field
-	result = strings.Replace(result, `"":`, `"hashtags":`, 1)        // Third main field  
+	result = strings.Replace(result, `"":`, `"hashtags":`, 1)        // Third main field
 	result = strings.Replace(result, `"":`, `"actionPlan":`, 1)      // Fourth main field
-	
+
 	return result
 }
 
@@ -1816,43 +1945,43 @@ func fixMalformedSalesPathJSON(jsonStr string) string {
 	if !strings.Contains(jsonStr, `"":`) {
 		return jsonStr
 	}
-	
+
 	result := jsonStr
-	
+
 	// SalesPath has nested structure with many empty keys
 	// Main structure: dailyPlan (array), salesTips (array), engagement (array)
 	// Each dailyPlan object has empty keys: day, action, content
-	
+
 	// Replace main level empty keys first
-	result = strings.Replace(result, `"":`, `"dailyPlan":`, 1)     // First main field
-	
+	result = strings.Replace(result, `"":`, `"dailyPlan":`, 1) // First main field
+
 	// Replace nested empty keys in dailyPlan array (day, action, content for each day - 7 days)
-	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 1 day
-	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 1 action
-	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 1 content
-	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 2 day
-	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 2 action  
-	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 2 content
-	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 3 day
-	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 3 action
-	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 3 content
-	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 4 day
-	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 4 action
-	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 4 content
-	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 5 day
-	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 5 action
-	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 5 content
-	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 6 day
-	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 6 action
-	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 6 content
-	result = strings.Replace(result, `"":`, `"day":`, 1)           // Day 7 day
-	result = strings.Replace(result, `"":`, `"action":`, 1)        // Day 7 action
-	result = strings.Replace(result, `"":`, `"content":`, 1)       // Day 7 content
-	
+	result = strings.Replace(result, `"":`, `"day":`, 1)     // Day 1 day
+	result = strings.Replace(result, `"":`, `"action":`, 1)  // Day 1 action
+	result = strings.Replace(result, `"":`, `"content":`, 1) // Day 1 content
+	result = strings.Replace(result, `"":`, `"day":`, 1)     // Day 2 day
+	result = strings.Replace(result, `"":`, `"action":`, 1)  // Day 2 action
+	result = strings.Replace(result, `"":`, `"content":`, 1) // Day 2 content
+	result = strings.Replace(result, `"":`, `"day":`, 1)     // Day 3 day
+	result = strings.Replace(result, `"":`, `"action":`, 1)  // Day 3 action
+	result = strings.Replace(result, `"":`, `"content":`, 1) // Day 3 content
+	result = strings.Replace(result, `"":`, `"day":`, 1)     // Day 4 day
+	result = strings.Replace(result, `"":`, `"action":`, 1)  // Day 4 action
+	result = strings.Replace(result, `"":`, `"content":`, 1) // Day 4 content
+	result = strings.Replace(result, `"":`, `"day":`, 1)     // Day 5 day
+	result = strings.Replace(result, `"":`, `"action":`, 1)  // Day 5 action
+	result = strings.Replace(result, `"":`, `"content":`, 1) // Day 5 content
+	result = strings.Replace(result, `"":`, `"day":`, 1)     // Day 6 day
+	result = strings.Replace(result, `"":`, `"action":`, 1)  // Day 6 action
+	result = strings.Replace(result, `"":`, `"content":`, 1) // Day 6 content
+	result = strings.Replace(result, `"":`, `"day":`, 1)     // Day 7 day
+	result = strings.Replace(result, `"":`, `"action":`, 1)  // Day 7 action
+	result = strings.Replace(result, `"":`, `"content":`, 1) // Day 7 content
+
 	// Replace remaining main level fields
-	result = strings.Replace(result, `"":`, `"salesTips":`, 1)     // Second main field  
-	result = strings.Replace(result, `"":`, `"engagement":`, 1)    // Third main field
-	
+	result = strings.Replace(result, `"":`, `"salesTips":`, 1)  // Second main field
+	result = strings.Replace(result, `"":`, `"engagement":`, 1) // Third main field
+
 	return result
 }
 
