@@ -77,7 +77,7 @@ interface Level {
 const Levels: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { userData, isAPIConnected } = useApp();
+  const { userData, isAPIConnected, refreshUserData: refreshUserDataFromContext } = useApp();
   const [selectedLevel, setSelectedLevel] = useState<Level | null>(null);
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail' | 'stage-detail'>('list');
@@ -248,9 +248,17 @@ const Levels: React.FC = () => {
 
   // When quiz passed, grant reward once and launch confetti (declared after points state below)
 
-  const goToNextStage = () => {
+  const goToNextStage = async () => {
     const currentId = selectedStage?.id || 1;
     const nextId = currentId + 1;
+    
+    console.log('🔍 goToNextStage called:', {
+      currentId,
+      nextId,
+      userCurrentSession: userData.currentSession,
+      subscriptionType: userData.subscriptionType
+    });
+    
     // Free trial guard: block moving beyond Level 1 (stage 5)
     if (
       (userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none') &&
@@ -260,26 +268,68 @@ const Levels: React.FC = () => {
       setIsNextLevelPopupOpen(true);
       return;
     }
-    // find next stage
+    
+    // First, refresh user data to ensure we have the latest currentSession from backend
+    // This is important because the backend has already updated CurrentSession++
+    if (isAPIConnected) {
+      console.log('🔄 Refreshing user data before navigation...');
+      await refreshUserDataFromContext();
+      // Wait for React state to update (refreshUserData updates context state)
+      // We need to wait for the state to propagate
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+    
+    // find next stage - use the current levels array (which should be updated by useEffect)
     let nextLevel: Level | null = null;
     let nextStage: Stage | null = null;
+    
+    // Use the current levels state (which should be updated by useEffect when userData.currentSession changes)
     for (const lvl of levels) {
       const st = lvl.stages.find(s => s.id === nextId);
       if (st) { nextLevel = lvl; nextStage = st; break; }
     }
+    
+    // If not found in current levels, try regenerating (fallback)
+    if (!nextLevel || !nextStage) {
+      console.log('⚠️ Next stage not found in current levels, regenerating...');
+      const updatedLevels = generateLevels();
+      setLevels(updatedLevels);
+      for (const lvl of updatedLevels) {
+        const st = lvl.stages.find(s => s.id === nextId);
+        if (st) { nextLevel = lvl; nextStage = st; break; }
+      }
+    }
+    
     if (nextLevel && nextStage) {
+      console.log('✅ Navigating to next stage:', {
+        nextStageId: nextStage.id,
+        nextStageTitle: nextStage.title,
+        nextLevelTitle: nextLevel.title,
+        nextStageStatus: getStageStatus(nextStage.id),
+        updatedCurrentSession: userData.currentSession
+      });
+      
       setSelectedLevel(nextLevel);
       setSelectedStage(nextStage);
       setViewMode('stage-detail');
+      
       // reset quiz states for next stage
       setCurrentQuestion(0);
       setUserAnswers({});
       setQuizCompleted(false);
       setQuizResult(null);
       setRewardGranted(false);
+      
+      // Close quiz modal
+      setShowQuiz(false);
+      
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
+      console.log('⚠️ No next stage found, going back to list');
       // If no next stage, go back to list
       setViewMode('list');
+      setShowQuiz(false);
     }
   };
 
@@ -1726,13 +1776,26 @@ const Levels: React.FC = () => {
           
           // If passed and next stage unlocked, update progress
           if (passed && next_stage_unlocked) {
+            console.log('🎉 Quiz passed! Unlocking next stage...');
             setPassedStages(prev => new Set([...prev, selectedStage.id + 1]));
-            // Refresh user data to get updated progress
-            setTimeout(() => {
-              refreshUserData();
-              // Re-generate levels to reflect the updated status
-              setLevels(generateLevels());
-            }, 1000);
+            
+            // Refresh user data to get updated progress from API
+            // This will update userData.currentSession from the backend
+            console.log('🔄 Refreshing user data from API...');
+            await refreshUserDataFromContext();
+            
+            // Wait a bit for React state to update after refresh
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Re-generate levels to reflect the updated status
+            // This will use the updated userData.currentSession
+            setLevels(generateLevels());
+            
+            console.log('✅ User progress updated:', {
+              currentSession: userData.currentSession,
+              nextStageId: selectedStage.id + 1,
+              nextStageUnlocked: next_stage_unlocked
+            });
           }
           
           console.log('✅ Quiz evaluated successfully:', { passed, score, next_stage_unlocked });
@@ -1820,20 +1883,9 @@ const Levels: React.FC = () => {
     setShowQuiz(false);
   };
 
-  // Function to refresh user data after stage completion
-  const refreshUserData = async () => {
-    try {
-      if (isAPIConnected) {
-        const response = await apiService.getUserProfile();
-        if (response.success && response.data) {
-          console.log('✅ User data refreshed:', response.data);
-          // Update any relevant user data state here if needed
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error refreshing user data:', error);
-    }
-  };
+  // Note: refreshUserData is now imported from AppContext
+  // This local function has been removed to use the context version
+  // which properly updates currentSession from the API
 
   // Function to clear quiz results (for testing/debugging)
   const clearQuizResults = () => {
