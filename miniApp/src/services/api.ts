@@ -43,10 +43,18 @@ declare global {
   }
 }
 
+// ⚡ PERFORMANCE: Request cache for GET requests
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
 class APIService {
   private baseURL: string;
   private cachedTelegramId: number | null = null;
   private cachedIsInTelegram: boolean | null = null;
+  // ⚡ PERFORMANCE: Request cache (5 minute TTL for GET requests)
+  private requestCache = new Map<string, CacheEntry<any>>();
 
   constructor() {
     // Hardcoded API URL as requested
@@ -192,12 +200,43 @@ class APIService {
   clearCache(): void {
     this.cachedTelegramId = null;
     this.cachedIsInTelegram = null;
+    this.requestCache.clear();
     logger.debug('🗑️ Cleared API service cache');
   }
 
-  async makeRequest<T = any>(method: string, endpoint: string, data?: any): Promise<APIResponse<T>> {
+  // ⚡ PERFORMANCE: Get from cache or return null
+  private getCached<T>(key: string): T | null {
+    const cached = this.requestCache.get(key);
+    if (cached && Date.now() < cached.expiresAt) {
+      logger.debug(`📦 Cache hit for ${key}`);
+      return cached.data as T;
+    }
+    if (cached) {
+      this.requestCache.delete(key); // Remove expired entry
+    }
+    return null;
+  }
+
+  // ⚡ PERFORMANCE: Set cache entry
+  private setCache<T>(key: string, data: T, ttlMinutes: number = 5): void {
+    this.requestCache.set(key, {
+      data,
+      expiresAt: Date.now() + (ttlMinutes * 60 * 1000)
+    });
+  }
+
+  async makeRequest<T = any>(method: string, endpoint: string, data?: any, useCache: boolean = false): Promise<APIResponse<T>> {
     try {
       const url = `${this.baseURL}${endpoint}`;
+      
+      // ⚡ PERFORMANCE: Check cache for GET requests
+      if (method === 'GET' && useCache) {
+        const cached = this.getCached<APIResponse<T>>(url);
+        if (cached) {
+          return cached;
+        }
+      }
+
       logger.debug(`📡 ${method} ${url}`, data || '');
 
       const headers: Record<string, string> = {
@@ -253,6 +292,12 @@ class APIService {
       }
 
       logger.debug(`✅ ${method} ${url} - Success:`, result || '');
+      
+      // ⚡ PERFORMANCE: Cache successful GET responses
+      if (method === 'GET' && useCache && result.success) {
+        this.setCache(url, result);
+      }
+      
       return result;
     } catch (error) {
       logger.error(`❌ API Request failed:`, error || '');
@@ -288,7 +333,8 @@ class APIService {
       };
     }
 
-    return this.makeRequest('GET', `/user/${telegramId}`);
+    // ⚡ PERFORMANCE: Cache user info for 2 minutes
+    return this.makeRequest('GET', `/user/${telegramId}`, undefined, true);
   }
 
   // Get user progress
@@ -298,7 +344,8 @@ class APIService {
       return { success: false, error: 'No user ID available' };
     }
 
-    return this.makeRequest('GET', `/user/${telegramId}/progress`);
+    // ⚡ PERFORMANCE: Cache progress for 2 minutes
+    return this.makeRequest('GET', `/user/${telegramId}/progress`, undefined, true);
   }
 
   // Send chat message to AI Coach
@@ -356,12 +403,13 @@ class APIService {
       return { success: false, error: 'No user ID available' };
     }
 
+    // ⚡ PERFORMANCE: Cache profile for 2 minutes
     return this.makeRequest<{
       username: string;
       phone: string;
       email: string;
       monthly_income: number;
-    }>('GET', `/user/${telegramId}/profile`);
+    }>('GET', `/user/${telegramId}/profile`, undefined, true);
   }
 
   // Update user profile (only requested fields)

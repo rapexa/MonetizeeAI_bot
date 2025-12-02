@@ -9,11 +9,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"MonetizeeAI_bot/logger"
 
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -24,10 +26,12 @@ var (
 	// Rate limiting for Mini App API calls
 	miniAppRateLimits = make(map[int64]time.Time)
 	miniAppCallCounts = make(map[int64]int)
+	rateLimitMutex    sync.RWMutex // ⚡ PERFORMANCE: Add mutex for thread-safe access
 
 	// User blocking for Mini App
 	miniAppBlockedUsers            = make(map[int64]bool)
 	miniAppSuspiciousActivityCount = make(map[int64]int)
+	blockedUsersMutex              sync.RWMutex // ⚡ PERFORMANCE: Add mutex for thread-safe access
 )
 
 const (
@@ -64,8 +68,12 @@ func isValidMiniAppInput(input string, maxLength int) bool {
 }
 
 // 🔒 SECURITY: Rate limiting for Mini App API calls
+// ⚡ PERFORMANCE: Thread-safe with mutex
 func checkMiniAppRateLimit(telegramID int64) bool {
 	now := time.Now()
+	rateLimitMutex.Lock()
+	defer rateLimitMutex.Unlock()
+
 	if lastCallTime, exists := miniAppRateLimits[telegramID]; exists {
 		if now.Sub(lastCallTime) < MiniAppRateLimitWindow {
 			if miniAppCallCounts[telegramID] >= MaxMiniAppCallsPerMinute {
@@ -84,17 +92,20 @@ func checkMiniAppRateLimit(telegramID int64) bool {
 }
 
 // 🔒 SECURITY: Clean up Mini App rate limit cache periodically
+// ⚡ PERFORMANCE: Improved cleanup with mutex protection
 func cleanupMiniAppRateLimitCache() {
 	ticker := time.NewTicker(5 * time.Minute)
 	go func() {
 		for range ticker.C {
 			now := time.Now()
+			rateLimitMutex.Lock()
 			for telegramID, lastCallTime := range miniAppRateLimits {
 				if now.Sub(lastCallTime) > 10*time.Minute {
 					delete(miniAppRateLimits, telegramID)
 					delete(miniAppCallCounts, telegramID)
 				}
 			}
+			rateLimitMutex.Unlock()
 		}
 	}()
 }
@@ -299,6 +310,9 @@ func StartWebAPI() {
 	// Recovery middleware
 	r.Use(gin.Recovery())
 
+	// ⚡ PERFORMANCE: Enable Gzip compression for faster response times
+	r.Use(gzip.Gzip(gzip.DefaultCompression))
+
 	// 🔒 SECURITY: Telegram WebApp Authentication Middleware
 	r.Use(telegramWebAppAuthMiddleware())
 
@@ -398,20 +412,17 @@ func authenticateTelegramUser(c *gin.Context) {
 		return
 	}
 
-	// Find user in database
-	var user User
-	result := db.Where("telegram_id = ?", requestData.TelegramID).First(&user)
-
-	if result.Error == gorm.ErrRecordNotFound {
-		c.JSON(http.StatusNotFound, APIResponse{
-			Success: false,
-			Error:   "User not found. Please use the Telegram bot first to register.",
-		})
-		return
-	}
-
-	if result.Error != nil {
-		logger.Error("Database error in authentication", zap.Error(result.Error))
+	// ⚡ PERFORMANCE: Get user from cache
+	user, err := userCache.GetUser(requestData.TelegramID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "User not found. Please use the Telegram bot first to register.",
+			})
+			return
+		}
+		logger.Error("Database error in authentication", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
 			Error:   "Database error",
@@ -496,11 +507,20 @@ func getUserInfo(c *gin.Context) {
 		return
 	}
 
-	var user User
-	if err := db.Where("telegram_id = ?", telegramID).First(&user).Error; err != nil {
-		c.JSON(http.StatusNotFound, APIResponse{
+	// ⚡ PERFORMANCE: Get user from cache
+	user, err := userCache.GetUser(telegramID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "User not found",
+			})
+			return
+		}
+		logger.Error("Database error in getUserInfo", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
-			Error:   "User not found",
+			Error:   "Database error",
 		})
 		return
 	}
@@ -546,11 +566,20 @@ func getUserProgress(c *gin.Context) {
 		return
 	}
 
-	var user User
-	if err := db.Where("telegram_id = ?", telegramID).First(&user).Error; err != nil {
-		c.JSON(http.StatusNotFound, APIResponse{
+	// ⚡ PERFORMANCE: Get user from cache
+	user, err := userCache.GetUser(telegramID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "User not found",
+			})
+			return
+		}
+		logger.Error("Database error in getUserProgress", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
-			Error:   "User not found",
+			Error:   "Database error",
 		})
 		return
 	}
@@ -590,8 +619,9 @@ func getUserProgress(c *gin.Context) {
 
 // getAllSessions returns all available sessions
 func getAllSessions(c *gin.Context) {
-	var sessions []Session
-	if err := db.Find(&sessions).Error; err != nil {
+	// ⚡ PERFORMANCE: Get sessions from cache
+	sessions, err := sessionCache.GetAllSessions()
+	if err != nil {
 		logger.Error("Failed to get sessions", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
@@ -629,11 +659,20 @@ func getSessionByNumber(c *gin.Context) {
 		return
 	}
 
-	var session Session
-	if err := db.Where("number = ?", number).First(&session).Error; err != nil {
-		c.JSON(http.StatusNotFound, APIResponse{
+	// ⚡ PERFORMANCE: Get session from cache
+	session, err := sessionCache.GetSessionByNumber(number)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "Session not found",
+			})
+			return
+		}
+		logger.Error("Database error in getSessionByNumber", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
-			Error:   "Session not found",
+			Error:   "Database error",
 		})
 		return
 	}
@@ -733,19 +772,17 @@ func handleChatRequest(c *gin.Context) {
 		return
 	}
 
-	// Verify user exists
-	var user User
-	result := db.Where("telegram_id = ?", requestData.TelegramID).First(&user)
-	if result.Error == gorm.ErrRecordNotFound {
-		c.JSON(http.StatusNotFound, APIResponse{
-			Success: false,
-			Error:   "User not found",
-		})
-		return
-	}
-
-	if result.Error != nil {
-		logger.Error("Database error in chat request", zap.Error(result.Error))
+	// ⚡ PERFORMANCE: Get user from cache (reduces database queries)
+	user, err := userCache.GetUser(requestData.TelegramID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "User not found",
+			})
+			return
+		}
+		logger.Error("Database error in chat request", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
 			Error:   "Database error",
@@ -772,13 +809,16 @@ func handleChatRequest(c *gin.Context) {
 	}
 
 	// Get response from ChatGPT
-	response := handleChatGPTMessageAPI(&user, requestData.Message)
+	response := handleChatGPTMessageAPI(user, requestData.Message)
 
 	// Increment chat message count for free trial users and users without subscription type
 	if user.SubscriptionType == "free_trial" || user.SubscriptionType == "none" || user.SubscriptionType == "" {
 		user.ChatMessagesUsed++
-		if err := db.Save(&user).Error; err != nil {
+		if err := db.Model(&User{}).Where("telegram_id = ?", requestData.TelegramID).Update("chat_messages_used", user.ChatMessagesUsed).Error; err != nil {
 			logger.Error("Failed to increment chat messages used", zap.Error(err))
+		} else {
+			// ⚡ PERFORMANCE: Invalidate cache after update
+			userCache.InvalidateUser(requestData.TelegramID)
 		}
 	}
 
@@ -1029,13 +1069,20 @@ func getUserProfile(c *gin.Context) {
 		return
 	}
 
-	var user User
-	result := db.Where("telegram_id = ?", telegramID).First(&user)
-	if result.Error != nil {
-		logger.Error("Database error in getting user profile", zap.Error(result.Error))
+	// ⚡ PERFORMANCE: Get user from cache
+	user, err := userCache.GetUser(telegramID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "User not found",
+			})
+			return
+		}
+		logger.Error("Database error in getting user profile", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
-			Error:   "User not found",
+			Error:   "Database error",
 		})
 		return
 	}
@@ -1081,27 +1128,35 @@ func updateUserProfile(c *gin.Context) {
 		return
 	}
 
-	// Find user
-	var user User
-	result := db.Where("telegram_id = ?", telegramID).First(&user)
-	if result.Error != nil {
+	// ⚡ PERFORMANCE: Get user from cache
+	user, err := userCache.GetUser(telegramID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "User not found",
+			})
+			return
+		}
+		logger.Error("Database error in updateUserProfile", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
-			Error:   "User not found",
+			Error:   "Database error",
 		})
 		return
 	}
 
 	// Update profile fields (only requested fields)
+	updates := make(map[string]interface{})
 	if requestData.Username != "" {
-		user.Username = requestData.Username
+		updates["username"] = requestData.Username
 	}
-	user.Phone = requestData.Phone
-	user.Email = requestData.Email
-	user.MonthlyIncome = requestData.MonthlyIncome
+	updates["phone"] = requestData.Phone
+	updates["email"] = requestData.Email
+	updates["monthly_income"] = requestData.MonthlyIncome
 
-	// Save to database
-	if err := db.Save(&user).Error; err != nil {
+	// ⚡ PERFORMANCE: Use Update instead of Save for better performance
+	if err := db.Model(&user).Updates(updates).Error; err != nil {
 		logger.Error("Database error in updating user profile", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
@@ -1199,14 +1254,20 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 }`,
 		req.UserName, req.Interests, req.Skills, req.Market)
 
-	// Find user for ChatGPT call
-	var user User
-	result := db.Where("telegram_id = ?", req.TelegramID).First(&user)
-	if result.Error != nil {
-		logger.Error("Database error in finding user for business builder", zap.Error(result.Error))
+	// ⚡ PERFORMANCE: Get user from cache
+	user, err := userCache.GetUser(req.TelegramID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "کاربر یافت نشد",
+			})
+			return
+		}
+		logger.Error("Database error in finding user for business builder", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
-			Error:   "کاربر یافت نشد",
+			Error:   "Database error",
 		})
 		return
 	}
@@ -1221,7 +1282,7 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 	}
 
 	// Call ChatGPT API
-	response := handleChatGPTMessageAPI(&user, prompt)
+	response := handleChatGPTMessageAPI(user, prompt)
 
 	// Extract JSON from response (handle markdown code blocks)
 	cleanResponse := extractJSONFromResponse(response)
@@ -1353,14 +1414,20 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 }`,
 		req.ProductName, req.Description, req.TargetAudience, req.Benefits)
 
-	// Find user for ChatGPT call
-	var user User
-	result := db.Where("telegram_id = ?", req.TelegramID).First(&user)
-	if result.Error != nil {
-		logger.Error("Database error in finding user for sellkit", zap.Error(result.Error))
+	// ⚡ PERFORMANCE: Get user from cache
+	user, err := userCache.GetUser(req.TelegramID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "کاربر یافت نشد",
+			})
+			return
+		}
+		logger.Error("Database error in finding user for sellkit", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
-			Error:   "کاربر یافت نشد",
+			Error:   "Database error",
 		})
 		return
 	}
@@ -1375,7 +1442,7 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 	}
 
 	// Call ChatGPT API
-	response := handleChatGPTMessageAPI(&user, prompt)
+	response := handleChatGPTMessageAPI(user, prompt)
 
 	// Extract JSON from response (handle markdown code blocks)
 	cleanResponse := extractJSONFromResponse(response)
@@ -1519,14 +1586,20 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 }`,
 		req.Product, req.TargetClient, platformsStr)
 
-	// Find user for ChatGPT call
-	var user User
-	result := db.Where("telegram_id = ?", req.TelegramID).First(&user)
-	if result.Error != nil {
-		logger.Error("Database error in finding user for clientfinder", zap.Error(result.Error))
+	// ⚡ PERFORMANCE: Get user from cache
+	user, err := userCache.GetUser(req.TelegramID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "کاربر یافت نشد",
+			})
+			return
+		}
+		logger.Error("Database error in finding user for clientfinder", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
-			Error:   "کاربر یافت نشد",
+			Error:   "Database error",
 		})
 		return
 	}
@@ -1541,7 +1614,7 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 	}
 
 	// Call ChatGPT API
-	response := handleChatGPTMessageAPI(&user, prompt)
+	response := handleChatGPTMessageAPI(user, prompt)
 
 	// Extract JSON from response (handle markdown code blocks)
 	cleanResponse := extractJSONFromResponse(response)
@@ -1711,14 +1784,20 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 }`,
 		req.ProductName, req.TargetAudience, req.SalesChannel, req.Goal)
 
-	// Find user for ChatGPT call
-	var user User
-	result := db.Where("telegram_id = ?", req.TelegramID).First(&user)
-	if result.Error != nil {
-		logger.Error("Database error in finding user for salespath", zap.Error(result.Error))
+	// ⚡ PERFORMANCE: Get user from cache
+	user, err := userCache.GetUser(req.TelegramID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "کاربر یافت نشد",
+			})
+			return
+		}
+		logger.Error("Database error in finding user for salespath", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
-			Error:   "کاربر یافت نشد",
+			Error:   "Database error",
 		})
 		return
 	}
@@ -1733,7 +1812,7 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 	}
 
 	// Call ChatGPT API
-	response := handleChatGPTMessageAPI(&user, prompt)
+	response := handleChatGPTMessageAPI(user, prompt)
 
 	// Check if response is an error message (timeout or other ChatGPT issues)
 	if strings.Contains(response, "❌") || strings.Contains(response, "خطا") {
@@ -2070,20 +2149,27 @@ func handleQuizEvaluation(c *gin.Context) {
 		return
 	}
 
-	// Find user
-	var user User
-	result := db.Where("telegram_id = ?", req.TelegramID).First(&user)
-	if result.Error != nil {
+	// ⚡ PERFORMANCE: Get user from cache
+	user, err := userCache.GetUser(req.TelegramID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusInternalServerError, APIResponse{
+				Success: false,
+				Error:   "User not found",
+			})
+			return
+		}
+		logger.Error("Database error in quiz evaluation", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
-			Error:   "User not found",
+			Error:   "Database error",
 		})
 		return
 	}
 
-	// Get stage information (from current session)
-	var session Session
-	if err := db.Where("number = ?", req.StageID).First(&session).Error; err != nil {
+	// ⚡ PERFORMANCE: Get session from cache
+	session, err := sessionCache.GetSessionByNumber(req.StageID)
+	if err != nil {
 		logger.Error("Failed to get session for quiz evaluation", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
@@ -2135,14 +2221,17 @@ func handleQuizEvaluation(c *gin.Context) {
 	nextStageUnlocked := false
 	if approved {
 		// Update user progress - move to next stage
-		user.CurrentSession++
-		if err := db.Save(&user).Error; err != nil {
+		// ⚡ PERFORMANCE: Use Update instead of Save for better performance
+		newSession := user.CurrentSession + 1
+		if err := db.Model(&user).Update("current_session", newSession).Error; err != nil {
 			logger.Error("Failed to update user session after quiz",
 				zap.Int64("user_id", user.TelegramID),
-				zap.Int("new_session", user.CurrentSession),
+				zap.Int("new_session", newSession),
 				zap.Error(err))
 		} else {
 			nextStageUnlocked = true
+			// ⚡ PERFORMANCE: Invalidate cache after update
+			userCache.InvalidateUser(user.TelegramID)
 			logger.Info("User passed quiz and moved to next session",
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("stage_id", req.StageID),

@@ -66,6 +66,9 @@ func editSession(admin *Admin, sessionNum, title, description string) string {
 		return "❌ خطا در ویرایش جلسه"
 	}
 
+	// ⚡ PERFORMANCE: Invalidate session cache after update
+	sessionCache.InvalidateSessions()
+
 	logAdminAction(admin, "edit_session", fmt.Sprintf("Edited session %d", num), "session", session.ID)
 	return "✅ جلسه با موفقیت ویرایش شد"
 }
@@ -107,6 +110,9 @@ func deleteSession(admin *Admin, sessionNum string) string {
 	if err := tx.Commit().Error; err != nil {
 		return "❌ خطا در ثبت تغییرات"
 	}
+
+	// ⚡ PERFORMANCE: Invalidate session cache after deletion
+	sessionCache.InvalidateSessions()
 
 	logAdminAction(admin, "delete_session", fmt.Sprintf("Deleted session %d", num), "session", session.ID)
 	return "✅ جلسه و محتوای مرتبط با آن با موفقیت حذف شد"

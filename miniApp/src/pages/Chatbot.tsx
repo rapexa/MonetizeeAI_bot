@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Send, Wifi, WifiOff, Brain, X, Sparkles, Crown } from 'lucide-react';
+import { Send, WifiOff, Brain, X, Sparkles, Crown } from 'lucide-react';
 import apiService from '../services/api';
 import { useAutoScroll } from '../hooks/useAutoScroll';
 import AIMessage from '../components/AIMessage';
@@ -21,15 +21,7 @@ const Chatbot: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const { messagesEndRef, scrollToBottom } = useAutoScroll([messages]);
-
-  const faqItems = [
-    'چطور درآمد کسب کنم؟',
-    'بهترین ابزارها کدامند؟',
-    'تمرین‌های امروز',
-    'تحلیل پیشرفت من',
-    'راهنمای شروع'
-  ];
+  const { messagesEndRef } = useAutoScroll([messages]);
 
   // Check if user can use chat
   const canUseChat = () => {
@@ -187,23 +179,12 @@ const Chatbot: React.FC = () => {
       
       // Always try to make the API call, regardless of isAPIConnected
       if (telegramId) {
-        // Use the telegramId we found
-        const response = await fetch('https://sianmarketing.com/api/api/v1/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            telegram_id: telegramId,
-            message: messageToProcess
-          })
-        });
-
-        const result = await response.json();
+        // ⚡ PERFORMANCE: Use apiService instead of direct fetch
+        const result = await apiService.sendChatMessage(messageToProcess);
         
-        console.log('API Response:', { response: response.ok, result }); // Debug full response
+        console.log('API Response:', result); // Debug full response
         
-        if (response.ok && result.success && result.data && result.data.response) {
+        if (result.success && result.data && result.data.response) {
           const aiResponse: Message = {
             id: Date.now() + 1,
             text: result.data.response,
@@ -216,7 +197,6 @@ const Chatbot: React.FC = () => {
           console.log('AI Response added successfully:', aiResponse); // Debug log
         } else {
           console.error('API response error or missing data:', { 
-            responseOk: response.ok, 
             resultSuccess: result.success, 
             hasData: !!result.data, 
             hasResponse: !!result.data?.response,
@@ -255,12 +235,6 @@ const Chatbot: React.FC = () => {
     } finally {
       setIsTyping(false);
     }
-  };
-
-
-
-  const handleFAQClick = (question: string) => {
-    setInputValue(question);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

@@ -113,16 +113,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // Try to authenticate user
       logger.debug('🔐 Attempting user authentication...');
-      const authResponse = await apiService.getCurrentUser();
+      
+      // ⚡ PERFORMANCE: Parallelize API calls instead of sequential
+      const [authResponse, progressResponse, profileResponse] = await Promise.all([
+        apiService.getCurrentUser(),
+        apiService.getUserProgress(),
+        apiService.getUserProfile()
+      ]);
       
       if (authResponse.success && authResponse.data) {
         const userInfo = authResponse.data as any;
-        
-        // Get detailed progress
-        const progressResponse = await apiService.getUserProgress();
-        
-        // Get user profile (for monthly income)
-        const profileResponse = await apiService.getUserProfile();
         
         // Update userData with real data from API
         setUserData(prev => ({
@@ -223,9 +223,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     try {
       logger.debug('🔄 Refreshing user data...');
-      const userResponse = await apiService.getCurrentUser();
-      const progressResponse = await apiService.getUserProgress();
-      const profileResponse = await apiService.getUserProfile();
+      // ⚡ PERFORMANCE: Parallelize API calls instead of sequential
+      const [userResponse, progressResponse, profileResponse] = await Promise.all([
+        apiService.getCurrentUser(),
+        apiService.getUserProgress(),
+        apiService.getUserProfile()
+      ]);
       
       if (userResponse.success && userResponse.data) {
         const userInfo = userResponse.data as any;

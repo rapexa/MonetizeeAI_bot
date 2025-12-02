@@ -1041,6 +1041,9 @@ func handleAddSessionResponse(admin *Admin, input string) {
 		return
 	}
 
+	// ⚡ PERFORMANCE: Invalidate session cache after creation
+	sessionCache.InvalidateSessions()
+
 	response := fmt.Sprintf("✅ جلسه با موفقیت اضافه شد:\n\n"+
 		"📚 شماره جلسه: %d\n"+
 		"📝 عنوان: %s\n"+
@@ -1346,6 +1349,9 @@ func handleEditSessionInfo(admin *Admin, input string) {
 		delete(adminStates, admin.TelegramID)
 		return
 	}
+
+	// ⚡ PERFORMANCE: Invalidate session cache after update
+	sessionCache.InvalidateSessions()
 
 	response := fmt.Sprintf("✅ جلسه با موفقیت ویرایش شد:\n\n"+
 		"📚 شماره جلسه: %d\n"+

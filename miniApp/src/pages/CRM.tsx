@@ -8,6 +8,7 @@ import {
 import DatePicker from '../components/DatePicker';
 import '../components/DatePicker.css';
 import { useApp } from '../context/AppContext';
+import { useDebounce } from '../hooks/useDebounce';
 
 type LeadStatus = 'cold' | 'warm' | 'hot' | 'converted';
 
@@ -124,6 +125,8 @@ const CRM: React.FC = () => {
   }, [leads]);
 
   const [query, setQuery] = React.useState('');
+  // ⚡ PERFORMANCE: Debounce search query to reduce filtering operations
+  const debouncedQuery = useDebounce(query, 300);
   const [statusFilter, setStatusFilter] = React.useState<'all' | LeadStatus>('all');
   const [showLead, setShowLead] = React.useState<Lead | null>(null);
   const [note, setNote] = React.useState('');
@@ -191,11 +194,14 @@ const CRM: React.FC = () => {
       });
   }, [allTasks, taskFilter]);
 
-  const filteredLeads = leads.filter(l => {
-    const matchesQuery = !query || l.name.includes(query) || l.phone?.includes(query) || l.email?.includes(query);
-    const matchesStatus = statusFilter === 'all' || l.status === statusFilter;
-    return matchesQuery && matchesStatus;
-  });
+  // ⚡ PERFORMANCE: Use debounced query for filtering
+  const filteredLeads = React.useMemo(() => {
+    return leads.filter(l => {
+      const matchesQuery = !debouncedQuery || l.name.includes(debouncedQuery) || l.phone?.includes(debouncedQuery) || l.email?.includes(debouncedQuery);
+      const matchesStatus = statusFilter === 'all' || l.status === statusFilter;
+      return matchesQuery && matchesStatus;
+    });
+  }, [leads, debouncedQuery, statusFilter]);
 
   const summary = React.useMemo(() => {
     const leadsCount = leads.length;

@@ -34,14 +34,21 @@ func initDB() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	// Set connection pool settings
+	// Set connection pool settings - optimized for performance
 	sqlDB, err := db.DB()
 	if err != nil {
 		log.Fatal("Failed to get database instance:", err)
 	}
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(time.Hour)
+	// Increased pool size for better concurrency
+	sqlDB.SetMaxIdleConns(25)        // Increased from 10
+	sqlDB.SetMaxOpenConns(150)       // Increased from 100
+	sqlDB.SetConnMaxLifetime(30 * time.Minute) // Reduced from 1 hour for better connection recycling
+	sqlDB.SetConnMaxIdleTime(10 * time.Minute) // Close idle connections after 10 minutes
+	
+	// Start user cache cleanup
+	userCache.CleanupExpired()
+	
+	logger.Info("Performance optimizations enabled: User cache, Session cache, Connection pooling")
 
 	// Auto-migrate the schema
 	err = db.AutoMigrate(

@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"sync"
+	"time"
 
 	"MonetizeeAI_bot/logger"
 
@@ -14,6 +16,15 @@ const (
 	RequiredChannelID       = -1001538785363
 	RequiredChannelUsername = "@hoseinabasiian"
 	RequiredChannelName     = "حسین عباسیان | دیجیتال مارکتینگ"
+)
+
+// ⚡ PERFORMANCE: Cache channel membership checks (5 minute TTL)
+var (
+	channelMembershipCache = make(map[int64]struct {
+		isMember  bool
+		expiresAt time.Time
+	})
+	channelCacheMutex sync.RWMutex
 )
 
 // checkChannelMembership checks if user is member of required channel
@@ -147,8 +158,37 @@ func handleMembershipCheckCallback(callbackQuery *tgbotapi.CallbackQuery) {
 
 // checkChannelMembershipAPI checks channel membership for API calls
 // Returns error message if not a member, empty string if member
+// ⚡ PERFORMANCE: Cached for 5 minutes to reduce Telegram API calls
 func checkChannelMembershipAPI(telegramID int64) string {
-	if !checkChannelMembership(telegramID) {
+	// Check cache first
+	channelCacheMutex.RLock()
+	cached, exists := channelMembershipCache[telegramID]
+	channelCacheMutex.RUnlock()
+
+	if exists && time.Now().Before(cached.expiresAt) {
+		if !cached.isMember {
+			return fmt.Sprintf("شما برای استفاده از این قابلیت باید عضو کانال ما شوید:\n\n📢 کانال: %s\n🔗 https://t.me/%s",
+				RequiredChannelName,
+				RequiredChannelUsername[1:])
+		}
+		return "" // User is a member
+	}
+
+	// Cache miss - check with Telegram API
+	isMember := checkChannelMembership(telegramID)
+
+	// Update cache
+	channelCacheMutex.Lock()
+	channelMembershipCache[telegramID] = struct {
+		isMember  bool
+		expiresAt time.Time
+	}{
+		isMember:  isMember,
+		expiresAt: time.Now().Add(5 * time.Minute),
+	}
+	channelCacheMutex.Unlock()
+
+	if !isMember {
 		return fmt.Sprintf("شما برای استفاده از این قابلیت باید عضو کانال ما شوید:\n\n📢 کانال: %s\n🔗 https://t.me/%s",
 			RequiredChannelName,
 			RequiredChannelUsername[1:])
