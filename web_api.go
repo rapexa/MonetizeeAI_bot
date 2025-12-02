@@ -118,12 +118,13 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		startParam := c.GetHeader("X-Telegram-Start-Param")
 
 		// Log the request for debugging
-		logger.Debug("🔍 WebApp Auth Check",
-			zap.String("path", c.Request.URL.Path),
-			zap.String("user_agent", userAgent),
-			zap.String("referer", referer),
-			zap.Bool("has_init_data", initData != ""),
-			zap.String("remote_addr", c.ClientIP()))
+		// Debug logging removed for production
+		// logger.Debug("🔍 WebApp Auth Check",
+		//	zap.String("path", c.Request.URL.Path),
+		//	zap.String("user_agent", userAgent),
+		//	zap.String("referer", referer),
+		//	zap.Bool("has_init_data", initData != ""),
+		//	zap.String("remote_addr", c.ClientIP()))
 
 		// Check if request comes from Telegram WebApp
 		isTelegramWebApp := false
@@ -131,7 +132,7 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		// Method 1: Check User-Agent for Telegram indicators
 		if strings.Contains(strings.ToLower(userAgent), "telegram") {
 			isTelegramWebApp = true
-			logger.Debug("✅ Telegram detected in User-Agent")
+			// logger.Debug("✅ Telegram detected in User-Agent")
 		}
 
 		// Method 2: Check Referer for Telegram domains
@@ -139,25 +140,25 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 			strings.Contains(referer, "telegram.org") ||
 			strings.Contains(referer, "telegram.me")) {
 			isTelegramWebApp = true
-			logger.Debug("✅ Telegram detected in Referer")
+			// logger.Debug("✅ Telegram detected in Referer")
 		}
 
 		// Method 3: Check for Telegram WebApp init data header
 		if initData != "" {
 			isTelegramWebApp = true
-			logger.Debug("✅ Telegram init data found")
+			// logger.Debug("✅ Telegram init data found")
 		}
 
 		// Method 3.1: Check for X-Telegram-WebApp header
 		if telegramWebApp == "true" {
 			isTelegramWebApp = true
-			logger.Debug("✅ Telegram WebApp header found")
+			// logger.Debug("✅ Telegram WebApp header found")
 		}
 
 		// Method 3.2: Check for start param header
 		if startParam != "" {
 			isTelegramWebApp = true
-			logger.Debug("✅ Telegram start param found")
+			// logger.Debug("✅ Telegram start param found")
 		}
 
 		// Method 4: Check for specific Telegram WebApp User-Agent patterns
@@ -172,7 +173,7 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		for _, pattern := range telegramPatterns {
 			if strings.Contains(userAgent, pattern) {
 				isTelegramWebApp = true
-				logger.Debug("✅ Telegram pattern matched", zap.String("pattern", pattern))
+				// logger.Debug("✅ Telegram pattern matched", zap.String("pattern", pattern))
 				break
 			}
 		}
@@ -182,7 +183,7 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		if isDevelopment && (strings.Contains(c.ClientIP(), "127.0.0.1") ||
 			strings.Contains(c.ClientIP(), "::1") ||
 			c.ClientIP() == "localhost") {
-			logger.Debug("✅ Localhost access allowed for development")
+			// logger.Debug("✅ Localhost access allowed for development")
 			c.Next()
 			return
 		}
@@ -203,7 +204,7 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		logger.Debug("✅ Telegram WebApp access granted")
+		// logger.Debug("✅ Telegram WebApp access granted")
 		c.Next()
 	}
 }
@@ -261,7 +262,7 @@ func StartWebAPI() {
 	// Restrict CORS origins for production
 	if strings.ToLower(os.Getenv("DEVELOPMENT_MODE")) == "true" {
 		config.AllowOrigins = []string{"*"} // Allow all origins in development
-		logger.Debug("🔧 CORS: Development mode - allowing all origins")
+		// logger.Debug("🔧 CORS: Development mode - allowing all origins")
 	} else {
 		// Production: Only allow Telegram domains and our own domains
 		config.AllowOrigins = []string{
@@ -274,7 +275,7 @@ func StartWebAPI() {
 			"https://sianacademy.com",
 			"https://www.sianacademy.com",
 		}
-		logger.Debug("🔒 CORS: Production mode - restricted origins")
+		// logger.Debug("🔒 CORS: Production mode - restricted origins")
 	}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Telegram-Init-Data", "X-Telegram-WebApp", "X-Telegram-Start-Param"}

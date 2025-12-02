@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import apiService from '../services/api';
+import { logger } from '../utils/logger';
 
 
 
@@ -81,17 +82,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sync user data with API
   const syncWithAPI = async () => {
     try {
-      console.log('🚀 Starting API sync...');
+      logger.debug('🚀 Starting API sync...');
       setLoadingUser(true);
       
       // Check if API is available
-      console.log('🔍 Checking API availability...');
+      logger.debug('🔍 Checking API availability...');
       const apiAvailable = await apiService.isAPIAvailable();
-      console.log('📡 API Available:', apiAvailable);
+      logger.debug('📡 API Available:', apiAvailable);
       setIsAPIConnected(apiAvailable);
       
       if (!apiAvailable) {
-        console.log('❌ API not available, setting fallback data');
+        logger.debug('❌ API not available, setting fallback data');
         // Set some basic fallback data when API is not available
         setUserData(prev => ({
           ...prev,
@@ -111,7 +112,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // Try to authenticate user
-      console.log('🔐 Attempting user authentication...');
+      logger.debug('🔐 Attempting user authentication...');
       const authResponse = await apiService.getCurrentUser();
       
       if (authResponse.success && authResponse.data) {
@@ -161,24 +162,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Mark that we now have real data
         setHasRealData(true);
         
-        console.log('✅ Successfully synced with API');
-        console.log('📊 Final User Data:', {
+        logger.debug('✅ Successfully synced with API');
+        logger.debug('📊 Final User Data:', {
           currentLevel: progressResponse.success && progressResponse.data ? progressResponse.data.current_level : userInfo.level,
           progressOverall: progressResponse.success && progressResponse.data ? progressResponse.data.progress_percent : userInfo.progress,
           completedTasks: progressResponse.success && progressResponse.data ? progressResponse.data.completed_sessions : userInfo.completed_tasks,
           monthlyIncome: profileResponse.success && profileResponse.data ? profileResponse.data.monthly_income : 'default'
         });
       } else {
-        console.log('❌ Authentication failed:', authResponse.error);
+        logger.debug('❌ Authentication failed:', authResponse.error);
         
         // Check if subscription has expired
         if (authResponse.error === 'SUBSCRIPTION_EXPIRED' || (authResponse as any).subscriptionExpired) {
-          console.log('⚠️ Subscription expired - user must renew in bot');
+          logger.debug('⚠️ Subscription expired - user must renew in bot');
           setTelegramIdError('⚠️ اشتراک شما به پایان رسید!\n\n🔒 برای ادامه استفاده از امکانات، لطفا به ربات برگردید و اشتراک خریداری کنید یا لایسنس خود را وارد کنید.\n\n💎 برای بازگشت به ربات، روی دکمه زیر کلیک کنید:');
           setHasRealData(false);
         } else if (authResponse.error?.includes('No user ID available')) {
           // If no telegram_id available, show appropriate message
-          console.log('⚠️ No Telegram ID available - user must access from Telegram');
+          logger.debug('⚠️ No Telegram ID available - user must access from Telegram');
           setTelegramIdError('لطفا از طریق تلگرام وارد شوید تا اطلاعات شما نمایش داده شود');
           // Keep using default data but mark as not real
           setHasRealData(false);
@@ -197,19 +198,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (userInfo.subscription_type === 'paid' && userInfo.subscription_expiry) {
           const expiryDate = new Date(userInfo.subscription_expiry);
           if (new Date() > expiryDate) {
-            console.log('⚠️ Subscription expired based on expiry date');
+            logger.debug('⚠️ Subscription expired based on expiry date');
             setTelegramIdError('⚠️ اشتراک شما به پایان رسید!\n\n🔒 برای ادامه استفاده از امکانات، لطفا به ربات برگردید و اشتراک خریداری کنید یا لایسنس خود را وارد کنید.\n\n💎 برای بازگشت به ربات، روی دکمه زیر کلیک کنید:');
           }
         } else if (userInfo.subscription_type === 'free_trial' && userInfo.subscription_expiry) {
           const expiryDate = new Date(userInfo.subscription_expiry);
           if (new Date() > expiryDate) {
-            console.log('⚠️ Free trial expired based on expiry date');
+            logger.debug('⚠️ Free trial expired based on expiry date');
             setTelegramIdError('⚠️ اشتراک شما به پایان رسید!\n\n🔒 برای ادامه استفاده از امکانات، لطفا به ربات برگردید و اشتراک خریداری کنید یا لایسنس خود را وارد کنید.\n\n💎 برای بازگشت به ربات، روی دکمه زیر کلیک کنید:');
           }
         }
       }
     } catch (error) {
-      console.error('❌ Error syncing with API:', error);
+      logger.error('❌ Error syncing with API:', error);
       setIsAPIConnected(false);
     } finally {
       setLoadingUser(false);
@@ -221,7 +222,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!isAPIConnected) return;
     
     try {
-      console.log('🔄 Refreshing user data...');
+      logger.debug('🔄 Refreshing user data...');
       const userResponse = await apiService.getCurrentUser();
       const progressResponse = await apiService.getUserProgress();
       const profileResponse = await apiService.getUserProfile();
@@ -268,10 +269,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setHasRealData(true);
         }
         
-        console.log('✅ User data refreshed successfully');
+        logger.debug('✅ User data refreshed successfully');
       }
     } catch (error) {
-      console.error('Error refreshing user data:', error);
+      logger.error('Error refreshing user data:', error);
     }
   };
 

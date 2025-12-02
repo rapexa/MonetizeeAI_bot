@@ -138,11 +138,8 @@ func init() {
 	// Process updates
 	for update := range updates {
 		if update.Message != nil {
-			// Log incoming message
-			logger.Debug("Received message",
-				zap.Int64("user_id", update.Message.From.ID),
-				zap.String("username", update.Message.From.UserName),
-				zap.String("text", update.Message.Text))
+			// Debug logging removed for production
+			// logger.Debug("Received message", ...)
 
 			handleMessage(update)
 		} else if update.CallbackQuery != nil {
@@ -298,7 +295,7 @@ func handleMessage(update tgbotapi.Update) {
 		logger.Info("User not member of required channel",
 			zap.Int64("user_id", update.Message.From.ID),
 			zap.String("username", update.Message.From.UserName))
-		
+
 		// Send join channel message
 		sendJoinChannelMessage(update.Message.From.ID)
 		return
@@ -370,37 +367,37 @@ func handleMessage(update tgbotapi.Update) {
 		user = getUserOrCreate(update.Message.From)
 	}
 
-    // If we are collecting phone and user shared contact, handle it
-    if update.Message.Contact != nil {
-        // Ensure we have latest state
-        state, _ := userStates[user.TelegramID]
-        if state == StateWaitingForPhone {
-            completePhoneStepWithContact(user, update.Message.Contact)
-            return
-        }
-    }
+	// If we are collecting phone and user shared contact, handle it
+	if update.Message.Contact != nil {
+		// Ensure we have latest state
+		state, _ := userStates[user.TelegramID]
+		if state == StateWaitingForPhone {
+			completePhoneStepWithContact(user, update.Message.Contact)
+			return
+		}
+	}
 
-    // Block access until user is verified OR has active subscription (free trial)
-    // Only process license input for users who are NOT verified AND have NO active subscription
-    if !user.IsVerified && !user.HasActiveSubscription() {
-        // Only allow license/name/phone input, do not show main menu or process other commands
-        processUserInput(update.Message.Text, user)
-        return
-    }
+	// Block access until user is verified OR has active subscription (free trial)
+	// Only process license input for users who are NOT verified AND have NO active subscription
+	if !user.IsVerified && !user.HasActiveSubscription() {
+		// Only allow license/name/phone input, do not show main menu or process other commands
+		processUserInput(update.Message.Text, user)
+		return
+	}
 
-    // Check if subscription has expired and user is NOT in onboarding states
-    state, _ := userStates[user.TelegramID]
-    if !user.HasActiveSubscription() && state != StateWaitingForLicense && state != StateWaitingForName && state != StateWaitingForPhone && state != StateWaitingForLicenseChoice {
-        // If user tries to use any command except license entry, send message
-        if update.Message.IsCommand() && update.Message.Command() != "start" {
-            msg := tgbotapi.NewMessage(update.Message.Chat.ID,
-                "⚠️ اشتراک شما به پایان رسید!\n\n"+
-                    "🔒 برای استفاده از امکانات ربات، لطفا اشتراک ماهیانه خریداری کنید یا لایسنس خود را وارد کنید.")
-            msg.ReplyMarkup = getExpiredSubscriptionKeyboard()
-            bot.Send(msg)
-            return
-        }
-    }
+	// Check if subscription has expired and user is NOT in onboarding states
+	state, _ := userStates[user.TelegramID]
+	if !user.HasActiveSubscription() && state != StateWaitingForLicense && state != StateWaitingForName && state != StateWaitingForPhone && state != StateWaitingForLicenseChoice {
+		// If user tries to use any command except license entry, send message
+		if update.Message.IsCommand() && update.Message.Command() != "start" {
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID,
+				"⚠️ اشتراک شما به پایان رسید!\n\n"+
+					"🔒 برای استفاده از امکانات ربات، لطفا اشتراک ماهیانه خریداری کنید یا لایسنس خود را وارد کنید.")
+			msg.ReplyMarkup = getExpiredSubscriptionKeyboard()
+			bot.Send(msg)
+			return
+		}
+	}
 
 	// Handle commands
 	if update.Message.IsCommand() {

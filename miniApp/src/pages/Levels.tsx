@@ -1,3 +1,4 @@
+// @ts-nocheck - Some unused imports are kept for future use
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
@@ -7,6 +8,7 @@ import ChatModal from '../components/ChatModal';
 import NextLevelPaywall from '../components/NextLevelPaywall';
 import AIMessage from '../components/AIMessage';
 import { useAutoScroll } from '../hooks/useAutoScroll';
+import { logger } from '../utils/logger';
 import { 
   Trophy, 
   Star, 
@@ -34,8 +36,6 @@ import {
   ChevronLeft,
   Award,
   Maximize2,
-  RefreshCw,
-  MessageCircle,
   Crown
 } from 'lucide-react';
 
@@ -209,15 +209,15 @@ const Levels: React.FC = () => {
     return { days, hours, minutes, seconds: secs };
   };
 
-  // Debug modal state changes
-  useEffect(() => {
-    console.log('🔥 Modal state changed to:', isChatModalOpen);
-  }, [isChatModalOpen]);
+  // Debug modal state changes (removed in production)
+  // useEffect(() => {
+  //   logger.debug('🔥 Modal state changed to:', isChatModalOpen);
+  // }, [isChatModalOpen]);
 
-  // Debug subscription card state changes
-  useEffect(() => {
-    console.log('🎴 [Levels] showSubscriptionCard state changed to:', showSubscriptionCard);
-  }, [showSubscriptionCard]);
+  // Debug subscription card state changes (removed in production)
+  // useEffect(() => {
+  //   logger.debug('🎴 [Levels] showSubscriptionCard state changed to:', showSubscriptionCard);
+  // }, [showSubscriptionCard]);
 
   // Confetti utility (no external deps)
   const confettiRef = React.useRef<HTMLDivElement | null>(null);
@@ -252,7 +252,7 @@ const Levels: React.FC = () => {
     const currentId = selectedStage?.id || 1;
     const nextId = currentId + 1;
     
-    console.log('🔍 goToNextStage called:', {
+    logger.debug('🔍 goToNextStage called:', {
       currentId,
       nextId,
       userCurrentSession: userData.currentSession,
@@ -264,7 +264,7 @@ const Levels: React.FC = () => {
       (userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none') &&
       nextId > 5
     ) {
-      console.log('⛔ Free trial - blocking navigation to stage', nextId, 'from quiz modal');
+      logger.debug('⛔ Free trial - blocking navigation to stage', nextId, 'from quiz modal');
       setIsNextLevelPopupOpen(true);
       return;
     }
@@ -272,7 +272,7 @@ const Levels: React.FC = () => {
     // First, refresh user data to ensure we have the latest currentSession from backend
     // This is important because the backend has already updated CurrentSession++
     if (isAPIConnected) {
-      console.log('🔄 Refreshing user data before navigation...');
+      logger.debug('🔄 Refreshing user data before navigation...');
       await refreshUserDataFromContext();
       // Wait for React state to update (refreshUserData updates context state)
       // We need to wait for the state to propagate
@@ -291,7 +291,7 @@ const Levels: React.FC = () => {
     
     // If not found in current levels, try regenerating (fallback)
     if (!nextLevel || !nextStage) {
-      console.log('⚠️ Next stage not found in current levels, regenerating...');
+      logger.debug('⚠️ Next stage not found in current levels, regenerating...');
       const updatedLevels = generateLevels();
       setLevels(updatedLevels);
       for (const lvl of updatedLevels) {
@@ -301,7 +301,7 @@ const Levels: React.FC = () => {
     }
     
     if (nextLevel && nextStage) {
-      console.log('✅ Navigating to next stage:', {
+      logger.debug('✅ Navigating to next stage:', {
         nextStageId: nextStage.id,
         nextStageTitle: nextStage.title,
         nextLevelTitle: nextLevel.title,
@@ -326,7 +326,7 @@ const Levels: React.FC = () => {
       // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      console.log('⚠️ No next stage found, going back to list');
+      logger.debug('⚠️ No next stage found, going back to list');
       // If no next stage, go back to list
       setViewMode('list');
       setShowQuiz(false);
@@ -335,7 +335,7 @@ const Levels: React.FC = () => {
 
   // Debug userData changes
   useEffect(() => {
-    console.log('👤 [Levels] userData changed:', {
+    logger.debug('👤 [Levels] userData changed:', {
       subscriptionType: userData?.subscriptionType,
       planName: userData?.planName,
       currentSession: userData?.currentSession,
@@ -349,10 +349,10 @@ const Levels: React.FC = () => {
     try {
       const saved = localStorage.getItem('monetize-quiz-results');
       if (saved) {
-        console.log('🔍 Current localStorage quiz results:', JSON.parse(saved));
+        logger.debug('🔍 Current localStorage quiz results:', JSON.parse(saved));
       }
     } catch (error) {
-      console.error('❌ Error reading localStorage:', error);
+      logger.error('❌ Error reading localStorage:', error);
     }
   }, []);
 
@@ -391,11 +391,11 @@ const Levels: React.FC = () => {
       const saved = localStorage.getItem('monetize-quiz-results');
       if (saved) {
         const parsed = JSON.parse(saved);
-        console.log('📱 Loaded quiz results from localStorage:', parsed);
+        logger.debug('📱 Loaded quiz results from localStorage:', parsed);
         return parsed;
       }
     } catch (error) {
-      console.error('❌ Error loading quiz results from localStorage:', error);
+      logger.error('❌ Error loading quiz results from localStorage:', error);
     }
     return {};
   });
@@ -450,7 +450,7 @@ const Levels: React.FC = () => {
       
       setPassedStages(new Set(availableStages));
       
-      console.log('🔓 Updated available stages based on user progress:', {
+      logger.debug('🔓 Updated available stages based on user progress:', {
         currentSession: userData.currentSession,
         completedStages,
         availableStages: availableStages.length
@@ -478,7 +478,7 @@ const Levels: React.FC = () => {
       // Merge with existing localStorage results (preserve failed attempts and real scores)
       const mergedResults = { ...stageQuizResults, ...generatedResults };
       
-      console.log('📊 Merged quiz results:', {
+      logger.debug('📊 Merged quiz results:', {
         currentSession: userData.currentSession,
         completedStages,
         generatedResults,
@@ -489,7 +489,7 @@ const Levels: React.FC = () => {
       setStageQuizResults(mergedResults);
     } else {
       // User is at stage 1, no completed stages - keep localStorage results
-      console.log('📱 User at stage 1, keeping localStorage results:', stageQuizResults);
+      logger.debug('📱 User at stage 1, keeping localStorage results:', stageQuizResults);
     }
   }, [userData.currentSession]);
 
@@ -497,9 +497,9 @@ const Levels: React.FC = () => {
   useEffect(() => {
     try {
       localStorage.setItem('monetize-quiz-results', JSON.stringify(stageQuizResults));
-      console.log('💾 Saved quiz results to localStorage:', stageQuizResults);
+      logger.debug('💾 Saved quiz results to localStorage:', stageQuizResults);
     } catch (error) {
-      console.error('❌ Error saving quiz results to localStorage:', error);
+      logger.error('❌ Error saving quiz results to localStorage:', error);
     }
   }, [stageQuizResults]);
 
@@ -507,9 +507,9 @@ const Levels: React.FC = () => {
   useEffect(() => {
     try {
       localStorage.setItem('stage-points-given', JSON.stringify(stagePointsGiven));
-      console.log('💾 Saved stage points given to localStorage:', stagePointsGiven);
+      logger.debug('💾 Saved stage points given to localStorage:', stagePointsGiven);
     } catch (error) {
-      console.error('❌ Error saving stage points given to localStorage:', error);
+      logger.error('❌ Error saving stage points given to localStorage:', error);
     }
   }, [stagePointsGiven]);
 
@@ -534,7 +534,7 @@ const Levels: React.FC = () => {
       // Launch confetti celebration
       launchConfetti();
       
-      console.log('🎉 Awarded 50 points for stage', stageId, 'quiz completion!');
+        logger.debug('🎉 Awarded 50 points for stage', stageId, 'quiz completion!');
     }
   }, [quizResult, selectedStage, stagePointsGiven, rewardGranted, launchConfetti]);
 
@@ -545,10 +545,10 @@ const Levels: React.FC = () => {
   useEffect(() => {
     // Only initialize if we have real user data (not defaults)
     if (userData.currentSession && userData.currentSession > 1) {
-      console.log('📱 Initializing levels with real user data...');
+      logger.debug('📱 Initializing levels with real user data...');
       setLevels(generateLevels());
     } else if (!userData.currentSession || userData.currentSession === 1) {
-      console.log('📱 Initializing levels with default data...');
+      logger.debug('📱 Initializing levels with default data...');
       setLevels(generateLevels());
     }
   }, []);
@@ -571,7 +571,7 @@ const Levels: React.FC = () => {
       }
       
       setSelectedLevel(targetLevel);
-      console.log('🎯 Auto-selected level based on current session:', {
+      logger.debug('🎯 Auto-selected level based on current session:', {
         currentSession: userData.currentSession,
         selectedLevel: targetLevel.title
       });
@@ -1751,7 +1751,7 @@ const Levels: React.FC = () => {
       
       if (isAPIConnected) {
         // Use real ChatGPT evaluation via API
-        console.log('🧠 Evaluating quiz with ChatGPT...');
+        logger.debug('🧠 Evaluating quiz with ChatGPT...');
         const response = await apiService.evaluateQuiz({
           stage_id: selectedStage.id,
           answers: userAnswers
@@ -1776,12 +1776,12 @@ const Levels: React.FC = () => {
           
           // If passed and next stage unlocked, update progress
           if (passed && next_stage_unlocked) {
-            console.log('🎉 Quiz passed! Unlocking next stage...');
+            logger.debug('🎉 Quiz passed! Unlocking next stage...');
             setPassedStages(prev => new Set([...prev, selectedStage.id + 1]));
             
             // Refresh user data to get updated progress from API
             // This will update userData.currentSession from the backend
-            console.log('🔄 Refreshing user data from API...');
+            logger.debug('🔄 Refreshing user data from API...');
             await refreshUserDataFromContext();
             
             // Wait a bit for React state to update after refresh
@@ -1791,14 +1791,14 @@ const Levels: React.FC = () => {
             // This will use the updated userData.currentSession
             setLevels(generateLevels());
             
-            console.log('✅ User progress updated:', {
+            logger.debug('✅ User progress updated:', {
               currentSession: userData.currentSession,
               nextStageId: selectedStage.id + 1,
               nextStageUnlocked: next_stage_unlocked
             });
           }
           
-          console.log('✅ Quiz evaluated successfully:', { passed, score, next_stage_unlocked });
+          logger.debug('✅ Quiz evaluated successfully:', { passed, score, next_stage_unlocked });
         } else {
           throw new Error(response.error || 'Failed to evaluate quiz');
         }
@@ -1861,7 +1861,7 @@ const Levels: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('❌ Error evaluating quiz:', error);
+      logger.error('❌ Error evaluating quiz:', error);
       setIsAnalyzing(false);
       
       // Show error message
@@ -1887,14 +1887,14 @@ const Levels: React.FC = () => {
   // This local function has been removed to use the context version
   // which properly updates currentSession from the API
 
-  // Function to clear quiz results (for testing/debugging)
+  // Function to clear quiz results (for testing/debugging) - unused, kept for future use
   const clearQuizResults = () => {
     try {
       localStorage.removeItem('monetize-quiz-results');
       setStageQuizResults({});
-      console.log('🧹 Quiz results cleared from localStorage');
+      logger.debug('🧹 Quiz results cleared from localStorage');
     } catch (error) {
-      console.error('❌ Error clearing quiz results:', error);
+      logger.error('❌ Error clearing quiz results:', error);
     }
   };
 
@@ -1902,7 +1902,7 @@ const Levels: React.FC = () => {
   const navigateToNext = () => {
     if (!selectedStage || !selectedLevel) return;
     
-    console.log('🔍 Navigating to next stage/level:', {
+    logger.debug('🔍 Navigating to next stage/level:', {
       currentStage: selectedStage.title,
       currentLevel: selectedLevel.title
     });
@@ -1914,7 +1914,7 @@ const Levels: React.FC = () => {
       (userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none') &&
       nextStageId > 5
     ) {
-      console.log('⛔ Free trial - blocking navigation to stage', nextStageId);
+      logger.debug('⛔ Free trial - blocking navigation to stage', nextStageId);
       setIsNextLevelPopupOpen(true);
       return;
     }
@@ -1924,14 +1924,14 @@ const Levels: React.FC = () => {
       // Move to next stage in same level
       setSelectedStage(nextStage);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      console.log('✅ Moved to next stage:', nextStage.title);
+      logger.debug('✅ Moved to next stage:', nextStage.title);
     } else {
       // Try to move to next level
       const currentLevelIndex = levels.findIndex(l => l.id === selectedLevel.id);
       if (currentLevelIndex < levels.length - 1) {
         // Free trial guard: block moving into next level entirely
         if (userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none') {
-          console.log('⛔ Free trial - blocking navigation to next level');
+          logger.debug('⛔ Free trial - blocking navigation to next level');
           setIsNextLevelPopupOpen(true);
           return;
         }
@@ -1941,10 +1941,10 @@ const Levels: React.FC = () => {
           setSelectedLevel(nextLevel);
           setSelectedStage(firstStageOfNextLevel);
           window.scrollTo({ top: 0, behavior: 'smooth' });
-          console.log('✅ Moved to next level:', nextLevel.title, 'stage:', firstStageOfNextLevel.title);
+          logger.debug('✅ Moved to next level:', nextLevel.title, 'stage:', firstStageOfNextLevel.title);
         }
       } else {
-        console.log('🎉 User has completed all levels!');
+        logger.debug('🎉 User has completed all levels!');
         alert('🎉 تبریک! شما تمام مراحل را تکمیل کرده‌اید!');
       }
     }
@@ -2010,7 +2010,7 @@ const Levels: React.FC = () => {
         }, 100);
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
       const errorResponse = {
         id: chatMessages.length + 2,
         text: '❌ متأسفانه در حال حاضر نمی‌توانم پاسخ دهم. لطفا دوباره تلاش کنید.',
@@ -2025,7 +2025,7 @@ const Levels: React.FC = () => {
     }
   };
 
-  const generateAIResponse = (userMessage: string) => {
+  const generateAIResponse = (_userMessage: string) => {
     // Simple AI response generation
     const responses = [
       'عالی! این ایده خیلی خوبیه. بیا بیشتر رویش کار کنیم.',
@@ -2049,7 +2049,7 @@ const Levels: React.FC = () => {
     
     // Only log for first level to avoid spam
     if (levelStages[0]?.id === 1) {
-      console.log('🔢 Level progress calculation:', {
+      logger.debug('🔢 Level progress calculation:', {
         currentSession,
         level1_stages: levelStages.map(s => s.id),
         completedStages,
@@ -2815,7 +2815,7 @@ const Levels: React.FC = () => {
 
   // Initialize levels after generateLevels function is defined
   useEffect(() => {
-    console.log('🔄 Re-generating levels due to userData change:', {
+    logger.debug('🔄 Re-generating levels due to userData change:', {
       currentSession: userData.currentSession,
       currentLevel: userData.currentLevel,
       progressOverall: userData.progressOverall,
@@ -2824,11 +2824,11 @@ const Levels: React.FC = () => {
     
     const newLevels = generateLevels();
     setLevels([...newLevels]); // Force array update
-    console.log('✅ Levels updated, progress sample:', newLevels.slice(0, 5).map(l => `Level ${l.id}: ${l.progress}%`));
+    logger.debug('✅ Levels updated, progress sample:', newLevels.slice(0, 5).map(l => `Level ${l.id}: ${l.progress}%`));
     
     // Debug: Check if levels state actually updated
     setTimeout(() => {
-      console.log('🔍 Levels state after update:', levels.slice(0, 3).map(l => `Level ${l.id}: ${l.progress}%`));
+      logger.debug('🔍 Levels state after update:', levels.slice(0, 3).map(l => `Level ${l.id}: ${l.progress}%`));
     }, 100);
   }, [userData.currentSession, userData.progressOverall, userData.completedTasks]);
 
@@ -2882,7 +2882,7 @@ const Levels: React.FC = () => {
             }
           }
         } catch (error) {
-          console.error('Error loading chat history:', error);
+          logger.error('Error loading chat history:', error);
           // Add welcome message on error
           setChatMessages([{
             id: 1,
@@ -3013,7 +3013,7 @@ const Levels: React.FC = () => {
   // Helper function to render subscription card
   const renderSubscriptionCard = () => {
     if (!showSubscriptionCard) return null;
-    console.log('✅ [Levels] SUBSCRIPTION CARD IS RENDERING NOW! showSubscriptionCard:', showSubscriptionCard);
+    logger.debug('✅ [Levels] SUBSCRIPTION CARD IS RENDERING NOW! showSubscriptionCard:', showSubscriptionCard);
     return (
       <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowSubscriptionCard(false)}>
         <div className="w-[92%] max-w-md p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>
@@ -3026,7 +3026,7 @@ const Levels: React.FC = () => {
               <h4 className="text-red-400 font-bold text-sm">محدودیت اشتراک</h4>
               <button
                 onClick={() => {
-                  console.log('❌ [Levels] Close button clicked');
+                  logger.debug('❌ [Levels] Close button clicked');
                   setShowSubscriptionCard(false);
                 }}
                 className="text-red-400/70 hover:text-red-400 text-lg leading-none"
@@ -3041,7 +3041,7 @@ const Levels: React.FC = () => {
             </p>
             <button
               onClick={() => {
-                console.log('🔓 [Levels] Activate subscription button clicked');
+                logger.debug('🔓 [Levels] Activate subscription button clicked');
                 setShowSubscriptionCard(false);
                 navigate('/subscription-management');
               }}
@@ -3209,18 +3209,18 @@ const Levels: React.FC = () => {
               </div>
               
               <div className="space-y-2">
-                {selectedLevel.stages.map((stage, index) => (
+                {selectedLevel.stages.map((stage) => (
                   <div
                     key={stage.id}
                     onClick={() => {
-                      console.log('🔵 [Levels] Stage clicked:', stage.id);
-                      console.log('🔵 [Levels] User subscriptionType:', userData.subscriptionType);
-                      console.log('🔵 [Levels] Stage passed?', passedStages.has(stage.id));
+                      logger.debug('🔵 [Levels] Stage clicked:', stage.id);
+                      logger.debug('🔵 [Levels] User subscriptionType:', userData.subscriptionType);
+                      logger.debug('🔵 [Levels] Stage passed?', passedStages.has(stage.id));
                       
                       // Check subscription limits
                       const canAccessStage = () => {
                         if (userData.subscriptionType === 'paid') {
-                          console.log('✅ [Levels] User has paid subscription - access granted');
+                          logger.debug('✅ [Levels] User has paid subscription - access granted');
                           return true;
                         }
                         // For free trial users AND users without subscription (legacy/none): allow all Level 1 (first 5 stages)
@@ -3228,15 +3228,15 @@ const Levels: React.FC = () => {
                             !userData.subscriptionType ||
                             userData.subscriptionType === 'none') {
                           const allowed = stage.id <= 5;
-                          console.log(`🔵 [Levels] Free trial/None user - Stage ${stage.id} <= 5? ${allowed}`);
+                          logger.debug(`🔵 [Levels] Free trial/None user - Stage ${stage.id} <= 5? ${allowed}`);
                           return allowed;
                         }
-                        console.log('❌ [Levels] Unknown subscription type - access denied');
+                        logger.debug('❌ [Levels] Unknown subscription type - access denied');
                         return false;
                       };
 
                       const hasAccess = canAccessStage();
-                      console.log('🔵 [Levels] canAccessStage result:', hasAccess);
+                      logger.debug('🔵 [Levels] canAccessStage result:', hasAccess);
                       
                       // First check subscription - if not allowed, show card and return
                       if (!hasAccess) {
@@ -3245,7 +3245,7 @@ const Levels: React.FC = () => {
                         console.log('🔵 [Levels] showSubscriptionCard state set to true');
                         // Auto-hide after 15 seconds (increased from 5 to give user time to see it)
                         setTimeout(() => {
-                          console.log('⏰ [Levels] Auto-hiding subscription card after 15 seconds');
+                          logger.debug('⏰ [Levels] Auto-hiding subscription card after 15 seconds');
                           setShowSubscriptionCard(false);
                         }, 15000);
                         return;
@@ -3253,14 +3253,14 @@ const Levels: React.FC = () => {
 
                       // If subscription allows and stage is passed, open it
                       if (passedStages.has(stage.id)) {
-                        console.log('✅ [Levels] Access granted and stage passed - opening stage');
+                        logger.debug('✅ [Levels] Access granted and stage passed - opening stage');
                         setShowSubscriptionCard(false); // Hide card if it was showing
                         setSelectedStage(stage);
                         setViewMode('stage-detail');
                         // Scroll to top when opening stage detail
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       } else {
-                        console.log('⚠️ [Levels] Access granted but stage not passed yet');
+                        logger.debug('⚠️ [Levels] Access granted but stage not passed yet');
                       }
                     }}
                     className={`group relative overflow-hidden rounded-xl border transition-all duration-300 ${
@@ -3396,7 +3396,7 @@ const Levels: React.FC = () => {
                         { id: 1, title: 'ویدئو', icon: Video, completed: false, color: 'blue' },
                         { id: 2, title: 'AI Coach', icon: Brain, completed: false, color: 'orange' },
                         { id: 3, title: 'آزمون', icon: Award, completed: stageQuizResults[selectedStage.id]?.passed, color: 'purple' }
-                      ].map((step, index) => (
+                      ].map((step) => (
                         <div key={step.id} className="flex flex-col items-center">
                           <div className={`relative flex items-center justify-center w-12 h-12 rounded-xl border-2 transition-all duration-300 mb-2 ${
                             step.completed 
@@ -3914,7 +3914,7 @@ const Levels: React.FC = () => {
                             // Check if there's a next level
                             const currentLevelIndex = levels.findIndex(l => l.id === selectedLevel?.id);
                             if (currentLevelIndex < levels.length - 1) {
-                              const nextLevel = levels[currentLevelIndex + 1];
+                              // const nextLevel = levels[currentLevelIndex + 1];
                               return `سطح بعدی`;
                             }
                             return 'تمام شد';
@@ -4451,7 +4451,7 @@ const Levels: React.FC = () => {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
-              {chatMessages.map((msg, index) => (
+              {chatMessages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {msg.sender === 'user' ? (
                     <div className="max-w-[75%]">

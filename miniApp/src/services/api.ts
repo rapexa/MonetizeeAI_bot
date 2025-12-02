@@ -1,8 +1,5 @@
-// Simple logger for debugging
-const logger = {
-  debug: (...args: any[]) => console.log('[DEBUG]', ...args),
-  error: (...args: any[]) => console.error('[ERROR]', ...args)
-};
+// Production-safe logger
+import { logger } from '../utils/logger';
 
 export interface APIResponse<T = any> {
   success: boolean;
