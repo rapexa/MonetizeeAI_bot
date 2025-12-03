@@ -4065,8 +4065,9 @@ const Levels: React.FC = () => {
 
               </div>
 
+              {/* TODO: فعال‌سازی کادر رفتن به مرحله بعد بعد از بررسی نهایی */}
               {/* Next Stage Card - Minimal Platform Style */}
-              <div className={`backdrop-blur-xl rounded-xl border shadow-lg overflow-hidden mx-6 mt-12 mb-12 ${
+              {/* <div className={`backdrop-blur-xl rounded-xl border shadow-lg overflow-hidden mx-6 mt-12 mb-12 ${
                 stageQuizResults[selectedStage.id] && !stageQuizResults[selectedStage.id]?.passed
                   ? 'border-red-400/40'
                   : 'border-gray-800/60'
@@ -4151,7 +4152,7 @@ const Levels: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
         {/* Quiz Modal */}
         {showQuiz && selectedStage && (
@@ -4358,7 +4359,8 @@ const Levels: React.FC = () => {
                         بستن
                       </button>
                       
-                      {quizResult?.passed ? (
+                      {/* TODO: فعال‌سازی دکمه رفتن به مرحله بعد بعد از بررسی نهایی */}
+                      {/* {quizResult?.passed ? (
                         <button
                           onClick={goToNextStage}
                           className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-300 flex items-center gap-2 shadow-lg"
@@ -4366,7 +4368,8 @@ const Levels: React.FC = () => {
                           <CheckCircle2 size={16} />
                           رفتن به مرحله بعدی
                         </button>
-                      ) : (
+                      ) : ( */}
+                      {!quizResult?.passed && (
                         <button
                           onClick={() => {
                             setCurrentQuestion(0);
@@ -4380,6 +4383,7 @@ const Levels: React.FC = () => {
                           تلاش مجدد
                         </button>
                       )}
+                      {/* )} */}
                     </div>
                   </div>
                 )}
