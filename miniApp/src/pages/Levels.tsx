@@ -259,6 +259,9 @@ const Levels: React.FC = () => {
       subscriptionType: userData.subscriptionType
     });
     
+    // Close quiz modal immediately for better UX
+    setShowQuiz(false);
+    
     // Free trial guard: block moving beyond Level 1 (stage 5)
     if (
       (userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none') &&
@@ -371,27 +374,38 @@ const Levels: React.FC = () => {
         stageStatus: nextStage.status
       });
       
+      // Close quiz modal FIRST
+      setShowQuiz(false);
+      
+      // Update selected level and stage
       setSelectedLevel(nextLevel);
       setSelectedStage(nextStage);
+      
+      // IMPORTANT: Stay in stage-detail view
       setViewMode('stage-detail');
       
-      // reset quiz states for next stage
+      // Reset quiz states for next stage
       setCurrentQuestion(0);
       setUserAnswers({});
       setQuizCompleted(false);
       setQuizResult(null);
       setRewardGranted(false);
       
-      // Close quiz modal
+      // Scroll to top smoothly
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      logger.debug('✅ Successfully navigated to next stage');
+    } else {
+      logger.error('❌ Next stage not found after all attempts!', {
+        nextId,
+        currentSession: userData.currentSession
+      });
+      
+      // IMPORTANT: Don't go back to list, just close the quiz modal
+      // User stays on current stage detail view
       setShowQuiz(false);
       
-      // Scroll to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      logger.debug('⚠️ No next stage found, going back to list');
-      // If no next stage, go back to list
-      setViewMode('list');
-      setShowQuiz(false);
+      logger.debug('ℹ️ Staying on current stage detail view');
     }
   };
 
@@ -2014,13 +2028,33 @@ const Levels: React.FC = () => {
     }
   };
 
-  const resetQuiz = () => {
+  const resetQuiz = async () => {
+    // Close the quiz modal
+    setShowQuiz(false);
+    
+    // Reset quiz states
     setCurrentQuestion(0);
     setUserAnswers({});
     setQuizCompleted(false);
     setIsAnalyzing(false);
     setQuizResult(null);
-    setShowQuiz(false);
+    
+    // If quiz was passed, refresh data to update UI (show checkmark on completed stage)
+    if (quizResult?.passed && isAPIConnected) {
+      logger.debug('🔄 Quiz passed - refreshing data to update UI...');
+      try {
+        await refreshUserDataFromContext();
+        // Wait for state to update
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Regenerate levels to show updated status
+        const updatedLevels = generateLevels();
+        setLevels(updatedLevels);
+        
+        logger.debug('✅ Data refreshed after closing quiz modal');
+      } catch (error) {
+        logger.error('❌ Error refreshing data after quiz:', error);
+      }
+    }
   };
 
   // Note: refreshUserData is now imported from AppContext
@@ -4275,7 +4309,7 @@ const Levels: React.FC = () => {
                       {quizResult?.passed ? (
                         <button
                           onClick={goToNextStage}
-                          className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-300 flex items-center gap-2"
+                          className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-300 flex items-center gap-2 shadow-lg"
                         >
                           <CheckCircle2 size={16} />
                           رفتن به مرحله بعدی
