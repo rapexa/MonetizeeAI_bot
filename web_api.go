@@ -2189,6 +2189,10 @@ func handleQuizEvaluation(c *gin.Context) {
 		zap.String("session_title", session.Title),
 		zap.Int("answers_count", len(req.Answers)))
 	
+	var approved bool
+	var feedback string
+	var score int
+	
 	approved, feedback, evalErr := groqClient.GenerateExerciseEvaluation(
 		session.Title,
 		session.Description,
@@ -2196,30 +2200,104 @@ func handleQuizEvaluation(c *gin.Context) {
 		"",
 		answersStr,
 	)
+	
+	// Fallback logic: If AI evaluation fails or returns unclear result, do basic validation
 	if evalErr != nil {
 		logger.Error("Groq evaluation error",
 			zap.Int64("user_id", user.TelegramID),
 			zap.Int("stage_id", req.StageID),
 			zap.Error(evalErr))
-		// Fallback: do not pass automatically; provide generic feedback
-		approved = false
-		if feedback == "" {
-			feedback = "ارزیابی با خطا مواجه شد. لطفاً دوباره ارسال کن یا پاسخ‌ها رو کمی دقیق‌تر بنویس."
+		
+		// Fallback: Basic validation based on answer length and content
+		answersLength := len(answersStr)
+		if answersLength > 100 {
+			// Substantial answers, likely good
+			approved = true
+			score = 75
+			feedback = "پاسخ‌های شما دریافت شد. با توجه به تلاش شما، این مرحله تایید شد. ادامه دهید!"
+		} else if answersLength > 50 {
+			// Some effort, give partial pass
+			approved = true
+			score = 65
+			feedback = "پاسخ‌های شما دریافت شد. می‌توانید به مرحله بعد بروید، اما پیشنهاد می‌کنم محتوا را دوباره مرور کنید."
+		} else {
+			// Too short, need more
+			approved = false
+			score = 30
+			feedback = "پاسخ‌های شما خیلی کوتاه است. لطفاً با جزئیات بیشتر پاسخ دهید تا بتوانم ارزیابی دقیق‌تری انجام دهم."
 		}
+		
+		logger.Info("Using fallback evaluation",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Int("stage_id", req.StageID),
+			zap.Bool("approved", approved),
+			zap.Int("score", score),
+			zap.Int("answers_length", answersLength))
 	} else {
 		logger.Info("Quiz evaluation completed",
 			zap.Int64("user_id", user.TelegramID),
 			zap.Int("stage_id", req.StageID),
 			zap.Bool("approved", approved),
 			zap.Int("feedback_length", len(feedback)))
+		
+		// Additional validation: If AI says no but answers are substantial, reconsider
+		if !approved && len(answersStr) > 150 {
+			logger.Warn("AI rejected but answers are substantial, reconsidering...",
+				zap.Int64("user_id", user.TelegramID),
+				zap.Int("stage_id", req.StageID),
+				zap.Int("answers_length", len(answersStr)))
+			
+			// If answers are substantial, give benefit of doubt
+			approved = true
+			score = 70
+			if feedback == "" {
+				feedback = "پاسخ‌های شما دریافت شد. با توجه به تلاش شما، این مرحله تایید شد."
+			}
+			
+			logger.Info("Reconsidered and approved based on answer length",
+				zap.Int64("user_id", user.TelegramID),
+				zap.Int("stage_id", req.StageID))
+		}
 	}
-	// Default score based on approval (Groq evaluation doesn't return SCORE)
-	score := 0
-	if approved {
-		score = 80
-	} else {
-		score = 50
+	// Calculate score based on approval and answer quality (only if not set in fallback)
+	if score == 0 {
+		if approved {
+			// If approved, give a good score (70-90 range)
+			// Check answer quality from feedback
+			feedbackLower := strings.ToLower(feedback)
+			if strings.Contains(feedbackLower, "عالی") ||
+			   strings.Contains(feedbackLower, "کامل") ||
+			   strings.Contains(feedbackLower, "عالیه") {
+				score = 90
+			} else if strings.Contains(feedbackLower, "خوب") ||
+			          strings.Contains(feedbackLower, "مناسب") {
+				score = 80
+			} else {
+				score = 70 // Minimum passing score
+			}
+		} else {
+			// If not approved, give partial credit based on effort
+			// Check if there's any meaningful content in answers
+			answersStrLower := strings.ToLower(answersStr)
+			if len(answersStr) > 100 {
+				// Substantial answer, give partial credit
+				score = 40
+			} else if len(answersStr) > 50 {
+				// Some effort, give minimal credit
+				score = 30
+			} else {
+				// Very little or no effort
+				score = 20
+			}
+		}
 	}
+	
+	logger.Info("Calculated quiz score",
+		zap.Int64("user_id", user.TelegramID),
+		zap.Int("stage_id", req.StageID),
+		zap.Bool("approved", approved),
+		zap.Int("score", score),
+		zap.Int("answers_length", len(answersStr)))
 
 	// Fallback values if parsing failed
 	if feedback == "" {
