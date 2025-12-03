@@ -2278,7 +2278,6 @@ func handleQuizEvaluation(c *gin.Context) {
 		} else {
 			// If not approved, give partial credit based on effort
 			// Check if there's any meaningful content in answers
-			answersStrLower := strings.ToLower(answersStr)
 			if len(answersStr) > 100 {
 				// Substantial answer, give partial credit
 				score = 40
