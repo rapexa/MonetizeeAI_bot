@@ -233,46 +233,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (userResponse.success && userResponse.data) {
         const userInfo = userResponse.data as any;
         
-        setUserData(prev => ({
-          ...prev,
-          telegramId: userInfo.telegram_id,
-          username: userInfo.username,
-          firstName: userInfo.first_name,
-          lastName: userInfo.last_name,
-          isVerified: userInfo.is_verified,
-          isActive: userInfo.is_active,
-          currentSession: userInfo.current_session,
-          currentLevel: userInfo.level,
-          completedTasks: userInfo.completed_tasks,
-          progressOverall: userInfo.progress,
+        setUserData(prev => {
+          const newUserData = {
+            ...prev,
+            telegramId: userInfo.telegram_id,
+            username: userInfo.username,
+            firstName: userInfo.first_name,
+            lastName: userInfo.last_name,
+            isVerified: userInfo.is_verified,
+            isActive: userInfo.is_active,
+            currentSession: userInfo.current_session,
+            currentLevel: userInfo.level,
+            completedTasks: userInfo.completed_tasks,
+            progressOverall: userInfo.progress,
+            
+            // Subscription fields
+            subscriptionType: userInfo.subscription_type,
+            planName: userInfo.plan_name,
+            subscriptionExpiry: userInfo.subscription_expiry,
+            freeTrialUsed: userInfo.free_trial_used,
+            chatMessagesUsed: userInfo.chat_messages_used,
+            courseSessionsUsed: userInfo.course_sessions_used,
+            
+            // Update progress with API data if available
+            ...(progressResponse.success && progressResponse.data ? {
+              currentLevel: progressResponse.data.current_level,
+              progressOverall: progressResponse.data.progress_percent,
+              completedTasks: progressResponse.data.completed_sessions,
+            } : {}),
+            
+            // Update monthly income from profile data
+            ...(profileResponse.success && profileResponse.data ? {
+              incomeMonth: profileResponse.data.monthly_income || prev.incomeMonth,
+            } : {})
+          };
           
-          // Subscription fields
-          subscriptionType: userInfo.subscription_type,
-          planName: userInfo.plan_name,
-          subscriptionExpiry: userInfo.subscription_expiry,
-          freeTrialUsed: userInfo.free_trial_used,
-          chatMessagesUsed: userInfo.chat_messages_used,
-          courseSessionsUsed: userInfo.course_sessions_used,
+          logger.debug('✅ User data refreshed successfully:', {
+            oldCurrentSession: prev.currentSession,
+            newCurrentSession: newUserData.currentSession,
+            sessionChanged: prev.currentSession !== newUserData.currentSession
+          });
           
-          // Update progress with API data if available
-          ...(progressResponse.success && progressResponse.data ? {
-            currentLevel: progressResponse.data.current_level,
-            progressOverall: progressResponse.data.progress_percent,
-            completedTasks: progressResponse.data.completed_sessions,
-          } : {}),
-          
-          // Update monthly income from profile data
-          ...(profileResponse.success && profileResponse.data ? {
-            incomeMonth: profileResponse.data.monthly_income || prev.incomeMonth,
-          } : {})
-        }));
+          return newUserData;
+        });
         
         // Update hasRealData if we successfully get data
         if (!hasRealData) {
           setHasRealData(true);
         }
-        
-        logger.debug('✅ User data refreshed successfully');
       }
     } catch (error) {
       logger.error('Error refreshing user data:', error);

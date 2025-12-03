@@ -2188,11 +2188,11 @@ func handleQuizEvaluation(c *gin.Context) {
 		zap.Int("stage_id", req.StageID),
 		zap.String("session_title", session.Title),
 		zap.Int("answers_count", len(req.Answers)))
-	
+
 	var approved bool
 	var feedback string
 	var score int
-	
+
 	approved, feedback, evalErr := groqClient.GenerateExerciseEvaluation(
 		session.Title,
 		session.Description,
@@ -2200,14 +2200,14 @@ func handleQuizEvaluation(c *gin.Context) {
 		"",
 		answersStr,
 	)
-	
+
 	// Fallback logic: If AI evaluation fails or returns unclear result, do basic validation
 	if evalErr != nil {
 		logger.Error("Groq evaluation error",
 			zap.Int64("user_id", user.TelegramID),
 			zap.Int("stage_id", req.StageID),
 			zap.Error(evalErr))
-		
+
 		// Fallback: Basic validation based on answer length and content
 		answersLength := len(answersStr)
 		if answersLength > 100 {
@@ -2226,7 +2226,7 @@ func handleQuizEvaluation(c *gin.Context) {
 			score = 30
 			feedback = "پاسخ‌های شما خیلی کوتاه است. لطفاً با جزئیات بیشتر پاسخ دهید تا بتوانم ارزیابی دقیق‌تری انجام دهم."
 		}
-		
+
 		logger.Info("Using fallback evaluation",
 			zap.Int64("user_id", user.TelegramID),
 			zap.Int("stage_id", req.StageID),
@@ -2239,21 +2239,21 @@ func handleQuizEvaluation(c *gin.Context) {
 			zap.Int("stage_id", req.StageID),
 			zap.Bool("approved", approved),
 			zap.Int("feedback_length", len(feedback)))
-		
+
 		// Additional validation: If AI says no but answers are substantial, reconsider
 		if !approved && len(answersStr) > 150 {
 			logger.Warn("AI rejected but answers are substantial, reconsidering...",
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("stage_id", req.StageID),
 				zap.Int("answers_length", len(answersStr)))
-			
+
 			// If answers are substantial, give benefit of doubt
 			approved = true
 			score = 70
 			if feedback == "" {
 				feedback = "پاسخ‌های شما دریافت شد. با توجه به تلاش شما، این مرحله تایید شد."
 			}
-			
+
 			logger.Info("Reconsidered and approved based on answer length",
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("stage_id", req.StageID))
@@ -2266,11 +2266,11 @@ func handleQuizEvaluation(c *gin.Context) {
 			// Check answer quality from feedback
 			feedbackLower := strings.ToLower(feedback)
 			if strings.Contains(feedbackLower, "عالی") ||
-			   strings.Contains(feedbackLower, "کامل") ||
-			   strings.Contains(feedbackLower, "عالیه") {
+				strings.Contains(feedbackLower, "کامل") ||
+				strings.Contains(feedbackLower, "عالیه") {
 				score = 90
 			} else if strings.Contains(feedbackLower, "خوب") ||
-			          strings.Contains(feedbackLower, "مناسب") {
+				strings.Contains(feedbackLower, "مناسب") {
 				score = 80
 			} else {
 				score = 70 // Minimum passing score
@@ -2290,7 +2290,7 @@ func handleQuizEvaluation(c *gin.Context) {
 			}
 		}
 	}
-	
+
 	logger.Info("Calculated quiz score",
 		zap.Int64("user_id", user.TelegramID),
 		zap.Int("stage_id", req.StageID),
@@ -2310,21 +2310,42 @@ func handleQuizEvaluation(c *gin.Context) {
 	nextStageUnlocked := false
 	if approved {
 		// Update user progress - move to next stage
-		// ⚡ PERFORMANCE: Use Update instead of Save for better performance
 		newSession := user.CurrentSession + 1
+
+		logger.Info("Attempting to update user session",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Int("old_session", user.CurrentSession),
+			zap.Int("new_session", newSession))
+
+		// Update in database
 		if err := db.Model(&user).Update("current_session", newSession).Error; err != nil {
 			logger.Error("Failed to update user session after quiz",
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("new_session", newSession),
 				zap.Error(err))
 		} else {
+			// CRITICAL: Update the user object in memory too
+			user.CurrentSession = newSession
 			nextStageUnlocked = true
-			// ⚡ PERFORMANCE: Invalidate cache after update
+
+			// ⚡ PERFORMANCE: Invalidate cache to force refresh on next request
 			userCache.InvalidateUser(user.TelegramID)
-			logger.Info("User passed quiz and moved to next session",
-				zap.Int64("user_id", user.TelegramID),
-				zap.Int("stage_id", req.StageID),
-				zap.Int("score", score))
+
+			// Verify the update by reading from database
+			var verifyUser User
+			if err := db.Where("telegram_id = ?", user.TelegramID).First(&verifyUser).Error; err != nil {
+				logger.Error("Failed to verify user session update",
+					zap.Int64("user_id", user.TelegramID),
+					zap.Error(err))
+			} else {
+				logger.Info("✅ User session updated successfully",
+					zap.Int64("user_id", user.TelegramID),
+					zap.Int("stage_id", req.StageID),
+					zap.Int("old_session", user.CurrentSession-1),
+					zap.Int("new_session", verifyUser.CurrentSession),
+					zap.Int("score", score),
+					zap.Bool("verified", verifyUser.CurrentSession == newSession))
+			}
 		}
 	}
 

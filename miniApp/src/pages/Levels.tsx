@@ -320,15 +320,18 @@ const Levels: React.FC = () => {
         nextStageTitle: nextStage.title,
         nextLevelTitle: nextLevel.title,
         nextStageStatus: stageStatus,
-        updatedCurrentSession: userData.currentSession
+        nextStageObjectStatus: nextStage.status,
+        currentSession: userData.currentSession,
+        completedStages: (userData.currentSession || 1) - 1
       });
       
       // Verify that the stage is actually available
       if (stageStatus === 'locked') {
-        logger.error('⚠️ Next stage is still locked!', {
+        logger.error('⚠️ Next stage is still locked after quiz pass!', {
           nextStageId: nextStage.id,
           currentSession: userData.currentSession,
-          expectedCurrentSession: nextStage.id
+          expectedCurrentSession: nextStage.id,
+          completedStages: (userData.currentSession || 1) - 1
         });
         
         // Try one more time with forced refresh
@@ -336,6 +339,12 @@ const Levels: React.FC = () => {
         if (isAPIConnected) {
           await refreshUserDataFromContext();
           await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          logger.debug('🔄 After forced refresh:', {
+            currentSession: userData.currentSession,
+            completedStages: (userData.currentSession || 1) - 1
+          });
+          
           const finalLevels = generateLevels();
           setLevels(finalLevels);
           
@@ -344,12 +353,23 @@ const Levels: React.FC = () => {
             const st = lvl.stages.find(s => s.id === nextId);
             if (st) { 
               nextLevel = lvl; 
-              nextStage = st; 
+              nextStage = st;
+              logger.debug('🔄 Found stage after forced refresh:', {
+                stageId: st.id,
+                status: st.status,
+                recalculatedStatus: getStageStatus(st.id)
+              });
               break; 
             }
           }
         }
       }
+      
+      logger.debug('🚀 Setting selected stage and navigating:', {
+        stageId: nextStage.id,
+        stageTitle: nextStage.title,
+        stageStatus: nextStage.status
+      });
       
       setSelectedLevel(nextLevel);
       setSelectedStage(nextStage);
@@ -469,13 +489,26 @@ const Levels: React.FC = () => {
       return 'locked';
     }
     
+    let status: 'locked' | 'available' | 'in_progress' | 'completed';
     if (stageId <= completedStages) {
-      return 'completed';
+      status = 'completed';
     } else if (stageId === completedStages + 1) {
-      return 'available'; // Current stage user can work on
+      status = 'available'; // Current stage user can work on
     } else {
-      return 'locked';
+      status = 'locked';
     }
+    
+    // Log for debugging (only for stages 1-10 to avoid spam)
+    if (stageId <= 10) {
+      logger.debug(`🔍 getStageStatus(${stageId}):`, {
+        currentSession,
+        completedStages,
+        status,
+        calculation: `${stageId} vs ${completedStages}`
+      });
+    }
+    
+    return status;
   };
 
   // Sync passed stages with user's actual progress from backend
@@ -600,14 +633,29 @@ const Levels: React.FC = () => {
     if (userData.currentSession) {
       logger.debug('🔄 userData.currentSession changed, regenerating levels...', {
         currentSession: userData.currentSession,
-        levelsCount: levels.length
+        levelsCount: levels.length,
+        selectedStageId: selectedStage?.id
       });
+      
+      // Generate new levels with updated status
       const updatedLevels = generateLevels();
       setLevels(updatedLevels);
       
+      // Log level generation result
+      const level1 = updatedLevels[0];
+      if (level1) {
+        logger.debug('📊 Level 1 stages after regeneration:', {
+          stages: level1.stages.slice(0, 10).map(s => ({ id: s.id, status: s.status }))
+        });
+      }
+      
       // If we have a selected stage, update it with new status from regenerated levels
       if (selectedStage) {
-        logger.debug('🔄 Updating selected stage with new status...');
+        logger.debug('🔄 Updating selected stage with new status...', {
+          selectedStageId: selectedStage.id,
+          selectedStageCurrentStatus: selectedStage.status
+        });
+        
         let updatedStage: Stage | null = null;
         for (const level of updatedLevels) {
           const foundStage = level.stages.find(s => s.id === selectedStage.id);
@@ -616,11 +664,18 @@ const Levels: React.FC = () => {
             break;
           }
         }
+        
         if (updatedStage) {
           setSelectedStage(updatedStage);
           logger.debug('✅ Selected stage updated:', {
             stageId: updatedStage.id,
-            status: updatedStage.status
+            oldStatus: selectedStage.status,
+            newStatus: updatedStage.status,
+            statusChanged: selectedStage.status !== updatedStage.status
+          });
+        } else {
+          logger.warn('⚠️ Could not find selected stage in updated levels', {
+            selectedStageId: selectedStage.id
           });
         }
       }
