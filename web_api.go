@@ -385,6 +385,10 @@ func StartWebAPI() {
 		paymentHandler.CheckPaymentStatus(c.Writer, c.Request)
 	})
 
+	// 🔐 Admin Panel API routes (WebSocket + REST)
+	setupAdminAPIRoutes(r)
+	logger.Info("Admin Panel API routes configured")
+
 	port := getEnvWithDefault("WEB_API_PORT", "8080")
 	logger.Info("Starting Web API server", zap.String("port", port))
 

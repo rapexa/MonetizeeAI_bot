@@ -24,6 +24,7 @@ import ReadyPrompts from './pages/ReadyPrompts';
 import CoursePlayer from './pages/CoursePlayer';
 import SubscriptionManagement from './pages/SubscriptionManagement';
 import GuideTutorial from './pages/GuideTutorial';
+import AdminPanel from './pages/AdminPanel';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -44,6 +45,8 @@ function AppRouter() {
       // If start_param is "subscription", navigate to the Subscription Management page
       if (startParam === 'subscription' && location.pathname !== '/subscription-management') {
         navigate('/subscription-management', { replace: true });
+      } else if (startParam === 'admin_panel' && location.pathname !== '/admin-panel') {
+        navigate('/admin-panel', { replace: true });
       } else if (startParam === 'dashboard' && location.pathname !== '/') {
         navigate('/', { replace: true });
       } else if (startParam === 'levels' && location.pathname !== '/levels') {
@@ -58,6 +61,9 @@ function AppRouter() {
 
   return (
     <Routes>
+      {/* Admin Panel - Full page without layout */}
+      <Route path="/admin-panel" element={<AdminPanel />} />
+      
       {/* Subscription Management - Full page without layout */}
       <Route path="/subscription-management" element={<SubscriptionManagement />} />
       

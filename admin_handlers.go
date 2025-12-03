@@ -100,6 +100,16 @@ var adminCommands = []AdminCommand{
 		Description: "🔒 مدیریت امنیت مینی اپ",
 		Handler:     handleMiniAppSecurity,
 	},
+	{
+		Command:     "/admin_panel",
+		Description: "🎛️ ورود به پنل مدیریت",
+		Handler:     handleOpenAdminPanel,
+	},
+	{
+		Command:     "/manage_subs",
+		Description: "💳 مدیریت اشتراک‌ها",
+		Handler:     handleManageSubscriptions,
+	},
 }
 
 // Add these at the top of the file after the imports
@@ -663,12 +673,7 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 			// The startapp parameter will be available as start_param in Telegram WebApp
 			miniAppWithSubscription := fmt.Sprintf("%s?startapp=subscription", miniAppURL)
 
-			userName := user.FirstName
-			if user.LastName != "" {
-				userName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
-			}
-
-			msg := tgbotapi.NewMessage(userID, fmt.Sprintf("💎 وقتشه مسیر واقعیتو فعال کنی\n\n"+
+			msg := tgbotapi.NewMessage(userID, "💎 وقتشه مسیر واقعیتو فعال کنی\n\n"+
 				"مانیتایزai فقط یه ابزار نیست!\n"+
 				"یه سیستم هوش مصنوعی خودکاره که مثل یه تیم ۱۰ نفره، ۲۴ ساعته برات کار می‌کنه 🤖💼\n\n"+
 				"با نسخه‌ی کامل، همه‌چیز باز میشه:\n"+
@@ -676,7 +681,7 @@ func handleUserCallbackQuery(update tgbotapi.Update) {
 				"✅ ابزارهای ایده، فروش و مشتری‌یابی\n"+
 				"✅ کوچ اختصاصی هوش مصنوعی بدون محدودیت\n\n"+
 				"⚡ تصمیم امروزت، تفاوت بین «تجربه» و «نتیجه»‌ست.\n"+
-				"الان فعالش کن تا سیستم شروع به کار کنه 💸", userName))
+				"الان فعالش کن تا سیستم شروع به کار کنه 💸")
 
 			// Create inline keyboard with Mini App button
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
@@ -1306,7 +1311,7 @@ func handleDeleteVideoResponse(admin *Admin, input string) {
 		return
 	}
 
-	sendMessage(admin.TelegramID, fmt.Sprintf("✅ ویدیو با موفقیت حذف شد"))
+	sendMessage(admin.TelegramID, "✅ ویدیو با موفقیت حذف شد")
 	delete(adminStates, admin.TelegramID)
 }
 
@@ -1505,7 +1510,7 @@ func handleBroadcastMessage(admin *Admin, message *tgbotapi.Message) string {
 	var content string
 
 	// Determine media type and create appropriate preview message
-	if message.Photo != nil && len(message.Photo) > 0 {
+	if len(message.Photo) > 0 {
 		mediaType = "photo"
 		fileID = message.Photo[len(message.Photo)-1].FileID
 		content = message.Caption
@@ -1865,7 +1870,40 @@ func handleMiniAppSecurity(admin *Admin, args []string) string {
 }
 
 // handleManageSubscriptions shows subscription management menu
-func handleManageSubscriptions(admin *Admin) {
+// handleOpenAdminPanel sends link to Admin Panel
+func handleOpenAdminPanel(admin *Admin, args []string) string {
+	// Get bot username for WebApp URL
+	botUsername := bot.Self.UserName
+
+	// Create Mini App URL with admin_panel start parameter
+	miniAppURL := fmt.Sprintf("https://t.me/%s/app?startapp=admin_panel", botUsername)
+
+	// Create inline keyboard with URL button
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonURL(
+				"🎛️ ورود به پنل مدیریت",
+				miniAppURL,
+			),
+		),
+	)
+
+	msg := tgbotapi.NewMessage(admin.TelegramID,
+		"🎛️ پنل مدیریت MonetizeAI\n\n"+
+			"✅ دسترسی: Real-time WebSocket\n"+
+			"📊 آمار لحظه‌ای سیستم\n"+
+			"👥 مدیریت کاربران\n"+
+			"💳 مدیریت پرداخت‌ها\n"+
+			"📦 مدیریت محتوا\n"+
+			"📈 آنالیتیکس و گزارش‌گیری\n\n"+
+			"⚠️ فقط از طریق تلگرام قابل دسترسی است")
+	msg.ReplyMarkup = keyboard
+
+	bot.Send(msg)
+	return "پنل مدیریت آماده است ✅"
+}
+
+func handleManageSubscriptions(admin *Admin, args []string) string {
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("🔍 جستجوی کاربر برای تغییر اشتراک", "manage_subs:search"),
@@ -1880,6 +1918,7 @@ func handleManageSubscriptions(admin *Admin) {
 		"📊 مشاهده لیست آخرین اشتراک‌ها")
 	msg.ReplyMarkup = keyboard
 	bot.Send(msg)
+	return "منوی مدیریت اشتراک‌ها"
 }
 
 // handleSubsSearch searches for user and shows subscription management options

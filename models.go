@@ -35,9 +35,11 @@ type User struct {
 	CurrentSession int  `gorm:"default:1"`
 	IsActive       bool `gorm:"default:true"`
 	IsAdmin        bool `gorm:"default:false"`
+	IsBlocked      bool `gorm:"default:false"` // For blocking suspicious users
 	License        string
 	IsVerified     bool `gorm:"default:false"`
 	Phone          string
+	PhoneNumber    string `gorm:"default:''"` // Duplicate field for compatibility
 	Exercises      []Exercise
 
 	// Profile fields for miniApp
@@ -224,7 +226,8 @@ type LicenseVerification struct {
 	License    string
 	FirstName  string
 	LastName   string
-	IsApproved bool `gorm:"default:false"`
+	Status     string `gorm:"default:'pending'"` // pending, approved, rejected
+	IsApproved bool   `gorm:"default:false"`
 	ApprovedBy *uint
 	ApprovedAt *time.Time
 	Admin      Admin `gorm:"foreignKey:ApprovedBy"`

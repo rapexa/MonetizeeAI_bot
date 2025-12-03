@@ -1,0 +1,798 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { 
+  Users, 
+  DollarSign, 
+  Activity,
+  Shield,
+  Package,
+  CreditCard,
+  UserCheck,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Edit,
+  Trash2,
+  Ban,
+  Unlock,
+  BarChart3,
+  LineChart,
+  Search,
+  Filter
+} from 'lucide-react';
+import { useApp } from '../context/AppContext';
+import adminApiService from '../services/adminApi';
+
+interface WSMessage {
+  type: string;
+  payload: any;
+}
+
+interface StatsPayload {
+  totalUsers: number;
+  activeUsers: number;
+  freeTrialUsers: number;
+  paidUsers: number;
+  todayRevenue: number;
+  monthRevenue: number;
+  onlineAdmins: number;
+  pendingLicenses: number;
+  recentUsers: User[];
+  recentPayments: PaymentTransaction[];
+  timestamp: string;
+}
+
+interface User {
+  ID: number;
+  TelegramID: number;
+  Username: string;
+  FirstName: string;
+  LastName: string;
+  PhoneNumber: string;
+  SubscriptionType: string;
+  PlanName: string;
+  IsVerified: boolean;
+  IsActive: boolean;
+  IsBlocked: boolean;
+  Points: number;
+  CreatedAt: string;
+}
+
+interface PaymentTransaction {
+  ID: number;
+  UserID: number;
+  Type: string;
+  Amount: number;
+  Status: string;
+  CreatedAt: string;
+}
+
+const AdminPanel: React.FC = () => {
+  const { isInTelegram } = useApp();
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  const [stats, setStats] = useState<StatsPayload | null>(null);
+  const [connected, setConnected] = useState(false);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'payments' | 'content' | 'analytics'>('dashboard');
+  const [loading, setLoading] = useState(true);
+  
+  // Users state
+  const [users, setUsers] = useState<User[]>([]);
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [usersSearch, setUsersSearch] = useState('');
+  const [usersFilter, setUsersFilter] = useState('all');
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  
+  // Payments state
+  const [payments, setPayments] = useState<PaymentTransaction[]>([]);
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [paymentsTotal, setPaymentsTotal] = useState(0);
+  const [paymentsFilter, setPaymentsFilter] = useState('all');
+  const [loadingPayments, setLoadingPayments] = useState(false);
+
+  // Connect to WebSocket
+  const connectWebSocket = useCallback(() => {
+    if (!isInTelegram) {
+      console.warn('⚠️ Not in Telegram - Admin Panel requires Telegram');
+      return;
+    }
+
+    // WebSocket URL (use secure WebSocket in production)
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host === 'localhost:5173' ? 'localhost:8080' : window.location.host;
+    const wsUrl = `${protocol}//${host}/api/v1/admin/ws`;
+
+    console.log('🔌 Connecting to Admin WebSocket:', wsUrl);
+
+    try {
+      const ws = new WebSocket(wsUrl);
+
+      // Set headers (WebSocket doesn't support custom headers, so we'll use query params or cookies)
+      // For now, we'll rely on the Telegram auth middleware
+
+      ws.onopen = () => {
+        console.log('✅ Admin WebSocket connected');
+        setConnected(true);
+        setLoading(false);
+
+        // Request initial stats
+        ws.send(JSON.stringify({ type: 'request_stats' }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message: WSMessage = JSON.parse(event.data);
+          console.log('📨 Received:', message.type);
+
+          switch (message.type) {
+            case 'stats':
+              setStats(message.payload);
+              break;
+            case 'users':
+              // Handle users data
+              console.log('Users data received');
+              break;
+            case 'payments':
+              // Handle payments data
+              console.log('Payments data received');
+              break;
+            case 'pong':
+              console.log('🏓 Pong received');
+              break;
+            default:
+              console.log('Unknown message type:', message.type);
+          }
+        } catch (error) {
+          console.error('❌ Failed to parse WebSocket message:', error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('❌ WebSocket error:', error);
+        setConnected(false);
+      };
+
+      ws.onclose = () => {
+        console.log('🔌 WebSocket disconnected');
+        setConnected(false);
+
+        // Reconnect after 3 seconds
+        reconnectTimeoutRef.current = setTimeout(() => {
+          console.log('🔄 Reconnecting...');
+          connectWebSocket();
+        }, 3000);
+      };
+
+      wsRef.current = ws;
+    } catch (error) {
+      console.error('❌ Failed to create WebSocket:', error);
+      setLoading(false);
+    }
+  }, [isInTelegram]);
+
+  // Initialize WebSocket on mount
+  useEffect(() => {
+    connectWebSocket();
+
+    return () => {
+      // Cleanup on unmount
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, [connectWebSocket]);
+
+  // Load users
+  const loadUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const response = await adminApiService.getUsers(usersPage, 50, usersSearch, usersFilter);
+      if (response.success && response.data) {
+        setUsers(response.data.users || []);
+        setUsersTotal(response.data.total || 0);
+      }
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // Load payments
+  const loadPayments = async () => {
+    setLoadingPayments(true);
+    try {
+      const response = await adminApiService.getPayments(paymentsPage, 50, paymentsFilter);
+      if (response.success && response.data) {
+        setPayments(response.data.payments || []);
+        setPaymentsTotal(response.data.total || 0);
+      }
+    } catch (error) {
+      console.error('Failed to load payments:', error);
+    } finally {
+      setLoadingPayments(false);
+    }
+  };
+
+  // Load data when tab changes
+  useEffect(() => {
+    if (activeTab === 'users') {
+      loadUsers();
+    } else if (activeTab === 'payments') {
+      loadPayments();
+    }
+  }, [activeTab, usersPage, usersSearch, usersFilter, paymentsPage, paymentsFilter]);
+
+  // Manual refresh
+  const handleRefresh = () => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'request_stats' }));
+    }
+    
+    // Refresh current tab data
+    if (activeTab === 'users') {
+      loadUsers();
+    } else if (activeTab === 'payments') {
+      loadPayments();
+    }
+  };
+
+  // Handle user actions
+  const handleBlockUser = async (userId: number) => {
+    if (!confirm('آیا از مسدود کردن این کاربر اطمینان دارید؟')) return;
+    
+    const response = await adminApiService.blockUser(userId);
+    if (response.success) {
+      alert('✅ کاربر مسدود شد');
+      loadUsers();
+    } else {
+      alert('❌ خطا: ' + response.error);
+    }
+  };
+
+  const handleUnblockUser = async (userId: number) => {
+    const response = await adminApiService.unblockUser(userId);
+    if (response.success) {
+      alert('✅ مسدودیت کاربر رفع شد');
+      loadUsers();
+    } else {
+      alert('❌ خطا: ' + response.error);
+    }
+  };
+
+  const handleChangePlan = async (userId: number) => {
+    const planType = prompt('نوع پلن را وارد کنید:\nfree, starter, pro, ultimate');
+    if (!planType) return;
+    
+    const response = await adminApiService.changeUserPlan(userId, planType);
+    if (response.success) {
+      alert('✅ پلن کاربر تغییر کرد');
+      loadUsers();
+    } else {
+      alert('❌ خطا: ' + response.error);
+    }
+  };
+
+  const handleDeleteUser = async (userId: number) => {
+    if (!confirm('آیا از حذف این کاربر اطمینان دارید؟')) return;
+    
+    const response = await adminApiService.deleteUser(userId);
+    if (response.success) {
+      alert('✅ کاربر حذف شد');
+      loadUsers();
+    } else {
+      alert('❌ خطا: ' + response.error);
+    }
+  };
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fa-IR').format(amount) + ' تومان';
+  };
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fa-IR');
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0e0817' }}>
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#5a189a]/30 border-t-[#5a189a] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-lg">در حال اتصال به پنل مدیریت...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen pb-20" style={{ backgroundColor: '#0e0817' }}>
+      {/* Header */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
+        <div className="flex items-center justify-between p-4 max-w-7xl mx-auto">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-[#2c189a] via-[#5a189a] to-[#7222F2] rounded-xl flex items-center justify-center shadow-lg">
+              <Shield size={24} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">پنل مدیریت</h1>
+              <p className="text-xs text-white/70">MonetizeAI Admin Panel</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Connection Status */}
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
+              connected 
+                ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></div>
+              {connected ? 'متصل' : 'قطع شده'}
+            </div>
+
+            {/* Refresh Button */}
+            <button
+              onClick={handleRefresh}
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all duration-300"
+            >
+              <RefreshCw size={18} className="text-white" />
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex overflow-x-auto px-4 pb-2 gap-2 max-w-7xl mx-auto">
+          {[
+            { id: 'dashboard', label: 'داشبورد', icon: BarChart3 },
+            { id: 'users', label: 'کاربران', icon: Users },
+            { id: 'payments', label: 'پرداخت‌ها', icon: CreditCard },
+            { id: 'content', label: 'محتوا', icon: Package },
+            { id: 'analytics', label: 'آنالیتیکس', icon: LineChart },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'bg-white/20 text-white shadow-lg'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Icon size={16} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="pt-32 px-4 max-w-7xl mx-auto">
+        {activeTab === 'dashboard' && stats && (
+          <div className="space-y-6">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <Users size={20} className="text-blue-400" />
+                  <span className="text-gray-400 text-sm">کل کاربران</span>
+                </div>
+                <p className="text-3xl font-bold text-white">{stats.totalUsers.toLocaleString('fa-IR')}</p>
+                <p className="text-xs text-green-400 mt-1">
+                  {stats.activeUsers.toLocaleString('fa-IR')} فعال
+                </p>
+              </div>
+
+              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <DollarSign size={20} className="text-green-400" />
+                  <span className="text-gray-400 text-sm">درآمد ماه</span>
+                </div>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(stats.monthRevenue)}
+                </p>
+                <p className="text-xs text-blue-400 mt-1">
+                  امروز: {formatCurrency(stats.todayRevenue)}
+                </p>
+              </div>
+
+              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <UserCheck size={20} className="text-purple-400" />
+                  <span className="text-gray-400 text-sm">کاربران پولی</span>
+                </div>
+                <p className="text-3xl font-bold text-white">{stats.paidUsers.toLocaleString('fa-IR')}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {stats.freeTrialUsers.toLocaleString('fa-IR')} تست رایگان
+                </p>
+              </div>
+
+              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <Activity size={20} className="text-orange-400" />
+                  <span className="text-gray-400 text-sm">ادمین‌های آنلاین</span>
+                </div>
+                <p className="text-3xl font-bold text-white">{stats.onlineAdmins}</p>
+                <p className="text-xs text-yellow-400 mt-1">
+                  {stats.pendingLicenses.toLocaleString('fa-IR')} لایسنس در انتظار
+                </p>
+              </div>
+            </div>
+
+            {/* Recent Users */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Users size={20} />
+                کاربران اخیر
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-700/60">
+                      <th className="text-right text-xs text-gray-400 pb-2">نام</th>
+                      <th className="text-right text-xs text-gray-400 pb-2">نوع اشتراک</th>
+                      <th className="text-right text-xs text-gray-400 pb-2">امتیاز</th>
+                      <th className="text-right text-xs text-gray-400 pb-2">تاریخ</th>
+                      <th className="text-right text-xs text-gray-400 pb-2">وضعیت</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.recentUsers.map((user) => (
+                      <tr key={user.ID} className="border-b border-gray-700/30">
+                        <td className="py-3 text-white text-sm">
+                          {user.FirstName || user.Username}
+                        </td>
+                        <td className="py-3 text-gray-300 text-sm">
+                          {user.PlanName || user.SubscriptionType}
+                        </td>
+                        <td className="py-3 text-blue-400 text-sm">
+                          {user.Points}
+                        </td>
+                        <td className="py-3 text-gray-400 text-xs">
+                          {formatDate(user.CreatedAt)}
+                        </td>
+                        <td className="py-3">
+                          {user.IsActive && !user.IsBlocked ? (
+                            <CheckCircle size={16} className="text-green-400" />
+                          ) : (
+                            <XCircle size={16} className="text-red-400" />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Recent Payments */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <CreditCard size={20} />
+                پرداخت‌های اخیر
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-700/60">
+                      <th className="text-right text-xs text-gray-400 pb-2">نوع</th>
+                      <th className="text-right text-xs text-gray-400 pb-2">مبلغ</th>
+                      <th className="text-right text-xs text-gray-400 pb-2">وضعیت</th>
+                      <th className="text-right text-xs text-gray-400 pb-2">تاریخ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.recentPayments.map((payment) => (
+                      <tr key={payment.ID} className="border-b border-gray-700/30">
+                        <td className="py-3 text-white text-sm">
+                          {payment.Type}
+                        </td>
+                        <td className="py-3 text-green-400 text-sm font-bold">
+                          {formatCurrency(payment.Amount)}
+                        </td>
+                        <td className="py-3">
+                          <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                            payment.Status === 'success'
+                              ? 'bg-green-500/20 text-green-400'
+                              : payment.Status === 'pending'
+                              ? 'bg-yellow-500/20 text-yellow-400'
+                              : 'bg-red-500/20 text-red-400'
+                          }`}>
+                            {payment.Status}
+                          </span>
+                        </td>
+                        <td className="py-3 text-gray-400 text-xs">
+                          {formatDate(payment.CreatedAt)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Users Management */}
+        {activeTab === 'users' && (
+          <div className="space-y-6">
+            {/* Search & Filter */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="جستجو (نام، شماره تلفن)..."
+                    value={usersSearch}
+                    onChange={(e) => setUsersSearch(e.target.value)}
+                    className="w-full pr-10 pl-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/60"
+                  />
+                </div>
+                <select
+                  value={usersFilter}
+                  onChange={(e) => setUsersFilter(e.target.value)}
+                  className="px-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white focus:outline-none focus:border-purple-500/60"
+                >
+                  <option value="all">همه کاربران</option>
+                  <option value="free_trial">تست رایگان</option>
+                  <option value="paid">پولی</option>
+                  <option value="blocked">مسدود شده</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Users Table */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Users size={20} />
+                مدیریت کاربران ({usersTotal.toLocaleString('fa-IR')})
+              </h3>
+              
+              {loadingUsers ? (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 border-4 border-[#5a189a]/30 border-t-[#5a189a] rounded-full animate-spin mx-auto"></div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-700/60">
+                        <th className="text-right text-xs text-gray-400 pb-2 px-2">نام</th>
+                        <th className="text-right text-xs text-gray-400 pb-2 px-2">تلفن</th>
+                        <th className="text-right text-xs text-gray-400 pb-2 px-2">اشتراک</th>
+                        <th className="text-right text-xs text-gray-400 pb-2 px-2">امتیاز</th>
+                        <th className="text-right text-xs text-gray-400 pb-2 px-2">وضعیت</th>
+                        <th className="text-center text-xs text-gray-400 pb-2 px-2">عملیات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user) => (
+                        <tr key={user.ID} className="border-b border-gray-700/30 hover:bg-gray-800/20">
+                          <td className="py-3 px-2 text-white text-sm">
+                            {user.FirstName || user.Username || '-'}
+                          </td>
+                          <td className="py-3 px-2 text-gray-300 text-xs">
+                            {user.PhoneNumber || '-'}
+                          </td>
+                          <td className="py-3 px-2">
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                              user.PlanName === 'ultimate'
+                                ? 'bg-green-500/20 text-green-400'
+                                : user.PlanName === 'pro'
+                                ? 'bg-purple-500/20 text-purple-400'
+                                : user.PlanName === 'starter'
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : 'bg-gray-500/20 text-gray-400'
+                            }`}>
+                              {user.PlanName || user.SubscriptionType || 'free'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 text-blue-400 text-sm">
+                            {user.Points}
+                          </td>
+                          <td className="py-3 px-2">
+                            {user.IsActive && !user.IsBlocked ? (
+                              <CheckCircle size={16} className="text-green-400" />
+                            ) : user.IsBlocked ? (
+                              <Ban size={16} className="text-red-400" />
+                            ) : (
+                              <XCircle size={16} className="text-gray-400" />
+                            )}
+                          </td>
+                          <td className="py-3 px-2">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => handleChangePlan(user.ID)}
+                                className="p-1.5 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg transition-colors"
+                                title="تغییر پلن"
+                              >
+                                <Edit size={14} className="text-blue-400" />
+                              </button>
+                              {user.IsBlocked ? (
+                                <button
+                                  onClick={() => handleUnblockUser(user.ID)}
+                                  className="p-1.5 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition-colors"
+                                  title="رفع مسدودیت"
+                                >
+                                  <Unlock size={14} className="text-green-400" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleBlockUser(user.ID)}
+                                  className="p-1.5 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors"
+                                  title="مسدود کردن"
+                                >
+                                  <Ban size={14} className="text-red-400" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeleteUser(user.ID)}
+                                className="p-1.5 bg-gray-500/20 hover:bg-gray-500/30 rounded-lg transition-colors"
+                                title="حذف"
+                              >
+                                <Trash2 size={14} className="text-gray-400" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  
+                  {/* Pagination */}
+                  {usersTotal > 50 && (
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-700/60">
+                      <button
+                        onClick={() => setUsersPage(p => Math.max(1, p - 1))}
+                        disabled={usersPage === 1}
+                        className="px-4 py-2 bg-gray-700/40 hover:bg-gray-700/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm transition-colors"
+                      >
+                        قبلی
+                      </button>
+                      <span className="text-gray-400 text-sm">
+                        صفحه {usersPage.toLocaleString('fa-IR')} از {Math.ceil(usersTotal / 50).toLocaleString('fa-IR')}
+                      </span>
+                      <button
+                        onClick={() => setUsersPage(p => p + 1)}
+                        disabled={usersPage >= Math.ceil(usersTotal / 50)}
+                        className="px-4 py-2 bg-gray-700/40 hover:bg-gray-700/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm transition-colors"
+                      >
+                        بعدی
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Payments Management */}
+        {activeTab === 'payments' && (
+          <div className="space-y-6">
+            {/* Filter */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+              <div className="flex items-center gap-4">
+                <Filter size={18} className="text-gray-400" />
+                <select
+                  value={paymentsFilter}
+                  onChange={(e) => setPaymentsFilter(e.target.value)}
+                  className="flex-1 px-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white focus:outline-none focus:border-purple-500/60"
+                >
+                  <option value="all">همه تراکنش‌ها</option>
+                  <option value="success">موفق</option>
+                  <option value="pending">در انتظار</option>
+                  <option value="failed">ناموفق</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Payments Table */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <CreditCard size={20} />
+                مدیریت پرداخت‌ها ({paymentsTotal.toLocaleString('fa-IR')})
+              </h3>
+              
+              {loadingPayments ? (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 border-4 border-[#5a189a]/30 border-t-[#5a189a] rounded-full animate-spin mx-auto"></div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-700/60">
+                        <th className="text-right text-xs text-gray-400 pb-2 px-2">ID</th>
+                        <th className="text-right text-xs text-gray-400 pb-2 px-2">نوع پلن</th>
+                        <th className="text-right text-xs text-gray-400 pb-2 px-2">مبلغ</th>
+                        <th className="text-right text-xs text-gray-400 pb-2 px-2">وضعیت</th>
+                        <th className="text-right text-xs text-gray-400 pb-2 px-2">تاریخ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payments.map((payment) => (
+                        <tr key={payment.ID} className="border-b border-gray-700/30 hover:bg-gray-800/20">
+                          <td className="py-3 px-2 text-white text-sm">
+                            #{payment.ID}
+                          </td>
+                          <td className="py-3 px-2 text-gray-300 text-sm">
+                            {payment.Type}
+                          </td>
+                          <td className="py-3 px-2 text-green-400 text-sm font-bold">
+                            {formatCurrency(payment.Amount)}
+                          </td>
+                          <td className="py-3 px-2">
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                              payment.Status === 'success'
+                                ? 'bg-green-500/20 text-green-400'
+                                : payment.Status === 'pending'
+                                ? 'bg-yellow-500/20 text-yellow-400'
+                                : 'bg-red-500/20 text-red-400'
+                            }`}>
+                              {payment.Status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 text-gray-400 text-xs">
+                            {formatDate(payment.CreatedAt)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  
+                  {/* Pagination */}
+                  {paymentsTotal > 50 && (
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-700/60">
+                      <button
+                        onClick={() => setPaymentsPage(p => Math.max(1, p - 1))}
+                        disabled={paymentsPage === 1}
+                        className="px-4 py-2 bg-gray-700/40 hover:bg-gray-700/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm transition-colors"
+                      >
+                        قبلی
+                      </button>
+                      <span className="text-gray-400 text-sm">
+                        صفحه {paymentsPage.toLocaleString('fa-IR')} از {Math.ceil(paymentsTotal / 50).toLocaleString('fa-IR')}
+                      </span>
+                      <button
+                        onClick={() => setPaymentsPage(p => p + 1)}
+                        disabled={paymentsPage >= Math.ceil(paymentsTotal / 50)}
+                        className="px-4 py-2 bg-gray-700/40 hover:bg-gray-700/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm transition-colors"
+                      >
+                        بعدی
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Content & Analytics - Coming Soon */}
+        {(activeTab === 'content' || activeTab === 'analytics') && (
+          <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 text-center" style={{ backgroundColor: '#10091c' }}>
+            <p className="text-white text-lg mb-2">🚧 در حال توسعه</p>
+            <p className="text-gray-400 text-sm">
+              بخش {activeTab === 'content' ? 'مدیریت محتوا' : 'آنالیتیکس'} به زودی اضافه خواهد شد
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AdminPanel;
+

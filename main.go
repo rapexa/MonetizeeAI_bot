@@ -40,14 +40,14 @@ func initDB() {
 		log.Fatal("Failed to get database instance:", err)
 	}
 	// Increased pool size for better concurrency
-	sqlDB.SetMaxIdleConns(25)        // Increased from 10
-	sqlDB.SetMaxOpenConns(150)       // Increased from 100
+	sqlDB.SetMaxIdleConns(25)                  // Increased from 10
+	sqlDB.SetMaxOpenConns(150)                 // Increased from 100
 	sqlDB.SetConnMaxLifetime(30 * time.Minute) // Reduced from 1 hour for better connection recycling
 	sqlDB.SetConnMaxIdleTime(10 * time.Minute) // Close idle connections after 10 minutes
-	
+
 	// Start user cache cleanup
 	userCache.CleanupExpired()
-	
+
 	logger.Info("Performance optimizations enabled: User cache, Session cache, Connection pooling")
 
 	// Auto-migrate the schema
@@ -101,6 +101,14 @@ func init() {
 	} else {
 		logger.Info("Groq AI client initialized successfully")
 	}
+
+	// Start Admin WebSocket Hub
+	go adminHub.Run()
+	logger.Info("Admin WebSocket hub started")
+
+	// Start real-time stats broadcaster (every 5 seconds)
+	startStatsBroadcaster()
+	logger.Info("Admin stats broadcaster started")
 
 	// Start Web API server (optional, controlled by environment variable)
 	StartWebAPI()
@@ -285,7 +293,8 @@ func handleMessage(update tgbotapi.Update) {
 			sendMessage(update.Message.Chat.ID, response)
 			return
 		case "💎 مدیریت اشتراک‌ها":
-			handleManageSubscriptions(admin)
+			response := handleManageSubscriptions(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
 			return
 		}
 
