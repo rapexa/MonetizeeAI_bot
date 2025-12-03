@@ -2317,8 +2317,8 @@ func handleQuizEvaluation(c *gin.Context) {
 			zap.Int("old_session", user.CurrentSession),
 			zap.Int("new_session", newSession))
 
-		// Update in database
-		if err := db.Model(&user).Update("current_session", newSession).Error; err != nil {
+		// Update in database - MUST use explicit WHERE clause
+		if err := db.Model(&User{}).Where("telegram_id = ?", user.TelegramID).Update("current_session", newSession).Error; err != nil {
 			logger.Error("Failed to update user session after quiz",
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("new_session", newSession),
