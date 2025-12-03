@@ -1776,25 +1776,44 @@ const Levels: React.FC = () => {
           
           // If passed and next stage unlocked, update progress
           if (passed && next_stage_unlocked) {
-            logger.debug('🎉 Quiz passed! Unlocking next stage...');
+            logger.debug('🎉 Quiz passed! Unlocking next stage...', {
+              stageId: selectedStage.id,
+              nextStageId: selectedStage.id + 1,
+              currentSessionBefore: userData.currentSession
+            });
             setPassedStages(prev => new Set([...prev, selectedStage.id + 1]));
             
             // Refresh user data to get updated progress from API
             // This will update userData.currentSession from the backend
             logger.debug('🔄 Refreshing user data from API...');
-            await refreshUserDataFromContext();
-            
-            // Wait a bit for React state to update after refresh
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Re-generate levels to reflect the updated status
-            // This will use the updated userData.currentSession
-            setLevels(generateLevels());
-            
-            logger.debug('✅ User progress updated:', {
-              currentSession: userData.currentSession,
-              nextStageId: selectedStage.id + 1,
-              nextStageUnlocked: next_stage_unlocked
+            try {
+              await refreshUserDataFromContext();
+              
+              // Wait a bit for React state to update after refresh
+              await new Promise(resolve => setTimeout(resolve, 800));
+              
+              // Re-generate levels to reflect the updated status
+              // This will use the updated userData.currentSession
+              const updatedLevels = generateLevels();
+              setLevels(updatedLevels);
+              
+              logger.debug('✅ User progress updated:', {
+                currentSessionBefore: userData.currentSession,
+                currentSessionAfter: userData.currentSession, // This might not be updated yet due to React state timing
+                nextStageId: selectedStage.id + 1,
+                nextStageUnlocked: next_stage_unlocked,
+                levelsRegenerated: true
+              });
+            } catch (refreshError) {
+              logger.error('❌ Error refreshing user data after quiz pass:', refreshError);
+              // Still regenerate levels even if refresh failed
+              setLevels(generateLevels());
+            }
+          } else if (passed && !next_stage_unlocked) {
+            logger.warn('⚠️ Quiz passed but next stage not unlocked', {
+              stageId: selectedStage.id,
+              passed,
+              next_stage_unlocked
             });
           }
           

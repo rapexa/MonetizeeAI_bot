@@ -2183,6 +2183,12 @@ func handleQuizEvaluation(c *gin.Context) {
 	answersStr := string(answersJSON)
 
 	// Evaluate using dedicated Groq evaluation (Persian-only, colloquial)
+	logger.Info("Starting quiz evaluation",
+		zap.Int64("user_id", user.TelegramID),
+		zap.Int("stage_id", req.StageID),
+		zap.String("session_title", session.Title),
+		zap.Int("answers_count", len(req.Answers)))
+	
 	approved, feedback, evalErr := groqClient.GenerateExerciseEvaluation(
 		session.Title,
 		session.Description,
@@ -2200,6 +2206,12 @@ func handleQuizEvaluation(c *gin.Context) {
 		if feedback == "" {
 			feedback = "ارزیابی با خطا مواجه شد. لطفاً دوباره ارسال کن یا پاسخ‌ها رو کمی دقیق‌تر بنویس."
 		}
+	} else {
+		logger.Info("Quiz evaluation completed",
+			zap.Int64("user_id", user.TelegramID),
+			zap.Int("stage_id", req.StageID),
+			zap.Bool("approved", approved),
+			zap.Int("feedback_length", len(feedback)))
 	}
 	// Default score based on approval (Groq evaluation doesn't return SCORE)
 	score := 0

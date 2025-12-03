@@ -123,12 +123,21 @@ func (g *GroqClient) GenerateExerciseEvaluation(sessionTitle, sessionDesc, video
 2. درک مفاهیم کلیدی
 3. کامل و قابل اجرا بودن پاسخ
 
-فرمت پاسخ:
-APPROVED: [yes یا no]
+⚠️ مهم: حتماً باید پاسخ رو دقیقاً به این فرمت بدهی (بدون تغییر):
+APPROVED: yes
 FEEDBACK: [بازخورد دقیق، سازنده و کاربردی به فارسیِ خودمونی]
 
-اگه تایید شد، بازخورد مثبت و نکات بعدی بده.
-اگه رد شد، قدم‌های بهبود عملی پیشنهاد بده.`
+یا
+
+APPROVED: no
+FEEDBACK: [بازخورد دقیق، سازنده و کاربردی به فارسیِ خودمونی]
+
+نکات مهم:
+- APPROVED باید حتماً "yes" یا "no" باشه (به انگلیسی)
+- FEEDBACK باید بعد از APPROVED بیاد
+- اگه تایید شد، APPROVED: yes بزن و بازخورد مثبت و نکات بعدی بده
+- اگه رد شد، APPROVED: no بزن و قدم‌های بهبود عملی پیشنهاد بده
+- فقط اگر پاسخ واقعاً کامل و درست بود، APPROVED: yes بزن`
 
 	userPrompt := fmt.Sprintf(`عنوان جلسه: %s
 توضیحات جلسه: %s
@@ -144,28 +153,62 @@ FEEDBACK: [بازخورد دقیق، سازنده و کاربردی به فار�
 		return false, "", err
 	}
 
+	// Log raw response for debugging
+	logger.Info("Raw AI evaluation response",
+		zap.String("response", response),
+		zap.Int("response_length", len(response)))
+
 	// Parse response
 	approved := false
 	feedback := ""
 
 	lines := splitLines(response)
 	for _, line := range lines {
+		lineLower := toLowerCase(line)
 		if contains(line, "APPROVED:") {
-			approved = contains(toLowerCase(line), "yes")
+			// Check for various approval indicators
+			approved = contains(lineLower, "yes") ||
+				contains(line, "بله") ||
+				contains(line, "تایید") ||
+				contains(line, "موفق") ||
+				contains(line, "قبول")
+
+			// Also check for explicit rejection
+			if contains(lineLower, "no") ||
+				contains(line, "خیر") ||
+				contains(line, "رد") ||
+				contains(line, "ناموفق") {
+				approved = false
+			}
+
+			logger.Info("Parsed APPROVED status",
+				zap.Bool("approved", approved),
+				zap.String("line", line))
 		} else if contains(line, "FEEDBACK:") {
 			feedback = trimSpace(trimPrefix(line, "FEEDBACK:"))
+			logger.Info("Parsed FEEDBACK",
+				zap.String("feedback", feedback))
 		}
 	}
 
 	// اگر feedback خالی بود، از کل response استفاده کن
 	if feedback == "" {
 		feedback = response
+		logger.Info("Using full response as feedback (no FEEDBACK: found)")
 	}
+
 	// Sanitize only the feedback to enforce Persian-only output
+	feedbackBeforeSanitize := feedback
 	feedback = sanitizePersianText(feedback)
 	if feedback == "" {
 		feedback = "خروجی پاکسازی شد. لطفاً دوباره به فارسی روان ارسال کن."
+		logger.Warn("Feedback was completely sanitized away",
+			zap.String("original", feedbackBeforeSanitize))
 	}
+
+	logger.Info("Final evaluation result",
+		zap.Bool("approved", approved),
+		zap.Int("feedback_length", len(feedback)))
 
 	return approved, feedback, nil
 }
