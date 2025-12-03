@@ -371,30 +371,47 @@ const Levels: React.FC = () => {
       logger.debug('🚀 Setting selected stage and navigating:', {
         stageId: nextStage.id,
         stageTitle: nextStage.title,
-        stageStatus: nextStage.status
+        stageStatus: nextStage.status,
+        hasVideos: !!nextStage.videos,
+        videosCount: nextStage.videos?.length || 0,
+        videoUrl: nextStage.videoUrl
       });
       
       // Close quiz modal FIRST
       setShowQuiz(false);
       
-      // Update selected level and stage
-      setSelectedLevel(nextLevel);
-      setSelectedStage(nextStage);
-      
-      // IMPORTANT: Stay in stage-detail view
-      setViewMode('stage-detail');
-      
-      // Reset quiz states for next stage
+      // Reset quiz states for next stage BEFORE updating selected stage
       setCurrentQuestion(0);
       setUserAnswers({});
       setQuizCompleted(false);
       setQuizResult(null);
       setRewardGranted(false);
       
-      // Scroll to top smoothly
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      
-      logger.debug('✅ Successfully navigated to next stage');
+      // Use setTimeout to ensure modal is closed before navigation
+      setTimeout(() => {
+        // Clear video refs to force re-render of video elements
+        videoRefs.current = {};
+        
+        // Update selected level and stage
+        setSelectedLevel(nextLevel);
+        setSelectedStage(nextStage);
+        
+        // IMPORTANT: Stay in stage-detail view
+        setViewMode('stage-detail');
+        
+        // Scroll to top after a small delay to ensure DOM is updated
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+          logger.debug('📜 Scrolled to top');
+        }, 100);
+        
+        logger.debug('✅ Successfully navigated to next stage:', {
+          stageId: nextStage.id,
+          stageTitle: nextStage.title,
+          videos: nextStage.videos,
+          videoUrl: nextStage.videoUrl
+        });
+      }, 100);
     } else {
       logger.error('❌ Next stage not found after all attempts!', {
         nextId,
@@ -2095,10 +2112,23 @@ const Levels: React.FC = () => {
     const nextStage = selectedLevel.stages.find(s => s.id === nextStageId);
     
     if (nextStage) {
+      // CRITICAL: Clear video refs to force re-render of video elements
+      videoRefs.current = {};
+      
       // Move to next stage in same level
       setSelectedStage(nextStage);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      logger.debug('✅ Moved to next stage:', nextStage.title);
+      
+      // Scroll to top with instant behavior for better UX
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }, 50);
+      
+      logger.debug('✅ Moved to next stage:', {
+        stageId: nextStage.id,
+        stageTitle: nextStage.title,
+        hasVideos: !!nextStage.videos,
+        videoUrl: nextStage.videoUrl
+      });
     } else {
       // Try to move to next level
       const currentLevelIndex = levels.findIndex(l => l.id === selectedLevel.id);
@@ -2112,10 +2142,24 @@ const Levels: React.FC = () => {
         const nextLevel = levels[currentLevelIndex + 1];
         const firstStageOfNextLevel = nextLevel.stages[0];
         if (firstStageOfNextLevel) {
+          // CRITICAL: Clear video refs to force re-render of video elements
+          videoRefs.current = {};
+          
           setSelectedLevel(nextLevel);
           setSelectedStage(firstStageOfNextLevel);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          logger.debug('✅ Moved to next level:', nextLevel.title, 'stage:', firstStageOfNextLevel.title);
+          
+          // Scroll to top with instant behavior for better UX
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'instant' });
+          }, 50);
+          
+          logger.debug('✅ Moved to next level:', {
+            levelTitle: nextLevel.title,
+            stageId: firstStageOfNextLevel.id,
+            stageTitle: firstStageOfNextLevel.title,
+            hasVideos: !!firstStageOfNextLevel.videos,
+            videoUrl: firstStageOfNextLevel.videoUrl
+          });
         }
       } else {
         logger.debug('🎉 User has completed all levels!');
