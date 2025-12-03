@@ -389,8 +389,10 @@ const Levels: React.FC = () => {
       
       // Use setTimeout to ensure modal is closed before navigation
       setTimeout(() => {
-        // Clear video refs to force re-render of video elements
+        // CRITICAL: Reset all video-related states
         videoRefs.current = {};
+        setPseudoFullscreenIdx(null);
+        setIsFullscreen(false);
         
         // Update selected level and stage
         setSelectedLevel(nextLevel);
@@ -2112,8 +2114,10 @@ const Levels: React.FC = () => {
     const nextStage = selectedLevel.stages.find(s => s.id === nextStageId);
     
     if (nextStage) {
-      // CRITICAL: Clear video refs to force re-render of video elements
+      // CRITICAL: Reset all video-related states
       videoRefs.current = {};
+      setPseudoFullscreenIdx(null);
+      setIsFullscreen(false);
       
       // Move to next stage in same level
       setSelectedStage(nextStage);
@@ -2142,8 +2146,10 @@ const Levels: React.FC = () => {
         const nextLevel = levels[currentLevelIndex + 1];
         const firstStageOfNextLevel = nextLevel.stages[0];
         if (firstStageOfNextLevel) {
-          // CRITICAL: Clear video refs to force re-render of video elements
+          // CRITICAL: Reset all video-related states
           videoRefs.current = {};
+          setPseudoFullscreenIdx(null);
+          setIsFullscreen(false);
           
           setSelectedLevel(nextLevel);
           setSelectedStage(firstStageOfNextLevel);
@@ -3662,10 +3668,11 @@ const Levels: React.FC = () => {
                       {/* Video Player(s) */}
                       {selectedStage.videos && selectedStage.videos.length > 0 ? (
                         selectedStage.videos.map((video, index) => (
-                          <div key={index} className="mb-4">
+                          <div key={`${selectedStage.id}-video-${index}`} className="mb-4">
                             <div className={`relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4 ${pseudoFullscreenIdx === index ? 'fixed inset-0 z-[9999]' : ''}`}>
                               <div className={`aspect-video relative ${pseudoFullscreenIdx === index ? 'w-screen h-screen' : ''}`}>
                                 <video 
+                                  key={`${selectedStage.id}-video-element-${index}`}
                                   ref={(el) => videoRefs.current[index] = el}
                                   controls 
                                   controlsList="nodownload"
@@ -3703,10 +3710,11 @@ const Levels: React.FC = () => {
                         ))
                       ) : selectedStage.videoUrl ? (
                         // Legacy single video support
-                        <div className="mb-4">
+                        <div key={`${selectedStage.id}-legacy-video`} className="mb-4">
                           <div className={`relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4 ${pseudoFullscreenIdx === -1 ? 'fixed inset-0 z-[9999]' : ''}`}>
                             <div className={`aspect-video relative ${pseudoFullscreenIdx === -1 ? 'w-screen h-screen' : ''}`}>
                               <video 
+                                key={`${selectedStage.id}-legacy-video-element`}
                                 ref={(el) => videoRefs.current[-1] = el}
                                 controls 
                                 controlsList="nodownload"
