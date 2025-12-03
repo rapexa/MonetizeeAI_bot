@@ -115,15 +115,28 @@ func (g *GroqClient) GenerateMonetizeAIResponse(userMessage string) (string, err
 
 // GenerateExerciseEvaluation evaluates student exercise submissions
 func (g *GroqClient) GenerateExerciseEvaluation(sessionTitle, sessionDesc, videoTitle, videoDesc, submission string) (bool, string, error) {
-	systemPrompt := `تو یک مربی حرفه‌ای هستی که تمرین‌های دانشجوها رو ارزیابی می‌کنی و فقط به فارسیِ روان و خودمونی جواب می‌دی.
+	systemPrompt := `تو یک مربی حرفه‌ای و مهربان هستی که تمرین‌های دانشجوها رو ارزیابی می‌کنی. هدف تو کمک به پیشرفت دانشجوهاست، نه سخت‌گیری بی‌دلیل.
+
 کاربر را با «مانیتایزر عزیز» خطاب کن.
 
-معیارهای ارزیابی:
-1. همخوانی با اهداف یادگیری
-2. درک مفاهیم کلیدی
-3. کامل و قابل اجرا بودن پاسخ
+🎯 معیارهای ارزیابی (لطفاً منصفانه و مهربان باش):
+1. همخوانی با اهداف یادگیری - اگر دانشجو نشان داده که مفاهیم رو فهمیده، تایید کن
+2. درک مفاهیم کلیدی - اگر حتی بخشی از مفاهیم رو درک کرده، تایید کن
+3. تلاش و کوشش - اگر دانشجو تلاش کرده و پاسخ داده، حتی اگر کامل نباشه، تایید کن
 
-⚠️ مهم: حتماً باید پاسخ رو دقیقاً به این فرمت بدهی (بدون تغییر):
+✅ قوانین تایید (APPROVED: yes):
+- اگر پاسخ نشان می‌دهد که دانشجو مفاهیم اصلی را فهمیده → تایید کن
+- اگر پاسخ مرتبط با موضوع است و نشان می‌دهد تلاش کرده → تایید کن
+- اگر پاسخ کوتاه است اما درست است → تایید کن
+- اگر پاسخ ناقص است اما نشان می‌دهد درک اولیه دارد → تایید کن
+- فقط اگر پاسخ کاملاً نامرتبط یا خالی است → رد کن
+
+❌ فقط در این موارد رد کن (APPROVED: no):
+- پاسخ کاملاً خالی یا نامرتبط
+- هیچ تلاشی برای پاسخ دادن نشده
+- پاسخ نشان می‌دهد که هیچ درکی از موضوع ندارد
+
+⚠️ فرمت پاسخ (حتماً رعایت کن):
 APPROVED: yes
 FEEDBACK: [بازخورد دقیق، سازنده و کاربردی به فارسیِ خودمونی]
 
@@ -133,11 +146,9 @@ APPROVED: no
 FEEDBACK: [بازخورد دقیق، سازنده و کاربردی به فارسیِ خودمونی]
 
 نکات مهم:
-- APPROVED باید حتماً "yes" یا "no" باشه (به انگلیسی)
+- APPROVED باید حتماً "yes" یا "no" باشه (به انگلیسی و دقیقاً همین کلمات)
 - FEEDBACK باید بعد از APPROVED بیاد
-- اگه تایید شد، APPROVED: yes بزن و بازخورد مثبت و نکات بعدی بده
-- اگه رد شد، APPROVED: no بزن و قدم‌های بهبود عملی پیشنهاد بده
-- فقط اگر پاسخ واقعاً کامل و درست بود، APPROVED: yes بزن`
+- منصف باش و به دانشجو کمک کن تا پیشرفت کنه`
 
 	userPrompt := fmt.Sprintf(`عنوان جلسه: %s
 توضیحات جلسه: %s
@@ -163,31 +174,86 @@ FEEDBACK: [بازخورد دقیق، سازنده و کاربردی به فار�
 	feedback := ""
 
 	lines := splitLines(response)
+	approvedFound := false
+	feedbackFound := false
+	
 	for _, line := range lines {
-		lineLower := toLowerCase(line)
-		if contains(line, "APPROVED:") {
-			// Check for various approval indicators
-			approved = contains(lineLower, "yes") ||
-				contains(line, "بله") ||
-				contains(line, "تایید") ||
-				contains(line, "موفق") ||
-				contains(line, "قبول")
-
-			// Also check for explicit rejection
-			if contains(lineLower, "no") ||
-				contains(line, "خیر") ||
-				contains(line, "رد") ||
-				contains(line, "ناموفق") {
+		lineTrimmed := trimSpace(line)
+		lineLower := toLowerCase(lineTrimmed)
+		
+		// Check for APPROVED: line (must be exact format)
+		if contains(lineTrimmed, "APPROVED:") {
+			approvedFound = true
+			// Extract the value after APPROVED:
+			approvedPart := trimSpace(trimPrefix(lineTrimmed, "APPROVED:"))
+			approvedPartLower := toLowerCase(approvedPart)
+			
+			// Check for yes (exact match or contains)
+			if approvedPartLower == "yes" || 
+			   contains(approvedPartLower, "yes") ||
+			   approvedPart == "بله" ||
+			   contains(approvedPart, "بله") ||
+			   contains(approvedPart, "تایید") ||
+			   contains(approvedPart, "موفق") ||
+			   contains(approvedPart, "قبول") {
+				approved = true
+			}
+			
+			// Check for explicit no
+			if approvedPartLower == "no" || 
+			   contains(approvedPartLower, "no") ||
+			   approvedPart == "خیر" ||
+			   contains(approvedPart, "خیر") ||
+			   contains(approvedPart, "رد") ||
+			   contains(approvedPart, "ناموفق") {
 				approved = false
 			}
 
 			logger.Info("Parsed APPROVED status",
 				zap.Bool("approved", approved),
-				zap.String("line", line))
-		} else if contains(line, "FEEDBACK:") {
-			feedback = trimSpace(trimPrefix(line, "FEEDBACK:"))
+				zap.String("line", lineTrimmed),
+				zap.String("approved_part", approvedPart))
+		} else if contains(lineTrimmed, "FEEDBACK:") {
+			feedbackFound = true
+			feedback = trimSpace(trimPrefix(lineTrimmed, "FEEDBACK:"))
 			logger.Info("Parsed FEEDBACK",
-				zap.String("feedback", feedback))
+				zap.String("feedback", feedback),
+				zap.Int("feedback_length", len(feedback)))
+		}
+	}
+	
+	// If APPROVED not found, try to infer from response content
+	if !approvedFound {
+		logger.Warn("APPROVED: not found in response, trying to infer from content",
+			zap.String("response", response))
+		
+		responseLower := toLowerCase(response)
+		// If response contains positive indicators, assume approved
+		if contains(responseLower, "عالی") ||
+		   contains(responseLower, "خوب") ||
+		   contains(responseLower, "موفق") ||
+		   contains(responseLower, "درست") ||
+		   contains(responseLower, "قبول") ||
+		   contains(response, "تبریک") ||
+		   contains(response, "آفرین") {
+			approved = true
+			logger.Info("Inferred approved from positive content")
+		} else if contains(responseLower, "رد") ||
+		          contains(responseLower, "ناموفق") ||
+		          contains(responseLower, "نادرست") ||
+		          contains(response, "نیاز به") ||
+		          contains(response, "کم بود") {
+			approved = false
+			logger.Info("Inferred rejected from negative content")
+		} else {
+			// Default: if response is substantial, assume approved
+			if len(response) > 50 {
+				approved = true
+				logger.Info("Defaulting to approved for substantial response")
+			} else {
+				approved = false
+				logger.Info("Defaulting to rejected for short response")
+			}
 		}
 	}
 
