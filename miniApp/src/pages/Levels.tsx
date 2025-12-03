@@ -275,39 +275,81 @@ const Levels: React.FC = () => {
       logger.debug('🔄 Refreshing user data before navigation...');
       await refreshUserDataFromContext();
       // Wait for React state to update (refreshUserData updates context state)
-      // We need to wait for the state to propagate
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // The useEffect watching userData.currentSession will automatically regenerate levels
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    // find next stage - use the current levels array (which should be updated by useEffect)
+    // find next stage - levels should already be updated by useEffect
     let nextLevel: Level | null = null;
     let nextStage: Stage | null = null;
     
-    // Use the current levels state (which should be updated by useEffect when userData.currentSession changes)
+    // Search in current levels
     for (const lvl of levels) {
       const st = lvl.stages.find(s => s.id === nextId);
-      if (st) { nextLevel = lvl; nextStage = st; break; }
+      if (st) { 
+        nextLevel = lvl; 
+        nextStage = st; 
+        break; 
+      }
     }
     
-    // If not found in current levels, try regenerating (fallback)
+    // If still not found, force regenerate as last resort
     if (!nextLevel || !nextStage) {
-      logger.debug('⚠️ Next stage not found in current levels, regenerating...');
-      const updatedLevels = generateLevels();
-      setLevels(updatedLevels);
-      for (const lvl of updatedLevels) {
+      logger.warn('⚠️ Next stage not found in current levels, force regenerating...', {
+        nextId,
+        currentSession: userData.currentSession,
+        levelsCount: levels.length
+      });
+      
+      // Force regenerate with explicit wait
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const freshLevels = generateLevels();
+      setLevels(freshLevels);
+      
+      for (const lvl of freshLevels) {
         const st = lvl.stages.find(s => s.id === nextId);
         if (st) { nextLevel = lvl; nextStage = st; break; }
       }
     }
     
     if (nextLevel && nextStage) {
-      logger.debug('✅ Navigating to next stage:', {
+      const stageStatus = getStageStatus(nextStage.id);
+      
+      logger.debug('✅ Found next stage:', {
         nextStageId: nextStage.id,
         nextStageTitle: nextStage.title,
         nextLevelTitle: nextLevel.title,
-        nextStageStatus: getStageStatus(nextStage.id),
+        nextStageStatus: stageStatus,
         updatedCurrentSession: userData.currentSession
       });
+      
+      // Verify that the stage is actually available
+      if (stageStatus === 'locked') {
+        logger.error('⚠️ Next stage is still locked!', {
+          nextStageId: nextStage.id,
+          currentSession: userData.currentSession,
+          expectedCurrentSession: nextStage.id
+        });
+        
+        // Try one more time with forced refresh
+        logger.debug('🔄 Forcing one more refresh...');
+        if (isAPIConnected) {
+          await refreshUserDataFromContext();
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          const finalLevels = generateLevels();
+          setLevels(finalLevels);
+          
+          // Find stage again
+          for (const lvl of finalLevels) {
+            const st = lvl.stages.find(s => s.id === nextId);
+            if (st) { 
+              nextLevel = lvl; 
+              nextStage = st; 
+              break; 
+            }
+          }
+        }
+      }
       
       setSelectedLevel(nextLevel);
       setSelectedStage(nextStage);
@@ -552,6 +594,38 @@ const Levels: React.FC = () => {
       setLevels(generateLevels());
     }
   }, []);
+
+  // CRITICAL: Regenerate levels when currentSession changes (after quiz pass)
+  useEffect(() => {
+    if (userData.currentSession) {
+      logger.debug('🔄 userData.currentSession changed, regenerating levels...', {
+        currentSession: userData.currentSession,
+        levelsCount: levels.length
+      });
+      const updatedLevels = generateLevels();
+      setLevels(updatedLevels);
+      
+      // If we have a selected stage, update it with new status from regenerated levels
+      if (selectedStage) {
+        logger.debug('🔄 Updating selected stage with new status...');
+        let updatedStage: Stage | null = null;
+        for (const level of updatedLevels) {
+          const foundStage = level.stages.find(s => s.id === selectedStage.id);
+          if (foundStage) {
+            updatedStage = foundStage;
+            break;
+          }
+        }
+        if (updatedStage) {
+          setSelectedStage(updatedStage);
+          logger.debug('✅ Selected stage updated:', {
+            stageId: updatedStage.id,
+            status: updatedStage.status
+          });
+        }
+      }
+    }
+  }, [userData.currentSession]); // Only trigger when currentSession changes
 
   // Auto-select current level based on user progress
   useEffect(() => {
@@ -1789,25 +1863,17 @@ const Levels: React.FC = () => {
             try {
               await refreshUserDataFromContext();
               
-              // Wait a bit for React state to update after refresh
-              await new Promise(resolve => setTimeout(resolve, 800));
+              // Wait for React state to update after refresh
+              // The useEffect watching userData.currentSession will automatically regenerate levels
+              await new Promise(resolve => setTimeout(resolve, 1000));
               
-              // Re-generate levels to reflect the updated status
-              // This will use the updated userData.currentSession
-              const updatedLevels = generateLevels();
-              setLevels(updatedLevels);
-              
-              logger.debug('✅ User progress updated:', {
-                currentSessionBefore: userData.currentSession,
-                currentSessionAfter: userData.currentSession, // This might not be updated yet due to React state timing
+              logger.debug('✅ User progress updated, levels will be regenerated by useEffect:', {
+                currentSession: userData.currentSession,
                 nextStageId: selectedStage.id + 1,
-                nextStageUnlocked: next_stage_unlocked,
-                levelsRegenerated: true
+                nextStageUnlocked: next_stage_unlocked
               });
             } catch (refreshError) {
               logger.error('❌ Error refreshing user data after quiz pass:', refreshError);
-              // Still regenerate levels even if refresh failed
-              setLevels(generateLevels());
             }
           } else if (passed && !next_stage_unlocked) {
             logger.warn('⚠️ Quiz passed but next stage not unlocked', {
