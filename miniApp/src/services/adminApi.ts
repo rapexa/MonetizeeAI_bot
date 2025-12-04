@@ -74,11 +74,27 @@ async function makeRequest<T = any>(
       ...(body && { body: JSON.stringify(body) }),
     };
 
-    const response = await fetch(`${BASE_URL}${endpoint}`, options);
+    const fullURL = `${BASE_URL}${endpoint}`;
+    console.log('Making API request:', {
+      method,
+      url: fullURL,
+      hasBody: !!body,
+      headers: Object.keys(headers)
+    });
+    
+    const response = await fetch(fullURL, options);
     
     // Check if response is JSON
     const contentType = response.headers.get('content-type') || '';
     const isJSON = contentType.includes('application/json');
+    
+    console.log('API response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      contentType,
+      isJSON,
+      url: fullURL
+    });
     
     if (!isJSON) {
       // If not JSON, try to get text for error message
@@ -87,8 +103,8 @@ async function makeRequest<T = any>(
         status: response.status,
         statusText: response.statusText,
         contentType,
-        text: text.substring(0, 200), // First 200 chars
-        url: `${BASE_URL}${endpoint}`
+        text: text.substring(0, 500), // First 500 chars
+        url: fullURL
       });
       
       // Try to parse as JSON if it looks like JSON
@@ -107,7 +123,16 @@ async function makeRequest<T = any>(
           };
         } catch (e) {
           // Not valid JSON
+          console.error('Failed to parse as JSON:', e);
         }
+      }
+      
+      // If response is HTML (likely index.html from SPA routing), the endpoint wasn't reached
+      if (text.trim().startsWith('<!doctype') || text.trim().startsWith('<!DOCTYPE') || text.includes('<html')) {
+        return {
+          success: false,
+          error: `API endpoint not found. The request may have been intercepted by frontend routing. Please check that the endpoint ${fullURL} is correctly configured on the server.`,
+        };
       }
       
       return {

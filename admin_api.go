@@ -31,13 +31,19 @@ func setupAdminAPIRoutes(r *gin.Engine) {
 	// Start session cleanup
 	startSessionCleanup()
 	
-	// Auth routes (public)
+	// Auth routes (public) - must be accessible without authentication
 	adminAuth := r.Group("/api/v1/admin/auth")
 	{
 		adminAuth.POST("/login", handleWebLogin)
 		adminAuth.GET("/check", handleCheckAuth)
 		adminAuth.POST("/logout", handleWebLogout)
 	}
+	
+	// Log that routes are registered
+	logger.Info("Admin auth routes registered",
+		zap.String("POST /api/v1/admin/auth/login", "handleWebLogin"),
+		zap.String("GET /api/v1/admin/auth/check", "handleCheckAuth"),
+		zap.String("POST /api/v1/admin/auth/logout", "handleWebLogout"))
 
 	// Main admin routes group
 	admin := r.Group("/api/v1/admin")
@@ -119,6 +125,13 @@ func generateSessionToken() (string, error) {
 
 // Handle web login
 func handleWebLogin(c *gin.Context) {
+	// Log the request for debugging
+	logger.Info("Web login request received",
+		zap.String("path", c.Request.URL.Path),
+		zap.String("method", c.Request.Method),
+		zap.String("remote_addr", c.ClientIP()),
+		zap.String("content_type", c.GetHeader("Content-Type")))
+	
 	type LoginRequest struct {
 		Username string `json:"username" binding:"required"`
 		Password string `json:"password" binding:"required"`
@@ -126,6 +139,9 @@ func handleWebLogin(c *gin.Context) {
 
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Warn("Web login failed - invalid JSON",
+			zap.Error(err),
+			zap.String("remote_addr", c.ClientIP()))
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid request",

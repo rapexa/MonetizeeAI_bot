@@ -457,8 +457,11 @@ func StartWebAPI() {
 	})
 
 	// 🔐 Admin Panel API routes (WebSocket + REST)
+	// IMPORTANT: Must be registered BEFORE NoRoute middleware to ensure API routes work
 	setupAdminAPIRoutes(r)
-	logger.Info("Admin Panel API routes configured")
+	logger.Info("Admin Panel API routes configured", 
+		zap.String("admin_auth_login", "/api/v1/admin/auth/login"),
+		zap.String("admin_auth_check", "/api/v1/admin/auth/check"))
 
 	// Serve frontend static files (for admin-login and other frontend routes)
 	// This allows frontend React app to handle routing
@@ -481,16 +484,22 @@ func StartWebAPI() {
 				path = strings.ReplaceAll(path, "//", "/")
 			}
 			
-			// Skip API routes
+			// IMPORTANT: Skip API routes - they should be handled by registered routes
+			// This is a fallback for routes that don't match any registered route
 			if strings.HasPrefix(path, "/api/") {
+				// Log for debugging
+				logger.Warn("API route not found (NoRoute handler)",
+					zap.String("path", path),
+					zap.String("method", c.Request.Method),
+					zap.String("remote_addr", c.ClientIP()))
 				c.JSON(http.StatusNotFound, APIResponse{
 					Success: false,
-					Error:   "API endpoint not found",
+					Error:   "API endpoint not found: " + path,
 				})
 				return
 			}
 			
-			// Serve index.html for frontend routes
+			// Serve index.html for frontend routes (SPA routing)
 			indexPath := frontendPath + "/index.html"
 			if _, err := os.Stat(indexPath); err == nil {
 				c.File(indexPath)
