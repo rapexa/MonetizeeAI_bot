@@ -1,9 +1,12 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"MonetizeeAI_bot/logger"
@@ -12,8 +15,30 @@ import (
 	"go.uber.org/zap"
 )
 
+// Web session storage (in-memory, can be moved to Redis in production)
+var webSessions = make(map[string]WebSession)
+var webSessionsMutex sync.RWMutex
+
+type WebSession struct {
+	AdminID    uint
+	Username   string
+	ExpiresAt  time.Time
+	CreatedAt  time.Time
+}
+
 // Setup admin API routes
 func setupAdminAPIRoutes(r *gin.Engine) {
+	// Start session cleanup
+	startSessionCleanup()
+	
+	// Auth routes (public)
+	adminAuth := r.Group("/api/v1/admin/auth")
+	{
+		adminAuth.POST("/login", handleWebLogin)
+		adminAuth.GET("/check", handleCheckAuth)
+		adminAuth.POST("/logout", handleWebLogout)
+	}
+
 	// Main admin routes group
 	admin := r.Group("/api/v1/admin")
 	admin.Use(adminAuthMiddleware())
@@ -83,70 +108,248 @@ func setupAdminAPIRoutes(r *gin.Engine) {
 	}
 }
 
+// Generate secure random token
+func generateSessionToken() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
+// Handle web login
+func handleWebLogin(c *gin.Context) {
+	type LoginRequest struct {
+		Username string `json:"username" binding:"required"`
+		Password string `json:"password" binding:"required"`
+	}
+
+	var req LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Invalid request",
+		})
+		return
+	}
+
+	// Check credentials (hardcoded for now - can be moved to database)
+	if req.Username != "admin" || req.Password != "admin12345" {
+		logger.Warn("Web login failed - invalid credentials",
+			zap.String("username", req.Username),
+			zap.String("remote_addr", c.ClientIP()))
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Invalid username or password",
+		})
+		return
+	}
+
+	// Generate session token
+	token, err := generateSessionToken()
+	if err != nil {
+		logger.Error("Failed to generate session token", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Internal server error",
+		})
+		return
+	}
+
+	// Create session (24 hours expiry)
+	session := WebSession{
+		AdminID:   1, // Default admin ID
+		Username:  req.Username,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+		CreatedAt: time.Now(),
+	}
+
+	webSessionsMutex.Lock()
+	webSessions[token] = session
+	webSessionsMutex.Unlock()
+
+	// Clean up expired sessions
+	go cleanupExpiredSessions()
+
+	logger.Info("Web login successful",
+		zap.String("username", req.Username),
+		zap.String("remote_addr", c.ClientIP()))
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"token": token,
+			"username": req.Username,
+		},
+	})
+}
+
+// Handle check auth
+func handleCheckAuth(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "No token provided",
+		})
+		return
+	}
+
+	// Remove "Bearer " prefix if present
+	token = strings.TrimPrefix(token, "Bearer ")
+
+	webSessionsMutex.RLock()
+	session, exists := webSessions[token]
+	webSessionsMutex.RUnlock()
+
+	if !exists || time.Now().After(session.ExpiresAt) {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Invalid or expired token",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"username": session.Username,
+		},
+	})
+}
+
+// Handle web logout
+func handleWebLogout(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token != "" {
+		token = strings.TrimPrefix(token, "Bearer ")
+		webSessionsMutex.Lock()
+		delete(webSessions, token)
+		webSessionsMutex.Unlock()
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Logged out successfully",
+	})
+}
+
+// Cleanup expired sessions
+func cleanupExpiredSessions() {
+	webSessionsMutex.Lock()
+	defer webSessionsMutex.Unlock()
+
+	now := time.Now()
+	for token, session := range webSessions {
+		if now.After(session.ExpiresAt) {
+			delete(webSessions, token)
+		}
+	}
+}
+
+// Start periodic cleanup of expired sessions
+func startSessionCleanup() {
+	ticker := time.NewTicker(1 * time.Hour) // Cleanup every hour
+	go func() {
+		for range ticker.C {
+			cleanupExpiredSessions()
+			logger.Debug("Cleaned up expired web sessions")
+		}
+	}()
+}
+
 // Admin authentication middleware
 func adminAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 🔒 SECURITY: Admin Panel MUST be accessed through Telegram ONLY
-
-		// Check 1: Must have Telegram WebApp data
+		// Check 1: Try Telegram authentication first
 		initData := getTelegramInitDataFromRequest(c)
 		telegramWebApp := c.GetHeader("X-Telegram-WebApp")
 		startParam := c.GetHeader("X-Telegram-Start-Param")
 
-		if initData == "" && telegramWebApp == "" {
-			logger.Warn("Admin Panel access denied - No Telegram data",
-				zap.String("remote_addr", c.ClientIP()),
-				zap.String("user_agent", c.GetHeader("User-Agent")))
-			c.JSON(http.StatusForbidden, gin.H{
-				"error":   "Access Denied",
-				"message": "Admin Panel is only accessible through Telegram",
-			})
-			c.Abort()
-			return
-		}
+		if initData != "" || telegramWebApp != "" {
+			// Telegram authentication
+			telegramID, err := getTelegramIDFromRequest(c)
+			if err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"error":   "Unauthorized",
+					"message": "Invalid Telegram authentication",
+				})
+				c.Abort()
+				return
+			}
 
-		// Check 2: Validate Telegram init data and extract telegram_id
-		telegramID, err := getTelegramIDFromRequest(c)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error":   "Unauthorized",
-				"message": "Invalid Telegram authentication",
-			})
-			c.Abort()
-			return
-		}
+			var admin Admin
+			if err := db.Where("telegram_id = ? AND is_active = ?", telegramID, true).First(&admin).Error; err != nil {
+				logger.Warn("Admin Panel access denied - User is not an admin",
+					zap.Int64("telegram_id", telegramID),
+					zap.String("remote_addr", c.ClientIP()))
+				c.JSON(http.StatusForbidden, gin.H{
+					"error":   "Forbidden",
+					"message": "Admin access required",
+				})
+				c.Abort()
+				return
+			}
 
-		// Check 3: Verify user is an active admin
-		var admin Admin
-		if err := db.Where("telegram_id = ? AND is_active = ?", telegramID, true).First(&admin).Error; err != nil {
-			logger.Warn("Admin Panel access denied - User is not an admin",
-				zap.Int64("telegram_id", telegramID),
-				zap.String("remote_addr", c.ClientIP()))
-			c.JSON(http.StatusForbidden, gin.H{
-				"error":   "Forbidden",
-				"message": "Admin access required",
-			})
-			c.Abort()
-			return
-		}
+			if strings.HasPrefix(startParam, "admin_") {
+				logger.Info("Admin Panel access with start_param",
+					zap.Int64("admin_telegram_id", telegramID),
+					zap.String("start_param", startParam))
+			}
 
-		// Check 4 (Optional): Log start_param for debugging
-		if strings.HasPrefix(startParam, "admin_") {
-			logger.Info("Admin Panel access with start_param",
+			logger.Info("Admin Panel access granted (Telegram)",
 				zap.Int64("admin_telegram_id", telegramID),
-				zap.String("start_param", startParam))
+				zap.String("admin_username", admin.Username),
+				zap.String("path", c.Request.URL.Path))
+
+			c.Set("admin_id", admin.ID)
+			c.Set("admin_telegram_id", telegramID)
+			c.Set("admin_username", admin.Username)
+			c.Next()
+			return
 		}
 
-		// Log successful admin access
-		logger.Info("Admin Panel access granted",
-			zap.Int64("admin_telegram_id", telegramID),
-			zap.String("admin_username", admin.Username),
-			zap.String("path", c.Request.URL.Path))
+		// Check 2: Try Web authentication
+		authHeader := c.GetHeader("Authorization")
+		webAuth := c.GetHeader("X-Web-Auth")
 
-		c.Set("admin_id", admin.ID)
-		c.Set("admin_telegram_id", telegramID)
-		c.Set("admin_username", admin.Username)
-		c.Next()
+		if authHeader != "" && webAuth == "true" {
+			token := strings.TrimPrefix(authHeader, "Bearer ")
+
+			webSessionsMutex.RLock()
+			session, exists := webSessions[token]
+			webSessionsMutex.RUnlock()
+
+			if !exists || time.Now().After(session.ExpiresAt) {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"error":   "Unauthorized",
+					"message": "Invalid or expired session",
+				})
+				c.Abort()
+				return
+			}
+
+			logger.Info("Admin Panel access granted (Web)",
+				zap.String("admin_username", session.Username),
+				zap.String("path", c.Request.URL.Path))
+
+			c.Set("admin_id", session.AdminID)
+			c.Set("admin_username", session.Username)
+			c.Set("auth_type", "web")
+			c.Next()
+			return
+		}
+
+		// No valid authentication found
+		logger.Warn("Admin Panel access denied - No valid authentication",
+			zap.String("remote_addr", c.ClientIP()),
+			zap.String("user_agent", c.GetHeader("User-Agent")))
+		c.JSON(http.StatusForbidden, gin.H{
+			"error":   "Access Denied",
+			"message": "Authentication required",
+		})
+		c.Abort()
+		return
 	}
 }
 
@@ -321,8 +524,8 @@ func getAdminUsers(c *gin.Context) {
 
 	// Apply filters
 	if search != "" {
-		query = query.Where("username LIKE ? OR first_name LIKE ? OR phone_number LIKE ?",
-			"%"+search+"%", "%"+search+"%", "%"+search+"%")
+		query = query.Where("username LIKE ? OR first_name LIKE ? OR phone_number LIKE ? OR phone LIKE ?",
+			"%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
 
 	if filterType != "" && filterType != "all" {
@@ -337,10 +540,29 @@ func getAdminUsers(c *gin.Context) {
 	}
 
 	var total int64
-	query.Count(&total)
+	if err := query.Count(&total).Error; err != nil {
+		logger.Error("Failed to count users", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to count users",
+		})
+		return
+	}
 
 	var users []User
-	query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&users)
+	if err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&users).Error; err != nil {
+		logger.Error("Failed to fetch users", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to fetch users",
+		})
+		return
+	}
+
+	logger.Info("Users fetched successfully",
+		zap.Int("count", len(users)),
+		zap.Int64("total", total),
+		zap.Int("page", page))
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -527,10 +749,29 @@ func getAdminPayments(c *gin.Context) {
 	}
 
 	var total int64
-	query.Count(&total)
+	if err := query.Count(&total).Error; err != nil {
+		logger.Error("Failed to count payments", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to count payments",
+		})
+		return
+	}
 
 	var payments []PaymentTransaction
-	query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&payments)
+	if err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&payments).Error; err != nil {
+		logger.Error("Failed to fetch payments", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to fetch payments",
+		})
+		return
+	}
+
+	logger.Info("Payments fetched successfully",
+		zap.Int("count", len(payments)),
+		zap.Int64("total", total),
+		zap.Int("page", page))
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

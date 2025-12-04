@@ -12,6 +12,15 @@ const TelegramWebAppGuard: React.FC<TelegramWebAppGuardProps> = ({ children }) =
   useEffect(() => {
     const checkTelegramWebApp = () => {
       try {
+        // Allow admin-login page without Telegram check
+        const currentPath = window.location.pathname;
+        if (currentPath === '/admin-login' || currentPath.startsWith('/admin-login')) {
+          console.log('✅ Admin login page - allowing access without Telegram');
+          setIsInTelegram(true);
+          setIsLoading(false);
+          return;
+        }
+
         // Check if we're in development mode (localhost)
         const isDevelopment = window.location.hostname === 'localhost' || 
                              window.location.hostname === '127.0.0.1' ||

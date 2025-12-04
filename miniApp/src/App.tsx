@@ -25,6 +25,7 @@ import CoursePlayer from './pages/CoursePlayer';
 import SubscriptionManagement from './pages/SubscriptionManagement';
 import GuideTutorial from './pages/GuideTutorial';
 import AdminPanel from './pages/AdminPanel';
+import AdminLogin from './pages/AdminLogin';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -61,9 +62,12 @@ function AppRouter() {
   }, [navigate, location.pathname]);
 
   return (
-    <Routes>
-      {/* Admin Panel - Full page without layout */}
-      <Route path="/admin-panel" element={<AdminPanel />} />
+      <Routes>
+        {/* Admin Login - Full page without layout */}
+        <Route path="/admin-login" element={<AdminLogin />} />
+        
+        {/* Admin Panel - Full page without layout */}
+        <Route path="/admin-panel" element={<AdminPanel />} />
       
       {/* Subscription Management - Full page without layout */}
       <Route path="/subscription-management" element={<SubscriptionManagement />} />
@@ -105,38 +109,51 @@ function AppRouter() {
 }
 
 function App() {
+  // Check if we're on admin-login page - bypass TelegramWebAppGuard
+  const isAdminLogin = window.location.pathname === '/admin-login' || window.location.pathname.startsWith('/admin-login');
+  
+  const appContent = (
+    <div className="min-h-screen transition-colors duration-300 app-container" dir="rtl" style={{ backgroundColor: '#0e0817', fontFamily: 'IranSansX, Vazir, system-ui, sans-serif' }}>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          html.dark .app-container {
+            background: #08000f !important;
+          }
+          @media (prefers-color-scheme: dark) {
+            .app-container {
+              background: #08000f !important;
+            }
+          }
+          /* Global font application */
+          * {
+            font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
+          }
+          body, html {
+            font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
+          }
+        `
+      }} />
+      <ThemeProvider>
+        <AppProvider>
+          <Router>
+            <AppRouter />
+          </Router>
+        </AppProvider>
+      </ThemeProvider>
+    </div>
+  );
+
   return (
     <ErrorBoundary>
-      <TelegramWebAppGuard>
-        <div className="min-h-screen transition-colors duration-300 app-container" dir="rtl" style={{ backgroundColor: '#0e0817', fontFamily: 'IranSansX, Vazir, system-ui, sans-serif' }}>
-          <style dangerouslySetInnerHTML={{
-            __html: `
-              html.dark .app-container {
-                background: #08000f !important;
-              }
-              @media (prefers-color-scheme: dark) {
-                .app-container {
-                  background: #08000f !important;
-                }
-              }
-              /* Global font application */
-              * {
-                font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
-              }
-              body, html {
-                font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
-              }
-            `
-          }} />
-        <ThemeProvider>
-          <AppProvider>
-            <Router>
-              <AppRouter />
-            </Router>
-          </AppProvider>
-        </ThemeProvider>
-      </div>
-      </TelegramWebAppGuard>
+      {isAdminLogin ? (
+        // Admin login page - no Telegram guard
+        appContent
+      ) : (
+        // Other pages - with Telegram guard
+        <TelegramWebAppGuard>
+          {appContent}
+        </TelegramWebAppGuard>
+      )}
     </ErrorBoundary>
   );
 }

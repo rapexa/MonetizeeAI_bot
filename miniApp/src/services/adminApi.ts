@@ -3,7 +3,19 @@
  * Handles all API calls for Admin Panel
  */
 
-const BASE_URL = 'https://sianmarketing.com/api/v1/admin';
+// Dynamic BASE_URL - works in both development and production
+function getBaseURL(): string {
+  // Check if we're in development (localhost)
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:8080/api/v1/admin';
+  }
+  
+  // Production: use current host or fallback
+  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+  return `${protocol}//${window.location.host}/api/v1/admin`;
+}
+
+const BASE_URL = getBaseURL();
 
 interface APIResponse<T = any> {
   success: boolean;
@@ -22,6 +34,16 @@ function getTelegramInitData(): string {
 }
 
 /**
+ * Get web session token for authentication (for web login)
+ */
+function getWebSessionToken(): string {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('admin_session_token') || '';
+  }
+  return '';
+}
+
+/**
  * Make authenticated API request
  */
 async function makeRequest<T = any>(
@@ -31,12 +53,20 @@ async function makeRequest<T = any>(
 ): Promise<APIResponse<T>> {
   try {
     const initData = getTelegramInitData();
+    const webToken = getWebSessionToken();
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      'X-Telegram-Init-Data': initData,
-      'X-Telegram-WebApp': 'true',
     };
+
+    // Use Telegram auth if available, otherwise use web session token
+    if (initData) {
+      headers['X-Telegram-Init-Data'] = initData;
+      headers['X-Telegram-WebApp'] = 'true';
+    } else if (webToken) {
+      headers['Authorization'] = `Bearer ${webToken}`;
+      headers['X-Web-Auth'] = 'true';
+    }
 
     const options: RequestInit = {
       method,
@@ -71,6 +101,15 @@ async function makeRequest<T = any>(
  * Admin API Service
  */
 const adminApiService = {
+  // Authentication
+  login: (username: string, password: string) => 
+    makeRequest('/auth/login', 'POST', { username, password }),
+  logout: () => {
+    localStorage.removeItem('admin_session_token');
+    return Promise.resolve({ success: true });
+  },
+  checkAuth: () => makeRequest('/auth/check'),
+
   // Stats
   getStats: () => makeRequest('/stats'),
   getChartData: (type: string, period: string) => 

@@ -92,27 +92,59 @@ const AdminPanel: React.FC = () => {
   const [paymentsFilter, setPaymentsFilter] = useState('all');
   const [loadingPayments, setLoadingPayments] = useState(false);
 
-  // Check Telegram access on mount
+  // Check authentication on mount
   useEffect(() => {
-    // 🔒 SECURITY: Admin Panel MUST be accessed through Telegram ONLY
-    if (!isInTelegram) {
-      console.error('❌ Access Denied - Admin Panel requires Telegram');
-      setAccessDenied(true);
+    const checkAuth = async () => {
+      // Check if we have web session token
+      const webToken = localStorage.getItem('admin_session_token');
+      
+      if (webToken) {
+        // Web authentication
+        try {
+          const response = await adminApiService.checkAuth();
+          if (response.success) {
+            console.log('✅ Web authentication successful');
+            setAccessDenied(false);
+            setLoading(false);
+            return;
+          } else {
+            // Token invalid, redirect to login
+            localStorage.removeItem('admin_session_token');
+            window.location.href = '/admin-login';
+            return;
+          }
+        } catch (error) {
+          console.error('Auth check failed:', error);
+          localStorage.removeItem('admin_session_token');
+          window.location.href = '/admin-login';
+          return;
+        }
+      }
+
+      // Check Telegram access (if in Telegram)
+      if (isInTelegram) {
+        const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || '';
+        if (startParam.startsWith('admin_')) {
+          console.log('✅ Admin access with Telegram param:', startParam);
+          setAccessDenied(false);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // No valid authentication - redirect to login
+      if (!isInTelegram) {
+        console.log('⚠️ No authentication found, redirecting to login');
+        window.location.href = '/admin-login';
+        return;
+      }
+
+      // If in Telegram but no start_param, still allow (might be direct access)
+      setAccessDenied(false);
       setLoading(false);
-      return;
-    }
+    };
 
-    // Check if start_param is admin format (admin_TELEGRAM_ID)
-    const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || '';
-    if (!startParam.startsWith('admin_') && startParam !== '') {
-      console.warn('⚠️ Wrong start_param:', startParam);
-      // Don't block, but log
-    } else if (startParam.startsWith('admin_')) {
-      console.log('✅ Admin access with param:', startParam);
-    }
-
-    // If all checks pass, mark as authorized
-    setAccessDenied(false);
+    checkAuth();
   }, [isInTelegram]);
 
   // Connect to WebSocket
@@ -244,12 +276,17 @@ const AdminPanel: React.FC = () => {
     setLoadingUsers(true);
     try {
       const response = await adminApiService.getUsers(usersPage, 50, usersSearch, usersFilter);
+      console.log('Users API Response:', response); // Debug log
       if (response.success && response.data) {
         setUsers(response.data.users || []);
         setUsersTotal(response.data.total || 0);
+      } else {
+        console.error('Failed to load users:', response.error);
+        alert('خطا در بارگذاری کاربران: ' + (response.error || 'خطای ناشناخته'));
       }
     } catch (error) {
       console.error('Failed to load users:', error);
+      alert('خطا در اتصال به سرور');
     } finally {
       setLoadingUsers(false);
     }
@@ -260,12 +297,17 @@ const AdminPanel: React.FC = () => {
     setLoadingPayments(true);
     try {
       const response = await adminApiService.getPayments(paymentsPage, 50, paymentsFilter);
+      console.log('Payments API Response:', response); // Debug log
       if (response.success && response.data) {
         setPayments(response.data.payments || []);
         setPaymentsTotal(response.data.total || 0);
+      } else {
+        console.error('Failed to load payments:', response.error);
+        alert('خطا در بارگذاری پرداخت‌ها: ' + (response.error || 'خطای ناشناخته'));
       }
     } catch (error) {
       console.error('Failed to load payments:', error);
+      alert('خطا در اتصال به سرور');
     } finally {
       setLoadingPayments(false);
     }
