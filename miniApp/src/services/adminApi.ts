@@ -3,7 +3,7 @@
  * Handles all API calls for Admin Panel
  */
 
-const BASE_URL = 'https://sianmarketing.com/api/api/v1/admin';
+const BASE_URL = 'https://sianmarketing.com/api/v1/admin';
 
 interface APIResponse<T = any> {
   success: boolean;

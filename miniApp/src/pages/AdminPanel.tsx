@@ -125,8 +125,16 @@ const AdminPanel: React.FC = () => {
 
     // WebSocket URL (use secure WebSocket in production)
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host === 'localhost:5173' ? 'localhost:8080' : window.location.host;
-    const wsUrl = `${protocol}//${host}/api/v1/admin/ws`;
+    
+    // Determine host and base path
+    let wsUrl: string;
+    if (window.location.host === 'localhost:5173') {
+      // Development: Frontend on 5173, Backend on 8080
+      wsUrl = `ws://localhost:8080/api/v1/admin/ws`;
+    } else {
+      // Production: Same domain
+      wsUrl = `${protocol}//${window.location.host}/api/v1/admin/ws`;
+    }
 
     console.log('🔌 Connecting to Admin WebSocket:', wsUrl);
 
