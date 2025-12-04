@@ -1899,8 +1899,19 @@ func handleOpenAdminPanel(admin *Admin, args []string) string {
 			"⚠️ فقط از طریق تلگرام قابل دسترسی است")
 	msg.ReplyMarkup = keyboard
 
-	bot.Send(msg)
-	return "پنل مدیریت آماده است ✅"
+	sentMsg, err := bot.Send(msg)
+	if err != nil {
+		logger.Error("Failed to send admin panel message",
+			zap.Int64("admin_telegram_id", admin.TelegramID),
+			zap.Error(err))
+		return "❌ خطا در ارسال پیام. لطفاً دوباره تلاش کنید."
+	}
+
+	logger.Info("Admin Panel message sent successfully",
+		zap.Int64("admin_telegram_id", admin.TelegramID),
+		zap.Int("message_id", sentMsg.MessageID))
+
+	return "" // Don't send additional text message
 }
 
 func handleManageSubscriptions(admin *Admin, args []string) string {

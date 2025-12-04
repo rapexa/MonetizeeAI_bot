@@ -185,10 +185,17 @@ func handleMessage(update tgbotapi.Update) {
 					"🎛️ **پنل مدیریت MonetizeAI**\n\n"+
 						"خوش اومدی! از منوی زیر می‌تونی به پنل مدیریت و سایر بخش‌ها دسترسی داشته باشی.\n\n"+
 						"🆕 **جدید:** پنل مدیریت Real-time با WebSocket آماده است!\n"+
-						"روی دکمه 🎛️ **پنل مدیریت** کلیک کن.")
+						"روی دکمه 🎛️ **پنل مدیریت** کلیک کن یا `/admin_panel` بزن.")
 				msg.ParseMode = "Markdown"
 				msg.ReplyMarkup = getAdminKeyboard()
 				bot.Send(msg)
+				return
+			}
+
+			// Handle /admin_panel command - direct access
+			if command == "admin_panel" {
+				response := handleOpenAdminPanel(admin, []string{})
+				sendMessage(update.Message.Chat.ID, response)
 				return
 			}
 
@@ -272,44 +279,54 @@ func handleMessage(update tgbotapi.Update) {
 		}
 
 		// Handle admin menu buttons
-		switch update.Message.Text {
-		case "🎛️ پنل مدیریت":
+		// Log for debugging
+		buttonText := strings.TrimSpace(update.Message.Text)
+		logger.Info("Admin button pressed",
+			zap.Int64("admin_id", admin.TelegramID),
+			zap.String("text", buttonText),
+			zap.Int("length", len(buttonText)))
+
+		switch buttonText {
+		case "🎛️ پنل مدیریت", "پنل مدیریت":
+			logger.Info("Opening Admin Panel", zap.String("matched_text", buttonText))
 			response := handleOpenAdminPanel(admin, []string{})
-			sendMessage(update.Message.Chat.ID, response)
+			if response != "" {
+				sendMessage(update.Message.Chat.ID, response)
+			}
 			return
-		case "📊 آمار سیستم":
+		case "📊 آمار سیستم", "آمار سیستم":
 			response := handleAdminStats(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
 			return
-		case "👥 مدیریت کاربران":
+		case "👥 مدیریت کاربران", "مدیریت کاربران":
 			response := handleAdminUsers(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
 			return
-		case "📚 مدیریت جلسات":
+		case "📚 مدیریت جلسات", "مدیریت جلسات":
 			response := handleAdminSessions(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
 			return
-		case "🎥 مدیریت ویدیوها":
+		case "🎥 مدیریت ویدیوها", "مدیریت ویدیوها":
 			response := handleAdminVideos(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
 			return
-		case "💾 پشتیبان‌گیری":
+		case "💾 پشتیبان‌گیری", "پشتیبان‌گیری":
 			response := performBackup(admin)
 			sendMessage(update.Message.Chat.ID, response)
 			return
-		case "📢 ارسال پیام همگانی":
+		case "📢 ارسال پیام همگانی", "ارسال پیام همگانی":
 			response := handleAdminBroadcast(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
 			return
-		case "📲 ارسال پیامک همگانی":
+		case "📲 ارسال پیامک همگانی", "ارسال پیامک همگانی":
 			response := handleAdminSMSBroadcast(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
 			return
-		case "🔒 امنیت مینی اپ":
+		case "🔒 امنیت مینی اپ", "امنیت مینی اپ":
 			response := handleMiniAppSecurity(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
 			return
-		case "💎 مدیریت اشتراک‌ها":
+		case "💎 مدیریت اشتراک‌ها", "مدیریت اشتراک‌ها":
 			response := handleManageSubscriptions(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
 			return
