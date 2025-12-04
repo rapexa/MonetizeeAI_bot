@@ -154,11 +154,15 @@ func adminAuthMiddleware() gin.HandlerFunc {
 		// Check 5 (Optional): Verify start_param for extra security
 		// Only enforce for non-WebSocket routes
 		if !strings.Contains(c.Request.URL.Path, "/ws") {
-			if startParam != "admin_panel" && startParam != "" {
+			if !strings.HasPrefix(startParam, "admin_") && startParam != "" {
 				logger.Warn("Admin Panel access with wrong start_param",
 					zap.Int64("admin_telegram_id", telegramID),
 					zap.String("start_param", startParam))
 				// Don't block, just log (since some requests won't have start_param)
+			} else if strings.HasPrefix(startParam, "admin_") {
+				logger.Info("Admin Panel access with valid start_param",
+					zap.Int64("admin_telegram_id", telegramID),
+					zap.String("start_param", startParam))
 			}
 		}
 

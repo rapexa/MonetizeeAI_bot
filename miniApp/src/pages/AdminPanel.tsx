@@ -102,11 +102,13 @@ const AdminPanel: React.FC = () => {
       return;
     }
 
-    // Check if start_param is admin_panel
+    // Check if start_param is admin format (admin_TELEGRAM_ID)
     const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || '';
-    if (startParam !== 'admin_panel' && startParam !== '') {
+    if (!startParam.startsWith('admin_') && startParam !== '') {
       console.warn('⚠️ Wrong start_param:', startParam);
       // Don't block, but log
+    } else if (startParam.startsWith('admin_')) {
+      console.log('✅ Admin access with param:', startParam);
     }
 
     // If all checks pass, mark as authorized

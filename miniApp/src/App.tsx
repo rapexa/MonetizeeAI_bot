@@ -45,7 +45,8 @@ function AppRouter() {
       // If start_param is "subscription", navigate to the Subscription Management page
       if (startParam === 'subscription' && location.pathname !== '/subscription-management') {
         navigate('/subscription-management', { replace: true });
-      } else if (startParam === 'admin_panel' && location.pathname !== '/admin-panel') {
+      } else if (startParam.startsWith('admin_') && location.pathname !== '/admin-panel') {
+        // Admin panel access with admin telegram_id (format: admin_76599340)
         navigate('/admin-panel', { replace: true });
       } else if (startParam === 'dashboard' && location.pathname !== '/') {
         navigate('/', { replace: true });
