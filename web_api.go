@@ -113,10 +113,13 @@ func cleanupMiniAppRateLimitCache() {
 // 🔒 SECURITY: Telegram WebApp Authentication Middleware
 func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Skip authentication for health check and static files
+		// Skip authentication for health check, static files, and admin routes
+		// Admin routes have their own authentication middleware
 		if c.Request.URL.Path == "/health" ||
 			strings.HasPrefix(c.Request.URL.Path, "/static/") ||
-			strings.HasPrefix(c.Request.URL.Path, "/assets/") {
+			strings.HasPrefix(c.Request.URL.Path, "/assets/") ||
+			strings.HasPrefix(c.Request.URL.Path, "/api/v1/admin/") ||
+			strings.HasPrefix(c.Request.URL.Path, "/v1/admin/") {
 			c.Next()
 			return
 		}
