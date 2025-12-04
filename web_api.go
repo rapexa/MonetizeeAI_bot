@@ -116,13 +116,28 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		// Skip authentication for health check, static files, admin routes, and admin login page
 		// Admin routes have their own authentication middleware
 		// Admin login page should be accessible from web without Telegram
-		if c.Request.URL.Path == "/health" ||
-			strings.HasPrefix(c.Request.URL.Path, "/static/") ||
-			strings.HasPrefix(c.Request.URL.Path, "/assets/") ||
-			strings.HasPrefix(c.Request.URL.Path, "/api/v1/admin/") ||
-			strings.HasPrefix(c.Request.URL.Path, "/v1/admin/") ||
-			c.Request.URL.Path == "/admin-login" ||
-			strings.HasPrefix(c.Request.URL.Path, "/admin-login") {
+		path := c.Request.URL.Path
+		// Normalize path (remove double slashes and trailing slashes)
+		// Handle cases like //admin-login or /admin-login/
+		for strings.Contains(path, "//") {
+			path = strings.ReplaceAll(path, "//", "/")
+		}
+		path = strings.TrimSuffix(path, "/")
+		if path == "" {
+			path = "/"
+		}
+		
+		// Check if path should be allowed without Telegram auth
+		if path == "/health" ||
+			strings.HasPrefix(path, "/static/") ||
+			strings.HasPrefix(path, "/assets/") ||
+			strings.HasPrefix(path, "/api/v1/admin/") ||
+			strings.HasPrefix(path, "/v1/admin/") ||
+			path == "/admin-login" ||
+			strings.HasPrefix(path, "/admin-login/") {
+			logger.Info("✅ Allowing access without Telegram auth",
+				zap.String("path", path),
+				zap.String("original_path", c.Request.URL.Path))
 			c.Next()
 			return
 		}
@@ -319,16 +334,66 @@ func StartWebAPI() {
 	// ⚡ PERFORMANCE: Enable Gzip compression for faster response times
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 
-	// 🔒 SECURITY: Telegram WebApp Authentication Middleware
-	r.Use(telegramWebAppAuthMiddleware())
+	// Path normalization middleware - normalize double slashes and trailing slashes
+	r.Use(func(c *gin.Context) {
+		path := c.Request.URL.Path
+		// Remove double slashes
+		for strings.Contains(path, "//") {
+			path = strings.ReplaceAll(path, "//", "/")
+		}
+		// Remove trailing slash (except for root)
+		if path != "/" && strings.HasSuffix(path, "/") {
+			path = strings.TrimSuffix(path, "/")
+		}
+		// Update request path if changed
+		if path != c.Request.URL.Path {
+			c.Request.URL.Path = path
+		}
+		c.Next()
+	})
 
-	// Health check endpoint
+	// Health check endpoint (before auth middleware)
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, APIResponse{
 			Success: true,
 			Data:    map[string]string{"status": "healthy", "service": "MonetizeeAI API"},
 		})
 	})
+
+	// Serve admin-login page (before auth middleware - must be accessible from web)
+	frontendPath := os.Getenv("FRONTEND_PATH")
+	if frontendPath == "" {
+		frontendPath = "./miniApp/dist"
+	}
+	
+	// Admin login route - accessible without Telegram
+	r.GET("/admin-login", func(c *gin.Context) {
+		indexPath := frontendPath + "/index.html"
+		if _, err := os.Stat(indexPath); err == nil {
+			c.File(indexPath)
+		} else {
+			// If index.html not found, return simple HTML response
+			c.Header("Content-Type", "text/html; charset=utf-8")
+			c.String(http.StatusOK, `<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Admin Login - MonetizeAI</title>
+</head>
+<body>
+	<div style="text-align: center; padding: 50px;">
+		<h1>Admin Login</h1>
+		<p>Frontend files not found. Please build the frontend first.</p>
+	</div>
+</body>
+</html>`)
+		}
+	})
+
+	// 🔒 SECURITY: Telegram WebApp Authentication Middleware
+	// This middleware will allow /admin-login through (already handled above)
+	r.Use(telegramWebAppAuthMiddleware())
 
 	// API v1 routes
 	v1 := r.Group("/api/v1")
@@ -394,6 +459,52 @@ func StartWebAPI() {
 	// 🔐 Admin Panel API routes (WebSocket + REST)
 	setupAdminAPIRoutes(r)
 	logger.Info("Admin Panel API routes configured")
+
+	// Serve frontend static files (for admin-login and other frontend routes)
+	// This allows frontend React app to handle routing
+	// Note: /admin-login route is already defined above (before auth middleware)
+	
+	if _, err := os.Stat(frontendPath); err == nil {
+		// Serve static assets
+		r.Static("/static", frontendPath+"/assets")
+		r.Static("/assets", frontendPath+"/assets")
+		r.StaticFile("/favicon.ico", frontendPath+"/favicon.ico")
+		
+		// Serve fonts
+		r.Static("/fonts", frontendPath+"/fonts")
+		
+		// Serve index.html for all other non-API routes (SPA routing)
+		r.NoRoute(func(c *gin.Context) {
+			path := c.Request.URL.Path
+			// Normalize path (remove double slashes)
+			for strings.Contains(path, "//") {
+				path = strings.ReplaceAll(path, "//", "/")
+			}
+			
+			// Skip API routes
+			if strings.HasPrefix(path, "/api/") {
+				c.JSON(http.StatusNotFound, APIResponse{
+					Success: false,
+					Error:   "API endpoint not found",
+				})
+				return
+			}
+			
+			// Serve index.html for frontend routes
+			indexPath := frontendPath + "/index.html"
+			if _, err := os.Stat(indexPath); err == nil {
+				c.File(indexPath)
+			} else {
+				c.JSON(http.StatusNotFound, APIResponse{
+					Success: false,
+					Error:   "Frontend not found",
+				})
+			}
+		})
+		logger.Info("Frontend static files configured", zap.String("path", frontendPath))
+	} else {
+		logger.Warn("Frontend directory not found, skipping static file serving", zap.String("path", frontendPath))
+	}
 
 	port := getEnvWithDefault("WEB_API_PORT", "8080")
 	logger.Info("Starting Web API server", zap.String("port", port))
