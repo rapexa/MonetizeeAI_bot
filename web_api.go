@@ -372,6 +372,12 @@ func StartWebAPI() {
 		})
 	})
 	
+	// 🔐 CRITICAL: Register admin auth routes FIRST, before any other routes
+	// This ensures they are matched before static file serving or NoRoute
+	r.POST("/api/v1/admin/auth/login", handleWebLogin)
+	r.GET("/api/v1/admin/auth/check", handleCheckAuth)
+	r.POST("/api/v1/admin/auth/logout", handleWebLogout)
+	
 	// Test endpoint for admin auth - to verify routing works
 	r.GET("/api/v1/admin/auth/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -479,12 +485,7 @@ func StartWebAPI() {
 	})
 
 	// 🔐 Admin Panel API routes (WebSocket + REST)
-	// IMPORTANT: Must be registered BEFORE NoRoute middleware to ensure API routes work
-	// Register admin auth routes directly on the router to ensure they work
-	r.POST("/api/v1/admin/auth/login", handleWebLogin)
-	r.GET("/api/v1/admin/auth/check", handleCheckAuth)
-	r.POST("/api/v1/admin/auth/logout", handleWebLogout)
-	
+	// NOTE: Admin auth routes are already registered above (before static files)
 	// Setup all other admin routes
 	setupAdminAPIRoutes(r)
 	logger.Info("Admin Panel API routes configured", 
@@ -496,7 +497,18 @@ func StartWebAPI() {
 	// Note: /admin-login route is already defined above (before auth middleware)
 	
 	if _, err := os.Stat(frontendPath); err == nil {
-		// Serve static assets
+		// CRITICAL: Add middleware to prevent API routes from being intercepted by static file serving
+		r.Use(func(c *gin.Context) {
+			// If this is an API route, skip static file serving
+			if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+				c.Next()
+				return
+			}
+			// For non-API routes, continue to static file serving
+			c.Next()
+		})
+		
+		// Serve static assets (only for non-API routes due to middleware above)
 		r.Static("/static", frontendPath+"/assets")
 		r.Static("/assets", frontendPath+"/assets")
 		r.StaticFile("/favicon.ico", frontendPath+"/favicon.ico")
@@ -512,11 +524,11 @@ func StartWebAPI() {
 				path = strings.ReplaceAll(path, "//", "/")
 			}
 			
-			// IMPORTANT: Skip API routes - they should be handled by registered routes
+			// CRITICAL: Skip API routes - they should be handled by registered routes
 			// This is a fallback for routes that don't match any registered route
 			if strings.HasPrefix(path, "/api/") {
 				// Log for debugging
-				logger.Warn("API route not found (NoRoute handler)",
+				logger.Warn("API route not found (NoRoute handler) - this should not happen if routes are registered correctly",
 					zap.String("path", path),
 					zap.String("method", c.Request.Method),
 					zap.String("remote_addr", c.ClientIP()))

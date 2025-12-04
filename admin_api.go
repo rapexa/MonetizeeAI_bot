@@ -115,12 +115,13 @@ func generateSessionToken() (string, error) {
 
 // Handle web login
 func handleWebLogin(c *gin.Context) {
-	// Log the request for debugging
-	logger.Info("Web login request received",
+	// Log the request for debugging - this should be called if route is matched
+	logger.Info("✅ handleWebLogin called - route matched!",
 		zap.String("path", c.Request.URL.Path),
 		zap.String("method", c.Request.Method),
 		zap.String("remote_addr", c.ClientIP()),
-		zap.String("content_type", c.GetHeader("Content-Type")))
+		zap.String("content_type", c.GetHeader("Content-Type")),
+		zap.String("user_agent", c.GetHeader("User-Agent")))
 	
 	type LoginRequest struct {
 		Username string `json:"username" binding:"required"`
