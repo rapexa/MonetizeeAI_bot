@@ -289,6 +289,20 @@ func StartWebAPI() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
+	// 🔐 CRITICAL: Register admin auth routes FIRST, before ANY middleware
+	// This ensures they are matched before anything else
+	r.POST("/api/v1/admin/auth/login", handleWebLogin)
+	r.GET("/api/v1/admin/auth/check", handleCheckAuth)
+	r.POST("/api/v1/admin/auth/logout", handleWebLogout)
+	r.GET("/api/v1/admin/auth/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "Admin auth endpoint is reachable",
+			"path":    c.Request.URL.Path,
+			"method":  c.Request.Method,
+		})
+	})
+
 	// Add CORS middleware
 	config := cors.DefaultConfig()
 	// Restrict CORS origins for production
@@ -372,21 +386,8 @@ func StartWebAPI() {
 		})
 	})
 	
-	// 🔐 CRITICAL: Register admin auth routes FIRST, before any other routes
-	// This ensures they are matched before static file serving or NoRoute
-	r.POST("/api/v1/admin/auth/login", handleWebLogin)
-	r.GET("/api/v1/admin/auth/check", handleCheckAuth)
-	r.POST("/api/v1/admin/auth/logout", handleWebLogout)
-	
-	// Test endpoint for admin auth - to verify routing works
-	r.GET("/api/v1/admin/auth/test", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-			"message": "Admin auth endpoint is reachable",
-			"path":    c.Request.URL.Path,
-			"method":  c.Request.Method,
-		})
-	})
+	// Admin auth routes are already registered at the very beginning (before all middleware)
+	// No need to register them again here
 
 	// Serve admin-login page (before auth middleware - must be accessible from web)
 	frontendPath := os.Getenv("FRONTEND_PATH")
@@ -423,6 +424,12 @@ func StartWebAPI() {
 	// DISABLED: Web access restriction removed temporarily
 	// r.Use(telegramWebAppAuthMiddleware())
 
+	// 🔐 CRITICAL: Register admin auth routes AGAIN here to ensure they work
+	// Even though they're registered above, register them here too for safety
+	r.POST("/api/v1/admin/auth/login", handleWebLogin)
+	r.GET("/api/v1/admin/auth/check", handleCheckAuth)
+	r.POST("/api/v1/admin/auth/logout", handleWebLogout)
+	
 	// API v1 routes
 	v1 := r.Group("/api/v1")
 	{
