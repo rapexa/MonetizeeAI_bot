@@ -392,8 +392,8 @@ func StartWebAPI() {
 	})
 
 	// 🔒 SECURITY: Telegram WebApp Authentication Middleware
-	// This middleware will allow /admin-login through (already handled above)
-	r.Use(telegramWebAppAuthMiddleware())
+	// DISABLED: Web access restriction removed temporarily
+	// r.Use(telegramWebAppAuthMiddleware())
 
 	// API v1 routes
 	v1 := r.Group("/api/v1")

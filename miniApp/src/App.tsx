@@ -29,7 +29,6 @@ import AdminLogin from './pages/AdminLogin';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
-import TelegramWebAppGuard from './components/TelegramWebAppGuard';
 import TestPage from './pages/TestPage';
 
 // Component to handle Telegram WebApp start_param navigation
@@ -109,9 +108,6 @@ function AppRouter() {
 }
 
 function App() {
-  // Check if we're on admin-login page - bypass TelegramWebAppGuard
-  const isAdminLogin = window.location.pathname === '/admin-login' || window.location.pathname.startsWith('/admin-login');
-  
   const appContent = (
     <div className="min-h-screen transition-colors duration-300 app-container" dir="rtl" style={{ backgroundColor: '#0e0817', fontFamily: 'IranSansX, Vazir, system-ui, sans-serif' }}>
       <style dangerouslySetInnerHTML={{
@@ -145,15 +141,8 @@ function App() {
 
   return (
     <ErrorBoundary>
-      {isAdminLogin ? (
-        // Admin login page - no Telegram guard
-        appContent
-      ) : (
-        // Other pages - with Telegram guard
-        <TelegramWebAppGuard>
-          {appContent}
-        </TelegramWebAppGuard>
-      )}
+      {/* Web access restriction disabled - allow all access */}
+      {appContent}
     </ErrorBoundary>
   );
 }

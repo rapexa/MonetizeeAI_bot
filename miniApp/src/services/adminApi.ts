@@ -75,6 +75,18 @@ async function makeRequest<T = any>(
     };
 
     const response = await fetch(`${BASE_URL}${endpoint}`, options);
+    
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      // If not JSON, try to get text for error message
+      const text = await response.text();
+      return {
+        success: false,
+        error: `Server returned non-JSON response: ${response.status} ${response.statusText}`,
+      };
+    }
+
     const data = await response.json();
 
     if (!response.ok) {

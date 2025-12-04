@@ -14,7 +14,7 @@
     <link rel="preload" as="font" href="/fonts/IranSansX/IRANSansX-Bold.ttf" type="font/ttf" crossorigin>
     
     <!-- Telegram WebApp Script -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js" onerror="console.warn('Telegram WebApp script failed to load (this is normal when accessing from web)'); window.Telegram = window.Telegram || { WebApp: {} };"></script>
     <script>
       (function() {
         try {
