@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"MonetizeeAI_bot/logger"
@@ -76,33 +77,100 @@ func setupAdminAPIRoutes(r *gin.Engine) {
 // Admin authentication middleware
 func adminAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Validate Telegram WebApp auth
-		telegramID := c.GetInt64("telegram_id")
-		if telegramID == 0 {
-			// Try to get from header
-			initData := c.GetHeader("X-Telegram-Init-Data")
-			if initData == "" {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized - No Telegram data"})
-				c.Abort()
-				return
-			}
+		// 🔒 SECURITY: Admin Panel MUST be accessed through Telegram ONLY
 
-			// Parse telegram_id from init data (simplified - should use proper validation)
-			// For now, we'll use the existing telegramWebAppAuthMiddleware logic
-		}
+		// Check 1: Must have Telegram WebApp data
+		initData := c.GetHeader("X-Telegram-Init-Data")
+		telegramWebApp := c.GetHeader("X-Telegram-WebApp")
+		startParam := c.GetHeader("X-Telegram-Start-Param")
 
-		// Check if user is admin
-		var admin Admin
-		if err := db.Where("telegram_id = ? AND is_active = ?", telegramID, true).First(&admin).Error; err != nil {
-			logger.Warn("Non-admin attempted to access admin API",
-				zap.Int64("telegram_id", telegramID))
-			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden - Admin access required"})
+		if initData == "" && telegramWebApp == "" {
+			logger.Warn("Admin Panel access denied - No Telegram data",
+				zap.String("remote_addr", c.ClientIP()),
+				zap.String("user_agent", c.GetHeader("User-Agent")))
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":   "Access Denied",
+				"message": "Admin Panel is only accessible through Telegram",
+			})
 			c.Abort()
 			return
 		}
 
+		// Check 2: Must be from Telegram (check User-Agent)
+		userAgent := c.GetHeader("User-Agent")
+		isTelegramUA := false
+		telegramPatterns := []string{"Telegram", "TelegramBot", "tdesktop"}
+		for _, pattern := range telegramPatterns {
+			if strings.Contains(userAgent, pattern) {
+				isTelegramUA = true
+				break
+			}
+		}
+
+		// Allow if it's Telegram OR has valid initData
+		if !isTelegramUA && initData == "" {
+			logger.Warn("Admin Panel access denied - Not from Telegram",
+				zap.String("user_agent", userAgent),
+				zap.String("remote_addr", c.ClientIP()))
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":   "Access Denied",
+				"message": "Admin Panel is only accessible through Telegram",
+			})
+			c.Abort()
+			return
+		}
+
+		// Check 3: Get telegram_id (from existing middleware or header)
+		telegramID := c.GetInt64("telegram_id")
+
+		// If not set by previous middleware, try to extract from initData
+		if telegramID == 0 {
+			// In production, you should properly parse initData
+			// For now, we rely on the existing telegramWebAppAuthMiddleware
+			logger.Warn("Admin Panel access denied - No Telegram ID",
+				zap.String("remote_addr", c.ClientIP()))
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":   "Unauthorized",
+				"message": "Invalid Telegram authentication",
+			})
+			c.Abort()
+			return
+		}
+
+		// Check 4: Verify user is an active admin
+		var admin Admin
+		if err := db.Where("telegram_id = ? AND is_active = ?", telegramID, true).First(&admin).Error; err != nil {
+			logger.Warn("Admin Panel access denied - User is not an admin",
+				zap.Int64("telegram_id", telegramID),
+				zap.String("remote_addr", c.ClientIP()))
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":   "Forbidden",
+				"message": "Admin access required",
+			})
+			c.Abort()
+			return
+		}
+
+		// Check 5 (Optional): Verify start_param for extra security
+		// Only enforce for non-WebSocket routes
+		if !strings.Contains(c.Request.URL.Path, "/ws") {
+			if startParam != "admin_panel" && startParam != "" {
+				logger.Warn("Admin Panel access with wrong start_param",
+					zap.Int64("admin_telegram_id", telegramID),
+					zap.String("start_param", startParam))
+				// Don't block, just log (since some requests won't have start_param)
+			}
+		}
+
+		// Log successful admin access
+		logger.Info("Admin Panel access granted",
+			zap.Int64("admin_telegram_id", telegramID),
+			zap.String("admin_username", admin.Username),
+			zap.String("path", c.Request.URL.Path))
+
 		c.Set("admin_id", admin.ID)
 		c.Set("admin_telegram_id", telegramID)
+		c.Set("admin_username", admin.Username)
 		c.Next()
 	}
 }

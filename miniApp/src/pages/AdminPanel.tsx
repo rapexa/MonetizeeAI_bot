@@ -75,6 +75,7 @@ const AdminPanel: React.FC = () => {
   const [connected, setConnected] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'payments' | 'content' | 'analytics'>('dashboard');
   const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
   
   // Users state
   const [users, setUsers] = useState<User[]>([]);
@@ -91,10 +92,32 @@ const AdminPanel: React.FC = () => {
   const [paymentsFilter, setPaymentsFilter] = useState('all');
   const [loadingPayments, setLoadingPayments] = useState(false);
 
+  // Check Telegram access on mount
+  useEffect(() => {
+    // 🔒 SECURITY: Admin Panel MUST be accessed through Telegram ONLY
+    if (!isInTelegram) {
+      console.error('❌ Access Denied - Admin Panel requires Telegram');
+      setAccessDenied(true);
+      setLoading(false);
+      return;
+    }
+
+    // Check if start_param is admin_panel
+    const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || '';
+    if (startParam !== 'admin_panel' && startParam !== '') {
+      console.warn('⚠️ Wrong start_param:', startParam);
+      // Don't block, but log
+    }
+
+    // If all checks pass, mark as authorized
+    setAccessDenied(false);
+  }, [isInTelegram]);
+
   // Connect to WebSocket
   const connectWebSocket = useCallback(() => {
-    if (!isInTelegram) {
-      console.warn('⚠️ Not in Telegram - Admin Panel requires Telegram');
+    if (!isInTelegram || accessDenied) {
+      console.warn('⚠️ Not in Telegram or Access Denied - Admin Panel requires Telegram');
+      setLoading(false);
       return;
     }
 
@@ -169,7 +192,7 @@ const AdminPanel: React.FC = () => {
       console.error('❌ Failed to create WebSocket:', error);
       setLoading(false);
     }
-  }, [isInTelegram]);
+  }, [isInTelegram, accessDenied]);
 
   // Initialize WebSocket on mount
   useEffect(() => {
@@ -299,6 +322,34 @@ const AdminPanel: React.FC = () => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fa-IR');
   };
+
+  // Access Denied state
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: '#0e0817' }}>
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Shield size={40} className="text-red-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-4">🔒 دسترسی محدود</h1>
+          <p className="text-gray-300 mb-6 leading-relaxed">
+            پنل مدیریت فقط از طریق دکمه <span className="font-bold text-purple-400">"🎛️ پنل مدیریت"</span> در منوی ادمین تلگرام قابل دسترسی است.
+          </p>
+          <div className="bg-gray-800/40 rounded-2xl p-6 border border-gray-700/60 text-right">
+            <p className="text-sm text-gray-400 mb-3">راهنمای دسترسی:</p>
+            <ol className="text-sm text-gray-300 space-y-2">
+              <li>۱. وارد ربات تلگرام شوید</li>
+              <li>۲. روی دکمه <span className="text-purple-400 font-bold">🎛️ پنل مدیریت</span> کلیک کنید</li>
+              <li>۳. منتظر باز شدن پنل باشید</li>
+            </ol>
+          </div>
+          <p className="text-xs text-gray-500 mt-6">
+            ⚠️ دسترسی مستقیم از وب به دلایل امنیتی غیرفعال است
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
   if (loading) {

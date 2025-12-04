@@ -887,7 +887,7 @@ func processUserInput(input string, user *User) string {
 
 		miniAppURL := os.Getenv("MINI_APP_URL")
 		if miniAppURL != "" {
-			miniAppWithParams := fmt.Sprintf("https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=profile")
+			miniAppWithParams := "https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=profile"
 			msg := tgbotapi.NewMessage(user.TelegramID, fmt.Sprintf("👤 پروفایل شما\n\nنام: %s\nسطح فعلی: %d\nمرحله فعلی: %d\nوضعیت اشتراک: %s\n\nبرای مشاهده پروفایل کامل و تنظیمات، اینجا کلیک کن 👇🏼", name, level.Level, user.CurrentSession, subscriptionStatus))
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
 				tgbotapi.NewInlineKeyboardRow(
@@ -905,7 +905,7 @@ func processUserInput(input string, user *User) string {
 		level := GetUserLevel(user.CurrentSession)
 		miniAppURL := os.Getenv("MINI_APP_URL")
 		if miniAppURL != "" {
-			miniAppWithParams := fmt.Sprintf("https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=levels")
+			miniAppWithParams := "https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=levels"
 			text := fmt.Sprintf("🎯 مسیر شما\n\n• سطح: Level %d\n• مرحله فعال: Stage %d\n\nادامه مسیر و مشاهده مراحل 👇🏼", level.Level, user.CurrentSession)
 			msg := tgbotapi.NewMessage(user.TelegramID, text)
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
@@ -923,7 +923,7 @@ func processUserInput(input string, user *User) string {
 		// Show tools intro with Mini App button
 		miniAppURL := os.Getenv("MINI_APP_URL")
 		if miniAppURL != "" {
-			miniAppWithParams := fmt.Sprintf("https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=tools")
+			miniAppWithParams := "https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=tools"
 			text := "🧰 ابزارهای MonetizeAI\n\nهمه ابزار های که برای ساخت سیستم پولسازیت نیاز داری🤌🏼\nاز ایده یابی و طراحی محصول تا مشتری یابی و مدیریت فروش🛠️\n\nبرای مشاهده و استفاده رو دکمه زیر کلیک کن👇🏼"
 			msg := tgbotapi.NewMessage(user.TelegramID, text)
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
@@ -1729,8 +1729,12 @@ func isUserBlocked(telegramID int64) bool {
 func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("🎛️ پنل مدیریت"),
 			tgbotapi.NewKeyboardButton("📊 آمار سیستم"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("👥 مدیریت کاربران"),
+			tgbotapi.NewKeyboardButton("💎 مدیریت اشتراک‌ها"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("📚 مدیریت جلسات"),
@@ -1742,9 +1746,6 @@ func getAdminKeyboard() tgbotapi.ReplyKeyboardMarkup {
 		),
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("📲 ارسال پیامک همگانی"),
-			tgbotapi.NewKeyboardButton("💎 مدیریت اشتراک‌ها"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("🔒 امنیت مینی اپ"),
 		),
 	)

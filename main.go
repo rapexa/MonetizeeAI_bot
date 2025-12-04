@@ -260,6 +260,10 @@ func handleMessage(update tgbotapi.Update) {
 
 		// Handle admin menu buttons
 		switch update.Message.Text {
+		case "🎛️ پنل مدیریت":
+			response := handleOpenAdminPanel(admin, []string{})
+			sendMessage(update.Message.Chat.ID, response)
+			return
 		case "📊 آمار سیستم":
 			response := handleAdminStats(admin, []string{})
 			sendMessage(update.Message.Chat.ID, response)
