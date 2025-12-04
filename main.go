@@ -101,7 +101,9 @@ func init() {
 	} else {
 		logger.Info("Groq AI client initialized successfully")
 	}
+}
 
+func main() {
 	// Start Admin WebSocket Hub
 	go adminHub.Run()
 	logger.Info("Admin WebSocket hub started")
@@ -111,6 +113,7 @@ func init() {
 	logger.Info("Admin stats broadcaster started")
 
 	// Start Web API server (optional, controlled by environment variable)
+	// CRITICAL: StartWebAPI must be called only once, here in main()
 	StartWebAPI()
 
 	// Start payment checker background job
@@ -162,11 +165,6 @@ func init() {
 			handleCallbackQuery(update)
 		}
 	}
-}
-
-func main() {
-	// The main function is now empty as initialization and update handling
-	// are done in the init function
 }
 
 // handleMessage processes incoming messages

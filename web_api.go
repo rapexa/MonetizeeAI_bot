@@ -276,12 +276,29 @@ type SessionInfoResponse struct {
 }
 
 // StartWebAPI initializes and starts the web API server
+// CRITICAL: This function must be called only once, from main().
+// Calling it multiple times will cause "handlers are already registered" panic.
+var webAPIStarted bool
+var webAPIMutex sync.Mutex
+
 func StartWebAPI() {
+	webAPIMutex.Lock()
+	defer webAPIMutex.Unlock()
+
+	// Prevent multiple calls to StartWebAPI
+	if webAPIStarted {
+		logger.Warn("StartWebAPI called multiple times - ignoring duplicate call")
+		return
+	}
+
 	// Only start if WEB_API_ENABLED is set to true
 	if strings.ToLower(os.Getenv("WEB_API_ENABLED")) != "true" {
 		logger.Info("Web API is disabled")
+		webAPIStarted = true // Mark as started even if disabled to prevent re-initialization
 		return
 	}
+
+	webAPIStarted = true
 
 	// 🔒 SECURITY: Start cleanup for Mini App rate limiting
 	cleanupMiniAppRateLimitCache()
