@@ -424,12 +424,10 @@ func StartWebAPI() {
 	// DISABLED: Web access restriction removed temporarily
 	// r.Use(telegramWebAppAuthMiddleware())
 
-	// 🔐 CRITICAL: Register admin auth routes AGAIN here to ensure they work
-	// Even though they're registered above, register them here too for safety
-	r.POST("/api/v1/admin/auth/login", handleWebLogin)
-	r.GET("/api/v1/admin/auth/check", handleCheckAuth)
-	r.POST("/api/v1/admin/auth/logout", handleWebLogout)
-	
+	// NOTE: Admin auth routes (/api/v1/admin/auth/login, /check, /logout) are already
+	// registered at the beginning of this function (lines 294-296) before any middleware.
+	// DO NOT register them again here to avoid "handlers are already registered" panic.
+
 	// API v1 routes
 	v1 := r.Group("/api/v1")
 	{
