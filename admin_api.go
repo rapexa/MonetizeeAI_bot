@@ -80,7 +80,7 @@ func adminAuthMiddleware() gin.HandlerFunc {
 		// 🔒 SECURITY: Admin Panel MUST be accessed through Telegram ONLY
 
 		// Check 1: Must have Telegram WebApp data
-		initData := c.GetHeader("X-Telegram-Init-Data")
+		initData := getTelegramInitDataFromRequest(c)
 		telegramWebApp := c.GetHeader("X-Telegram-WebApp")
 		startParam := c.GetHeader("X-Telegram-Start-Param")
 
@@ -96,16 +96,9 @@ func adminAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Check 2: Get telegram_id (from existing middleware or header)
-		telegramID := c.GetInt64("telegram_id")
-
-		// If not set by previous middleware, try to extract from initData
-		if telegramID == 0 {
-			// In production, you should properly parse initData
-			// For now, we rely on the existing telegramWebAppAuthMiddleware
-			logger.Warn("Admin Panel access denied - No Telegram ID",
-				zap.String("remote_addr", c.ClientIP()),
-				zap.String("path", c.Request.URL.Path))
+		// Check 2: Validate Telegram init data and extract telegram_id
+		telegramID, err := getTelegramIDFromRequest(c)
+		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error":   "Unauthorized",
 				"message": "Invalid Telegram authentication",

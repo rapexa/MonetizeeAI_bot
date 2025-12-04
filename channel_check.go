@@ -160,6 +160,11 @@ func handleMembershipCheckCallback(callbackQuery *tgbotapi.CallbackQuery) {
 // Returns error message if not a member, empty string if member
 // ⚡ PERFORMANCE: Cached for 5 minutes to reduce Telegram API calls
 func checkChannelMembershipAPI(telegramID int64) string {
+	// Admins are trusted; skip channel membership enforcement
+	if isAdminTelegramUser(telegramID) {
+		return ""
+	}
+
 	// Check cache first
 	channelCacheMutex.RLock()
 	cached, exists := channelMembershipCache[telegramID]
@@ -194,4 +199,17 @@ func checkChannelMembershipAPI(telegramID int64) string {
 			RequiredChannelUsername[1:])
 	}
 	return ""
+}
+
+// isAdminTelegramUser checks if the telegram_id belongs to an active admin.
+func isAdminTelegramUser(telegramID int64) bool {
+	if telegramID == 0 {
+		return false
+	}
+
+	var admin Admin
+	if err := db.Where("telegram_id = ? AND is_active = ?", telegramID, true).First(&admin).Error; err != nil {
+		return false
+	}
+	return true
 }

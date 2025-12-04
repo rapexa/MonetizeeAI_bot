@@ -136,6 +136,25 @@ const AdminPanel: React.FC = () => {
       wsUrl = `${protocol}//${window.location.host}/api/v1/admin/ws`;
     }
 
+    const params = new URLSearchParams();
+    const telegram = window.Telegram?.WebApp;
+    if (telegram?.initData) {
+      params.set('init_data', telegram.initData);
+    }
+    const startParam = telegram?.initDataUnsafe?.start_param;
+    if (startParam) {
+      params.set('start_param', startParam);
+    }
+    const telegramId = telegram?.initDataUnsafe?.user?.id;
+    if (telegramId) {
+      params.set('telegram_id', telegramId.toString());
+    }
+
+    const queryString = params.toString();
+    if (queryString) {
+      wsUrl = `${wsUrl}?${queryString}`;
+    }
+
     console.log('🔌 Connecting to Admin WebSocket:', wsUrl);
 
     try {

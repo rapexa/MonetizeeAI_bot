@@ -108,7 +108,8 @@ func handleAdminWebSocket(c *gin.Context) {
 	telegramID, isAdmin, err := validateAdminWebSocket(c)
 	if err != nil || !isAdmin {
 		logger.Error("Unauthorized WebSocket connection attempt",
-			zap.Error(err))
+			zap.Error(err),
+			zap.Bool("is_admin", isAdmin))
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
@@ -141,19 +142,11 @@ func handleAdminWebSocket(c *gin.Context) {
 
 // Validate admin WebSocket connection
 func validateAdminWebSocket(c *gin.Context) (int64, bool, error) {
-	// Get Telegram WebApp init data
-	initData := c.GetHeader("X-Telegram-Init-Data")
-	if initData == "" {
-		return 0, false, nil
+	telegramID, err := getTelegramIDFromRequest(c)
+	if err != nil {
+		return 0, false, err
 	}
 
-	// Parse and validate (using existing Telegram auth logic)
-	telegramID := c.GetInt64("telegram_id")
-	if telegramID == 0 {
-		return 0, false, nil
-	}
-
-	// Check if user is admin
 	var admin Admin
 	if err := db.Where("telegram_id = ? AND is_active = ?", telegramID, true).First(&admin).Error; err != nil {
 		return 0, false, err
