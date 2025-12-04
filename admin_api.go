@@ -96,31 +96,7 @@ func adminAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Check 2: Must be from Telegram (check User-Agent)
-		userAgent := c.GetHeader("User-Agent")
-		isTelegramUA := false
-		telegramPatterns := []string{"Telegram", "TelegramBot", "tdesktop"}
-		for _, pattern := range telegramPatterns {
-			if strings.Contains(userAgent, pattern) {
-				isTelegramUA = true
-				break
-			}
-		}
-
-		// Allow if it's Telegram OR has valid initData
-		if !isTelegramUA && initData == "" {
-			logger.Warn("Admin Panel access denied - Not from Telegram",
-				zap.String("user_agent", userAgent),
-				zap.String("remote_addr", c.ClientIP()))
-			c.JSON(http.StatusForbidden, gin.H{
-				"error":   "Access Denied",
-				"message": "Admin Panel is only accessible through Telegram",
-			})
-			c.Abort()
-			return
-		}
-
-		// Check 3: Get telegram_id (from existing middleware or header)
+		// Check 2: Get telegram_id (from existing middleware or header)
 		telegramID := c.GetInt64("telegram_id")
 
 		// If not set by previous middleware, try to extract from initData
@@ -128,7 +104,8 @@ func adminAuthMiddleware() gin.HandlerFunc {
 			// In production, you should properly parse initData
 			// For now, we rely on the existing telegramWebAppAuthMiddleware
 			logger.Warn("Admin Panel access denied - No Telegram ID",
-				zap.String("remote_addr", c.ClientIP()))
+				zap.String("remote_addr", c.ClientIP()),
+				zap.String("path", c.Request.URL.Path))
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error":   "Unauthorized",
 				"message": "Invalid Telegram authentication",
@@ -137,7 +114,7 @@ func adminAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Check 4: Verify user is an active admin
+		// Check 3: Verify user is an active admin
 		var admin Admin
 		if err := db.Where("telegram_id = ? AND is_active = ?", telegramID, true).First(&admin).Error; err != nil {
 			logger.Warn("Admin Panel access denied - User is not an admin",
@@ -151,19 +128,11 @@ func adminAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Check 5 (Optional): Verify start_param for extra security
-		// Only enforce for non-WebSocket routes
-		if !strings.Contains(c.Request.URL.Path, "/ws") {
-			if !strings.HasPrefix(startParam, "admin_") && startParam != "" {
-				logger.Warn("Admin Panel access with wrong start_param",
-					zap.Int64("admin_telegram_id", telegramID),
-					zap.String("start_param", startParam))
-				// Don't block, just log (since some requests won't have start_param)
-			} else if strings.HasPrefix(startParam, "admin_") {
-				logger.Info("Admin Panel access with valid start_param",
-					zap.Int64("admin_telegram_id", telegramID),
-					zap.String("start_param", startParam))
-			}
+		// Check 4 (Optional): Log start_param for debugging
+		if strings.HasPrefix(startParam, "admin_") {
+			logger.Info("Admin Panel access with start_param",
+				zap.Int64("admin_telegram_id", telegramID),
+				zap.String("start_param", startParam))
 		}
 
 		// Log successful admin access
