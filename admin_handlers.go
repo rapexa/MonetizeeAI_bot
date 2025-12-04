@@ -1872,11 +1872,9 @@ func handleMiniAppSecurity(admin *Admin, args []string) string {
 // handleManageSubscriptions shows subscription management menu
 // handleOpenAdminPanel sends link to Admin Panel
 func handleOpenAdminPanel(admin *Admin, args []string) string {
-	// Get bot username for WebApp URL
-	botUsername := bot.Self.UserName
-
-	// Create Mini App URL with admin_panel start parameter
-	miniAppURL := fmt.Sprintf("https://t.me/%s/app?startapp=admin_panel", botUsername)
+	// Use existing MonetizeAI Mini App with admin_panel start parameter
+	// Same format as other Mini App links in the project
+	miniAppURL := "https://t.me/MonetizeeAI_bot/MonetizeAI?startapp=admin_panel"
 
 	// Create inline keyboard with URL button
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
