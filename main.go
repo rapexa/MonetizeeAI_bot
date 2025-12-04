@@ -179,6 +179,19 @@ func handleMessage(update tgbotapi.Update) {
 			command := update.Message.Command()
 			args := update.Message.CommandArguments()
 
+			// Handle /start command for admin - show admin keyboard
+			if command == "start" {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID,
+					"🎛️ **پنل مدیریت MonetizeAI**\n\n"+
+						"خوش اومدی! از منوی زیر می‌تونی به پنل مدیریت و سایر بخش‌ها دسترسی داشته باشی.\n\n"+
+						"🆕 **جدید:** پنل مدیریت Real-time با WebSocket آماده است!\n"+
+						"روی دکمه 🎛️ **پنل مدیریت** کلیک کن.")
+				msg.ParseMode = "Markdown"
+				msg.ReplyMarkup = getAdminKeyboard()
+				bot.Send(msg)
+				return
+			}
+
 			// Handle cancel command
 			if command == "cancel" {
 				state, exists := adminStates[admin.TelegramID]
