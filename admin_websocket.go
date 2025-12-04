@@ -104,12 +104,23 @@ type StatsPayload struct {
 
 // Handle WebSocket connection for admin
 func handleAdminWebSocket(c *gin.Context) {
+	logger.Info("Admin WebSocket connection attempt",
+		zap.String("path", c.Request.URL.Path),
+		zap.String("remote_addr", c.ClientIP()),
+		zap.String("user_agent", c.GetHeader("User-Agent")))
+
 	// Validate admin authentication
 	telegramID, isAdmin, err := validateAdminWebSocket(c)
 	if err != nil || !isAdmin {
+		initDataPresent := "no"
+		if c.GetHeader("X-Telegram-Init-Data") != "" || c.Query("init_data") != "" {
+			initDataPresent = "yes"
+		}
 		logger.Error("Unauthorized WebSocket connection attempt",
 			zap.Error(err),
-			zap.Bool("is_admin", isAdmin))
+			zap.Bool("is_admin", isAdmin),
+			zap.String("path", c.Request.URL.Path),
+			zap.String("init_data_present", initDataPresent))
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}

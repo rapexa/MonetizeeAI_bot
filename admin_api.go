@@ -14,6 +14,7 @@ import (
 
 // Setup admin API routes
 func setupAdminAPIRoutes(r *gin.Engine) {
+	// Main admin routes group
 	admin := r.Group("/api/v1/admin")
 	admin.Use(adminAuthMiddleware())
 	{
@@ -71,6 +72,14 @@ func setupAdminAPIRoutes(r *gin.Engine) {
 		admin.GET("/analytics/revenue", getRevenueAnalytics)
 		admin.GET("/analytics/users", getUserAnalytics)
 		admin.GET("/analytics/engagement", getEngagementAnalytics)
+	}
+
+	// Legacy route support: /v1/admin/ws (for backward compatibility)
+	// This handles requests that come without /api prefix
+	legacyAdmin := r.Group("/v1/admin")
+	legacyAdmin.Use(adminAuthMiddleware())
+	{
+		legacyAdmin.GET("/ws", handleAdminWebSocket)
 	}
 }
 
