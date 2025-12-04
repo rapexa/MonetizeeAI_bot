@@ -77,13 +77,42 @@ async function makeRequest<T = any>(
     const response = await fetch(`${BASE_URL}${endpoint}`, options);
     
     // Check if response is JSON
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
+    const contentType = response.headers.get('content-type') || '';
+    const isJSON = contentType.includes('application/json');
+    
+    if (!isJSON) {
       // If not JSON, try to get text for error message
       const text = await response.text();
+      console.error('Non-JSON response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        contentType,
+        text: text.substring(0, 200), // First 200 chars
+        url: `${BASE_URL}${endpoint}`
+      });
+      
+      // Try to parse as JSON if it looks like JSON
+      if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+        try {
+          const data = JSON.parse(text);
+          if (!response.ok) {
+            return {
+              success: false,
+              error: data.error || `HTTP ${response.status}`,
+            };
+          }
+          return {
+            success: true,
+            data: data.data || data,
+          };
+        } catch (e) {
+          // Not valid JSON
+        }
+      }
+      
       return {
         success: false,
-        error: `Server returned non-JSON response: ${response.status} ${response.statusText}`,
+        error: `Server returned non-JSON response: ${response.status} ${response.statusText}. ${text.substring(0, 100)}`,
       };
     }
 

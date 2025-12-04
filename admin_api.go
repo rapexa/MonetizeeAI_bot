@@ -134,7 +134,7 @@ func handleWebLogin(c *gin.Context) {
 	}
 
 	// Check credentials (hardcoded for now - can be moved to database)
-	if req.Username != "admin" || req.Password != "admin12345" {
+	if req.Username != "admin" || req.Password != "admin123" {
 		logger.Warn("Web login failed - invalid credentials",
 			zap.String("username", req.Username),
 			zap.String("remote_addr", c.ClientIP()))
@@ -175,6 +175,8 @@ func handleWebLogin(c *gin.Context) {
 		zap.String("username", req.Username),
 		zap.String("remote_addr", c.ClientIP()))
 
+	// Ensure Content-Type is set correctly
+	c.Header("Content-Type", "application/json; charset=utf-8")
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
