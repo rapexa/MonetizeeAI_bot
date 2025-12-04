@@ -31,19 +31,9 @@ func setupAdminAPIRoutes(r *gin.Engine) {
 	// Start session cleanup
 	startSessionCleanup()
 	
-	// Auth routes (public) - must be accessible without authentication
-	adminAuth := r.Group("/api/v1/admin/auth")
-	{
-		adminAuth.POST("/login", handleWebLogin)
-		adminAuth.GET("/check", handleCheckAuth)
-		adminAuth.POST("/logout", handleWebLogout)
-	}
-	
-	// Log that routes are registered
-	logger.Info("Admin auth routes registered",
-		zap.String("POST /api/v1/admin/auth/login", "handleWebLogin"),
-		zap.String("GET /api/v1/admin/auth/check", "handleCheckAuth"),
-		zap.String("POST /api/v1/admin/auth/logout", "handleWebLogout"))
+	// Auth routes are now registered directly in web_api.go before this function is called
+	// This ensures they are registered before NoRoute middleware
+	// adminAuth routes are registered in web_api.go to ensure proper order
 
 	// Main admin routes group
 	admin := r.Group("/api/v1/admin")

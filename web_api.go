@@ -351,12 +351,34 @@ func StartWebAPI() {
 		}
 		c.Next()
 	})
+	
+	// Debug middleware for API routes - log all API requests
+	r.Use(func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			logger.Info("API request received",
+				zap.String("method", c.Request.Method),
+				zap.String("path", c.Request.URL.Path),
+				zap.String("remote_addr", c.ClientIP()),
+				zap.String("user_agent", c.GetHeader("User-Agent")))
+		}
+		c.Next()
+	})
 
 	// Health check endpoint (before auth middleware)
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, APIResponse{
 			Success: true,
 			Data:    map[string]string{"status": "healthy", "service": "MonetizeeAI API"},
+		})
+	})
+	
+	// Test endpoint for admin auth - to verify routing works
+	r.GET("/api/v1/admin/auth/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "Admin auth endpoint is reachable",
+			"path":    c.Request.URL.Path,
+			"method":  c.Request.Method,
 		})
 	})
 
@@ -458,6 +480,12 @@ func StartWebAPI() {
 
 	// 🔐 Admin Panel API routes (WebSocket + REST)
 	// IMPORTANT: Must be registered BEFORE NoRoute middleware to ensure API routes work
+	// Register admin auth routes directly on the router to ensure they work
+	r.POST("/api/v1/admin/auth/login", handleWebLogin)
+	r.GET("/api/v1/admin/auth/check", handleCheckAuth)
+	r.POST("/api/v1/admin/auth/logout", handleWebLogout)
+	
+	// Setup all other admin routes
 	setupAdminAPIRoutes(r)
 	logger.Info("Admin Panel API routes configured", 
 		zap.String("admin_auth_login", "/api/v1/admin/auth/login"),
