@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Users, 
   DollarSign, 
@@ -19,13 +19,13 @@ import {
   Search,
   Filter
 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
 import adminApiService from '../services/adminApi';
 
-interface WSMessage {
-  type: string;
-  payload: any;
-}
+// WebSocket removed - no longer using WSMessage interface
+// interface WSMessage {
+//   type: string;
+//   payload: any;
+// }
 
 interface StatsPayload {
   totalUsers: number;
@@ -67,9 +67,9 @@ interface PaymentTransaction {
 }
 
 const AdminPanel: React.FC = () => {
-  const { isInTelegram } = useApp();
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // WebSocket removed - using REST API for all users (both Telegram and Web)
+  // This ensures consistent behavior and avoids authentication issues
+  // All users must login via web login page first
   
   const [stats, setStats] = useState<StatsPayload | null>(null);
   const [connected, setConnected] = useState(false);
@@ -94,25 +94,28 @@ const AdminPanel: React.FC = () => {
   const [loadingPayments, setLoadingPayments] = useState(false);
 
   // Check authentication on mount
+  // IMPORTANT: For both Telegram and Web users, we use web login
+  // This ensures consistent authentication and avoids Telegram auth issues
   useEffect(() => {
     const checkAuth = async () => {
       // Check if we have web session token
       const webToken = localStorage.getItem('admin_session_token');
       
       if (webToken) {
-        // Web authentication
+        // Web authentication (works for both Telegram and Web users)
         try {
           const response = await adminApiService.checkAuth();
           if (response.success) {
-            console.log('✅ Web authentication successful');
+            console.log('✅ Authentication successful');
             setAccessDenied(false);
-            setIsWebUser(true); // Mark as web user
-            setConnected(true); // Show as connected for web users
-            // Fetch stats from REST API for web users
+            setIsWebUser(true); // Mark as web user (uses REST API instead of WebSocket)
+            setConnected(true); // Show as connected
+            // Fetch stats from REST API
             await fetchStatsFromAPI();
             return;
           } else {
             // Token invalid, redirect to login
+            console.log('⚠️ Token invalid, redirecting to login');
             localStorage.removeItem('admin_session_token');
             window.location.href = '/admin-login';
             return;
@@ -125,31 +128,13 @@ const AdminPanel: React.FC = () => {
         }
       }
 
-      // Check Telegram access (if in Telegram)
-      if (isInTelegram) {
-        const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || '';
-        if (startParam.startsWith('admin_')) {
-          console.log('✅ Admin access with Telegram param:', startParam);
-          setAccessDenied(false);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // No valid authentication - redirect to login
-      if (!isInTelegram) {
-        console.log('⚠️ No authentication found, redirecting to login');
-        window.location.href = '/admin-login';
-        return;
-      }
-
-      // If in Telegram but no start_param, still allow (might be direct access)
-      setAccessDenied(false);
-      setLoading(false);
+      // No token found - redirect to login (for both Telegram and Web users)
+      console.log('⚠️ No authentication token found, redirecting to login');
+      window.location.href = '/admin-login';
     };
 
     checkAuth();
-  }, [isInTelegram]);
+  }, []);
 
   // Fetch stats from REST API (for web users)
   const fetchStatsFromAPI = useCallback(async () => {
@@ -175,11 +160,11 @@ const AdminPanel: React.FC = () => {
     }
   }, []);
   
-  // Poll stats every 5 seconds for web users
+  // Poll stats every 5 seconds for all users (both Telegram and Web)
+  // We use REST API for all users to ensure consistent behavior
   useEffect(() => {
     const webToken = localStorage.getItem('admin_session_token');
-    if (!webToken || isInTelegram) {
-      // Only poll for web users, Telegram users use WebSocket
+    if (!webToken) {
       return;
     }
 
@@ -192,135 +177,11 @@ const AdminPanel: React.FC = () => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [fetchStatsFromAPI, isInTelegram]);
+  }, [fetchStatsFromAPI]);
 
-  // Connect to WebSocket
-  const connectWebSocket = useCallback(() => {
-    if (!isInTelegram || accessDenied) {
-      console.warn('⚠️ Not in Telegram or Access Denied - Admin Panel requires Telegram');
-      setLoading(false);
-      return;
-    }
-
-    // WebSocket URL (use secure WebSocket in production)
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    
-    // Determine host and base path
-    let wsUrl: string;
-    if (window.location.host === 'localhost:5173') {
-      // Development: Frontend on 5173, Backend on 8080
-      wsUrl = `ws://localhost:8080/api/v1/admin/ws`;
-    } else {
-      // Production: Same domain
-      wsUrl = `${protocol}//${window.location.host}/api/v1/admin/ws`;
-    }
-
-    const params = new URLSearchParams();
-    const telegram = window.Telegram?.WebApp;
-    if (telegram?.initData) {
-      params.set('init_data', telegram.initData);
-    }
-    const startParam = telegram?.initDataUnsafe?.start_param;
-    if (startParam) {
-      params.set('start_param', startParam);
-    }
-    const telegramId = telegram?.initDataUnsafe?.user?.id;
-    if (telegramId) {
-      params.set('telegram_id', telegramId.toString());
-    }
-
-    const queryString = params.toString();
-    if (queryString) {
-      wsUrl = `${wsUrl}?${queryString}`;
-    }
-
-    console.log('🔌 Connecting to Admin WebSocket:', wsUrl);
-
-    try {
-      const ws = new WebSocket(wsUrl);
-
-      // Set headers (WebSocket doesn't support custom headers, so we'll use query params or cookies)
-      // For now, we'll rely on the Telegram auth middleware
-
-      ws.onopen = () => {
-        console.log('✅ Admin WebSocket connected');
-        setConnected(true);
-        setLoading(false);
-
-        // Request initial stats
-        ws.send(JSON.stringify({ type: 'request_stats' }));
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const message: WSMessage = JSON.parse(event.data);
-          console.log('📨 Received:', message.type);
-
-          switch (message.type) {
-            case 'stats':
-              setStats(message.payload);
-              break;
-            case 'users':
-              // Handle users data
-              console.log('Users data received');
-              break;
-            case 'payments':
-              // Handle payments data
-              console.log('Payments data received');
-              break;
-            case 'pong':
-              console.log('🏓 Pong received');
-              break;
-            default:
-              console.log('Unknown message type:', message.type);
-          }
-        } catch (error) {
-          console.error('❌ Failed to parse WebSocket message:', error);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('❌ WebSocket error:', error);
-        setConnected(false);
-      };
-
-      ws.onclose = () => {
-        console.log('🔌 WebSocket disconnected');
-        setConnected(false);
-
-        // Reconnect after 3 seconds
-        reconnectTimeoutRef.current = setTimeout(() => {
-          console.log('🔄 Reconnecting...');
-          connectWebSocket();
-        }, 3000);
-      };
-
-      wsRef.current = ws;
-    } catch (error) {
-      console.error('❌ Failed to create WebSocket:', error);
-      setLoading(false);
-    }
-  }, [isInTelegram, accessDenied]);
-
-  // Initialize WebSocket on mount (only for Telegram users)
-  useEffect(() => {
-    const webToken = localStorage.getItem('admin_session_token');
-    // Only connect WebSocket if in Telegram and not using web auth
-    if (isInTelegram && !webToken) {
-      connectWebSocket();
-    }
-
-    return () => {
-      // Cleanup on unmount
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-    };
-  }, [connectWebSocket, isInTelegram]);
+  // NOTE: WebSocket is disabled - we use REST API for all users (both Telegram and Web)
+  // This ensures consistent behavior and avoids authentication issues
+  // All users must login via web login page first, then use REST API with web session token
 
   // Load users
   const loadUsers = async () => {
@@ -379,9 +240,8 @@ const AdminPanel: React.FC = () => {
 
   // Manual refresh
   const handleRefresh = () => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'request_stats' }));
-    }
+    // Refresh stats from REST API
+    fetchStatsFromAPI();
     
     // Refresh current tab data
     if (activeTab === 'users') {
