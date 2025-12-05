@@ -44,6 +44,7 @@ type User struct {
 
 	// Profile fields for miniApp
 	MonthlyIncome int64 `json:"monthly_income" gorm:"default:0"` // در تومان
+	Points         int  `json:"points" gorm:"default:0"`         // امتیاز کل کاربر
 
 	// Subscription fields
 	SubscriptionType   string `gorm:"default:'none'"` // none, free_trial, paid

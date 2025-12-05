@@ -649,8 +649,8 @@ func getAdminUserDetail(c *gin.Context) {
 		avgDailyTimeHours = totalTimeHours
 	}
 
-	// Get total points (if available in user model, otherwise use 0)
-	totalPoints := 0 // You may need to add a Points field to User model or calculate from exercises
+	// Get total points from user model
+	totalPoints := user.Points
 
 	// Get completed sessions count
 	completedSessionsCount := user.CurrentSession - 1
@@ -676,7 +676,7 @@ func getAdminUserDetail(c *gin.Context) {
 				"is_active":          user.IsActive,
 				"is_blocked":          user.IsBlocked,
 				"is_verified":         user.IsVerified,
-				"points":              totalPoints,
+				"points":              user.Points,
 				"created_at":          user.CreatedAt,
 				"updated_at":          user.UpdatedAt,
 			},

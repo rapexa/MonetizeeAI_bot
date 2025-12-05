@@ -362,6 +362,7 @@ type UserInfoResponse struct {
 	Level              int        `json:"level"`
 	Progress           int        `json:"progress"`
 	CompletedTasks     int        `json:"completed_tasks"`
+	Points             int        `json:"points"`
 	SubscriptionType   string     `json:"subscription_type"`
 	PlanName           string     `json:"plan_name"`
 	SubscriptionExpiry *time.Time `json:"subscription_expiry,omitempty"`
@@ -771,6 +772,7 @@ func authenticateTelegramUser(c *gin.Context) {
 		Level:              userLevel.Level,
 		Progress:           progress,
 		CompletedTasks:     completedSessions,
+		Points:             user.Points,
 		SubscriptionType:   user.SubscriptionType,
 		PlanName:           user.PlanName,
 		SubscriptionExpiry: user.SubscriptionExpiry,
@@ -839,6 +841,7 @@ func getUserInfo(c *gin.Context) {
 		Level:              userLevel.Level,
 		Progress:           progress,
 		CompletedTasks:     completedSessions,
+		Points:             user.Points,
 		SubscriptionType:   user.SubscriptionType,
 		PlanName:           user.PlanName,
 		SubscriptionExpiry: user.SubscriptionExpiry,
@@ -2617,14 +2620,21 @@ func handleQuizEvaluation(c *gin.Context) {
 			zap.Int("new_session", newSession))
 
 		// Update in database - MUST use explicit WHERE clause
-		if err := db.Model(&User{}).Where("telegram_id = ?", user.TelegramID).Update("current_session", newSession).Error; err != nil {
-			logger.Error("Failed to update user session after quiz",
+		// Update both current_session and points
+		updates := map[string]interface{}{
+			"current_session": newSession,
+			"points":          user.Points + score, // Add quiz score to total points
+		}
+		if err := db.Model(&User{}).Where("telegram_id = ?", user.TelegramID).Updates(updates).Error; err != nil {
+			logger.Error("Failed to update user session and points after quiz",
 				zap.Int64("user_id", user.TelegramID),
 				zap.Int("new_session", newSession),
+				zap.Int("score", score),
 				zap.Error(err))
 		} else {
 			// CRITICAL: Update the user object in memory too
 			user.CurrentSession = newSession
+			user.Points += score
 			nextStageUnlocked = true
 
 			// ⚡ PERFORMANCE: Invalidate cache to force refresh on next request

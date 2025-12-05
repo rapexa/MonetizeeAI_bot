@@ -1176,7 +1176,7 @@ const AdminPanel: React.FC = () => {
                             امتیاز کل
                           </div>
                           <div className="text-white font-bold text-lg">
-                            {userDetail.statistics.total_points?.toLocaleString('fa-IR') || selectedUser.Points?.toLocaleString('fa-IR') || '0'}
+                            {(userDetail.user?.points ?? userDetail.statistics?.total_points ?? selectedUser.Points ?? 0).toLocaleString('fa-IR')}
                           </div>
                         </div>
                         

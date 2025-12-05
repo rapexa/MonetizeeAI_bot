@@ -35,7 +35,7 @@ func (uc *UserCache) GetUser(telegramID int64) (*User, error) {
 	var user User
 	if err := db.Select("telegram_id", "username", "first_name", "last_name", "current_session", 
 		"is_verified", "is_active", "subscription_type", "plan_name", "subscription_expiry", 
-		"free_trial_used", "chat_messages_used", "course_sessions_used", "created_at", "updated_at").
+		"free_trial_used", "chat_messages_used", "course_sessions_used", "points", "created_at", "updated_at").
 		Where("telegram_id = ?", telegramID).First(&user).Error; err != nil {
 		return nil, err
 	}
