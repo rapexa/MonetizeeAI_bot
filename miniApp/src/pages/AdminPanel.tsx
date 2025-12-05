@@ -438,40 +438,40 @@ const AdminPanel: React.FC = () => {
     <div className="min-h-screen pb-20" style={{ backgroundColor: '#0e0817' }}>
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
-        <div className="flex items-center justify-between p-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#2c189a] via-[#5a189a] to-[#7222F2] rounded-xl flex items-center justify-center shadow-lg">
-              <Shield size={24} className="text-white" />
+        <div className="flex items-center justify-between py-2 px-4 max-w-7xl mx-auto">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#2c189a] via-[#5a189a] to-[#7222F2] rounded-xl flex items-center justify-center shadow-lg">
+              <Shield size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">پنل مدیریت</h1>
-              <p className="text-xs text-white/70">MonetizeAI Admin Panel</p>
+              <h1 className="text-lg font-bold text-white">پنل مدیریت</h1>
+              <p className="text-[10px] text-white/70">MonetizeAI Admin Panel</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {/* Connection Status */}
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
+            <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium ${
               connected 
                 ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
                 : 'bg-red-500/20 text-red-400 border border-red-500/30'
             }`}>
-              <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></div>
+              <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></div>
               {connected ? 'متصل' : 'قطع شده'}
             </div>
 
             {/* Refresh Button */}
             <button
               onClick={handleRefresh}
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all duration-300"
+              className="p-1.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all duration-300"
             >
-              <RefreshCw size={18} className="text-white" />
+              <RefreshCw size={16} className="text-white" />
             </button>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex overflow-x-auto px-4 pb-2 gap-2 max-w-7xl mx-auto">
+        <div className="flex overflow-x-auto px-4 pb-1.5 gap-2 max-w-7xl mx-auto">
           {[
             { id: 'dashboard', label: 'داشبورد', icon: BarChart3 },
             { id: 'users', label: 'کاربران', icon: Users },
@@ -484,13 +484,13 @@ const AdminPanel: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 whitespace-nowrap ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-300 whitespace-nowrap text-sm ${
                   activeTab === tab.id
                     ? 'bg-white/20 text-white shadow-lg'
                     : 'text-white/70 hover:text-white hover:bg-white/10'
                 }`}
               >
-                <Icon size={16} />
+                <Icon size={14} />
                 {tab.label}
               </button>
             );
@@ -499,7 +499,7 @@ const AdminPanel: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="pt-32 px-4 max-w-7xl mx-auto">
+      <div className="pt-28 px-4 max-w-7xl mx-auto mt-4">
         {activeTab === 'dashboard' && stats && (
           <div className="space-y-6">
             {/* Quick Stats */}
