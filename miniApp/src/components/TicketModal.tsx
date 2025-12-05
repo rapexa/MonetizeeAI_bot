@@ -85,10 +85,12 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
       });
 
       if (response.success && response.data) {
-        await loadTickets();
+        // Clear form first
         setCreateForm({ subject: '', priority: 'normal', message: '' });
+        // Reload tickets to show the new ticket
+        await loadTickets();
+        // Stay on list view (already on 'create', so go back to 'list')
         setView('list');
-        alert('تیکت با موفقیت ایجاد شد!');
       } else {
         alert(response.error || 'خطا در ایجاد تیکت');
       }
@@ -131,13 +133,16 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
       
       const response = await apiService.replyTicket(ticketId, replyMessage);
       if (response.success) {
+        // Clear reply message immediately
         setReplyMessage('');
-        // Reload ticket
+        // Reload ticket details immediately to show the new message
         const ticketResponse = await apiService.getTicket(ticketId);
         if (ticketResponse.success && ticketResponse.data) {
           setSelectedTicket(ticketResponse.data);
         }
+        // Reload tickets list to update status
         await loadTickets();
+        // Stay on detail view to see the new message
       } else {
         alert(response.error || 'خطا در ارسال پاسخ');
       }
