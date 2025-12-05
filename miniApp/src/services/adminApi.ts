@@ -10,9 +10,8 @@ function getBaseURL(): string {
     return 'http://localhost:8080/api/v1/admin';
   }
   
-  // Production: use current host or fallback
-  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-  return `${protocol}//${window.location.host}/api/v1/admin`;
+  // Production: use fixed backend URL
+  return 'https://sianmarketing.com/api/api/v1/admin';
 }
 
 const BASE_URL = getBaseURL();
