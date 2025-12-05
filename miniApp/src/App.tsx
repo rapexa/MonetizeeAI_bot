@@ -31,6 +31,32 @@ import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import TestPage from './pages/TestPage';
 
+// Component to check if user is in Telegram
+function isInTelegramWebApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  // Check if Telegram WebApp object exists
+  const telegramWebApp = window.Telegram?.WebApp;
+  if (telegramWebApp && (telegramWebApp.initData || telegramWebApp.initDataUnsafe?.user?.id)) {
+    return true;
+  }
+  
+  // Check User-Agent for Telegram indicators
+  const userAgent = navigator.userAgent;
+  const telegramPatterns = ['Telegram', 'TelegramBot', 'tdesktop', 'Telegram Desktop', 'Telegram Web'];
+  if (telegramPatterns.some(pattern => userAgent.includes(pattern))) {
+    return true;
+  }
+  
+  // Check referrer for Telegram domains
+  const referrer = document.referrer;
+  if (referrer && (referrer.includes('t.me') || referrer.includes('telegram.org') || referrer.includes('telegram.me'))) {
+    return true;
+  }
+  
+  return false;
+}
+
 // Component to handle Telegram WebApp start_param navigation
 function AppRouter() {
   const navigate = useNavigate();
@@ -57,6 +83,18 @@ function AppRouter() {
       } else if (startParam === 'profile' && location.pathname !== '/profile') {
         navigate('/profile', { replace: true });
       }
+    }
+    
+    // Check if user is accessing non-admin routes from web (not Telegram)
+    const isAdminRoute = location.pathname === '/admin-login' || 
+                        location.pathname.startsWith('/admin-login/') ||
+                        location.pathname === '/admin-panel' || 
+                        location.pathname.startsWith('/admin-panel/');
+    
+    if (!isAdminRoute && !isInTelegramWebApp()) {
+      // User is accessing non-admin route from web - show access denied message
+      // This will be handled by backend middleware, but we can also show a message here
+      console.log('⚠️ Non-Telegram access to non-admin route:', location.pathname);
     }
   }, [navigate, location.pathname]);
 

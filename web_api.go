@@ -237,6 +237,8 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 					Success: false,
 					Error:   "Access denied. This service is only available through Telegram Mini App.",
 				})
+				c.Abort()
+				return
 			} else {
 				c.Header("Content-Type", "text/html; charset=utf-8")
 				c.String(http.StatusForbidden, `<!DOCTYPE html>
@@ -626,6 +628,7 @@ func StartWebAPI() {
 		r.Static("/fonts", frontendPath+"/fonts")
 
 		// Serve index.html for all other non-API routes (SPA routing)
+		// NOTE: This will only be reached if middleware allows it (Telegram users or admin routes)
 		r.NoRoute(func(c *gin.Context) {
 			path := c.Request.URL.Path
 			// Normalize path (remove double slashes)
@@ -648,7 +651,10 @@ func StartWebAPI() {
 				return
 			}
 
-			// Serve index.html for frontend routes (SPA routing)
+			// If we reach here, it means:
+			// 1. User is from Telegram (middleware allowed it), OR
+			// 2. User is accessing admin routes (middleware allowed it)
+			// So serve index.html for SPA routing
 			indexPath := frontendPath + "/index.html"
 			if _, err := os.Stat(indexPath); err == nil {
 				c.File(indexPath)
