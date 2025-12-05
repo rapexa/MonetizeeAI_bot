@@ -3,19 +3,23 @@ import { X, Send, MessageSquare, Clock, CheckCircle, AlertCircle, Lock } from 'l
 import apiService from '../services/api';
 
 interface Ticket {
-  id: number;
+  id?: number;
+  ID?: number;
   subject: string;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   status: 'open' | 'in_progress' | 'answered' | 'closed';
-  created_at: string;
+  created_at?: string;
+  CreatedAt?: string;
   messages: TicketMessage[];
 }
 
 interface TicketMessage {
-  id: number;
+  id?: number;
+  ID?: number;
   sender_type: 'user' | 'admin';
   message: string;
-  created_at: string;
+  created_at?: string;
+  CreatedAt?: string;
   is_read: boolean;
 }
 
@@ -40,6 +44,11 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
   
   // Reply form
   const [replyMessage, setReplyMessage] = useState('');
+
+  // Helper function to get ticket ID from either format (id or ID)
+  const getTicketId = (ticket: Ticket | any): number | undefined => {
+    return ticket?.id || ticket?.ID;
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -96,9 +105,12 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
     setView('detail');
     // Load full ticket details
     try {
-      const response = await apiService.getTicket(ticket.id);
-      if (response.success && response.data) {
-        setSelectedTicket(response.data);
+      const ticketId = getTicketId(ticket);
+      if (ticketId) {
+        const response = await apiService.getTicket(ticketId);
+        if (response.success && response.data) {
+          setSelectedTicket(response.data);
+        }
       }
     } catch (error) {
       console.error('Error loading ticket details:', error);
@@ -110,11 +122,18 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
 
     setLoading(true);
     try {
-      const response = await apiService.replyTicket(selectedTicket.id, replyMessage);
+      const ticketId = getTicketId(selectedTicket);
+      if (!ticketId) {
+        alert('خطا: شناسه تیکت یافت نشد');
+        setLoading(false);
+        return;
+      }
+      
+      const response = await apiService.replyTicket(ticketId, replyMessage);
       if (response.success) {
         setReplyMessage('');
         // Reload ticket
-        const ticketResponse = await apiService.getTicket(selectedTicket.id);
+        const ticketResponse = await apiService.getTicket(ticketId);
         if (ticketResponse.success && ticketResponse.data) {
           setSelectedTicket(ticketResponse.data);
         }
@@ -139,7 +158,13 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
 
     setLoading(true);
     try {
-      const response = await apiService.closeTicket(selectedTicket.id);
+      const ticketId = getTicketId(selectedTicket);
+      if (!ticketId) {
+        alert('خطا: شناسه تیکت یافت نشد');
+        setLoading(false);
+        return;
+      }
+      const response = await apiService.closeTicket(ticketId);
       if (response.success) {
         await loadTickets();
         setView('list');
@@ -266,7 +291,7 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
                 <div className="space-y-3">
                   {tickets.map((ticket) => (
                     <div
-                      key={ticket.id}
+                      key={getTicketId(ticket) || Math.random()}
                       onClick={() => handleViewTicket(ticket)}
                       className="backdrop-blur-xl rounded-xl p-4 border border-gray-700/60 cursor-pointer hover:border-[#5a189a]/50 transition-all duration-300 hover:scale-[1.02]"
                       style={{ backgroundColor: '#10091c' }}
@@ -289,7 +314,7 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
                           ? ticket.messages[0].message
                           : 'بدون پیام'}
                       </p>
-                      <p className="text-xs text-gray-500">{formatDate(ticket.created_at)}</p>
+                      <p className="text-xs text-gray-500">{formatDate(ticket.created_at || (ticket as any).CreatedAt || '')}</p>
                     </div>
                   ))}
                 </div>
@@ -380,15 +405,15 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
                     </span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500">{formatDate(selectedTicket.created_at)}</p>
+                <p className="text-xs text-gray-500">{formatDate(selectedTicket.created_at || (selectedTicket as any).CreatedAt || '')}</p>
               </div>
 
               {/* Messages */}
               <div className="space-y-3 max-h-64 overflow-y-auto">
                 {selectedTicket.messages && selectedTicket.messages.length > 0 ? (
-                  selectedTicket.messages.map((msg) => (
+                  selectedTicket.messages.map((msg, index) => (
                     <div
-                      key={msg.id}
+                      key={msg.id || (msg as any).ID || index}
                       className={`p-4 rounded-xl ${
                         msg.sender_type === 'user'
                           ? 'bg-gradient-to-r from-[#2c189a]/20 to-[#5a189a]/20 border border-[#5a189a]/30'
@@ -399,7 +424,7 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
                         <span className="text-sm font-medium text-gray-300">
                           {msg.sender_type === 'user' ? 'شما' : 'پشتیبان'}
                         </span>
-                        <span className="text-xs text-gray-500">{formatDate(msg.created_at)}</span>
+                        <span className="text-xs text-gray-500">{formatDate(msg.created_at || (msg as any).CreatedAt || '')}</span>
                       </div>
                       <p className="text-white whitespace-pre-wrap">{msg.message}</p>
                     </div>
