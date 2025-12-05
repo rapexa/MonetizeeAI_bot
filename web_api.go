@@ -596,6 +596,13 @@ func StartWebAPI() {
 		// Payment endpoints
 		v1.POST("/payment/create", handleCreatePaymentRequest)
 		v1.GET("/payment/status", handleCheckPaymentStatus)
+
+		// Ticket endpoints
+		v1.POST("/tickets", handleCreateTicket)
+		v1.GET("/user/:telegram_id/tickets", handleGetUserTickets)
+		v1.GET("/tickets/:id", handleGetTicket)
+		v1.POST("/tickets/:id/reply", handleReplyTicket)
+		v1.POST("/tickets/:id/close", handleCloseTicket)
 	}
 
 	// Payment callback routes (outside v1, for ZarinPal)
@@ -2859,4 +2866,321 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// ==========================================
+// Ticket Handlers
+// ==========================================
+
+// handleCreateTicket creates a new support ticket
+func handleCreateTicket(c *gin.Context) {
+	var requestData struct {
+		TelegramID int64  `json:"telegram_id" binding:"required"`
+		Subject    string `json:"subject" binding:"required"`
+		Priority   string `json:"priority" binding:"required"`
+		Message    string `json:"message" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid request data",
+		})
+		return
+	}
+
+	// Validate priority
+	validPriorities := map[string]bool{"low": true, "normal": true, "high": true, "urgent": true}
+	if !validPriorities[requestData.Priority] {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid priority. Must be: low, normal, high, or urgent",
+		})
+		return
+	}
+
+	// Check if user exists
+	var user User
+	if err := db.Where("telegram_id = ?", requestData.TelegramID).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, APIResponse{
+			Success: false,
+			Error:   "User not found",
+		})
+		return
+	}
+
+	// Create ticket
+	ticket := Ticket{
+		TelegramID: requestData.TelegramID,
+		Subject:    requestData.Subject,
+		Priority:   requestData.Priority,
+		Status:     "open",
+	}
+
+	if err := db.Create(&ticket).Error; err != nil {
+		logger.Error("Failed to create ticket", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Failed to create ticket",
+		})
+		return
+	}
+
+	// Create first message
+	message := TicketMessage{
+		TicketID:   ticket.ID,
+		SenderType: "user",
+		Message:    requestData.Message,
+		TelegramID: requestData.TelegramID,
+	}
+
+	if err := db.Create(&message).Error; err != nil {
+		logger.Error("Failed to create ticket message", zap.Error(err))
+		// Delete ticket if message creation fails
+		db.Delete(&ticket)
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Failed to create ticket message",
+		})
+		return
+	}
+
+	// Load ticket with message
+	db.Preload("Messages").First(&ticket, ticket.ID)
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    ticket,
+	})
+}
+
+// handleGetUserTickets returns all tickets for a user
+func handleGetUserTickets(c *gin.Context) {
+	telegramIDStr := c.Param("telegram_id")
+	telegramID, err := strconv.ParseInt(telegramIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid telegram_id",
+		})
+		return
+	}
+
+	var tickets []Ticket
+	if err := db.Where("telegram_id = ?", telegramID).
+		Preload("Messages").
+		Order("created_at DESC").
+		Find(&tickets).Error; err != nil {
+		logger.Error("Failed to get user tickets", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Failed to get tickets",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    tickets,
+	})
+}
+
+// handleGetTicket returns a specific ticket with all messages
+func handleGetTicket(c *gin.Context) {
+	ticketIDStr := c.Param("id")
+	ticketID, err := strconv.ParseUint(ticketIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid ticket ID",
+		})
+		return
+	}
+
+	var ticket Ticket
+	if err := db.Preload("Messages", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at ASC")
+	}).First(&ticket, ticketID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "Ticket not found",
+			})
+			return
+		}
+		logger.Error("Failed to get ticket", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Failed to get ticket",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    ticket,
+	})
+}
+
+// handleReplyTicket adds a reply to a ticket
+func handleReplyTicket(c *gin.Context) {
+	ticketIDStr := c.Param("id")
+	ticketID, err := strconv.ParseUint(ticketIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid ticket ID",
+		})
+		return
+	}
+
+	var requestData struct {
+		TelegramID int64  `json:"telegram_id" binding:"required"`
+		Message    string `json:"message" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid request data",
+		})
+		return
+	}
+
+	// Get ticket
+	var ticket Ticket
+	if err := db.First(&ticket, ticketID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "Ticket not found",
+			})
+			return
+		}
+		logger.Error("Failed to get ticket", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Failed to get ticket",
+		})
+		return
+	}
+
+	// Check if ticket is closed
+	if ticket.Status == "closed" {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Cannot reply to a closed ticket",
+		})
+		return
+	}
+
+	// Verify user owns this ticket
+	if ticket.TelegramID != requestData.TelegramID {
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   "You don't have permission to reply to this ticket",
+		})
+		return
+	}
+
+	// Create message
+	message := TicketMessage{
+		TicketID:   ticket.ID,
+		SenderType: "user",
+		Message:    requestData.Message,
+		TelegramID: requestData.TelegramID,
+	}
+
+	if err := db.Create(&message).Error; err != nil {
+		logger.Error("Failed to create ticket message", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Failed to create message",
+		})
+		return
+	}
+
+	// Update ticket status
+	if ticket.Status == "answered" {
+		ticket.Status = "open" // Reopen if it was answered
+	}
+	db.Save(&ticket)
+
+	// Load ticket with messages
+	db.Preload("Messages", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at ASC")
+	}).First(&ticket, ticket.ID)
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    ticket,
+	})
+}
+
+// handleCloseTicket closes a ticket
+func handleCloseTicket(c *gin.Context) {
+	ticketIDStr := c.Param("id")
+	ticketID, err := strconv.ParseUint(ticketIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid ticket ID",
+		})
+		return
+	}
+
+	var requestData struct {
+		TelegramID int64 `json:"telegram_id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid request data",
+		})
+		return
+	}
+
+	// Get ticket
+	var ticket Ticket
+	if err := db.First(&ticket, ticketID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "Ticket not found",
+			})
+			return
+		}
+		logger.Error("Failed to get ticket", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Failed to get ticket",
+		})
+		return
+	}
+
+	// Verify user owns this ticket
+	if ticket.TelegramID != requestData.TelegramID {
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   "You don't have permission to close this ticket",
+		})
+		return
+	}
+
+	// Close ticket
+	ticket.Status = "closed"
+	if err := db.Save(&ticket).Error; err != nil {
+		logger.Error("Failed to close ticket", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Failed to close ticket",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    ticket,
+	})
 }

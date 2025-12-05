@@ -63,6 +63,8 @@ func initDB() {
 		&LicenseVerification{},
 		&ChatMessage{},
 		&PaymentTransaction{},
+		&Ticket{},
+		&TicketMessage{},
 	)
 	if err != nil {
 		logger.Fatal("Failed to migrate database", zap.Error(err))

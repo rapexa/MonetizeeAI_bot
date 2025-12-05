@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import apiService from '../services/api';
+import TicketModal from '../components/TicketModal';
 import { 
   User, 
   CreditCard,
@@ -28,6 +29,7 @@ const Profile: React.FC = () => {
 
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [showTicketModal, setShowTicketModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('online');
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -605,7 +607,7 @@ const Profile: React.FC = () => {
           </p>
           
           {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 mb-3">
             <button
               onClick={() => window.open('https://t.me/sian_academy_support', '_blank')}
               className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white py-3 px-4 rounded-xl font-medium hover:from-[#1a0f5a] hover:to-[#4a0f7a] transition-all duration-300 shadow-lg hover:scale-105 hover:shadow-xl whitespace-nowrap"
@@ -620,6 +622,14 @@ const Profile: React.FC = () => {
               راهنمای استفاده
             </button>
           </div>
+          
+          <button
+            onClick={() => setShowTicketModal(true)}
+            className="w-full bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white py-3 px-4 rounded-xl font-medium hover:from-[#1a0f5a] hover:to-[#4a0f7a] transition-all duration-300 shadow-lg hover:scale-105 hover:shadow-xl flex items-center justify-center gap-2"
+          >
+            <MessageSquare size={20} />
+            تیکت
+          </button>
           </div>
       </div>
 
@@ -1226,6 +1236,12 @@ const Profile: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Ticket Modal */}
+      <TicketModal
+        isOpen={showTicketModal}
+        onClose={() => setShowTicketModal(false)}
+      />
     </div>
   );
 };

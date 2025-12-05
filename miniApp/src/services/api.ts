@@ -643,6 +643,53 @@ class APIService {
       pending: boolean;
     }>('GET', `/payment/status?authority=${encodeURIComponent(authority)}`);
   }
+
+  // Ticket methods
+  async getUserTickets(): Promise<APIResponse<any[]>> {
+    const telegramId = this.getTelegramId();
+    if (!telegramId) {
+      return { success: false, error: 'No user ID available' };
+    }
+    return this.makeRequest<any[]>('GET', `/user/${telegramId}/tickets`, undefined, true);
+  }
+
+  async createTicket(data: { subject: string; priority: string; message: string }): Promise<APIResponse<any>> {
+    const telegramId = this.getTelegramId();
+    if (!telegramId) {
+      return { success: false, error: 'No user ID available' };
+    }
+    return this.makeRequest<any>('POST', '/tickets', {
+      telegram_id: telegramId,
+      subject: data.subject,
+      priority: data.priority,
+      message: data.message
+    });
+  }
+
+  async getTicket(ticketId: number): Promise<APIResponse<any>> {
+    return this.makeRequest<any>('GET', `/tickets/${ticketId}`, undefined, true);
+  }
+
+  async replyTicket(ticketId: number, message: string): Promise<APIResponse<any>> {
+    const telegramId = this.getTelegramId();
+    if (!telegramId) {
+      return { success: false, error: 'No user ID available' };
+    }
+    return this.makeRequest<any>('POST', `/tickets/${ticketId}/reply`, {
+      telegram_id: telegramId,
+      message: message
+    });
+  }
+
+  async closeTicket(ticketId: number): Promise<APIResponse<any>> {
+    const telegramId = this.getTelegramId();
+    if (!telegramId) {
+      return { success: false, error: 'No user ID available' };
+    }
+    return this.makeRequest<any>('POST', `/tickets/${ticketId}/close`, {
+      telegram_id: telegramId
+    });
+  }
 }
 
 const apiService = new APIService();

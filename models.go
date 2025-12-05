@@ -148,6 +148,28 @@ type ChatMessage struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
+// Ticket represents a support ticket
+type Ticket struct {
+	gorm.Model
+	TelegramID int64  `gorm:"index" json:"telegram_id"`
+	Subject    string `gorm:"type:varchar(500)" json:"subject"`
+	Priority   string `gorm:"type:varchar(20);default:'normal'" json:"priority"` // low, normal, high, urgent
+	Status     string `gorm:"type:varchar(20);default:'open'" json:"status"`     // open, in_progress, answered, closed
+	Messages   []TicketMessage `gorm:"foreignKey:TicketID" json:"messages,omitempty"`
+}
+
+// TicketMessage represents a message in a ticket conversation
+type TicketMessage struct {
+	gorm.Model
+	TicketID   uint   `gorm:"index" json:"ticket_id"`
+	Ticket     Ticket `gorm:"foreignKey:TicketID" json:"-"`
+	SenderType string `gorm:"type:varchar(20)" json:"sender_type"` // user, admin
+	Message    string `gorm:"type:text" json:"message"`
+	TelegramID int64  `gorm:"index" json:"telegram_id,omitempty"` // For user messages
+	AdminID    uint   `json:"admin_id,omitempty"`                 // For admin messages
+	IsRead     bool   `gorm:"default:false" json:"is_read"`
+}
+
 var UserLevels = []UserLevel{
 	{1, "کاوش‌گر فرصت‌ها", "تو ایده‌ای قابل اجرا و پول‌ساز برای خودت انتخاب کردی.", "💡"},
 	{2, "سازنده نسخه اولیه", "ایده‌ات رو با ابزارهای AI به یه محصول ساده تبدیل کردی.", "🛠"},
