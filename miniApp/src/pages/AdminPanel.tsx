@@ -73,6 +73,7 @@ const AdminPanel: React.FC = () => {
   
   const [stats, setStats] = useState<StatsPayload | null>(null);
   const [connected, setConnected] = useState(false);
+  const [isWebUser, setIsWebUser] = useState(false); // Track if user is web user (not Telegram)
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'payments' | 'content' | 'analytics'>('dashboard');
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
@@ -105,7 +106,10 @@ const AdminPanel: React.FC = () => {
           if (response.success) {
             console.log('✅ Web authentication successful');
             setAccessDenied(false);
-            setLoading(false);
+            setIsWebUser(true); // Mark as web user
+            setConnected(true); // Show as connected for web users
+            // Fetch stats from REST API for web users
+            await fetchStatsFromAPI();
             return;
           } else {
             // Token invalid, redirect to login
@@ -146,6 +150,49 @@ const AdminPanel: React.FC = () => {
 
     checkAuth();
   }, [isInTelegram]);
+
+  // Fetch stats from REST API (for web users)
+  const fetchStatsFromAPI = useCallback(async () => {
+    const webToken = localStorage.getItem('admin_session_token');
+    if (!webToken) {
+      return;
+    }
+
+    try {
+      console.log('📊 Fetching stats from REST API...');
+      const response = await adminApiService.getStats();
+      if (response.success && response.data) {
+        console.log('✅ Stats fetched successfully:', response.data);
+        setStats(response.data);
+        setLoading(false);
+      } else {
+        console.error('❌ Failed to fetch stats:', response.error);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching stats:', error);
+      setLoading(false);
+    }
+  }, []);
+  
+  // Poll stats every 5 seconds for web users
+  useEffect(() => {
+    const webToken = localStorage.getItem('admin_session_token');
+    if (!webToken || isInTelegram) {
+      // Only poll for web users, Telegram users use WebSocket
+      return;
+    }
+
+    // Initial fetch
+    fetchStatsFromAPI();
+
+    // Poll every 5 seconds
+    const interval = setInterval(() => {
+      fetchStatsFromAPI();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [fetchStatsFromAPI, isInTelegram]);
 
   // Connect to WebSocket
   const connectWebSocket = useCallback(() => {
@@ -255,9 +302,13 @@ const AdminPanel: React.FC = () => {
     }
   }, [isInTelegram, accessDenied]);
 
-  // Initialize WebSocket on mount
+  // Initialize WebSocket on mount (only for Telegram users)
   useEffect(() => {
-    connectWebSocket();
+    const webToken = localStorage.getItem('admin_session_token');
+    // Only connect WebSocket if in Telegram and not using web auth
+    if (isInTelegram && !webToken) {
+      connectWebSocket();
+    }
 
     return () => {
       // Cleanup on unmount
@@ -269,7 +320,7 @@ const AdminPanel: React.FC = () => {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [connectWebSocket]);
+  }, [connectWebSocket, isInTelegram]);
 
   // Load users
   const loadUsers = async () => {
@@ -451,14 +502,22 @@ const AdminPanel: React.FC = () => {
 
           <div className="flex items-center gap-2">
             {/* Connection Status */}
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
-              connected 
-                ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                : 'bg-red-500/20 text-red-400 border border-red-500/30'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></div>
-              {connected ? 'متصل' : 'قطع شده'}
-            </div>
+            {!isWebUser && (
+              <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
+                connected 
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                  : 'bg-red-500/20 text-red-400 border border-red-500/30'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></div>
+                {connected ? 'متصل' : 'قطع شده'}
+              </div>
+            )}
+            {isWebUser && (
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                متصل (وب)
+              </div>
+            )}
 
             {/* Refresh Button */}
             <button
