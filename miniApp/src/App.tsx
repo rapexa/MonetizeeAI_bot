@@ -97,6 +97,11 @@ function AppRouter() {
         navigate('/tools', { replace: true });
       } else if (startParam === 'profile' && location.pathname !== '/profile') {
         navigate('/profile', { replace: true });
+      } else if (startParam === 'tickets') {
+        // Navigate to profile page to open tickets modal
+        if (location.pathname !== '/profile') {
+          navigate('/profile', { replace: true });
+        }
       }
     }
     

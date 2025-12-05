@@ -373,6 +373,15 @@ const Profile: React.FC = () => {
       // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
     }
+    
+    // Check if startapp parameter or start_param is "tickets" - open tickets modal automatically
+    if ((startapp && startapp === 'tickets') || (startParam && startParam === 'tickets')) {
+      // Open tickets modal automatically
+      setShowTicketModal(true);
+      
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, [location]);
 
   // Load profile data on component mount

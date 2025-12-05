@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
 	"MonetizeeAI_bot/logger"
 
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -231,18 +234,58 @@ func adminReplyTicket(c *gin.Context) {
 		return
 	}
 
-	// Update ticket status
-	if ticket.Status == "open" {
-		ticket.Status = "in_progress"
-	} else if ticket.Status != "closed" {
-		ticket.Status = "answered"
-	}
+	// Update ticket status to "answered" when admin replies
+	ticket.Status = "answered"
 	db.Save(&ticket)
 
 	// Load ticket with messages
 	db.Preload("Messages", func(db *gorm.DB) *gorm.DB {
 		return db.Order("created_at ASC")
 	}).First(&ticket, ticket.ID)
+
+	// Send notification to user via Telegram
+	go func() {
+		// Get user info
+		var user User
+		if err := db.Where("telegram_id = ?", ticket.TelegramID).First(&user).Error; err != nil {
+			logger.Error("Failed to get user for ticket notification", zap.Error(err))
+			return
+		}
+
+		// Get mini app URL - use the full Telegram Mini App format
+		miniAppURL := os.Getenv("MINI_APP_URL")
+		if miniAppURL == "" {
+			miniAppURL = "https://t.me/MonetizeeAI_bot/MonetizeAI"
+		}
+
+		// Create Mini App URL with startapp parameter to open tickets section
+		// Format: https://t.me/bot_username/app_name?startapp=tickets
+		miniAppWithTickets := fmt.Sprintf("%s?startapp=tickets", miniAppURL)
+
+		// Create notification message
+		notificationText := "تیکت شما توسط پشتیبان جواب داده شد ✅\n\nمشاهده تیکت👇🏼"
+
+		// Create inline keyboard with button to open Mini App tickets section
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonURL("مشاهده تیکت", miniAppWithTickets),
+			),
+		)
+
+		msg := tgbotapi.NewMessage(ticket.TelegramID, notificationText)
+		msg.ReplyMarkup = keyboard
+
+		if _, err := bot.Send(msg); err != nil {
+			logger.Error("Failed to send ticket notification to user",
+				zap.Int64("telegram_id", ticket.TelegramID),
+				zap.Uint("ticket_id", ticket.ID),
+				zap.Error(err))
+		} else {
+			logger.Info("Ticket notification sent to user",
+				zap.Int64("telegram_id", ticket.TelegramID),
+				zap.Uint("ticket_id", ticket.ID))
+		}
+	}()
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
