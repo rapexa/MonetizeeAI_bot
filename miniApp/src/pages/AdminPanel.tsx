@@ -213,7 +213,12 @@ const AdminPanel: React.FC = () => {
       const response = await adminApiService.getUsers(usersPage, 50, usersSearch, usersFilter);
       console.log('Users API Response:', response); // Debug log
       if (response.success && response.data) {
-        setUsers(response.data.users || []);
+        // Ensure Points field exists for all users
+        const usersWithPoints = (response.data.users || []).map((user: any) => ({
+          ...user,
+          Points: user.Points ?? user.points ?? 0,
+        }));
+        setUsers(usersWithPoints);
         setUsersTotal(response.data.total || 0);
       } else {
         console.error('Failed to load users:', response.error);
@@ -694,7 +699,7 @@ const AdminPanel: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {stats.recentUsers.map((user) => (
+                    {stats.recentUsers.map((user: any) => (
                       <tr key={user.ID} className="border-b border-gray-700/30">
                         <td className="py-3 text-white text-sm">
                           {[user.FirstName, user.LastName].filter(Boolean).join(' ') || user.Username}
@@ -702,8 +707,8 @@ const AdminPanel: React.FC = () => {
                         <td className="py-3 text-gray-300 text-sm">
                           {user.PlanName || user.SubscriptionType}
                         </td>
-                        <td className="py-3 text-blue-400 text-sm">
-                          {user.Points}
+                        <td className="py-3 text-blue-400 text-sm font-medium">
+                          {(user.Points ?? user.points ?? 0).toLocaleString('fa-IR')}
                         </td>
                         <td className="py-3 text-gray-400 text-xs">
                           {formatDate(user.CreatedAt)}
