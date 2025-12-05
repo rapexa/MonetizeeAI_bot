@@ -107,6 +107,7 @@ const AdminPanel: React.FC = () => {
   const [loadingUserDetail, setLoadingUserDetail] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [changingPlan, setChangingPlan] = useState(false);
 
   // Check authentication on mount
   // IMPORTANT: For both Telegram and Web users, we use web login
@@ -360,15 +361,41 @@ const AdminPanel: React.FC = () => {
   };
 
   const handleChangePlanFromModal = async (planType: string) => {
-    if (!selectedUser) return;
+    if (!selectedUser || changingPlan) return;
     
-    const response = await adminApiService.changeUserPlan(selectedUser.ID, planType);
-    if (response.success) {
-      alert('✅ پلن کاربر تغییر کرد');
-      handleOpenUserDetail(selectedUser); // Refresh user detail
-      loadUsers(); // Refresh users list
-    } else {
-      alert('❌ خطا: ' + response.error);
+    const planNames: { [key: string]: string } = {
+      'free': 'رایگان',
+      'starter': 'Starter',
+      'pro': 'Pro',
+      'ultimate': 'Ultimate'
+    };
+    
+    const planName = planNames[planType] || planType;
+    if (!confirm(`آیا از تغییر پلن کاربر به "${planName}" اطمینان دارید؟`)) {
+      return;
+    }
+    
+    setChangingPlan(true);
+    try {
+      console.log('Changing plan for user:', selectedUser.ID, 'to:', planType);
+      const response = await adminApiService.changeUserPlan(selectedUser.ID, planType);
+      console.log('Change plan response:', response);
+      
+      if (response.success) {
+        alert(`✅ پلن کاربر به "${planName}" تغییر کرد`);
+        // Refresh user detail - create a new user object with updated plan
+        const updatedUser = { ...selectedUser, PlanName: planType === 'free' ? '' : planType };
+        await handleOpenUserDetail(updatedUser);
+        // Refresh users list
+        loadUsers();
+      } else {
+        alert('❌ خطا: ' + (response.error || 'خطای ناشناخته'));
+      }
+    } catch (error) {
+      console.error('Error changing plan:', error);
+      alert('❌ خطا در تغییر پلن کاربر: ' + (error instanceof Error ? error.message : 'خطای ناشناخته'));
+    } finally {
+      setChangingPlan(false);
     }
   };
 
@@ -1053,26 +1080,34 @@ const AdminPanel: React.FC = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <button
                         onClick={() => handleChangePlanFromModal('free')}
-                        className="px-4 py-2 bg-gray-700/40 hover:bg-gray-700/60 text-white rounded-lg text-sm transition-colors"
+                        disabled={changingPlan}
+                        className="px-4 py-2 bg-gray-700/40 hover:bg-gray-700/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
                       >
+                        {changingPlan ? <RefreshCw size={14} className="animate-spin" /> : null}
                         پلن رایگان
                       </button>
                       <button
                         onClick={() => handleChangePlanFromModal('starter')}
-                        className="px-4 py-2 bg-blue-600/40 hover:bg-blue-600/60 text-white rounded-lg text-sm transition-colors"
+                        disabled={changingPlan}
+                        className="px-4 py-2 bg-blue-600/40 hover:bg-blue-600/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
                       >
+                        {changingPlan ? <RefreshCw size={14} className="animate-spin" /> : null}
                         Starter
                       </button>
                       <button
                         onClick={() => handleChangePlanFromModal('pro')}
-                        className="px-4 py-2 bg-purple-600/40 hover:bg-purple-600/60 text-white rounded-lg text-sm transition-colors"
+                        disabled={changingPlan}
+                        className="px-4 py-2 bg-purple-600/40 hover:bg-purple-600/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
                       >
+                        {changingPlan ? <RefreshCw size={14} className="animate-spin" /> : null}
                         Pro
                       </button>
                       <button
                         onClick={() => handleChangePlanFromModal('ultimate')}
-                        className="px-4 py-2 bg-yellow-600/40 hover:bg-yellow-600/60 text-white rounded-lg text-sm transition-colors"
+                        disabled={changingPlan}
+                        className="px-4 py-2 bg-yellow-600/40 hover:bg-yellow-600/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
                       >
+                        {changingPlan ? <RefreshCw size={14} className="animate-spin" /> : null}
                         Ultimate
                       </button>
                     </div>
