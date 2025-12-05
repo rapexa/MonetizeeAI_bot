@@ -707,6 +707,9 @@ func blockUserAPI(c *gin.Context) {
 	user.IsBlocked = true
 	db.Save(&user)
 
+	// ⚡ CRITICAL: Invalidate user cache so mini app gets updated data immediately
+	userCache.InvalidateUser(user.TelegramID)
+
 	logger.Info("User blocked by admin",
 		zap.Uint("user_id", user.ID),
 		zap.Int64("admin_telegram_id", c.GetInt64("admin_telegram_id")))
@@ -729,6 +732,9 @@ func unblockUserAPI(c *gin.Context) {
 
 	user.IsBlocked = false
 	db.Save(&user)
+
+	// ⚡ CRITICAL: Invalidate user cache so mini app gets updated data immediately
+	userCache.InvalidateUser(user.TelegramID)
 
 	logger.Info("User unblocked by admin",
 		zap.Uint("user_id", user.ID),
@@ -810,6 +816,12 @@ func changeUserPlanAPI(c *gin.Context) {
 		})
 		return
 	}
+
+	// ⚡ CRITICAL: Invalidate user cache so mini app gets updated data immediately
+	userCache.InvalidateUser(user.TelegramID)
+	logger.Info("User cache invalidated after plan change",
+		zap.Uint("user_id", user.ID),
+		zap.Int64("telegram_id", user.TelegramID))
 
 	logger.Info("User plan changed by admin",
 		zap.Uint("user_id", user.ID),
@@ -904,6 +916,12 @@ func changeUserSessionAPI(c *gin.Context) {
 		})
 		return
 	}
+
+	// ⚡ CRITICAL: Invalidate user cache so mini app gets updated data immediately
+	userCache.InvalidateUser(user.TelegramID)
+	logger.Info("User cache invalidated after session change",
+		zap.Uint("user_id", user.ID),
+		zap.Int64("telegram_id", user.TelegramID))
 
 	logger.Info("User session changed by admin",
 		zap.Uint("user_id", user.ID),
