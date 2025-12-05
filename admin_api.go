@@ -97,6 +97,12 @@ func setupAdminAPIRoutes(r *gin.Engine) {
 		admin.GET("/analytics/revenue", getRevenueAnalytics)
 		admin.GET("/analytics/users", getUserAnalytics)
 		admin.GET("/analytics/engagement", getEngagementAnalytics)
+
+		// Tickets management
+		admin.GET("/tickets", getAdminTickets)
+		admin.GET("/tickets/:id", getAdminTicketDetail)
+		admin.POST("/tickets/:id/reply", adminReplyTicket)
+		admin.POST("/tickets/:id/change-status", adminChangeTicketStatus)
 	}
 
 	// Legacy route support: /v1/admin/ws (for backward compatibility)

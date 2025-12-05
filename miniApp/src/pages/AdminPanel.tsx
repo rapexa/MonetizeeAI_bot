@@ -29,7 +29,11 @@ import {
   Award,
   TrendingUp,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Ticket,
+  AlertCircle as AlertCircleIcon,
+  CheckCircle2,
+  Lock as LockIcon
 } from 'lucide-react';
 import adminApiService from '../services/adminApi';
 
@@ -88,7 +92,7 @@ const AdminPanel: React.FC = () => {
   const [stats, setStats] = useState<StatsPayload | null>(null);
   const [connected, setConnected] = useState(false);
   const [isWebUser, setIsWebUser] = useState(false); // Track if user is web user (not Telegram)
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'payments' | 'content' | 'analytics'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'payments' | 'content' | 'analytics' | 'tickets'>('dashboard');
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   
@@ -115,6 +119,20 @@ const AdminPanel: React.FC = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [changingPlan, setChangingPlan] = useState(false);
   const [changingSession, setChangingSession] = useState(false);
+
+  // Tickets state
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [ticketsPage, setTicketsPage] = useState(1);
+  const [ticketsTotal, setTicketsTotal] = useState(0);
+  const [ticketsStatus, setTicketsStatus] = useState('all');
+  const [ticketsPriority, setTicketsPriority] = useState('all');
+  const [ticketsSearch, setTicketsSearch] = useState('');
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [ticketDetail, setTicketDetail] = useState<any | null>(null);
+  const [loadingTicketDetail, setLoadingTicketDetail] = useState(false);
+  const [ticketReplyMessage, setTicketReplyMessage] = useState('');
+  const [sendingTicketReply, setSendingTicketReply] = useState(false);
 
   // Check authentication on mount
   // IMPORTANT: For both Telegram and Web users, we use web login
@@ -257,14 +275,107 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  // Load tickets
+  const loadTickets = async () => {
+    setLoadingTickets(true);
+    try {
+      const response = await adminApiService.getTickets(ticketsPage, 20, ticketsStatus, ticketsPriority, ticketsSearch);
+      if (response.success && response.data) {
+        setTickets(response.data.tickets || []);
+        setTicketsTotal(response.data.total || 0);
+      } else {
+        console.error('Failed to load tickets:', response.error);
+        alert('خطا در بارگذاری تیکت‌ها: ' + (response.error || 'خطای ناشناخته'));
+      }
+    } catch (error) {
+      console.error('Failed to load tickets:', error);
+      alert('خطا در اتصال به سرور');
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
+
+  // Load ticket detail
+  const loadTicketDetail = async (ticketId: number) => {
+    setLoadingTicketDetail(true);
+    try {
+      const response = await adminApiService.getTicketDetail(ticketId);
+      if (response.success && response.data) {
+        setTicketDetail(response.data);
+      } else {
+        console.error('Failed to load ticket detail:', response.error);
+        alert('خطا در بارگذاری جزئیات تیکت: ' + (response.error || 'خطای ناشناخته'));
+      }
+    } catch (error) {
+      console.error('Failed to load ticket detail:', error);
+      alert('خطا در اتصال به سرور');
+    } finally {
+      setLoadingTicketDetail(false);
+    }
+  };
+
+  // Handle view ticket
+  const handleViewTicket = async (ticket: any) => {
+    setSelectedTicket(ticket);
+    const ticketId = ticket.ID || ticket.id || ticket.Id;
+    if (ticketId) {
+      await loadTicketDetail(ticketId);
+    }
+  };
+
+  // Handle reply to ticket
+  const handleReplyTicket = async () => {
+    if (!selectedTicket || !ticketReplyMessage.trim()) return;
+
+    setSendingTicketReply(true);
+    try {
+      const ticketId = selectedTicket.ID || selectedTicket.id;
+      const response = await adminApiService.replyTicket(ticketId, ticketReplyMessage);
+      if (response.success) {
+        setTicketReplyMessage('');
+        await loadTicketDetail(ticketId);
+        await loadTickets();
+        alert('پاسخ با موفقیت ارسال شد!');
+      } else {
+        alert('خطا در ارسال پاسخ: ' + (response.error || 'خطای ناشناخته'));
+      }
+    } catch (error) {
+      console.error('Failed to reply ticket:', error);
+      alert('خطا در ارسال پاسخ');
+    } finally {
+      setSendingTicketReply(false);
+    }
+  };
+
+  // Handle change ticket status
+  const handleChangeTicketStatus = async (ticketId: number, status: string) => {
+    try {
+      const response = await adminApiService.changeTicketStatus(ticketId, status);
+      if (response.success) {
+        await loadTickets();
+        if (selectedTicket && (selectedTicket.ID === ticketId || selectedTicket.id === ticketId)) {
+          await loadTicketDetail(ticketId);
+        }
+        alert('وضعیت تیکت با موفقیت تغییر کرد!');
+      } else {
+        alert('خطا در تغییر وضعیت: ' + (response.error || 'خطای ناشناخته'));
+      }
+    } catch (error) {
+      console.error('Failed to change ticket status:', error);
+      alert('خطا در تغییر وضعیت');
+    }
+  };
+
   // Load data when tab changes
   useEffect(() => {
     if (activeTab === 'users') {
       loadUsers();
     } else if (activeTab === 'payments') {
       loadPayments();
+    } else if (activeTab === 'tickets') {
+      loadTickets();
     }
-  }, [activeTab, usersPage, usersSearch, usersFilter, paymentsPage, paymentsFilter]);
+  }, [activeTab, usersPage, usersSearch, usersFilter, paymentsPage, paymentsFilter, ticketsPage, ticketsStatus, ticketsPriority, ticketsSearch]);
 
   // Manual refresh
   const handleRefresh = () => {
@@ -276,6 +387,8 @@ const AdminPanel: React.FC = () => {
       loadUsers();
     } else if (activeTab === 'payments') {
       loadPayments();
+    } else if (activeTab === 'tickets') {
+      loadTickets();
     }
   };
 
@@ -606,6 +719,7 @@ const AdminPanel: React.FC = () => {
             { id: 'dashboard', label: 'داشبورد', icon: BarChart3 },
             { id: 'users', label: 'کاربران', icon: Users },
             { id: 'payments', label: 'پرداخت‌ها', icon: CreditCard },
+            { id: 'tickets', label: 'تیکت‌ها', icon: MessageSquare },
             { id: 'content', label: 'محتوا', icon: Package },
             { id: 'analytics', label: 'آنالیتیکس', icon: LineChart },
           ].map((tab) => {
@@ -1045,6 +1159,168 @@ const AdminPanel: React.FC = () => {
           </div>
         )}
 
+        {/* Tickets Management */}
+        {activeTab === 'tickets' && (
+          <div className="space-y-6">
+            {/* Search & Filters */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    value={ticketsSearch}
+                    onChange={(e) => setTicketsSearch(e.target.value)}
+                    placeholder="جستجو در موضوع تیکت..."
+                    className="w-full pr-10 pl-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/60"
+                  />
+                </div>
+                <select
+                  value={ticketsStatus}
+                  onChange={(e) => setTicketsStatus(e.target.value)}
+                  className="px-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white focus:outline-none focus:border-purple-500/60"
+                >
+                  <option value="all">همه وضعیت‌ها</option>
+                  <option value="open">باز</option>
+                  <option value="in_progress">در حال بررسی</option>
+                  <option value="answered">پاسخ داده شده</option>
+                  <option value="closed">بسته شده</option>
+                </select>
+                <select
+                  value={ticketsPriority}
+                  onChange={(e) => setTicketsPriority(e.target.value)}
+                  className="px-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white focus:outline-none focus:border-purple-500/60"
+                >
+                  <option value="all">همه اولویت‌ها</option>
+                  <option value="low">پایین</option>
+                  <option value="normal">عادی</option>
+                  <option value="high">بالا</option>
+                  <option value="urgent">فوری</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Tickets List */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <MessageSquare size={20} />
+                مدیریت تیکت‌ها ({ticketsTotal.toLocaleString('fa-IR')})
+              </h3>
+              
+              {loadingTickets ? (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 border-4 border-[#5a189a]/30 border-t-[#5a189a] rounded-full animate-spin mx-auto"></div>
+                </div>
+              ) : tickets.length === 0 ? (
+                <div className="text-center py-12">
+                  <MessageSquare size={48} className="text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-400">تیکتی یافت نشد</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {tickets.map((ticket: any) => {
+                    const getStatusColor = (status: string) => {
+                      switch (status) {
+                        case 'closed': return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+                        case 'answered': return 'bg-green-500/20 text-green-400 border-green-500/30';
+                        case 'in_progress': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+                        case 'open': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+                        default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+                      }
+                    };
+
+                    const getStatusLabel = (status: string) => {
+                      switch (status) {
+                        case 'closed': return 'بسته شده';
+                        case 'answered': return 'پاسخ داده شده';
+                        case 'in_progress': return 'در حال بررسی';
+                        case 'open': return 'باز';
+                        default: return status;
+                      }
+                    };
+
+                    const getPriorityColor = (priority: string) => {
+                      switch (priority) {
+                        case 'urgent': return 'bg-red-500/20 text-red-400 border-red-500/30';
+                        case 'high': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+                        case 'normal': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+                        case 'low': return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+                        default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+                      }
+                    };
+
+                    const getPriorityLabel = (priority: string) => {
+                      switch (priority) {
+                        case 'urgent': return 'فوری';
+                        case 'high': return 'بالا';
+                        case 'normal': return 'عادی';
+                        case 'low': return 'پایین';
+                        default: return priority;
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={ticket.ID || ticket.id}
+                        onClick={() => handleViewTicket(ticket)}
+                        className="backdrop-blur-xl rounded-xl p-4 border border-gray-700/60 cursor-pointer hover:border-[#5a189a]/50 transition-all duration-300 hover:scale-[1.02]"
+                        style={{ backgroundColor: '#0f0817' }}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-bold text-white text-lg flex-1">{ticket.Subject || ticket.subject}</h4>
+                          <div className="flex gap-2 mr-3">
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${getPriorityColor(ticket.Priority || ticket.priority)}`}>
+                              {getPriorityLabel(ticket.Priority || ticket.priority)}
+                            </span>
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${getStatusColor(ticket.Status || ticket.status)}`}>
+                              {getStatusLabel(ticket.Status || ticket.status)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4 text-sm text-gray-400">
+                            <span>کاربر: {ticket.UserInfo?.username || ticket.UserInfo?.first_name || ticket.user_info?.username || ticket.user_info?.first_name || 'نامشخص'}</span>
+                            <span>{new Date(ticket.CreatedAt || ticket.created_at).toLocaleDateString('fa-IR')}</span>
+                            {(ticket.Messages || ticket.messages) && (ticket.Messages || ticket.messages).length > 0 && (
+                              <span className="flex items-center gap-1">
+                                <MessageSquare size={14} />
+                                {(ticket.Messages || ticket.messages).length} پیام
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Pagination */}
+              {ticketsTotal > 20 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-700/60">
+                  <button
+                    onClick={() => setTicketsPage(p => Math.max(1, p - 1))}
+                    disabled={ticketsPage === 1}
+                    className="px-4 py-2 bg-gray-700/40 hover:bg-gray-700/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm transition-colors"
+                  >
+                    قبلی
+                  </button>
+                  <span className="text-gray-400 text-sm">
+                    صفحه {ticketsPage.toLocaleString('fa-IR')} از {Math.ceil(ticketsTotal / 20).toLocaleString('fa-IR')}
+                  </span>
+                  <button
+                    onClick={() => setTicketsPage(p => p + 1)}
+                    disabled={ticketsPage >= Math.ceil(ticketsTotal / 20)}
+                    className="px-4 py-2 bg-gray-700/40 hover:bg-gray-700/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm transition-colors"
+                  >
+                    بعدی
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Content & Analytics - Coming Soon */}
         {(activeTab === 'content' || activeTab === 'analytics') && (
           <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 text-center" style={{ backgroundColor: '#10091c' }}>
@@ -1381,6 +1657,148 @@ const AdminPanel: React.FC = () => {
                     </div>
                   )}
                 </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ticket Detail Modal */}
+      {selectedTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto backdrop-blur-xl rounded-3xl border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+            {/* Modal Header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-gray-700/60 bg-[#10091c]/95 backdrop-blur-sm">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <MessageSquare size={24} />
+                جزئیات تیکت
+              </h2>
+              <button
+                onClick={() => {
+                  setSelectedTicket(null);
+                  setTicketDetail(null);
+                  setTicketReplyMessage('');
+                }}
+                className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+              >
+                <X size={24} className="text-gray-400" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-4">
+              {loadingTicketDetail ? (
+                <div className="text-center py-12">
+                  <div className="w-12 h-12 border-4 border-[#5a189a]/30 border-t-[#5a189a] rounded-full animate-spin mx-auto"></div>
+                </div>
+              ) : ticketDetail ? (
+                <>
+                  {/* Ticket Info */}
+                  <div className="backdrop-blur-xl rounded-xl p-4 border border-gray-700/60" style={{ backgroundColor: '#0f0817' }}>
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="font-bold text-white text-lg">{ticketDetail.ticket?.Subject || ticketDetail.ticket?.subject || selectedTicket.Subject || selectedTicket.subject}</h3>
+                      <div className="flex gap-2">
+                        <select
+                          value={ticketDetail.ticket?.Status || ticketDetail.ticket?.status || selectedTicket.Status || selectedTicket.status}
+                          onChange={(e) => handleChangeTicketStatus(selectedTicket.ID || selectedTicket.id, e.target.value)}
+                          className="px-3 py-1.5 bg-gray-800/40 border border-gray-700/40 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500/60"
+                        >
+                          <option value="open">باز</option>
+                          <option value="in_progress">در حال بررسی</option>
+                          <option value="answered">پاسخ داده شده</option>
+                          <option value="closed">بسته شده</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-gray-400">
+                      <span>کاربر: {ticketDetail.user_info?.username || ticketDetail.user_info?.first_name || 'نامشخص'}</span>
+                      <span>Telegram ID: {ticketDetail.ticket?.TelegramID || ticketDetail.ticket?.telegram_id || selectedTicket.TelegramID || selectedTicket.telegram_id}</span>
+                      <span>{new Date(ticketDetail.ticket?.CreatedAt || ticketDetail.ticket?.created_at || selectedTicket.CreatedAt || selectedTicket.created_at).toLocaleDateString('fa-IR')}</span>
+                    </div>
+                  </div>
+
+                  {/* Messages */}
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {(ticketDetail.ticket?.Messages || ticketDetail.ticket?.messages) && (ticketDetail.ticket?.Messages || ticketDetail.ticket?.messages).length > 0 ? (
+                      (ticketDetail.ticket?.Messages || ticketDetail.ticket?.messages).map((msg: any) => (
+                        <div
+                          key={msg.ID || msg.id}
+                          className={`p-4 rounded-xl ${
+                            (msg.SenderType || msg.sender_type) === 'user'
+                              ? 'bg-gradient-to-r from-[#2c189a]/20 to-[#5a189a]/20 border border-[#5a189a]/30'
+                              : 'bg-gray-800/40 border border-gray-700/40'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-300">
+                              {(msg.SenderType || msg.sender_type) === 'user' ? 'کاربر' : 'پشتیبان'}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {new Date(msg.CreatedAt || msg.created_at).toLocaleDateString('fa-IR', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-white whitespace-pre-wrap">{msg.Message || msg.message}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-400 text-center py-4">هنوز پیامی وجود ندارد</p>
+                    )}
+                  </div>
+
+                  {/* Reply Form */}
+                  {(ticketDetail.ticket?.Status || ticketDetail.ticket?.status) !== 'closed' && (
+                    <div className="space-y-3">
+                      <textarea
+                        value={ticketReplyMessage}
+                        onChange={(e) => setTicketReplyMessage(e.target.value)}
+                        rows={4}
+                        className="w-full px-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20 transition-all duration-300 resize-none"
+                        placeholder="پاسخ خود را وارد کنید..."
+                      />
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleChangeTicketStatus(selectedTicket.ID || selectedTicket.id, 'closed')}
+                          disabled={sendingTicketReply}
+                          className="px-4 py-2 bg-gray-800/40 text-gray-300 rounded-xl font-medium hover:bg-gray-700/50 transition-all duration-300 border border-gray-700/40 flex items-center gap-2 disabled:opacity-50"
+                        >
+                          <LockIcon size={16} />
+                          بستن تیکت
+                        </button>
+                        <button
+                          onClick={handleReplyTicket}
+                          disabled={sendingTicketReply || !ticketReplyMessage.trim()}
+                          className="flex-1 py-2 px-4 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+                        >
+                          {sendingTicketReply ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <>
+                              <Send size={16} />
+                              ارسال پاسخ
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {(ticketDetail.ticket?.Status || ticketDetail.ticket?.status) === 'closed' && (
+                    <div className="bg-gray-800/40 border border-gray-700/40 rounded-xl p-4 text-center">
+                      <LockIcon size={24} className="text-gray-500 mx-auto mb-2" />
+                      <p className="text-gray-400">این تیکت بسته شده است</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-400">خطا در بارگذاری جزئیات تیکت</p>
+                </div>
               )}
             </div>
           </div>

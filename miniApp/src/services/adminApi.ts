@@ -258,6 +258,23 @@ const adminApiService = {
     makeRequest(`/analytics/users?period=${period}`),
   getEngagementAnalytics: (period: string = 'month') => 
     makeRequest(`/analytics/engagement?period=${period}`),
+
+  // Tickets
+  getTickets: (page: number = 1, pageSize: number = 20, status: string = 'all', priority: string = 'all', search: string = '') => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      page_size: pageSize.toString(),
+      status,
+      priority,
+    });
+    if (search) params.append('search', search);
+    return makeRequest(`/tickets?${params.toString()}`);
+  },
+  getTicketDetail: (ticketId: number) => makeRequest(`/tickets/${ticketId}`),
+  replyTicket: (ticketId: number, message: string) => 
+    makeRequest(`/tickets/${ticketId}/reply`, 'POST', { message }),
+  changeTicketStatus: (ticketId: number, status: string) => 
+    makeRequest(`/tickets/${ticketId}/change-status`, 'POST', { status }),
 };
 
 export default adminApiService;
