@@ -20,17 +20,17 @@ var webSessions = make(map[string]WebSession)
 var webSessionsMutex sync.RWMutex
 
 type WebSession struct {
-	AdminID    uint
-	Username   string
-	ExpiresAt  time.Time
-	CreatedAt  time.Time
+	AdminID   uint
+	Username  string
+	ExpiresAt time.Time
+	CreatedAt time.Time
 }
 
 // Setup admin API routes
 func setupAdminAPIRoutes(r *gin.Engine) {
 	// Start session cleanup
 	startSessionCleanup()
-	
+
 	// Auth routes are now registered directly in web_api.go before this function is called
 	// This ensures they are registered before NoRoute middleware
 	// adminAuth routes are registered in web_api.go to ensure proper order
@@ -122,7 +122,7 @@ func handleWebLogin(c *gin.Context) {
 		zap.String("remote_addr", c.ClientIP()),
 		zap.String("content_type", c.GetHeader("Content-Type")),
 		zap.String("user_agent", c.GetHeader("User-Agent")))
-	
+
 	type LoginRequest struct {
 		Username string `json:"username" binding:"required"`
 		Password string `json:"password" binding:"required"`
@@ -187,7 +187,7 @@ func handleWebLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"token": token,
+			"token":    token,
 			"username": req.Username,
 		},
 	})
@@ -275,13 +275,25 @@ func adminAuthMiddleware() gin.HandlerFunc {
 		telegramWebApp := c.GetHeader("X-Telegram-WebApp")
 		startParam := c.GetHeader("X-Telegram-Start-Param")
 
+		logger.Debug("Admin auth middleware check",
+			zap.String("path", c.Request.URL.Path),
+			zap.Bool("has_init_data", initData != ""),
+			zap.Bool("has_telegram_webapp", telegramWebApp != ""),
+			zap.String("start_param", startParam))
+
 		if initData != "" || telegramWebApp != "" {
 			// Telegram authentication
 			telegramID, err := getTelegramIDFromRequest(c)
 			if err != nil {
+				logger.Warn("Admin auth failed - Telegram ID extraction error",
+					zap.String("path", c.Request.URL.Path),
+					zap.Error(err),
+					zap.Bool("has_init_data", initData != ""),
+					zap.String("telegram_webapp", telegramWebApp))
 				c.JSON(http.StatusUnauthorized, gin.H{
-					"error":   "Unauthorized",
-					"message": "Invalid Telegram authentication",
+					"success": false,
+					"error":   "Invalid Telegram authentication",
+					"message": err.Error(),
 				})
 				c.Abort()
 				return
@@ -291,10 +303,12 @@ func adminAuthMiddleware() gin.HandlerFunc {
 			if err := db.Where("telegram_id = ? AND is_active = ?", telegramID, true).First(&admin).Error; err != nil {
 				logger.Warn("Admin Panel access denied - User is not an admin",
 					zap.Int64("telegram_id", telegramID),
-					zap.String("remote_addr", c.ClientIP()))
+					zap.String("remote_addr", c.ClientIP()),
+					zap.Error(err))
 				c.JSON(http.StatusForbidden, gin.H{
+					"success": false,
 					"error":   "Forbidden",
-					"message": "Admin access required",
+					"message": "Admin access required. Your Telegram ID is not registered as an admin.",
 				})
 				c.Abort()
 				return
@@ -352,10 +366,16 @@ func adminAuthMiddleware() gin.HandlerFunc {
 		// No valid authentication found
 		logger.Warn("Admin Panel access denied - No valid authentication",
 			zap.String("remote_addr", c.ClientIP()),
-			zap.String("user_agent", c.GetHeader("User-Agent")))
+			zap.String("user_agent", c.GetHeader("User-Agent")),
+			zap.String("path", c.Request.URL.Path),
+			zap.Bool("has_init_data", initData != ""),
+			zap.Bool("has_telegram_webapp", telegramWebApp != ""),
+			zap.Bool("has_auth_header", authHeader != ""),
+			zap.Bool("has_web_auth", webAuth == "true"))
 		c.JSON(http.StatusForbidden, gin.H{
+			"success": false,
 			"error":   "Access Denied",
-			"message": "Authentication required",
+			"message": "Authentication required. Please login or access from Telegram.",
 		})
 		c.Abort()
 		return

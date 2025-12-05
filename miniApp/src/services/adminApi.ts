@@ -10,9 +10,8 @@ function getBaseURL(): string {
     return 'http://localhost:8080/api/v1/admin';
   }
   
-  // Production: use current host or fallback
-  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-  return `${protocol}//${window.location.host}/api/v1/admin`;
+  // Production: use fixed backend URL
+  return 'https://sianmarketing.com/api/api/v1/admin';
 }
 
 const BASE_URL = getBaseURL();
@@ -63,6 +62,11 @@ async function makeRequest<T = any>(
     if (initData) {
       headers['X-Telegram-Init-Data'] = initData;
       headers['X-Telegram-WebApp'] = 'true';
+      // Also send start_param if available
+      const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+      if (startParam) {
+        headers['X-Telegram-Start-Param'] = startParam;
+      }
     } else if (webToken) {
       headers['Authorization'] = `Bearer ${webToken}`;
       headers['X-Web-Auth'] = 'true';
@@ -144,9 +148,18 @@ async function makeRequest<T = any>(
     const data = await response.json();
 
     if (!response.ok) {
+      // Log detailed error for debugging
+      console.error('API request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: data.error,
+        message: data.message,
+        url: fullURL
+      });
+      
       return {
         success: false,
-        error: data.error || `HTTP ${response.status}`,
+        error: data.error || data.message || `HTTP ${response.status}`,
       };
     }
 

@@ -117,6 +117,12 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		// Admin routes have their own authentication middleware
 		// Admin login page should be accessible from web without Telegram
 		path := c.Request.URL.Path
+
+		// Log all requests for debugging (can be removed in production)
+		logger.Debug("🔍 Middleware check",
+			zap.String("path", path),
+			zap.String("method", c.Request.Method),
+			zap.String("ip", c.ClientIP()))
 		// Normalize path (remove double slashes and trailing slashes)
 		// Handle cases like //admin-login or /admin-login/
 		for strings.Contains(path, "//") {
@@ -126,21 +132,30 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		if path == "" {
 			path = "/"
 		}
-		
+
 		// Check if path should be allowed without Telegram auth
+		// ONLY Admin routes and Admin API routes are allowed - everything else requires Telegram
 		if path == "/health" ||
 			strings.HasPrefix(path, "/static/") ||
 			strings.HasPrefix(path, "/assets/") ||
-			strings.HasPrefix(path, "/api/v1/admin/") ||
+			strings.HasPrefix(path, "/api/v1/admin/") || // Only admin API routes, not all /api/
 			strings.HasPrefix(path, "/v1/admin/") ||
 			path == "/admin-login" ||
-			strings.HasPrefix(path, "/admin-login/") {
+			strings.HasPrefix(path, "/admin-login/") ||
+			path == "/admin-panel" ||
+			strings.HasPrefix(path, "/admin-panel/") {
 			logger.Info("✅ Allowing access without Telegram auth",
 				zap.String("path", path),
 				zap.String("original_path", c.Request.URL.Path))
 			c.Next()
 			return
 		}
+
+		// IMPORTANT:
+		// - Root path "/" requires Telegram
+		// - All other API routes (like /api/v1/user/*) require Telegram
+		// - All other paths require Telegram
+		// Only admin routes are allowed without Telegram
 
 		// Check for Telegram WebApp indicators
 		userAgent := c.GetHeader("User-Agent")
@@ -226,12 +241,100 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 				zap.String("ip", c.ClientIP()),
 				zap.String("user_agent", userAgent),
 				zap.String("referer", referer),
-				zap.String("path", c.Request.URL.Path))
+				zap.String("path", c.Request.URL.Path),
+				zap.String("normalized_path", path))
 
-			c.JSON(http.StatusForbidden, APIResponse{
-				Success: false,
-				Error:   "Access denied. This service is only available through Telegram Mini App.",
-			})
+			// Return HTML page for non-API requests, JSON for API requests
+			// All API routes (except admin) require Telegram
+			if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+				c.JSON(http.StatusForbidden, APIResponse{
+					Success: false,
+					Error:   "Access denied. This service is only available through Telegram Mini App.",
+				})
+				c.Abort()
+				return
+			} else {
+				c.Header("Content-Type", "text/html; charset=utf-8")
+				c.String(http.StatusForbidden, `<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>دسترسی محدود - MonetizeAI</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+		body {
+			font-family: 'IranSansX', 'Vazir', system-ui, sans-serif;
+			background: linear-gradient(135deg, #0e0817 0%, #1a0d2e 100%);
+			color: #fff;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			min-height: 100vh;
+			padding: 20px;
+		}
+		.container {
+			text-align: center;
+			max-width: 500px;
+			background: rgba(16, 9, 28, 0.8);
+			backdrop-filter: blur(10px);
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			border-radius: 24px;
+			padding: 40px;
+			box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+		}
+		.icon {
+			font-size: 64px;
+			margin-bottom: 20px;
+		}
+		h1 {
+			font-size: 28px;
+			margin-bottom: 16px;
+			color: #fff;
+		}
+		p {
+			font-size: 16px;
+			line-height: 1.8;
+			color: #b8b8b8;
+			margin-bottom: 24px;
+		}
+		.telegram-link {
+			display: inline-block;
+			background: linear-gradient(135deg, #0088cc 0%, #0066aa 100%);
+			color: #fff;
+			text-decoration: none;
+			padding: 14px 32px;
+			border-radius: 12px;
+			font-weight: 600;
+			transition: transform 0.2s, box-shadow 0.2s;
+			margin-top: 20px;
+		}
+		.telegram-link:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 4px 16px rgba(0, 136, 204, 0.4);
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="icon">🔒</div>
+		<h1>دسترسی محدود</h1>
+		<p>
+			این سرویس فقط از طریق <strong>تلگرام</strong> و <strong>ربات</strong> قابل دسترسی است.
+			<br><br>
+			لطفاً برای استفاده از خدمات، از طریق ربات تلگرام وارد شوید.
+		</p>
+		<a href="https://t.me/your_bot_username" class="telegram-link">
+			باز کردن در تلگرام
+		</a>
+	</div>
+</body>
+</html>`)
+			}
 			c.Abort()
 			return
 		}
@@ -382,7 +485,7 @@ func StartWebAPI() {
 		}
 		c.Next()
 	})
-	
+
 	// Debug middleware for API routes - log all API requests
 	r.Use(func(c *gin.Context) {
 		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
@@ -402,7 +505,7 @@ func StartWebAPI() {
 			Data:    map[string]string{"status": "healthy", "service": "MonetizeeAI API"},
 		})
 	})
-	
+
 	// Admin auth routes are already registered at the very beginning (before all middleware)
 	// No need to register them again here
 
@@ -411,7 +514,7 @@ func StartWebAPI() {
 	if frontendPath == "" {
 		frontendPath = "./miniApp/dist"
 	}
-	
+
 	// Admin login route - accessible without Telegram
 	r.GET("/admin-login", func(c *gin.Context) {
 		indexPath := frontendPath + "/index.html"
@@ -438,8 +541,8 @@ func StartWebAPI() {
 	})
 
 	// 🔒 SECURITY: Telegram WebApp Authentication Middleware
-	// DISABLED: Web access restriction removed temporarily
-	// r.Use(telegramWebAppAuthMiddleware())
+	// Enabled: Only allow Telegram access for non-admin routes
+	r.Use(telegramWebAppAuthMiddleware())
 
 	// NOTE: Admin auth routes (/api/v1/admin/auth/login, /check, /logout) are already
 	// registered at the beginning of this function (lines 294-296) before any middleware.
@@ -510,14 +613,14 @@ func StartWebAPI() {
 	// NOTE: Admin auth routes are already registered above (before static files)
 	// Setup all other admin routes
 	setupAdminAPIRoutes(r)
-	logger.Info("Admin Panel API routes configured", 
+	logger.Info("Admin Panel API routes configured",
 		zap.String("admin_auth_login", "/api/v1/admin/auth/login"),
 		zap.String("admin_auth_check", "/api/v1/admin/auth/check"))
 
 	// Serve frontend static files (for admin-login and other frontend routes)
 	// This allows frontend React app to handle routing
 	// Note: /admin-login route is already defined above (before auth middleware)
-	
+
 	if _, err := os.Stat(frontendPath); err == nil {
 		// CRITICAL: Add middleware to prevent API routes from being intercepted by static file serving
 		r.Use(func(c *gin.Context) {
@@ -529,23 +632,24 @@ func StartWebAPI() {
 			// For non-API routes, continue to static file serving
 			c.Next()
 		})
-		
+
 		// Serve static assets (only for non-API routes due to middleware above)
 		r.Static("/static", frontendPath+"/assets")
 		r.Static("/assets", frontendPath+"/assets")
 		r.StaticFile("/favicon.ico", frontendPath+"/favicon.ico")
-		
+
 		// Serve fonts
 		r.Static("/fonts", frontendPath+"/fonts")
-		
+
 		// Serve index.html for all other non-API routes (SPA routing)
+		// NOTE: This will only be reached if middleware allows it (Telegram users or admin routes)
 		r.NoRoute(func(c *gin.Context) {
 			path := c.Request.URL.Path
 			// Normalize path (remove double slashes)
 			for strings.Contains(path, "//") {
 				path = strings.ReplaceAll(path, "//", "/")
 			}
-			
+
 			// CRITICAL: Skip API routes - they should be handled by registered routes
 			// This is a fallback for routes that don't match any registered route
 			if strings.HasPrefix(path, "/api/") {
@@ -560,8 +664,11 @@ func StartWebAPI() {
 				})
 				return
 			}
-			
-			// Serve index.html for frontend routes (SPA routing)
+
+			// If we reach here, it means:
+			// 1. User is from Telegram (middleware allowed it), OR
+			// 2. User is accessing admin routes (middleware allowed it)
+			// So serve index.html for SPA routing
 			indexPath := frontendPath + "/index.html"
 			if _, err := os.Stat(indexPath); err == nil {
 				c.File(indexPath)
