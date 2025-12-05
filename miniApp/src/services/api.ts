@@ -188,6 +188,23 @@ class APIService {
     logger.debug('🗑️ Cleared API service cache');
   }
 
+  // Clear cache for tickets-related endpoints
+  clearTicketsCache(): void {
+    const telegramId = this.getTelegramId();
+    if (telegramId) {
+      // Clear tickets list cache
+      const ticketsListUrl = `${this.baseURL}/user/${telegramId}/tickets`;
+      this.requestCache.delete(ticketsListUrl);
+    }
+    // Clear all ticket detail caches (pattern: /tickets/{id})
+    for (const key of this.requestCache.keys()) {
+      if (key.includes('/tickets/')) {
+        this.requestCache.delete(key);
+      }
+    }
+    logger.debug('🗑️ Cleared tickets cache');
+  }
+
   // ⚡ PERFORMANCE: Get from cache or return null
   private getCached<T>(key: string): T | null {
     const cached = this.requestCache.get(key);
@@ -658,12 +675,17 @@ class APIService {
     if (!telegramId) {
       return { success: false, error: 'No user ID available' };
     }
-    return this.makeRequest<any>('POST', '/tickets', {
+    const response = await this.makeRequest<any>('POST', '/tickets', {
       telegram_id: telegramId,
       subject: data.subject,
       priority: data.priority,
       message: data.message
     });
+    // Clear tickets cache after creating a ticket
+    if (response.success) {
+      this.clearTicketsCache();
+    }
+    return response;
   }
 
   async getTicket(ticketId: number): Promise<APIResponse<any>> {
@@ -675,10 +697,15 @@ class APIService {
     if (!telegramId) {
       return { success: false, error: 'No user ID available' };
     }
-    return this.makeRequest<any>('POST', `/tickets/${ticketId}/reply`, {
+    const response = await this.makeRequest<any>('POST', `/tickets/${ticketId}/reply`, {
       telegram_id: telegramId,
       message: message
     });
+    // Clear tickets cache after replying to a ticket
+    if (response.success) {
+      this.clearTicketsCache();
+    }
+    return response;
   }
 
   async closeTicket(ticketId: number): Promise<APIResponse<any>> {
@@ -686,9 +713,14 @@ class APIService {
     if (!telegramId) {
       return { success: false, error: 'No user ID available' };
     }
-    return this.makeRequest<any>('POST', `/tickets/${ticketId}/close`, {
+    const response = await this.makeRequest<any>('POST', `/tickets/${ticketId}/close`, {
       telegram_id: telegramId
     });
+    // Clear tickets cache after closing a ticket
+    if (response.success) {
+      this.clearTicketsCache();
+    }
+    return response;
   }
 }
 

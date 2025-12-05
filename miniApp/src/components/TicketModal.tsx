@@ -59,6 +59,8 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
   const loadTickets = async () => {
     setLoadingTickets(true);
     try {
+      // Clear cache before loading to ensure fresh data
+      apiService.clearTicketsCache();
       const response = await apiService.getUserTickets();
       if (response.success && response.data) {
         setTickets(response.data);
@@ -109,6 +111,8 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
     try {
       const ticketId = getTicketId(ticket);
       if (ticketId) {
+        // Clear cache before loading to ensure fresh data
+        apiService.clearTicketsCache();
         const response = await apiService.getTicket(ticketId);
         if (response.success && response.data) {
           setSelectedTicket(response.data);
@@ -135,6 +139,8 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
       if (response.success) {
         // Clear reply message immediately
         setReplyMessage('');
+        // Clear cache before reloading to ensure fresh data
+        apiService.clearTicketsCache();
         // Reload ticket details immediately to show the new message
         const ticketResponse = await apiService.getTicket(ticketId);
         if (ticketResponse.success && ticketResponse.data) {
