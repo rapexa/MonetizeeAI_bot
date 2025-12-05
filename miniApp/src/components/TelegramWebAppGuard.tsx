@@ -12,16 +12,14 @@ const TelegramWebAppGuard: React.FC<TelegramWebAppGuardProps> = ({ children }) =
   useEffect(() => {
     const checkTelegramWebApp = () => {
       try {
-        // WEB ACCESS RESTRICTION DISABLED - Allow all access
-        console.log('✅ Web access restriction disabled - allowing all access');
-        setIsInTelegram(true);
-        setIsLoading(false);
-        return;
-
-        // Allow admin-login page without Telegram check
         const currentPath = window.location.pathname;
-        if (currentPath === '/admin-login' || currentPath.startsWith('/admin-login')) {
-          console.log('✅ Admin login page - allowing access without Telegram');
+        
+        // Allow admin-login and admin-panel pages without Telegram check
+        if (currentPath === '/admin-login' || 
+            currentPath.startsWith('/admin-login/') ||
+            currentPath === '/admin-panel' || 
+            currentPath.startsWith('/admin-panel/')) {
+          console.log('✅ Admin route - allowing access without Telegram');
           setIsInTelegram(true);
           setIsLoading(false);
           return;

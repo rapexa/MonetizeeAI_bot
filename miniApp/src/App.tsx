@@ -30,6 +30,7 @@ import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import TestPage from './pages/TestPage';
+import TelegramWebAppGuard from './components/TelegramWebAppGuard';
 
 // Component to check if user is in Telegram
 function isInTelegramWebApp(): boolean {
@@ -179,8 +180,9 @@ function App() {
 
   return (
     <ErrorBoundary>
-      {/* Web access restriction disabled - allow all access */}
-      {appContent}
+      <TelegramWebAppGuard>
+        {appContent}
+      </TelegramWebAppGuard>
     </ErrorBoundary>
   );
 }
