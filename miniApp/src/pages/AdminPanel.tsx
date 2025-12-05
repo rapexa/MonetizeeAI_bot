@@ -324,6 +324,17 @@ const AdminPanel: React.FC = () => {
       const response = await adminApiService.getUserDetail(user.ID);
       if (response.success) {
         setUserDetail(response.data);
+        // Update selectedUser with fresh data from server
+        if (response.data.user) {
+          setSelectedUser({
+            ...user,
+            ...response.data.user,
+            PlanName: response.data.user.plan_name || response.data.user.planName,
+            SubscriptionType: response.data.user.subscription_type || response.data.user.subscriptionType,
+            IsActive: response.data.user.is_active !== undefined ? response.data.user.is_active : response.data.user.isActive,
+            IsBlocked: response.data.user.is_blocked !== undefined ? response.data.user.is_blocked : response.data.user.isBlocked,
+          });
+        }
       } else {
         alert('❌ خطا در دریافت جزئیات کاربر');
         setSelectedUser(null);
@@ -364,7 +375,7 @@ const AdminPanel: React.FC = () => {
     if (!selectedUser || changingPlan) return;
     
     const planNames: { [key: string]: string } = {
-      'free': 'رایگان',
+      'free': 'رایگان (3 روزه)',
       'starter': 'Starter',
       'pro': 'Pro',
       'ultimate': 'Ultimate'
@@ -383,9 +394,8 @@ const AdminPanel: React.FC = () => {
       
       if (response.success) {
         alert(`✅ پلن کاربر به "${planName}" تغییر کرد`);
-        // Refresh user detail - create a new user object with updated plan
-        const updatedUser = { ...selectedUser, PlanName: planType === 'free' ? '' : planType };
-        await handleOpenUserDetail(updatedUser);
+        // Refresh user detail from server to get updated data
+        await handleOpenUserDetail(selectedUser);
         // Refresh users list
         loadUsers();
       } else {
@@ -407,6 +417,41 @@ const AdminPanel: React.FC = () => {
   // Format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fa-IR');
+  };
+
+  // Get plan display name
+  const getPlanDisplayName = (user: User): string => {
+    // Check if user is blocked or inactive
+    if (user.IsBlocked) {
+      return 'مسدود شده';
+    }
+    if (!user.IsActive) {
+      return 'غیرفعال';
+    }
+    
+    // Check PlanName first (most accurate)
+    if (user.PlanName) {
+      const planName = user.PlanName.toLowerCase();
+      if (planName === 'ultimate') return 'Ultimate';
+      if (planName === 'pro') return 'Pro';
+      if (planName === 'starter') return 'Starter';
+      if (planName === 'free_trial') return 'رایگان (3 روزه)';
+    }
+    
+    // Fallback to SubscriptionType
+    if (user.SubscriptionType) {
+      const subType = user.SubscriptionType.toLowerCase();
+      if (subType === 'paid') {
+        // If paid but no plan name, might be legacy
+        return 'پولی';
+      }
+      if (subType === 'free_trial') {
+        return 'رایگان (3 روزه)';
+      }
+    }
+    
+    // Default
+    return 'بدون اشتراک';
   };
 
   // Access Denied state
@@ -732,15 +777,21 @@ const AdminPanel: React.FC = () => {
                           </td>
                           <td className="py-3 px-2">
                             <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                              user.PlanName === 'ultimate'
+                              user.IsBlocked
+                                ? 'bg-red-500/20 text-red-400'
+                                : !user.IsActive
+                                ? 'bg-gray-500/20 text-gray-400'
+                                : user.PlanName?.toLowerCase() === 'ultimate'
                                 ? 'bg-green-500/20 text-green-400'
-                                : user.PlanName === 'pro'
+                                : user.PlanName?.toLowerCase() === 'pro'
                                 ? 'bg-purple-500/20 text-purple-400'
-                                : user.PlanName === 'starter'
+                                : user.PlanName?.toLowerCase() === 'starter'
                                 ? 'bg-blue-500/20 text-blue-400'
+                                : user.PlanName?.toLowerCase() === 'free_trial' || user.SubscriptionType === 'free_trial'
+                                ? 'bg-yellow-500/20 text-yellow-400'
                                 : 'bg-gray-500/20 text-gray-400'
                             }`}>
-                              {user.PlanName || user.SubscriptionType || 'free'}
+                              {getPlanDisplayName(user)}
                             </span>
                           </td>
                           <td className="py-3 px-2 text-blue-400 text-sm">
@@ -996,7 +1047,17 @@ const AdminPanel: React.FC = () => {
                         <Package size={16} />
                         نوع اشتراک
                       </div>
-                      <div className="text-white font-medium">{selectedUser.PlanName || 'free'}</div>
+                      <div className="text-white font-medium">{getPlanDisplayName(selectedUser)}</div>
+                      {userDetail && userDetail.user && userDetail.user.subscription_expiry && (
+                        <div className="text-gray-400 text-xs mt-1">
+                          انقضا: {new Date(userDetail.user.subscription_expiry).toLocaleDateString('fa-IR')}
+                        </div>
+                      )}
+                      {userDetail && userDetail.user && !userDetail.user.subscription_expiry && selectedUser.PlanName?.toLowerCase() === 'ultimate' && (
+                        <div className="text-green-400 text-xs mt-1">
+                          مادام‌العمر
+                        </div>
+                      )}
                     </div>
                     <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
                       <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">

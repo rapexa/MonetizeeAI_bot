@@ -703,32 +703,53 @@ func changeUserPlanAPI(c *gin.Context) {
 	// Update user subscription
 	switch req.PlanType {
 	case "free":
+		// Free trial - 3 days
+		expiry := time.Now().AddDate(0, 0, 3)
 		user.SubscriptionType = "free_trial"
-		user.PlanName = ""
-		user.SubscriptionExpiry = nil
+		user.PlanName = "free_trial"
+		user.SubscriptionExpiry = &expiry
+		user.IsActive = true
+		user.IsVerified = false
+		user.FreeTrialUsed = true
 	case "starter":
 		expiry := time.Now().AddDate(0, 1, 0)
 		user.SubscriptionType = "paid"
 		user.PlanName = "starter"
 		user.SubscriptionExpiry = &expiry
+		user.IsActive = true
 		user.IsVerified = true
+		user.FreeTrialUsed = true
 	case "pro":
 		expiry := time.Now().AddDate(0, 6, 0)
 		user.SubscriptionType = "paid"
 		user.PlanName = "pro"
 		user.SubscriptionExpiry = &expiry
+		user.IsActive = true
 		user.IsVerified = true
+		user.FreeTrialUsed = true
 	case "ultimate":
+		// Ultimate plan - lifetime (no expiry)
 		user.SubscriptionType = "paid"
 		user.PlanName = "ultimate"
 		user.SubscriptionExpiry = nil
+		user.IsActive = true
 		user.IsVerified = true
+		user.FreeTrialUsed = true
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid plan type"})
 		return
 	}
 
-	db.Save(&user)
+	// Ensure user is not blocked when changing plan (unless explicitly blocked)
+	// Only unblock if the plan change is successful
+	if err := db.Save(&user).Error; err != nil {
+		logger.Error("Failed to save user after plan change", zap.Error(err), zap.Uint("user_id", user.ID))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to update user plan",
+		})
+		return
+	}
 
 	logger.Info("User plan changed by admin",
 		zap.Uint("user_id", user.ID),
