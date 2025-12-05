@@ -333,7 +333,11 @@ const AdminPanel: React.FC = () => {
         setUsersTotal(response.data.total || 0);
       } else {
         console.error('Failed to load users:', response.error);
-        alert('خطا در بارگذاری کاربران: ' + (response.error || 'خطای ناشناخته'));
+        const errorMessage = response.error || 'خطای ناشناخته';
+        // Don't show alert for authentication errors - they're handled elsewhere
+        if (!errorMessage.includes('Unauthorized') && !errorMessage.includes('Forbidden') && !errorMessage.includes('Authentication')) {
+          alert('خطا در بارگذاری کاربران: ' + errorMessage);
+        }
       }
     } catch (error) {
       console.error('Failed to load users:', error);
