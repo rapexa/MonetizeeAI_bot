@@ -54,6 +54,7 @@ interface User {
   Username: string;
   FirstName: string;
   LastName: string;
+  Phone: string;
   PhoneNumber: string;
   SubscriptionType: string;
   PlanName: string;
@@ -567,7 +568,7 @@ const AdminPanel: React.FC = () => {
                     {stats.recentUsers.map((user) => (
                       <tr key={user.ID} className="border-b border-gray-700/30">
                         <td className="py-3 text-white text-sm">
-                          {user.FirstName || user.Username}
+                          {[user.FirstName, user.LastName].filter(Boolean).join(' ') || user.Username}
                         </td>
                         <td className="py-3 text-gray-300 text-sm">
                           {user.PlanName || user.SubscriptionType}
@@ -697,10 +698,10 @@ const AdminPanel: React.FC = () => {
                       {users.map((user) => (
                         <tr key={user.ID} className="border-b border-gray-700/30 hover:bg-gray-800/20">
                           <td className="py-3 px-2 text-white text-sm">
-                            {user.FirstName || user.Username || '-'}
+                            {[user.FirstName, user.LastName].filter(Boolean).join(' ') || user.Username || '-'}
                           </td>
-                          <td className="py-3 px-2 text-gray-300 text-xs">
-                            {user.PhoneNumber || '-'}
+                          <td className="py-3 px-2 text-gray-300 text-sm">
+                            {user.PhoneNumber || user.Phone || '-'}
                           </td>
                           <td className="py-3 px-2">
                             <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
@@ -952,14 +953,16 @@ const AdminPanel: React.FC = () => {
                         <User size={16} />
                         نام کاربر
                       </div>
-                      <div className="text-white font-medium">{selectedUser.Name || 'نامشخص'}</div>
+                      <div className="text-white font-medium">
+                        {[selectedUser.FirstName, selectedUser.LastName].filter(Boolean).join(' ') || selectedUser.Username || 'نامشخص'}
+                      </div>
                     </div>
                     <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
                       <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
                         <Phone size={16} />
                         شماره تلفن
                       </div>
-                      <div className="text-white font-medium">{selectedUser.Phone || 'نامشخص'}</div>
+                      <div className="text-white font-medium">{selectedUser.PhoneNumber || selectedUser.Phone || 'نامشخص'}</div>
                     </div>
                     <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
                       <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
