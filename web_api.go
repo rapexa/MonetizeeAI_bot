@@ -117,6 +117,12 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		// Admin routes have their own authentication middleware
 		// Admin login page should be accessible from web without Telegram
 		path := c.Request.URL.Path
+
+		// Log all requests for debugging (can be removed in production)
+		logger.Debug("🔍 Middleware check",
+			zap.String("path", path),
+			zap.String("method", c.Request.Method),
+			zap.String("ip", c.ClientIP()))
 		// Normalize path (remove double slashes and trailing slashes)
 		// Handle cases like //admin-login or /admin-login/
 		for strings.Contains(path, "//") {
@@ -128,7 +134,7 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Check if path should be allowed without Telegram auth
-		// Admin routes and API routes are allowed
+		// ONLY Admin routes and API routes are allowed - everything else requires Telegram
 		if path == "/health" ||
 			strings.HasPrefix(path, "/static/") ||
 			strings.HasPrefix(path, "/assets/") ||
@@ -144,6 +150,9 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 			c.Next()
 			return
 		}
+
+		// IMPORTANT: Root path "/" should NOT be allowed - it requires Telegram
+		// All other paths also require Telegram unless explicitly allowed above
 
 		// Check for Telegram WebApp indicators
 		userAgent := c.GetHeader("User-Agent")
@@ -229,7 +238,8 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 				zap.String("ip", c.ClientIP()),
 				zap.String("user_agent", userAgent),
 				zap.String("referer", referer),
-				zap.String("path", c.Request.URL.Path))
+				zap.String("path", c.Request.URL.Path),
+				zap.String("normalized_path", path))
 
 			// Return HTML page for non-API requests, JSON for API requests
 			if strings.HasPrefix(c.Request.URL.Path, "/api/") {
