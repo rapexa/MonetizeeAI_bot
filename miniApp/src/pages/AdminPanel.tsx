@@ -17,7 +17,14 @@ import {
   BarChart3,
   LineChart,
   Search,
-  Filter
+  Filter,
+  Send,
+  X,
+  User,
+  Phone,
+  Mail,
+  Calendar,
+  MessageSquare
 } from 'lucide-react';
 import adminApiService from '../services/adminApi';
 
@@ -92,6 +99,13 @@ const AdminPanel: React.FC = () => {
   const [paymentsTotal, setPaymentsTotal] = useState(0);
   const [paymentsFilter, setPaymentsFilter] = useState('all');
   const [loadingPayments, setLoadingPayments] = useState(false);
+
+  // User detail modal state
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userDetail, setUserDetail] = useState<any>(null);
+  const [loadingUserDetail, setLoadingUserDetail] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   // Check authentication on mount
   // IMPORTANT: For both Telegram and Web users, we use web login
@@ -294,6 +308,64 @@ const AdminPanel: React.FC = () => {
     if (response.success) {
       alert('✅ کاربر حذف شد');
       loadUsers();
+    } else {
+      alert('❌ خطا: ' + response.error);
+    }
+  };
+
+  const handleOpenUserDetail = async (user: User) => {
+    setSelectedUser(user);
+    setLoadingUserDetail(true);
+    setMessageText('');
+    
+    try {
+      const response = await adminApiService.getUserDetail(user.ID);
+      if (response.success) {
+        setUserDetail(response.data);
+      } else {
+        alert('❌ خطا در دریافت جزئیات کاربر');
+        setSelectedUser(null);
+      }
+    } catch (error) {
+      console.error('Error loading user detail:', error);
+      alert('❌ خطا در دریافت جزئیات کاربر');
+      setSelectedUser(null);
+    } finally {
+      setLoadingUserDetail(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!selectedUser || !messageText.trim()) {
+      alert('لطفا پیام را وارد کنید');
+      return;
+    }
+
+    setSendingMessage(true);
+    try {
+      const response = await adminApiService.sendMessageToUser(selectedUser.ID, messageText);
+      if (response.success) {
+        alert('✅ پیام با موفقیت ارسال شد');
+        setMessageText('');
+      } else {
+        alert('❌ خطا در ارسال پیام: ' + (response.error || 'خطای ناشناخته'));
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('❌ خطا در ارسال پیام');
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const handleChangePlanFromModal = async (planType: string) => {
+    if (!selectedUser) return;
+    
+    const response = await adminApiService.changeUserPlan(selectedUser.ID, planType);
+    if (response.success) {
+      alert('✅ پلن کاربر تغییر کرد');
+      handleOpenUserDetail(selectedUser); // Refresh user detail
+      loadUsers(); // Refresh users list
     } else {
       alert('❌ خطا: ' + response.error);
     }
@@ -658,6 +730,13 @@ const AdminPanel: React.FC = () => {
                           <td className="py-3 px-2">
                             <div className="flex items-center justify-center gap-1">
                               <button
+                                onClick={() => handleOpenUserDetail(user)}
+                                className="p-1.5 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg transition-colors"
+                                title="جزئیات و مدیریت"
+                              >
+                                <User size={14} className="text-purple-400" />
+                              </button>
+                              <button
                                 onClick={() => handleChangePlan(user.ID)}
                                 className="p-1.5 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg transition-colors"
                                 title="تغییر پلن"
@@ -835,6 +914,225 @@ const AdminPanel: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* User Detail Modal */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto backdrop-blur-xl rounded-3xl border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+            {/* Modal Header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-gray-700/60 bg-[#10091c]/95 backdrop-blur-sm">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <User size={24} />
+                جزئیات کاربر
+              </h2>
+              <button
+                onClick={() => {
+                  setSelectedUser(null);
+                  setUserDetail(null);
+                  setMessageText('');
+                }}
+                className="p-2 hover:bg-gray-700/40 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-gray-400" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {loadingUserDetail ? (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 border-4 border-[#5a189a]/30 border-t-[#5a189a] rounded-full animate-spin mx-auto"></div>
+                </div>
+              ) : (
+                <>
+                  {/* User Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                      <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                        <User size={16} />
+                        نام کاربر
+                      </div>
+                      <div className="text-white font-medium">{selectedUser.Name || 'نامشخص'}</div>
+                    </div>
+                    <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                      <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                        <Phone size={16} />
+                        شماره تلفن
+                      </div>
+                      <div className="text-white font-medium">{selectedUser.Phone || 'نامشخص'}</div>
+                    </div>
+                    <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                      <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                        <Package size={16} />
+                        نوع اشتراک
+                      </div>
+                      <div className="text-white font-medium">{selectedUser.PlanName || 'free'}</div>
+                    </div>
+                    <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                      <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                        <Activity size={16} />
+                        وضعیت
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {selectedUser.IsActive && !selectedUser.IsBlocked ? (
+                          <CheckCircle size={16} className="text-green-400" />
+                        ) : selectedUser.IsBlocked ? (
+                          <Ban size={16} className="text-red-400" />
+                        ) : (
+                          <XCircle size={16} className="text-gray-400" />
+                        )}
+                        <span className="text-white font-medium">
+                          {selectedUser.IsBlocked ? 'مسدود شده' : selectedUser.IsActive ? 'فعال' : 'غیرفعال'}
+                        </span>
+                      </div>
+                    </div>
+                    {userDetail && (
+                      <>
+                        {userDetail.telegram_id && (
+                          <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                            <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                              <Mail size={16} />
+                              تلگرام ID
+                            </div>
+                            <div className="text-white font-medium">{userDetail.telegram_id}</div>
+                          </div>
+                        )}
+                        {userDetail.subscription_expiry && (
+                          <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                            <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                              <Calendar size={16} />
+                              تاریخ انقضا
+                            </div>
+                            <div className="text-white font-medium">
+                              {new Date(userDetail.subscription_expiry).toLocaleDateString('fa-IR')}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Send Message Section */}
+                  <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                      <MessageSquare size={20} />
+                      ارسال پیام به کاربر
+                    </h3>
+                    <textarea
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      placeholder="پیام خود را وارد کنید..."
+                      className="w-full px-4 py-3 bg-gray-900/60 border border-gray-700/40 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/60 resize-none"
+                      rows={4}
+                    />
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={!messageText.trim() || sendingMessage}
+                      className="mt-3 w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                    >
+                      {sendingMessage ? (
+                        <>
+                          <RefreshCw size={18} className="animate-spin" />
+                          در حال ارسال...
+                        </>
+                      ) : (
+                        <>
+                          <Send size={18} />
+                          ارسال پیام
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                    <h3 className="text-lg font-bold text-white mb-4">عملیات سریع</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <button
+                        onClick={() => handleChangePlanFromModal('free')}
+                        className="px-4 py-2 bg-gray-700/40 hover:bg-gray-700/60 text-white rounded-lg text-sm transition-colors"
+                      >
+                        پلن رایگان
+                      </button>
+                      <button
+                        onClick={() => handleChangePlanFromModal('starter')}
+                        className="px-4 py-2 bg-blue-600/40 hover:bg-blue-600/60 text-white rounded-lg text-sm transition-colors"
+                      >
+                        Starter
+                      </button>
+                      <button
+                        onClick={() => handleChangePlanFromModal('pro')}
+                        className="px-4 py-2 bg-purple-600/40 hover:bg-purple-600/60 text-white rounded-lg text-sm transition-colors"
+                      >
+                        Pro
+                      </button>
+                      <button
+                        onClick={() => handleChangePlanFromModal('ultimate')}
+                        className="px-4 py-2 bg-yellow-600/40 hover:bg-yellow-600/60 text-white rounded-lg text-sm transition-colors"
+                      >
+                        Ultimate
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      {selectedUser.IsBlocked ? (
+                        <button
+                          onClick={() => {
+                            handleUnblockUser(selectedUser.ID);
+                            setSelectedUser(null);
+                          }}
+                          className="px-4 py-2 bg-green-600/40 hover:bg-green-600/60 text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Unlock size={16} />
+                          رفع مسدودیت
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            handleBlockUser(selectedUser.ID);
+                            setSelectedUser(null);
+                          }}
+                          className="px-4 py-2 bg-red-600/40 hover:bg-red-600/60 text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Ban size={16} />
+                          مسدود کردن
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          handleDeleteUser(selectedUser.ID);
+                          setSelectedUser(null);
+                        }}
+                        className="px-4 py-2 bg-gray-600/40 hover:bg-gray-600/60 text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Trash2 size={16} />
+                        حذف کاربر
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* User Payments (if available) */}
+                  {userDetail && userDetail.payments && userDetail.payments.length > 0 && (
+                    <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                      <h3 className="text-lg font-bold text-white mb-4">تراکنش‌های اخیر</h3>
+                      <div className="space-y-2">
+                        {userDetail.payments.slice(0, 5).map((payment: any) => (
+                          <div key={payment.id} className="flex items-center justify-between p-3 bg-gray-900/60 rounded-lg">
+                            <div>
+                              <div className="text-white text-sm font-medium">{payment.type}</div>
+                              <div className="text-gray-400 text-xs">{new Date(payment.created_at).toLocaleDateString('fa-IR')}</div>
+                            </div>
+                            <div className="text-green-400 font-bold">{formatCurrency(payment.amount)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

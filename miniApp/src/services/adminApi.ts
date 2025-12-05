@@ -198,6 +198,8 @@ const adminApiService = {
   getUsers: (page: number = 1, limit: number = 50, search: string = '', filterType: string = 'all') => 
     makeRequest(`/users?page=${page}&limit=${limit}&search=${search}&type=${filterType}`),
   getUserDetail: (userId: number) => makeRequest(`/users/${userId}`),
+  sendMessageToUser: (userId: number, message: string) => 
+    makeRequest(`/users/${userId}/send-message`, 'POST', { message }),
   blockUser: (userId: number) => makeRequest(`/users/${userId}/block`, 'POST'),
   unblockUser: (userId: number) => makeRequest(`/users/${userId}/unblock`, 'POST'),
   changeUserPlan: (userId: number, planType: string) => 

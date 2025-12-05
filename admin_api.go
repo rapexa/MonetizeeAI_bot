@@ -11,6 +11,7 @@ import (
 
 	"MonetizeeAI_bot/logger"
 
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -52,6 +53,7 @@ func setupAdminAPIRoutes(r *gin.Engine) {
 		admin.POST("/users/:id/block", blockUserAPI)
 		admin.POST("/users/:id/unblock", unblockUserAPI)
 		admin.POST("/users/:id/change-plan", changeUserPlanAPI)
+		admin.POST("/users/:id/send-message", sendMessageToUserAPI)
 		admin.DELETE("/users/:id", deleteUserAPI)
 
 		// Payments
@@ -736,6 +738,51 @@ func changeUserPlanAPI(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "User plan changed successfully",
+	})
+}
+
+// Send message to user
+func sendMessageToUserAPI(c *gin.Context) {
+	userID := c.Param("id")
+
+	type MessageRequest struct {
+		Message string `json:"message" binding:"required"`
+	}
+
+	var req MessageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	var user User
+	if err := db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Send message via Telegram bot
+	msg := tgbotapi.NewMessage(user.TelegramID, req.Message)
+	if _, err := bot.Send(msg); err != nil {
+		logger.Error("Failed to send message to user",
+			zap.Uint("user_id", user.ID),
+			zap.Int64("telegram_id", user.TelegramID),
+			zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to send message",
+		})
+		return
+	}
+
+	logger.Info("Message sent to user by admin",
+		zap.Uint("user_id", user.ID),
+		zap.Int64("telegram_id", user.TelegramID),
+		zap.Int64("admin_telegram_id", c.GetInt64("admin_telegram_id")))
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Message sent successfully",
 	})
 }
 
