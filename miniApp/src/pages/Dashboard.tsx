@@ -105,53 +105,42 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Get Telegram profile photo
+  // ⚡ PERFORMANCE: Defer profile photo loading (non-critical)
   React.useEffect(() => {
-    const getTelegramProfilePhoto = () => {
+    const timer = setTimeout(() => {
       if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
         const user = window.Telegram.WebApp.initDataUnsafe?.user;
         if (user) {
-          // Telegram WebApp API doesn't directly provide photo URL
-          // But we can construct it if we have the user's photo info
-          // For now, we'll check if photo_url exists in user data
           const photoUrl = (user as any).photo_url;
           if (photoUrl) {
-            console.log('📸 Telegram profile photo found:', photoUrl);
             setTelegramProfilePhoto(photoUrl);
-          } else {
-            console.log('📸 No Telegram profile photo available');
-            // Try to get from userData if backend provides it
-            if (userData.telegramId) {
-              // Check if we have profile photo URL in userData
-              const userPhotoUrl = (userData as any).profilePhotoUrl;
-              if (userPhotoUrl) {
-                setTelegramProfilePhoto(userPhotoUrl);
-              }
+          } else if (userData.telegramId) {
+            const userPhotoUrl = (userData as any).profilePhotoUrl;
+            if (userPhotoUrl) {
+              setTelegramProfilePhoto(userPhotoUrl);
             }
           }
         }
       }
-    };
-
-    getTelegramProfilePhoto();
+    }, 300); // Load after 300ms delay
+    
+    return () => clearTimeout(timer);
   }, [userData, isInTelegram]);
 
-  // Auto refresh data periodically
+  // ⚡ PERFORMANCE: Reduced auto refresh interval from 30s to 120s (2 minutes) for better performance
   React.useEffect(() => {
     if (!isAPIConnected) return;
     
-    // Refresh data every 30 seconds
+    // Refresh data every 2 minutes (reduced frequency for better performance)
     const refreshInterval = setInterval(async () => {
-      console.log('🔄 Auto refreshing dashboard data...');
       await refreshUserData();
-    }, 30000); // 30 seconds
+    }, 120000); // 120 seconds (2 minutes)
     
     return () => clearInterval(refreshInterval);
   }, [isAPIConnected, refreshUserData]);
   
   // Manual refresh function for user action
   const handleManualRefresh = async () => {
-    console.log('🔄 Manual refresh triggered...');
     await refreshUserData();
   };
 
@@ -160,19 +149,12 @@ const Dashboard: React.FC = () => {
     const hasSeenStories = localStorage.getItem('hasSeenOnboardingStories') === 'true';
     const guideNotifCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
     
-    console.log('📊 Dashboard mounted - Guide notification status:', {
-      hasSeenStories,
-      guideNotifCount,
-      showOnboarding
-    });
-    
+    // ⚡ PERFORMANCE: Removed console.log for better performance
     // اگر استوری‌ها دیده شده ولی نوتیفیکیشن هنوز نشون داده نشده
     if (hasSeenStories && guideNotifCount === 0) {
-      console.log('⏰ Starting guide notification timer (1 minute)');
       const timer = setTimeout(() => {
         const currentCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
         if (currentCount === 0) {
-          console.log('🔔 Showing guide notification (first time)');
           setShowGuideNotification(true);
           localStorage.setItem('guideNotificationCount', '1');
           localStorage.setItem('lastGuideNotificationTime', Date.now().toString());
@@ -188,8 +170,7 @@ const Dashboard: React.FC = () => {
     const guideNotifCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
     const lastNotifTime = parseInt(localStorage.getItem('lastGuideNotificationTime') || '0');
     
-    console.log('Checking for second guide notification:', { guideNotifCount, lastNotifTime });
-    
+    // ⚡ PERFORMANCE: Removed console.log for better performance
     // فقط برای بار دوم (اگر بار اول دیده شده ولی بار دوم نه)
     if (guideNotifCount === 1) {
       const timeSinceLastNotif = Date.now() - lastNotifTime;
@@ -198,12 +179,10 @@ const Dashboard: React.FC = () => {
       // اگر کمتر از 2 دقیقه از بار اول گذشته، تایمر برای باقیمانده زمان بذار
       if (timeSinceLastNotif < twoMinutes) {
         const remainingTime = twoMinutes - timeSinceLastNotif;
-        console.log('Scheduling second guide notification in', remainingTime / 1000, 'seconds');
         
         const timer = setTimeout(() => {
           const currentCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
           if (currentCount === 1) {
-            console.log('🔔 Showing second guide notification (last time)');
             setShowGuideNotification(true);
             localStorage.setItem('guideNotificationCount', '2');
             localStorage.setItem('lastGuideNotificationTime', Date.now().toString());
@@ -279,9 +258,10 @@ const Dashboard: React.FC = () => {
     };
   }, []);
 
-  // Load chat history on component mount
+  // ⚡ PERFORMANCE: Defer chat history loading - only load when chat is opened or after initial render
   React.useEffect(() => {
-    const loadChatHistory = async () => {
+    // Wait a bit before loading chat history to prioritize initial page load
+    const timer = setTimeout(async () => {
       if (isAPIConnected) {
         try {
           const response = await apiService.getChatHistory();
@@ -347,9 +327,9 @@ const Dashboard: React.FC = () => {
           timestamp: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
         }]);
       }
-    };
-
-    loadChatHistory();
+    }, 500); // ⚡ PERFORMANCE: Load chat history after 500ms delay
+    
+    return () => clearTimeout(timer);
   }, [isAPIConnected]);
 
   // Handle incoming prompt from ReadyPrompts page
@@ -526,7 +506,6 @@ const Dashboard: React.FC = () => {
 
   const handleNotificationAction = (notificationId: number, action: string) => {
     // Handle notification actions
-    console.log(`Action: ${action} for notification: ${notificationId}`);
     // Mark as read
     const updatedNotifications = notifications.map(n => 
       n.id === notificationId ? { ...n, unread: false } : n
@@ -535,7 +514,6 @@ const Dashboard: React.FC = () => {
 
   const markAllAsRead = () => {
     // Mark all notifications as read
-    console.log('Mark all as read');
   };
 
   const handleCurrentStageClick = () => {
@@ -649,13 +627,11 @@ const Dashboard: React.FC = () => {
   };
 
   const handleCloseGuideModal = () => {
-    console.log('Guide modal closed');
     setShowGuideModal(false);
     localStorage.setItem('hasSeenGuideModal', 'true');
   };
 
   const handleStartGuide = () => {
-    console.log('Starting guide - navigating to /guide-tutorial');
     setShowGuideModal(false);
     localStorage.setItem('hasSeenGuideModal', 'true');
     navigate('/guide-tutorial'); // Navigate to guide tutorial page
@@ -663,13 +639,11 @@ const Dashboard: React.FC = () => {
 
   // Handle guide notification actions
   const handleGuideNotificationClick = () => {
-    console.log('Guide notification clicked - navigating to guide');
     setShowGuideNotification(false);
     navigate('/guide-tutorial');
   };
 
   const handleGuideNotificationClose = () => {
-    console.log('Guide notification dismissed');
     setShowGuideNotification(false);
   };
 
@@ -678,7 +652,6 @@ const Dashboard: React.FC = () => {
       {/* Onboarding Stories - فقط یک بار در کل عمر نمایش داده می‌شود */}
       {showOnboarding && (
         <OnboardingStories onClose={() => {
-          console.log('📖 Onboarding stories closed - marking as seen');
           setShowOnboarding(false);
           
           // ذخیره در localStorage که استوری دیده شده و دیگه هیچ‌وقت نشون داده نشه
@@ -687,11 +660,9 @@ const Dashboard: React.FC = () => {
           // بعد از بسته شدن استوری‌ها، تایمر نوتیفیکیشن راهنما را شروع کن
           const guideNotifCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
           if (guideNotifCount === 0) {
-            console.log('Stories closed, scheduling guide notification for 1 minute');
             setTimeout(() => {
               const currentCount = parseInt(localStorage.getItem('guideNotificationCount') || '0');
               if (currentCount < 2) {
-                console.log('🔔 Showing guide notification (first time)');
                 setShowGuideNotification(true);
                 localStorage.setItem('guideNotificationCount', '1');
                 localStorage.setItem('lastGuideNotificationTime', Date.now().toString());

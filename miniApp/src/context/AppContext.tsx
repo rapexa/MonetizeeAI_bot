@@ -82,44 +82,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sync user data with API
   const syncWithAPI = async () => {
     try {
-      logger.debug('🚀 Starting API sync...');
       setLoadingUser(true);
       
-      // Check if API is available
-      logger.debug('🔍 Checking API availability...');
-      const apiAvailable = await apiService.isAPIAvailable();
-      logger.debug('📡 API Available:', apiAvailable);
-      setIsAPIConnected(apiAvailable);
+      // ⚡ PERFORMANCE: Skip health check and go straight to user data (faster initial load)
+      // Health check will happen naturally if API calls fail
+      setIsAPIConnected(true); // Optimistically assume API is available
       
-      if (!apiAvailable) {
-        logger.debug('❌ API not available, setting fallback data');
-        // Set some basic fallback data when API is not available
+      // ⚡ PERFORMANCE: Load critical data first, defer non-critical calls
+      const authResponse = await apiService.getCurrentUser();
+      
+      // Check if API is actually available based on response
+      // Handle various error types: network errors, timeouts, etc.
+      if (!authResponse.success && (
+        authResponse.error?.includes('Failed to fetch') || 
+        authResponse.error?.includes('Request timeout') ||
+        authResponse.error?.includes('NetworkError') ||
+        authResponse.error?.includes('اتصال به سرور')
+      )) {
+        setIsAPIConnected(false);
+        // Set fallback data when API is not available
         setUserData(prev => ({
           ...prev,
-          incomeMonth: 2450000, // Default fallback
-    incomeToday: 150000,
-    activeLeads: 12,
-    negotiatingCustomers: 3,
-    firstGoal: 5000000,
-    progressOverall: 35,
-    currentLevel: 3,
-    completedTasks: 28,
-    unlockedLevels: 4
+          incomeMonth: 2450000,
+          incomeToday: 150000,
+          activeLeads: 12,
+          negotiatingCustomers: 3,
+          firstGoal: 5000000,
+          progressOverall: 35,
+          currentLevel: 3,
+          completedTasks: 28,
+          unlockedLevels: 4
         }));
-        setHasRealData(false); // This is fallback data, not real
+        setHasRealData(false);
         setLoadingUser(false);
         return;
       }
-
-      // Try to authenticate user
-      logger.debug('🔐 Attempting user authentication...');
       
-      // ⚡ PERFORMANCE: Parallelize API calls instead of sequential
-      const [authResponse, progressResponse, profileResponse] = await Promise.all([
-        apiService.getCurrentUser(),
-        apiService.getUserProgress(),
-        apiService.getUserProfile()
-      ]);
+      // Only load progress and profile if auth succeeds
+      let progressResponse = { success: false, data: null };
+      let profileResponse = { success: false, data: null };
+      
+      if (authResponse.success && authResponse.data) {
+        // Load other data in parallel only if auth succeeded
+        [progressResponse, profileResponse] = await Promise.all([
+          apiService.getUserProgress(),
+          apiService.getUserProfile()
+        ]);
+      }
       
       if (authResponse.success && authResponse.data) {
         const userInfo = authResponse.data as any;
@@ -161,25 +170,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         // Mark that we now have real data
         setHasRealData(true);
-        
-        logger.debug('✅ Successfully synced with API');
-        logger.debug('📊 Final User Data:', {
-          currentLevel: progressResponse.success && progressResponse.data ? progressResponse.data.current_level : userInfo.level,
-          progressOverall: progressResponse.success && progressResponse.data ? progressResponse.data.progress_percent : userInfo.progress,
-          completedTasks: progressResponse.success && progressResponse.data ? progressResponse.data.completed_sessions : userInfo.completed_tasks,
-          monthlyIncome: profileResponse.success && profileResponse.data ? profileResponse.data.monthly_income : 'default'
-        });
       } else {
-        logger.debug('❌ Authentication failed:', authResponse.error);
         
         // Check if subscription has expired
         if (authResponse.error === 'SUBSCRIPTION_EXPIRED' || (authResponse as any).subscriptionExpired) {
-          logger.debug('⚠️ Subscription expired - user must renew in bot');
           setTelegramIdError('⚠️ اشتراک شما به پایان رسید!\n\n🔒 برای ادامه استفاده از امکانات، لطفا به ربات برگردید و اشتراک خریداری کنید یا لایسنس خود را وارد کنید.\n\n💎 برای بازگشت به ربات، روی دکمه زیر کلیک کنید:');
           setHasRealData(false);
         } else if (authResponse.error?.includes('No user ID available')) {
           // If no telegram_id available, show appropriate message
-          logger.debug('⚠️ No Telegram ID available - user must access from Telegram');
           setTelegramIdError('لطفا از طریق تلگرام وارد شوید تا اطلاعات شما نمایش داده شود');
           // Keep using default data but mark as not real
           setHasRealData(false);
@@ -198,13 +196,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (userInfo.subscription_type === 'paid' && userInfo.subscription_expiry) {
           const expiryDate = new Date(userInfo.subscription_expiry);
           if (new Date() > expiryDate) {
-            logger.debug('⚠️ Subscription expired based on expiry date');
             setTelegramIdError('⚠️ اشتراک شما به پایان رسید!\n\n🔒 برای ادامه استفاده از امکانات، لطفا به ربات برگردید و اشتراک خریداری کنید یا لایسنس خود را وارد کنید.\n\n💎 برای بازگشت به ربات، روی دکمه زیر کلیک کنید:');
           }
         } else if (userInfo.subscription_type === 'free_trial' && userInfo.subscription_expiry) {
           const expiryDate = new Date(userInfo.subscription_expiry);
           if (new Date() > expiryDate) {
-            logger.debug('⚠️ Free trial expired based on expiry date');
             setTelegramIdError('⚠️ اشتراک شما به پایان رسید!\n\n🔒 برای ادامه استفاده از امکانات، لطفا به ربات برگردید و اشتراک خریداری کنید یا لایسنس خود را وارد کنید.\n\n💎 برای بازگشت به ربات، روی دکمه زیر کلیک کنید:');
           }
         }
@@ -222,7 +218,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!isAPIConnected) return;
     
     try {
-      logger.debug('🔄 Refreshing user data...');
       // ⚡ PERFORMANCE: Parallelize API calls instead of sequential
       const [userResponse, progressResponse, profileResponse] = await Promise.all([
         apiService.getCurrentUser(),
@@ -268,12 +263,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             } : {})
           };
           
-          logger.debug('✅ User data refreshed successfully:', {
-            oldCurrentSession: prev.currentSession,
-            newCurrentSession: newUserData.currentSession,
-            sessionChanged: prev.currentSession !== newUserData.currentSession
-          });
-          
           return newUserData;
         });
         
@@ -283,7 +272,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
     } catch (error) {
-      logger.error('Error refreshing user data:', error);
+      // Silently fail - don't log errors on refresh for better performance
     }
   };
 

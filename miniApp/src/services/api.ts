@@ -63,22 +63,14 @@ class APIService {
   }
 
   private initTelegramWebApp() {
-    logger.debug('🚀 Initializing Telegram WebApp...');
-    
+    // ⚡ PERFORMANCE: Minimal initialization - skip debug logging
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
       try {
         window.Telegram.WebApp.ready();
         window.Telegram.WebApp.expand();
-        logger.debug('✅ Telegram WebApp initialized successfully');
-        logger.debug('📱 WebApp data:', window.Telegram.WebApp.initDataUnsafe);
       } catch (error) {
-        logger.error('❌ Error initializing Telegram WebApp:', error);
+        // Silently fail - don't log in production
       }
-    } else {
-      logger.debug('⚠️ Telegram WebApp not available (likely in browser)');
-      logger.debug('🔍 Window object:', typeof window);
-      logger.debug('🔍 Telegram object:', typeof window?.Telegram);
-      logger.debug('🔍 WebApp object:', typeof window?.Telegram?.WebApp);
     }
   }
 
@@ -95,11 +87,7 @@ class APIService {
                        window.location.href.includes('t.me'));
     
     this.cachedIsInTelegram = !!inTelegram;
-    logger.debug(`🔍 Is in Telegram: ${this.cachedIsInTelegram}`);
-    logger.debug(`🔍 Telegram WebApp available: ${!!window.Telegram?.WebApp}`);
-    logger.debug(`🔍 initDataUnsafe:`, window.Telegram?.WebApp?.initDataUnsafe);
-    logger.debug(`🔍 initData:`, window.Telegram?.WebApp?.initData);
-    logger.debug(`🔍 URL:`, window.location.href);
+    // ⚡ PERFORMANCE: Removed debug logging for faster execution
     return this.cachedIsInTelegram;
   }
 
@@ -109,11 +97,7 @@ class APIService {
     }
 
     try {
-      logger.debug('🔍 Starting Telegram ID detection...');
-      logger.debug('🔍 Telegram WebApp available:', !!window.Telegram?.WebApp);
-      logger.debug('🔍 initDataUnsafe:', window.Telegram?.WebApp?.initDataUnsafe);
-      logger.debug('🔍 initData:', window.Telegram?.WebApp?.initData);
-      logger.debug('🔍 URL:', window.location.href);
+      // ⚡ PERFORMANCE: Removed verbose debug logging
 
       // Method 1: Try initDataUnsafe
       if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
@@ -237,7 +221,7 @@ class APIService {
         }
       }
 
-      logger.debug(`📡 ${method} ${url}`, data || '');
+      // ⚡ PERFORMANCE: Removed verbose debug logging
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -268,7 +252,13 @@ class APIService {
         config.body = JSON.stringify(data);
       }
 
+      // ⚡ PERFORMANCE & RELIABILITY: Add timeout to prevent hanging requests (10 seconds max)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+      config.signal = controller.signal;
+
       const response = await fetch(url, config);
+      clearTimeout(timeoutId);
       const result = await response.json();
 
       if (!response.ok) {
@@ -291,8 +281,6 @@ class APIService {
         throw new Error(result.error || `HTTP error! status: ${response.status}`);
       }
 
-      logger.debug(`✅ ${method} ${url} - Success:`, result || '');
-      
       // ⚡ PERFORMANCE: Cache successful GET responses
       if (method === 'GET' && useCache && result.success) {
         this.setCache(url, result);
@@ -300,7 +288,22 @@ class APIService {
       
       return result;
     } catch (error) {
-      logger.error(`❌ API Request failed:`, error || '');
+      // ⚡ PERFORMANCE: Reduced error logging
+      // Handle timeout and network errors gracefully
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          return {
+            success: false,
+            error: 'Request timeout - لطفا دوباره تلاش کنید'
+          };
+        }
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          return {
+            success: false,
+            error: 'Failed to fetch - اتصال به سرور برقرار نشد'
+          };
+        }
+      }
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -310,10 +313,19 @@ class APIService {
 
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await fetch('https://sianmarketing.com/api/health');
+      // ⚡ PERFORMANCE: Add timeout to health check (3 seconds max)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      
+      const response = await fetch('https://sianmarketing.com/api/health', {
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+      
+      clearTimeout(timeoutId);
       return response.ok;
     } catch (error) {
-      logger.error('Health check failed:', error || '');
+      // Silently fail health check - don't log in production
       return false;
     }
   }

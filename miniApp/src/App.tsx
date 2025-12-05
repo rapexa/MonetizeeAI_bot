@@ -1,36 +1,50 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import Levels from './pages/Levels';
-import Profile from './pages/Profile';
-import Settings from './pages/Settings';
-import Tools from './pages/Tools';
-import AICoach from './pages/AICoach';
-import Chatbot from './pages/Chatbot';
-import SocialGrowth from './pages/GrowthClub';
-import Messages from './pages/Messages';
-import Chat from './pages/Chat';
-import EnergyBoost from './pages/EnergyBoost';
-
-
-import BusinessBuilderAI from './pages/BusinessBuilderAI';
-import SellKitAI from './pages/SellKitAI';
-import ClientFinderAI from './pages/ClientFinderAI';
-import SalesPathAI from './pages/SalesPathAI';
-import CRM from './pages/CRM';
-import LeadProfile from './pages/LeadProfile';
-import ReadyPrompts from './pages/ReadyPrompts';
-import CoursePlayer from './pages/CoursePlayer';
-import SubscriptionManagement from './pages/SubscriptionManagement';
-import GuideTutorial from './pages/GuideTutorial';
-import AdminPanel from './pages/AdminPanel';
-import AdminLogin from './pages/AdminLogin';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
-import TestPage from './pages/TestPage';
 import TelegramWebAppGuard from './components/TelegramWebAppGuard';
+
+// ⚡ PERFORMANCE: Eager load only Dashboard (main page) and Layout
+import Dashboard from './pages/Dashboard';
+
+// ⚡ PERFORMANCE: Lazy load all other pages for faster initial load
+const Levels = lazy(() => import('./pages/Levels'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Tools = lazy(() => import('./pages/Tools'));
+const AICoach = lazy(() => import('./pages/AICoach'));
+const Chatbot = lazy(() => import('./pages/Chatbot'));
+const SocialGrowth = lazy(() => import('./pages/GrowthClub'));
+const Messages = lazy(() => import('./pages/Messages'));
+const Chat = lazy(() => import('./pages/Chat'));
+const EnergyBoost = lazy(() => import('./pages/EnergyBoost'));
+const BusinessBuilderAI = lazy(() => import('./pages/BusinessBuilderAI'));
+const SellKitAI = lazy(() => import('./pages/SellKitAI'));
+const ClientFinderAI = lazy(() => import('./pages/ClientFinderAI'));
+const SalesPathAI = lazy(() => import('./pages/SalesPathAI'));
+const CRM = lazy(() => import('./pages/CRM'));
+const LeadProfile = lazy(() => import('./pages/LeadProfile'));
+const ReadyPrompts = lazy(() => import('./pages/ReadyPrompts'));
+const CoursePlayer = lazy(() => import('./pages/CoursePlayer'));
+const SubscriptionManagement = lazy(() => import('./pages/SubscriptionManagement'));
+const GuideTutorial = lazy(() => import('./pages/GuideTutorial'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+const TestPage = lazy(() => import('./pages/TestPage'));
+
+// ⚡ PERFORMANCE: Simple loading component for lazy loaded pages
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: '#0e0817' }}>
+    <div className="text-center space-y-4">
+      <div className="relative w-16 h-16 mx-auto">
+        <div className="w-16 h-16 border-4 border-[#5a189a]/30 border-t-[#5a189a] rounded-full animate-spin"></div>
+      </div>
+      <p className="text-white/80 text-sm">در حال بارگذاری...</p>
+    </div>
+  </div>
+);
 
 // Component to check if user is in Telegram
 function isInTelegramWebApp(): boolean {
@@ -100,49 +114,53 @@ function AppRouter() {
   }, [navigate, location.pathname]);
 
   return (
-      <Routes>
-        {/* Admin Login - Full page without layout */}
-        <Route path="/admin-login" element={<AdminLogin />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Admin Login - Full page without layout */}
+          <Route path="/admin-login" element={<AdminLogin />} />
+          
+          {/* Admin Panel - Full page without layout */}
+          <Route path="/admin-panel" element={<AdminPanel />} />
         
-        {/* Admin Panel - Full page without layout */}
-        <Route path="/admin-panel" element={<AdminPanel />} />
-      
-      {/* Subscription Management - Full page without layout */}
-      <Route path="/subscription-management" element={<SubscriptionManagement />} />
-      
-      {/* Guide Tutorial - Full page without layout */}
-      <Route path="/guide-tutorial" element={<GuideTutorial />} />
-      
-      {/* All other routes with Layout */}
-      <Route path="/*" element={
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/levels" element={<Levels />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/ai-coach" element={<AICoach />} />
-            <Route path="/tools" element={<Tools />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/chatbot" element={<Chatbot />} />
-            <Route path="/growth-club" element={<SocialGrowth />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/chat/:userId" element={<Chat />} />
-            <Route path="/energy-boost" element={<EnergyBoost />} />
+          {/* Subscription Management - Full page without layout */}
+          <Route path="/subscription-management" element={<SubscriptionManagement />} />
+          
+          {/* Guide Tutorial - Full page without layout */}
+          <Route path="/guide-tutorial" element={<GuideTutorial />} />
+          
+          {/* All other routes with Layout */}
+          <Route path="/*" element={
+            <Layout>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/levels" element={<Levels />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/ai-coach" element={<AICoach />} />
+                  <Route path="/tools" element={<Tools />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/chatbot" element={<Chatbot />} />
+                  <Route path="/growth-club" element={<SocialGrowth />} />
+                  <Route path="/messages" element={<Messages />} />
+                  <Route path="/chat/:userId" element={<Chat />} />
+                  <Route path="/energy-boost" element={<EnergyBoost />} />
 
-            <Route path="/business-builder-ai" element={<BusinessBuilderAI />} />
-            <Route path="/sell-kit-ai" element={<SellKitAI />} />
-            <Route path="/client-finder-ai" element={<ClientFinderAI />} />
-            <Route path="/sales-path-ai" element={<SalesPathAI />} />
-            <Route path="/crm" element={<CRM />} />
-            <Route path="/lead-profile" element={<LeadProfile />} />
-            {/* SalesPanel removed */}
-            <Route path="/ready-prompts" element={<ReadyPrompts />} />
-            <Route path="/courses/:courseId" element={<CoursePlayer />} />
-            <Route path="/test" element={<TestPage />} />
-          </Routes>
-        </Layout>
-      } />
-    </Routes>
+                  <Route path="/business-builder-ai" element={<BusinessBuilderAI />} />
+                  <Route path="/sell-kit-ai" element={<SellKitAI />} />
+                  <Route path="/client-finder-ai" element={<ClientFinderAI />} />
+                  <Route path="/sales-path-ai" element={<SalesPathAI />} />
+                  <Route path="/crm" element={<CRM />} />
+                  <Route path="/lead-profile" element={<LeadProfile />} />
+                  {/* SalesPanel removed */}
+                  <Route path="/ready-prompts" element={<ReadyPrompts />} />
+                  <Route path="/courses/:courseId" element={<CoursePlayer />} />
+                  <Route path="/test" element={<TestPage />} />
+                </Routes>
+              </Suspense>
+            </Layout>
+          } />
+        </Routes>
+      </Suspense>
   );
 }
 

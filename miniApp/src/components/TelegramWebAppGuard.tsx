@@ -112,8 +112,8 @@ const TelegramWebAppGuard: React.FC<TelegramWebAppGuardProps> = ({ children }) =
       }
     };
 
-    // Small delay to ensure Telegram WebApp is fully loaded
-    const timer = setTimeout(checkTelegramWebApp, 100);
+    // ⚡ PERFORMANCE: Reduced delay for faster initial load (50ms instead of 100ms)
+    const timer = setTimeout(checkTelegramWebApp, 50);
     
     return () => clearTimeout(timer);
   }, []);
