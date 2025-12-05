@@ -24,7 +24,12 @@ import {
   Phone,
   Mail,
   Calendar,
-  MessageSquare
+  MessageSquare,
+  Clock,
+  Award,
+  TrendingUp,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import adminApiService from '../services/adminApi';
 
@@ -62,6 +67,7 @@ interface User {
   IsActive: boolean;
   IsBlocked: boolean;
   Points: number;
+  CurrentSession?: number;
   CreatedAt: string;
 }
 
@@ -108,6 +114,7 @@ const AdminPanel: React.FC = () => {
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [changingPlan, setChangingPlan] = useState(false);
+  const [changingSession, setChangingSession] = useState(false);
 
   // Check authentication on mount
   // IMPORTANT: For both Telegram and Web users, we use web login
@@ -333,6 +340,8 @@ const AdminPanel: React.FC = () => {
             SubscriptionType: response.data.user.subscription_type || response.data.user.subscriptionType,
             IsActive: response.data.user.is_active !== undefined ? response.data.user.is_active : response.data.user.isActive,
             IsBlocked: response.data.user.is_blocked !== undefined ? response.data.user.is_blocked : response.data.user.isBlocked,
+            CurrentSession: response.data.user.current_session || response.data.user.currentSession,
+            Points: response.data.statistics?.total_points || response.data.user.points || user.Points || 0,
           });
         }
       } else {
@@ -406,6 +415,54 @@ const AdminPanel: React.FC = () => {
       alert('❌ خطا در تغییر پلن کاربر: ' + (error instanceof Error ? error.message : 'خطای ناشناخته'));
     } finally {
       setChangingPlan(false);
+    }
+  };
+
+  const handleChangeSession = async (newSession: number) => {
+    if (!selectedUser || changingSession) return;
+    
+    if (newSession < 1 || newSession > 29) {
+      alert('❌ شماره مرحله باید بین 1 تا 29 باشد');
+      return;
+    }
+    
+    if (!confirm(`آیا از تغییر مرحله کاربر از ${selectedUser.CurrentSession || userDetail?.statistics?.current_session || 1} به ${newSession} اطمینان دارید؟`)) {
+      return;
+    }
+    
+    setChangingSession(true);
+    try {
+      const response = await adminApiService.changeUserSession(selectedUser.ID, newSession);
+      if (response.success) {
+        alert(`✅ مرحله کاربر به ${newSession} تغییر کرد`);
+        // Refresh user detail from server
+        await handleOpenUserDetail(selectedUser);
+        // Refresh users list
+        loadUsers();
+      } else {
+        alert('❌ خطا: ' + (response.error || 'خطای ناشناخته'));
+      }
+    } catch (error) {
+      console.error('Error changing session:', error);
+      alert('❌ خطا در تغییر مرحله: ' + (error instanceof Error ? error.message : 'خطای ناشناخته'));
+    } finally {
+      setChangingSession(false);
+    }
+  };
+
+  // Format time helper
+  const formatTime = (hours: number): string => {
+    if (hours < 1) {
+      const minutes = Math.round(hours * 60);
+      return `${minutes} دقیقه`;
+    } else if (hours < 24) {
+      const h = Math.floor(hours);
+      const m = Math.round((hours - h) * 60);
+      return `${h} ساعت ${m > 0 ? m + ' دقیقه' : ''}`;
+    } else {
+      const days = Math.floor(hours / 24);
+      const remainingHours = Math.floor(hours % 24);
+      return `${days} روز ${remainingHours > 0 ? remainingHours + ' ساعت' : ''}`;
     }
   };
 
@@ -1059,6 +1116,98 @@ const AdminPanel: React.FC = () => {
                         </div>
                       )}
                     </div>
+                    
+                    {/* Progress Statistics */}
+                    {userDetail && userDetail.statistics && (
+                      <>
+                        <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                          <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                            <TrendingUp size={16} />
+                            مرحله فعلی
+                          </div>
+                          <div className="text-white font-bold text-lg mb-3">
+                            مرحله {userDetail.statistics.current_session || selectedUser.CurrentSession || 1}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleChangeSession((userDetail.statistics.current_session || selectedUser.CurrentSession || 1) - 1)}
+                              disabled={changingSession || (userDetail.statistics.current_session || selectedUser.CurrentSession || 1) <= 1}
+                              className="px-3 py-1.5 bg-purple-600/40 hover:bg-purple-600/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors flex items-center gap-1"
+                            >
+                              <ChevronLeft size={14} />
+                              قبلی
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              max="29"
+                              value={userDetail.statistics.current_session || selectedUser.CurrentSession || 1}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (val >= 1 && val <= 29) {
+                                  handleChangeSession(val);
+                                }
+                              }}
+                              disabled={changingSession}
+                              className="flex-1 px-3 py-1.5 bg-gray-900/60 border border-gray-700/40 rounded-lg text-white text-center text-sm focus:outline-none focus:border-purple-500/60 disabled:opacity-50"
+                            />
+                            <button
+                              onClick={() => handleChangeSession((userDetail.statistics.current_session || selectedUser.CurrentSession || 1) + 1)}
+                              disabled={changingSession || (userDetail.statistics.current_session || selectedUser.CurrentSession || 1) >= 29}
+                              className="px-3 py-1.5 bg-purple-600/40 hover:bg-purple-600/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors flex items-center gap-1"
+                            >
+                              بعدی
+                              <ChevronRight size={14} />
+                            </button>
+                          </div>
+                          {changingSession && (
+                            <div className="mt-2 text-center">
+                              <RefreshCw size={14} className="animate-spin text-purple-400 inline-block" />
+                            </div>
+                          )}
+                          <div className="mt-3 text-gray-400 text-xs">
+                            مراحل تکمیل شده: {userDetail.statistics.completed_sessions || 0}
+                          </div>
+                        </div>
+                        
+                        <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                          <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                            <Award size={16} />
+                            امتیاز کل
+                          </div>
+                          <div className="text-white font-bold text-lg">
+                            {userDetail.statistics.total_points?.toLocaleString('fa-IR') || selectedUser.Points?.toLocaleString('fa-IR') || '0'}
+                          </div>
+                        </div>
+                        
+                        <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                          <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                            <Clock size={16} />
+                            زمان استفاده
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-400 text-xs">کل زمان:</span>
+                              <span className="text-white font-medium">
+                                {formatTime(userDetail.statistics.total_time_hours || 0)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-400 text-xs">میانگین روزانه:</span>
+                              <span className="text-white font-medium">
+                                {formatTime(userDetail.statistics.avg_daily_time_hours || 0)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-400 text-xs">روزهای عضویت:</span>
+                              <span className="text-white font-medium">
+                                {Math.floor(userDetail.statistics.total_time_days || 0)} روز
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
                     <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
                       <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
                         <Activity size={16} />

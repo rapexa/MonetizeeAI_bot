@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -54,6 +55,7 @@ func setupAdminAPIRoutes(r *gin.Engine) {
 		admin.POST("/users/:id/unblock", unblockUserAPI)
 		admin.POST("/users/:id/change-plan", changeUserPlanAPI)
 		admin.POST("/users/:id/send-message", sendMessageToUserAPI)
+		admin.POST("/users/:id/change-session", changeUserSessionAPI)
 		admin.DELETE("/users/:id", deleteUserAPI)
 
 		// Payments
@@ -624,12 +626,70 @@ func getAdminUserDetail(c *gin.Context) {
 	var progress []UserSession
 	db.Where("user_id = ?", user.ID).Find(&progress)
 
+	// Calculate statistics
+	// Total time spent: difference between created_at and updated_at (in days, then convert to hours)
+	daysSinceJoin := time.Since(user.CreatedAt).Hours() / 24
+	totalTimeHours := time.Since(user.CreatedAt).Hours()
+	
+	// Average daily time (if user has been active for more than 1 day)
+	var avgDailyTimeHours float64
+	if daysSinceJoin > 1 {
+		// Estimate: assume user spends time based on completed sessions
+		// Each session completion might take ~1-2 hours, so we estimate based on progress
+		completedSessions := user.CurrentSession - 1
+		if completedSessions > 0 {
+			// Estimate 1.5 hours per completed session
+			estimatedTotalHours := float64(completedSessions) * 1.5
+			avgDailyTimeHours = estimatedTotalHours / daysSinceJoin
+		} else {
+			// If no sessions completed, estimate based on account age
+			avgDailyTimeHours = totalTimeHours / daysSinceJoin
+		}
+	} else {
+		avgDailyTimeHours = totalTimeHours
+	}
+
+	// Get total points (if available in user model, otherwise use 0)
+	totalPoints := 0 // You may need to add a Points field to User model or calculate from exercises
+
+	// Get completed sessions count
+	completedSessionsCount := user.CurrentSession - 1
+	if completedSessionsCount < 0 {
+		completedSessionsCount = 0
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"user":     user,
+			"user": gin.H{
+				"id":                  user.ID,
+				"telegram_id":         user.TelegramID,
+				"username":            user.Username,
+				"first_name":          user.FirstName,
+				"last_name":           user.LastName,
+				"phone":               user.Phone,
+				"phone_number":        user.PhoneNumber,
+				"current_session":     user.CurrentSession,
+				"subscription_type":    user.SubscriptionType,
+				"plan_name":           user.PlanName,
+				"subscription_expiry": user.SubscriptionExpiry,
+				"is_active":          user.IsActive,
+				"is_blocked":          user.IsBlocked,
+				"is_verified":         user.IsVerified,
+				"points":              totalPoints,
+				"created_at":          user.CreatedAt,
+				"updated_at":          user.UpdatedAt,
+			},
 			"payments": payments,
 			"progress": progress,
+			"statistics": gin.H{
+				"current_session":      user.CurrentSession,
+				"completed_sessions":   completedSessionsCount,
+				"total_points":         totalPoints,
+				"total_time_hours":     totalTimeHours,
+				"total_time_days":      daysSinceJoin,
+				"avg_daily_time_hours": avgDailyTimeHours,
+			},
 		},
 	})
 }
@@ -804,6 +864,56 @@ func sendMessageToUserAPI(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Message sent successfully",
+	})
+}
+
+// Change user session (stage)
+func changeUserSessionAPI(c *gin.Context) {
+	userID := c.Param("id")
+
+	type SessionChangeRequest struct {
+		SessionNumber int `json:"session_number" binding:"required"`
+	}
+
+	var req SessionChangeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// Validate session number (should be between 1 and 29)
+	if req.SessionNumber < 1 || req.SessionNumber > 29 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Session number must be between 1 and 29"})
+		return
+	}
+
+	var user User
+	if err := db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	oldSession := user.CurrentSession
+	user.CurrentSession = req.SessionNumber
+
+	if err := db.Save(&user).Error; err != nil {
+		logger.Error("Failed to update user session", zap.Error(err), zap.Uint("user_id", user.ID))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to update user session",
+		})
+		return
+	}
+
+	logger.Info("User session changed by admin",
+		zap.Uint("user_id", user.ID),
+		zap.Int("old_session", oldSession),
+		zap.Int("new_session", req.SessionNumber),
+		zap.Int64("admin_telegram_id", c.GetInt64("admin_telegram_id")))
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": fmt.Sprintf("User session changed from %d to %d", oldSession, req.SessionNumber),
 	})
 }
 

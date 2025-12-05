@@ -200,6 +200,8 @@ const adminApiService = {
   getUserDetail: (userId: number) => makeRequest(`/users/${userId}`),
   sendMessageToUser: (userId: number, message: string) => 
     makeRequest(`/users/${userId}/send-message`, 'POST', { message }),
+  changeUserSession: (userId: number, sessionNumber: number) => 
+    makeRequest(`/users/${userId}/change-session`, 'POST', { session_number: sessionNumber }),
   blockUser: (userId: number) => makeRequest(`/users/${userId}/block`, 'POST'),
   unblockUser: (userId: number) => makeRequest(`/users/${userId}/unblock`, 'POST'),
   changeUserPlan: (userId: number, planType: string) => 
