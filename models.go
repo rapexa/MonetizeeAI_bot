@@ -262,10 +262,10 @@ type License struct {
 	LicenseKey string `gorm:"uniqueIndex;size:100" json:"license_key"` // Format: XXXX-XXXXX-XXXXX-XXXXX
 	IsUsed     bool   `gorm:"default:false" json:"is_used"`            // Whether this license has been used
 	UsedBy     *uint  `json:"used_by"`                                 // User ID who used this license
-	User       *User  `gorm:"foreignKey:UsedBy" json:"user,omitempty"`
+	User       *User  `gorm:"foreignKey:UsedBy;constraint:OnDelete:SET NULL" json:"user,omitempty"`
 	UsedAt     *time.Time `json:"used_at"`                             // When the license was used
-	CreatedBy  *uint      `json:"created_by"`                          // Admin who created this license
-	Admin      *Admin     `gorm:"foreignKey:CreatedBy" json:"admin,omitempty"`
+	CreatedBy  *uint      `gorm:"index" json:"created_by"`             // Admin who created this license (nullable)
+	Admin      *Admin     `gorm:"foreignKey:CreatedBy;constraint:OnDelete:SET NULL" json:"admin,omitempty"`
 }
 
 // Subscription helper functions

@@ -1530,17 +1530,26 @@ func generateLicenseKeys(c *gin.Context) {
 
 	// Get admin ID from context
 	adminIDValue, exists := c.Get("admin_id")
-	if !exists {
-		logger.Warn("Admin not authenticated for generate license keys")
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"error":   "Admin not authenticated",
-		})
-		return
+	var adminID *uint
+	if exists {
+		id := adminIDValue.(uint)
+		// Verify that admin exists in database
+		var admin Admin
+		if err := db.First(&admin, id).Error; err != nil {
+			logger.Warn("Admin ID from context not found in database",
+				zap.Uint("admin_id", id),
+				zap.Error(err))
+			// Set to nil if admin doesn't exist
+			adminID = nil
+		} else {
+			adminID = &id
+			logger.Info("Admin authenticated for generate license keys",
+				zap.Uint("admin_id", id))
+		}
+	} else {
+		logger.Warn("Admin not authenticated for generate license keys - will create without CreatedBy")
+		adminID = nil
 	}
-	adminID := adminIDValue.(uint)
-	logger.Info("Admin authenticated for generate license keys",
-		zap.Uint("admin_id", adminID))
 
 	// Generate license keys
 	licenses := make([]License, 0, req.Count)
@@ -1549,7 +1558,7 @@ func generateLicenseKeys(c *gin.Context) {
 		licenses = append(licenses, License{
 			LicenseKey: licenseKey,
 			IsUsed:     false,
-			CreatedBy:  &adminID,
+			CreatedBy:  adminID, // Can be nil if admin doesn't exist
 		})
 	}
 
@@ -1565,7 +1574,7 @@ func generateLicenseKeys(c *gin.Context) {
 
 	logger.Info("License keys generated successfully",
 		zap.Int("count", req.Count),
-		zap.Uint("admin_id", adminID))
+		zap.Any("admin_id", adminID))
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

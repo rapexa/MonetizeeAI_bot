@@ -108,6 +108,59 @@ sudo systemctl restart nginx
 - لاگ response
 - لاگ errors
 
+## مشکل Foreign Key Constraint
+
+اگر خطای زیر را دریافت کردید:
+```
+Error 1452 (23000): Cannot add or update a child row: a foreign key constraint fails
+```
+
+### راه‌حل:
+
+1. **اجرای SQL Script برای اصلاح Foreign Key:**
+
+```bash
+mysql -u your_username -p your_database < fix_license_foreign_key.sql
+```
+
+یا مستقیماً در MySQL:
+
+```sql
+-- Drop existing foreign key constraint
+ALTER TABLE `licenses` 
+DROP FOREIGN KEY IF EXISTS `fk_licenses_admin`;
+
+-- Add new foreign key constraint with ON DELETE SET NULL
+ALTER TABLE `licenses`
+ADD CONSTRAINT `fk_licenses_admin` 
+FOREIGN KEY (`created_by`) 
+REFERENCES `admins` (`id`) 
+ON DELETE SET NULL 
+ON UPDATE CASCADE;
+
+-- Ensure created_by column allows NULL
+ALTER TABLE `licenses` 
+MODIFY COLUMN `created_by` INT UNSIGNED NULL;
+```
+
+2. **Restart Backend:**
+```bash
+# بعد از اجرای SQL، backend را restart کنید
+sudo systemctl restart your-service-name
+```
+
+### توضیح:
+
+مشکل از این است که:
+- Foreign key constraint به صورت strict تنظیم شده بود
+- `created_by` نمی‌توانست NULL باشد
+- اگر admin_id در جدول `admins` وجود نداشت، خطا می‌داد
+
+با این تغییرات:
+- `created_by` می‌تواند NULL باشد
+- اگر admin حذف شود، `created_by` به NULL تبدیل می‌شود
+- اگر admin_id معتبر نباشد، لایسنس بدون `created_by` ایجاد می‌شود
+
 ## تماس با پشتیبانی
 
 اگر مشکل حل نشد، لطفاً اطلاعات زیر را ارسال کنید:
@@ -115,4 +168,5 @@ sudo systemctl restart nginx
 2. لاگ‌های backend
 3. Response از API (از Network tab در DevTools)
 4. نسخه nginx و configuration
+5. خروجی `SHOW CREATE TABLE licenses;` از MySQL
 
