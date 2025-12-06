@@ -91,6 +91,7 @@ func setupAdminAPIRoutes(r *gin.Engine) {
 		admin.GET("/license-keys/stats", getLicenseKeysStats)
 		admin.GET("/license-keys/:id", getLicenseKeyDetail)
 		admin.POST("/license-keys/generate", generateLicenseKeys)
+		admin.GET("/license-keys/export/unused", exportUnusedLicenseKeys)
 
 		// Broadcast
 		admin.POST("/broadcast/telegram", sendTelegramBroadcast)
@@ -1444,7 +1445,7 @@ func getLicenseKeys(c *gin.Context) {
 	// Get licenses with pagination
 	if err := query.
 		Preload("User", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, telegram_id, username, first_name, last_name")
+			return db.Select("id, telegram_id, username, first_name, last_name, phone")
 		}).
 		Order("created_at DESC").
 		Offset(offset).
@@ -1602,4 +1603,49 @@ func generateLicenseKey() string {
 	}
 
 	return strings.Join(parts, "-")
+}
+
+// exportUnusedLicenseKeys exports all unused license keys as a text file
+func exportUnusedLicenseKeys(c *gin.Context) {
+	logger.Info("Export unused license keys request received",
+		zap.String("path", c.Request.URL.Path),
+		zap.String("remote_addr", c.ClientIP()))
+
+	// Get all unused license keys
+	var licenses []License
+	if err := db.Where("is_used = ?", false).
+		Order("created_at ASC").
+		Find(&licenses).Error; err != nil {
+		logger.Error("Failed to get unused license keys", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get unused license keys",
+		})
+		return
+	}
+
+	// Build text content
+	var content strings.Builder
+	content.WriteString("# لیست لایسنس‌های استفاده نشده\n")
+	content.WriteString(fmt.Sprintf("# تعداد کل: %d\n", len(licenses)))
+	content.WriteString(fmt.Sprintf("# تاریخ استخراج: %s\n\n", time.Now().Format("2006-01-02 15:04:05")))
+	
+	for i, license := range licenses {
+		content.WriteString(license.LicenseKey)
+		if i < len(licenses)-1 {
+			content.WriteString("\n")
+		}
+	}
+
+	// Set response headers for file download
+	filename := fmt.Sprintf("unused_licenses_%s.txt", time.Now().Format("20060102_150405"))
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	c.Header("Content-Length", fmt.Sprintf("%d", content.Len()))
+
+	// Write content to response
+	c.String(http.StatusOK, content.String())
+
+	logger.Info("Unused license keys exported successfully",
+		zap.Int("count", len(licenses)))
 }

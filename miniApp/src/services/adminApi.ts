@@ -255,6 +255,44 @@ const adminApiService = {
     makeRequest(`/license-keys?page=${page}&limit=${limit}&status=${status}&search=${search}`),
   getLicenseKeyDetail: (licenseId: number) => makeRequest(`/license-keys/${licenseId}`),
   generateLicenseKeys: (count: number) => makeRequest('/license-keys/generate', 'POST', { count }),
+  exportUnusedLicenseKeys: async () => {
+    const initData = getTelegramInitData();
+    const webToken = getWebSessionToken();
+    
+    const headers: HeadersInit = {};
+    if (initData) {
+      headers['X-Telegram-Init-Data'] = initData;
+      headers['X-Telegram-WebApp'] = 'true';
+    } else if (webToken) {
+      headers['Authorization'] = `Bearer ${webToken}`;
+      headers['X-Web-Auth'] = 'true';
+    }
+
+    const response = await fetch(`${BASE_URL}/license-keys/export/unused`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      return {
+        success: false,
+        error: error || `HTTP ${response.status}`,
+      };
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `unused_licenses_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    return { success: true };
+  },
 
   // Broadcast
   sendTelegramBroadcast: (message: string, type: string, fileUrl?: string) => 

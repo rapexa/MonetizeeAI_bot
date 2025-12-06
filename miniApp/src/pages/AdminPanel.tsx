@@ -40,7 +40,8 @@ import {
   Zap,
   Key,
   TrendingDown,
-  Loader
+  Loader,
+  Download
 } from 'lucide-react';
 import adminApiService from '../services/adminApi';
 
@@ -381,6 +382,7 @@ const AdminPanel: React.FC = () => {
   const [loadingLicenseKeys, setLoadingLicenseKeys] = useState(false);
   const [licenseKeysStats, setLicenseKeysStats] = useState<any>(null);
   const [generatingLicenses, setGeneratingLicenses] = useState(false);
+  const [exportingLicenses, setExportingLicenses] = useState(false);
 
   // Check authentication on mount
   // IMPORTANT: For both Telegram and Web users, we use web login
@@ -662,7 +664,26 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  // Generate license keys
+  // Export unused license keys
+  const handleExportUnusedLicenseKeys = async () => {
+    if (!confirm('آیا از استخراج لایسنس‌های استفاده نشده اطمینان دارید؟')) return;
+
+    setExportingLicenses(true);
+    try {
+      const response = await adminApiService.exportUnusedLicenseKeys();
+      if (response.success) {
+        alert('✅ فایل لایسنس‌ها با موفقیت دانلود شد!');
+      } else {
+        alert('❌ خطا: ' + (response.error || 'خطای ناشناخته'));
+      }
+    } catch (error) {
+      console.error('Failed to export license keys:', error);
+      alert('❌ خطا در استخراج لایسنس‌ها: ' + (error instanceof Error ? error.message : 'خطای ناشناخته'));
+    } finally {
+      setExportingLicenses(false);
+    }
+  };
+
   const handleGenerateLicenseKeys = async () => {
     const count = prompt('تعداد لایسنس‌های مورد نیاز را وارد کنید (1-1000):');
     if (!count) return;
@@ -1919,6 +1940,23 @@ const AdminPanel: React.FC = () => {
                   <option value="unused">استفاده نشده</option>
                 </select>
                 <button
+                  onClick={handleExportUnusedLicenseKeys}
+                  disabled={exportingLicenses}
+                  className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all flex items-center gap-2"
+                >
+                  {exportingLicenses ? (
+                    <>
+                      <Loader size={18} className="animate-spin" />
+                      در حال استخراج...
+                    </>
+                  ) : (
+                    <>
+                      <Download size={18} />
+                      استخراج لایسنس‌ها
+                    </>
+                  )}
+                </button>
+                <button
                   onClick={handleGenerateLicenseKeys}
                   disabled={generatingLicenses}
                   className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all flex items-center gap-2"
@@ -1979,21 +2017,48 @@ const AdminPanel: React.FC = () => {
                               )}
                             </div>
                             {license.IsUsed || license.is_used ? (
-                              <div className="text-gray-400 text-sm">
+                              <div className="text-gray-400 text-sm space-y-1">
                                 {license.User || license.user ? (
                                   <>
-                                    استفاده شده توسط: <span className="text-white font-medium">
-                                      {license.User?.FirstName || license.user?.first_name || ''} {license.User?.LastName || license.user?.last_name || ''}
-                                    </span>
-                                    {license.User?.Username || license.user?.username ? (
-                                      <span className="text-gray-500"> (@{license.User?.Username || license.user?.username})</span>
-                                    ) : null}
+                                    <div className="flex items-center gap-2">
+                                      <User size={14} className="text-gray-500" />
+                                      <span className="text-gray-400">استفاده شده توسط:</span>
+                                      <span className="text-white font-medium">
+                                        {license.User?.FirstName || license.user?.first_name || ''} {license.User?.LastName || license.user?.last_name || ''}
+                                      </span>
+                                      {license.User?.Username || license.user?.username ? (
+                                        <span className="text-gray-500"> (@{license.User?.Username || license.user?.username})</span>
+                                      ) : null}
+                                    </div>
+                                    {(license.User?.Phone || license.user?.phone) && (
+                                      <div className="flex items-center gap-2">
+                                        <Phone size={14} className="text-gray-500" />
+                                        <span className="text-gray-400">شماره تماس:</span>
+                                        <span className="text-white font-medium">
+                                          {license.User?.Phone || license.user?.phone}
+                                        </span>
+                                      </div>
+                                    )}
                                   </>
-                                ) : null}
+                                ) : (
+                                  <div className="text-gray-400 text-sm">
+                                    استفاده شده (اطلاعات کاربر در دسترس نیست)
+                                  </div>
+                                )}
                                 {license.UsedAt || license.used_at ? (
-                                  <span className="mr-4">
-                                    در تاریخ: {new Date(license.UsedAt || license.used_at).toLocaleDateString('fa-IR')}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <Calendar size={14} className="text-gray-500" />
+                                    <span className="text-gray-400">تاریخ استفاده:</span>
+                                    <span className="text-white font-medium">
+                                      {new Date(license.UsedAt || license.used_at).toLocaleDateString('fa-IR', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </span>
+                                  </div>
                                 ) : null}
                               </div>
                             ) : (
