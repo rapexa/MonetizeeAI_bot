@@ -1505,12 +1505,19 @@ func getLicenseKeyDetail(c *gin.Context) {
 
 // generateLicenseKeys generates new license keys
 func generateLicenseKeys(c *gin.Context) {
+	logger.Info("Generate license keys request received",
+		zap.String("method", c.Request.Method),
+		zap.String("path", c.Request.URL.Path),
+		zap.String("remote_addr", c.ClientIP()))
+
 	type GenerateRequest struct {
 		Count int `json:"count" binding:"required,min=1,max=1000"`
 	}
 
 	var req GenerateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Warn("Invalid generate license keys request",
+			zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid request. Count must be between 1 and 1000",
@@ -1518,9 +1525,13 @@ func generateLicenseKeys(c *gin.Context) {
 		return
 	}
 
+	logger.Info("Generate license keys request validated",
+		zap.Int("count", req.Count))
+
 	// Get admin ID from context
 	adminIDValue, exists := c.Get("admin_id")
 	if !exists {
+		logger.Warn("Admin not authenticated for generate license keys")
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
 			"error":   "Admin not authenticated",
@@ -1528,6 +1539,8 @@ func generateLicenseKeys(c *gin.Context) {
 		return
 	}
 	adminID := adminIDValue.(uint)
+	logger.Info("Admin authenticated for generate license keys",
+		zap.Uint("admin_id", adminID))
 
 	// Generate license keys
 	licenses := make([]License, 0, req.Count)
@@ -1545,12 +1558,12 @@ func generateLicenseKeys(c *gin.Context) {
 		logger.Error("Failed to generate license keys", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"error":   "Failed to generate license keys",
+			"error":   "Failed to generate license keys: " + err.Error(),
 		})
 		return
 	}
 
-	logger.Info("License keys generated",
+	logger.Info("License keys generated successfully",
 		zap.Int("count", req.Count),
 		zap.Uint("admin_id", adminID))
 

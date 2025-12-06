@@ -139,9 +139,17 @@ async function makeRequest<T = any>(
         };
       }
       
+      // Check if response contains "systemctl" or other command-like text (likely a documentation file)
+      if (text.toLowerCase().includes('systemctl') || text.toLowerCase().includes('nginx') || text.toLowerCase().includes('sudo')) {
+        return {
+          success: false,
+          error: `Server returned unexpected response (possibly a documentation file). Please check nginx configuration and ensure API routes are properly configured. Status: ${response.status}`,
+        };
+      }
+      
       return {
         success: false,
-        error: `Server returned non-JSON response: ${response.status} ${response.statusText}. ${text.substring(0, 100)}`,
+        error: `Server returned non-JSON response: ${response.status} ${response.statusText}. ${text.substring(0, 200)}`,
       };
     }
 

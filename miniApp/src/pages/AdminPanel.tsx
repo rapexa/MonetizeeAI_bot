@@ -677,17 +677,23 @@ const AdminPanel: React.FC = () => {
 
     setGeneratingLicenses(true);
     try {
+      console.log('Generating license keys, count:', countNum);
       const response = await adminApiService.generateLicenseKeys(countNum);
+      console.log('Generate license keys response:', response);
+      
       if (response.success) {
         alert(`✅ ${countNum} لایسنس با موفقیت تولید شد!`);
         await loadLicenseKeys();
         await loadLicenseKeysStats();
       } else {
-        alert('❌ خطا: ' + (response.error || 'خطای ناشناخته'));
+        const errorMsg = response.error || 'خطای ناشناخته';
+        console.error('Failed to generate license keys:', errorMsg);
+        alert('❌ خطا: ' + errorMsg);
       }
     } catch (error) {
-      console.error('Failed to generate license keys:', error);
-      alert('❌ خطا در تولید لایسنس‌ها');
+      console.error('Exception in generate license keys:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert('❌ خطا در تولید لایسنس‌ها: ' + errorMessage);
     } finally {
       setGeneratingLicenses(false);
     }
