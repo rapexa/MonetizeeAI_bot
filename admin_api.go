@@ -15,6 +15,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // Web session storage (in-memory, can be moved to Redis in production)
@@ -80,10 +81,16 @@ func setupAdminAPIRoutes(r *gin.Engine) {
 		admin.PUT("/exercises/:id", updateExercise)
 		admin.DELETE("/exercises/:id", deleteExercise)
 
-		// Licenses
+		// Licenses (old verification system)
 		admin.GET("/licenses", getAdminLicenses)
 		admin.POST("/licenses/:id/approve", approveLicenseAPI)
 		admin.POST("/licenses/:id/reject", rejectLicenseAPI)
+
+		// License Keys (new pre-generated license system)
+		admin.GET("/license-keys", getLicenseKeys)
+		admin.GET("/license-keys/stats", getLicenseKeysStats)
+		admin.GET("/license-keys/:id", getLicenseKeyDetail)
+		admin.POST("/license-keys/generate", generateLicenseKeys)
 
 		// Broadcast
 		admin.POST("/broadcast/telegram", sendTelegramBroadcast)
@@ -1369,4 +1376,208 @@ func getEngagementAnalytics(c *gin.Context) {
 		"success": true,
 		"data":    data,
 	})
+}
+
+// ==========================================
+// License Keys Management API
+// ==========================================
+
+// getLicenseKeysStats returns statistics about license keys
+func getLicenseKeysStats(c *gin.Context) {
+	var totalLicenses, usedLicenses, unusedLicenses int64
+
+	db.Model(&License{}).Count(&totalLicenses)
+	db.Model(&License{}).Where("is_used = ?", true).Count(&usedLicenses)
+	db.Model(&License{}).Where("is_used = ?", false).Count(&unusedLicenses)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"total_licenses":  totalLicenses,
+			"used_licenses":    usedLicenses,
+			"unused_licenses":  unusedLicenses,
+			"usage_percentage": func() float64 {
+				if totalLicenses == 0 {
+					return 0
+				}
+				return float64(usedLicenses) * 100.0 / float64(totalLicenses)
+			}(),
+		},
+	})
+}
+
+// getLicenseKeys returns list of license keys with filters
+func getLicenseKeys(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	status := c.DefaultQuery("status", "all") // all, used, unused
+	search := c.Query("search")
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+
+	offset := (page - 1) * limit
+
+	var licenses []License
+	query := db.Model(&License{})
+
+	// Apply status filter
+	if status == "used" {
+		query = query.Where("is_used = ?", true)
+	} else if status == "unused" {
+		query = query.Where("is_used = ?", false)
+	}
+
+	// Apply search filter
+	if search != "" {
+		query = query.Where("license_key LIKE ?", "%"+search+"%")
+	}
+
+	// Get total count
+	var total int64
+	query.Count(&total)
+
+	// Get licenses with pagination
+	if err := query.
+		Preload("User", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, telegram_id, username, first_name, last_name")
+		}).
+		Order("created_at DESC").
+		Offset(offset).
+		Limit(limit).
+		Find(&licenses).Error; err != nil {
+		logger.Error("Failed to get license keys", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get license keys",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"licenses": licenses,
+			"total":    total,
+			"page":     page,
+			"limit":    limit,
+		},
+	})
+}
+
+// getLicenseKeyDetail returns details of a specific license key
+func getLicenseKeyDetail(c *gin.Context) {
+	licenseID := c.Param("id")
+
+	var license License
+	if err := db.
+		Preload("User", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, telegram_id, username, first_name, last_name, phone")
+		}).
+		Preload("Admin", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, telegram_id, username, first_name, last_name")
+		}).
+		First(&license, licenseID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error":   "License key not found",
+			})
+			return
+		}
+		logger.Error("Failed to get license key detail", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get license key detail",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    license,
+	})
+}
+
+// generateLicenseKeys generates new license keys
+func generateLicenseKeys(c *gin.Context) {
+	type GenerateRequest struct {
+		Count int `json:"count" binding:"required,min=1,max=1000"`
+	}
+
+	var req GenerateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Invalid request. Count must be between 1 and 1000",
+		})
+		return
+	}
+
+	// Get admin ID from context
+	adminIDValue, exists := c.Get("admin_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Admin not authenticated",
+		})
+		return
+	}
+	adminID := adminIDValue.(uint)
+
+	// Generate license keys
+	licenses := make([]License, 0, req.Count)
+	for i := 0; i < req.Count; i++ {
+		licenseKey := generateLicenseKey()
+		licenses = append(licenses, License{
+			LicenseKey: licenseKey,
+			IsUsed:     false,
+			CreatedBy:  &adminID,
+		})
+	}
+
+	// Batch insert
+	if err := db.CreateInBatches(licenses, 100).Error; err != nil {
+		logger.Error("Failed to generate license keys", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to generate license keys",
+		})
+		return
+	}
+
+	logger.Info("License keys generated",
+		zap.Int("count", req.Count),
+		zap.Uint("admin_id", adminID))
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"count":    req.Count,
+			"licenses": licenses,
+		},
+	})
+}
+
+// generateLicenseKey generates a single license key in format: XXXX-XXXXX-XXXXX-XXXXX
+func generateLicenseKey() string {
+	// Generate 4 groups: 4-5-5-5 characters
+	groups := []int{4, 5, 5, 5}
+	parts := make([]string, len(groups))
+
+	for i, length := range groups {
+		bytes := make([]byte, length)
+		rand.Read(bytes)
+		// Use uppercase alphanumeric characters (excluding I, O to avoid confusion)
+		for j := range bytes {
+			bytes[j] = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ"[bytes[j]%34]
+		}
+		parts[i] = string(bytes)
+	}
+
+	return strings.Join(parts, "-")
 }

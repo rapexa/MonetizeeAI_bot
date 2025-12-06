@@ -100,6 +100,9 @@ type StatsPayload struct {
 	OnlineAdmins         int                  `json:"onlineAdmins"`
 	PendingLicenses      int64                `json:"pendingLicenses"`
 	ActiveLicenses       int64                `json:"activeLicenses"`
+	TotalLicenseKeys     int64                `json:"totalLicenseKeys"`     // Total pre-generated license keys
+	UsedLicenseKeys      int64                `json:"usedLicenseKeys"`      // Used license keys
+	UnusedLicenseKeys    int64                `json:"unusedLicenseKeys"`   // Unused license keys
 	AverageProgress      float64              `json:"averageProgress"`      // Average progress percentage across 29 stages
 	AITotalRequests      int64                `json:"aiTotalRequests"`      // Total AI requests count
 	RecentUsers          []User               `json:"recentUsers"`
@@ -348,10 +351,16 @@ func getRealtimeStats() StatsPayload {
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&monthRevenue)
 
-	// Pending and active licenses
+	// Pending and active licenses (old verification system)
 	var pendingLicenses, activeLicenses int64
 	db.Model(&LicenseVerification{}).Where("status = ?", "pending").Count(&pendingLicenses)
 	db.Model(&LicenseVerification{}).Where("status = ?", "approved").Count(&activeLicenses)
+
+	// License keys statistics (new pre-generated license system)
+	var totalLicenseKeys, usedLicenseKeys, unusedLicenseKeys int64
+	db.Model(&License{}).Count(&totalLicenseKeys)
+	db.Model(&License{}).Where("is_used = ?", true).Count(&usedLicenseKeys)
+	db.Model(&License{}).Where("is_used = ?", false).Count(&unusedLicenseKeys)
 
 	// Calculate average progress percentage (based on current_session out of 29 stages)
 	var avgProgress float64
@@ -391,23 +400,26 @@ func getRealtimeStats() StatsPayload {
 	adminHub.mu.RUnlock()
 
 	return StatsPayload{
-		TotalUsers:       totalUsers,
-		ActiveUsers:      activeUsers,
-		ActiveUsersToday: activeUsersToday,
-		FreeTrialUsers:   freeTrialUsers,
-		PaidUsers:        paidUsers,
-		TodayRevenue:     todayRevenue,
-		MonthRevenue:     monthRevenue,
-		OnlineAdmins:     onlineAdmins,
-		PendingLicenses:  pendingLicenses,
-		ActiveLicenses:   activeLicenses,
-		AverageProgress:  avgProgress,
-		AITotalRequests:  aiTotalRequests,
-		RecentUsers:      recentUsers,
-		RecentPayments:   recentPayments,
-		RecentErrors:     recentErrors,
-		Alerts:           alerts,
-		Timestamp:        time.Now(),
+		TotalUsers:        totalUsers,
+		ActiveUsers:       activeUsers,
+		ActiveUsersToday:  activeUsersToday,
+		FreeTrialUsers:    freeTrialUsers,
+		PaidUsers:         paidUsers,
+		TodayRevenue:      todayRevenue,
+		MonthRevenue:      monthRevenue,
+		OnlineAdmins:      onlineAdmins,
+		PendingLicenses:   pendingLicenses,
+		ActiveLicenses:    activeLicenses,
+		TotalLicenseKeys:  totalLicenseKeys,
+		UsedLicenseKeys:   usedLicenseKeys,
+		UnusedLicenseKeys: unusedLicenseKeys,
+		AverageProgress:   avgProgress,
+		AITotalRequests:   aiTotalRequests,
+		RecentUsers:       recentUsers,
+		RecentPayments:    recentPayments,
+		RecentErrors:      recentErrors,
+		Alerts:            alerts,
+		Timestamp:         time.Now(),
 	}
 }
 

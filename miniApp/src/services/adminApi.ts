@@ -236,10 +236,17 @@ const adminApiService = {
     makeRequest(`/exercises/${exerciseId}`, 'PUT', exercise),
   deleteExercise: (exerciseId: number) => makeRequest(`/exercises/${exerciseId}`, 'DELETE'),
 
-  // Licenses
+  // Licenses (old verification system)
   getLicenses: (status: string = 'pending') => makeRequest(`/licenses?status=${status}`),
   approveLicense: (licenseId: number) => makeRequest(`/licenses/${licenseId}/approve`, 'POST'),
   rejectLicense: (licenseId: number) => makeRequest(`/licenses/${licenseId}/reject`, 'POST'),
+
+  // License Keys (new pre-generated license system)
+  getLicenseKeysStats: () => makeRequest('/license-keys/stats'),
+  getLicenseKeys: (page: number = 1, limit: number = 50, status: string = 'all', search: string = '') => 
+    makeRequest(`/license-keys?page=${page}&limit=${limit}&status=${status}&search=${search}`),
+  getLicenseKeyDetail: (licenseId: number) => makeRequest(`/license-keys/${licenseId}`),
+  generateLicenseKeys: (count: number) => makeRequest('/license-keys/generate', 'POST', { count }),
 
   // Broadcast
   sendTelegramBroadcast: (message: string, type: string, fileUrl?: string) => 

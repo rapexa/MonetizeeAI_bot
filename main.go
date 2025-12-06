@@ -61,6 +61,7 @@ func initDB() {
 		&AdminAction{},
 		&Backup{},
 		&LicenseVerification{},
+		&License{},
 		&ChatMessage{},
 		&PaymentTransaction{},
 		&Ticket{},

@@ -256,6 +256,18 @@ type LicenseVerification struct {
 	Admin      Admin `gorm:"foreignKey:ApprovedBy"`
 }
 
+// License represents a pre-generated license key that can be used once
+type License struct {
+	gorm.Model
+	LicenseKey string `gorm:"uniqueIndex;size:100" json:"license_key"` // Format: XXXX-XXXXX-XXXXX-XXXXX
+	IsUsed     bool   `gorm:"default:false" json:"is_used"`            // Whether this license has been used
+	UsedBy     *uint  `json:"used_by"`                                 // User ID who used this license
+	User       *User  `gorm:"foreignKey:UsedBy" json:"user,omitempty"`
+	UsedAt     *time.Time `json:"used_at"`                             // When the license was used
+	CreatedBy  *uint      `json:"created_by"`                          // Admin who created this license
+	Admin      *Admin     `gorm:"foreignKey:CreatedBy" json:"admin,omitempty"`
+}
+
 // Subscription helper functions
 func (u *User) HasActiveSubscription() bool {
 	// Legacy users: If IsVerified is true and no subscription type is set, treat as lifetime license

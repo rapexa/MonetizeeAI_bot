@@ -77,6 +77,9 @@ interface StatsPayload {
   onlineAdmins: number;
   pendingLicenses: number;
   activeLicenses: number;
+  totalLicenseKeys: number;
+  usedLicenseKeys: number;
+  unusedLicenseKeys: number;
   averageProgress: number;
   aiTotalRequests: number;
   recentUsers: User[];
@@ -322,7 +325,7 @@ const AdminPanel: React.FC = () => {
   const [stats, setStats] = useState<StatsPayload | null>(null);
   const [connected, setConnected] = useState(false);
   const [isWebUser, setIsWebUser] = useState(false); // Track if user is web user (not Telegram)
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'payments' | 'content' | 'analytics' | 'tickets'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'payments' | 'content' | 'analytics' | 'tickets' | 'licenses'>('dashboard');
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   
@@ -368,6 +371,16 @@ const AdminPanel: React.FC = () => {
   const [loadingTicketDetail, setLoadingTicketDetail] = useState(false);
   const [ticketReplyMessage, setTicketReplyMessage] = useState('');
   const [sendingTicketReply, setSendingTicketReply] = useState(false);
+
+  // License Keys state
+  const [licenseKeys, setLicenseKeys] = useState<any[]>([]);
+  const [licenseKeysPage, setLicenseKeysPage] = useState(1);
+  const [licenseKeysTotal, setLicenseKeysTotal] = useState(0);
+  const [licenseKeysStatus, setLicenseKeysStatus] = useState('all');
+  const [licenseKeysSearch, setLicenseKeysSearch] = useState('');
+  const [loadingLicenseKeys, setLoadingLicenseKeys] = useState(false);
+  const [licenseKeysStats, setLicenseKeysStats] = useState<any>(null);
+  const [generatingLicenses, setGeneratingLicenses] = useState(false);
 
   // Check authentication on mount
   // IMPORTANT: For both Telegram and Web users, we use web login
@@ -617,6 +630,69 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  // Load license keys
+  const loadLicenseKeys = async () => {
+    setLoadingLicenseKeys(true);
+    try {
+      const response = await adminApiService.getLicenseKeys(licenseKeysPage, 50, licenseKeysStatus, licenseKeysSearch);
+      if (response.success && response.data) {
+        setLicenseKeys(response.data.licenses || []);
+        setLicenseKeysTotal(response.data.total || 0);
+      } else {
+        console.error('Failed to load license keys:', response.error);
+        alert('خطا در بارگذاری لایسنس‌ها: ' + (response.error || 'خطای ناشناخته'));
+      }
+    } catch (error) {
+      console.error('Failed to load license keys:', error);
+      alert('خطا در اتصال به سرور');
+    } finally {
+      setLoadingLicenseKeys(false);
+    }
+  };
+
+  // Load license keys stats
+  const loadLicenseKeysStats = async () => {
+    try {
+      const response = await adminApiService.getLicenseKeysStats();
+      if (response.success && response.data) {
+        setLicenseKeysStats(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to load license keys stats:', error);
+    }
+  };
+
+  // Generate license keys
+  const handleGenerateLicenseKeys = async () => {
+    const count = prompt('تعداد لایسنس‌های مورد نیاز را وارد کنید (1-1000):');
+    if (!count) return;
+    
+    const countNum = parseInt(count);
+    if (isNaN(countNum) || countNum < 1 || countNum > 1000) {
+      alert('تعداد باید بین 1 تا 1000 باشد');
+      return;
+    }
+
+    if (!confirm(`آیا از تولید ${countNum} لایسنس اطمینان دارید؟`)) return;
+
+    setGeneratingLicenses(true);
+    try {
+      const response = await adminApiService.generateLicenseKeys(countNum);
+      if (response.success) {
+        alert(`✅ ${countNum} لایسنس با موفقیت تولید شد!`);
+        await loadLicenseKeys();
+        await loadLicenseKeysStats();
+      } else {
+        alert('❌ خطا: ' + (response.error || 'خطای ناشناخته'));
+      }
+    } catch (error) {
+      console.error('Failed to generate license keys:', error);
+      alert('❌ خطا در تولید لایسنس‌ها');
+    } finally {
+      setGeneratingLicenses(false);
+    }
+  };
+
   // Load data when tab changes
   useEffect(() => {
     if (activeTab === 'users') {
@@ -625,8 +701,11 @@ const AdminPanel: React.FC = () => {
       loadPayments();
     } else if (activeTab === 'tickets') {
       loadTickets();
+    } else if (activeTab === 'licenses') {
+      loadLicenseKeys();
+      loadLicenseKeysStats();
     }
-  }, [activeTab, usersPage, usersSearch, usersFilter, paymentsPage, paymentsFilter, ticketsPage, ticketsStatus, ticketsPriority, ticketsSearch]);
+  }, [activeTab, usersPage, usersSearch, usersFilter, paymentsPage, paymentsFilter, ticketsPage, ticketsStatus, ticketsPriority, ticketsSearch, licenseKeysPage, licenseKeysStatus, licenseKeysSearch]);
 
   // Manual refresh
   const handleRefresh = () => {
@@ -640,6 +719,9 @@ const AdminPanel: React.FC = () => {
       loadPayments();
     } else if (activeTab === 'tickets') {
       loadTickets();
+    } else if (activeTab === 'licenses') {
+      loadLicenseKeys();
+      loadLicenseKeysStats();
     }
   };
 
@@ -971,6 +1053,7 @@ const AdminPanel: React.FC = () => {
             { id: 'users', label: 'کاربران', icon: Users },
             { id: 'payments', label: 'پرداخت‌ها', icon: CreditCard },
             { id: 'tickets', label: 'تیکت‌ها', icon: MessageSquare },
+            { id: 'licenses', label: 'لایسنس‌ها', icon: Key },
             { id: 'content', label: 'محتوا', icon: Package },
             { id: 'analytics', label: 'آنالیتیکس', icon: LineChart },
           ].map((tab) => {
@@ -1060,7 +1143,7 @@ const AdminPanel: React.FC = () => {
                 </div>
               </div>
 
-              {/* Active Licenses */}
+              {/* Active Licenses (Old System) */}
               <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 relative overflow-hidden group hover:border-purple-500/50 transition-all" style={{ backgroundColor: '#10091c' }}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl"></div>
                 <div className="relative z-10">
@@ -1069,7 +1152,7 @@ const AdminPanel: React.FC = () => {
                       <Key size={24} className="text-purple-400" />
                     </div>
                   </div>
-                  <p className="text-gray-400 text-sm mb-1">لایسنس‌های فعال</p>
+                  <p className="text-gray-400 text-sm mb-1">لایسنس‌های فعال (قدیمی)</p>
                   <p className="text-3xl font-bold text-white mb-2">{(stats.activeLicenses || 0).toLocaleString('fa-IR')}</p>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
@@ -1101,6 +1184,63 @@ const AdminPanel: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* License Keys Stats (New System) */}
+            {(stats.totalLicenseKeys !== undefined && stats.totalLicenseKeys > 0) && (
+              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl flex items-center justify-center">
+                      <Key size={24} className="text-green-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">لایسنس‌های از پیش تولید شده</h3>
+                      <p className="text-xs text-gray-400">آمار لایسنس‌های جدید</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('licenses')}
+                    className="px-4 py-2 bg-purple-600/40 hover:bg-purple-600/60 text-white rounded-lg text-sm transition-colors flex items-center gap-2"
+                  >
+                    مدیریت لایسنس‌ها
+                    <ChevronLeft size={16} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-400 text-sm">کل لایسنس‌ها</span>
+                      <Key size={18} className="text-purple-400" />
+                    </div>
+                    <p className="text-2xl font-bold text-white">{(stats.totalLicenseKeys || 0).toLocaleString('fa-IR')}</p>
+                  </div>
+                  <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-400 text-sm">استفاده شده</span>
+                      <CheckCircle2 size={18} className="text-green-400" />
+                    </div>
+                    <p className="text-2xl font-bold text-white">{(stats.usedLicenseKeys || 0).toLocaleString('fa-IR')}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {stats.totalLicenseKeys > 0 
+                        ? `${Math.round(((stats.usedLicenseKeys || 0) / stats.totalLicenseKeys) * 100)}% استفاده شده`
+                        : '0% استفاده شده'}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-400 text-sm">استفاده نشده</span>
+                      <XCircle size={18} className="text-yellow-400" />
+                    </div>
+                    <p className="text-2xl font-bold text-white">{(stats.unusedLicenseKeys || 0).toLocaleString('fa-IR')}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {stats.totalLicenseKeys > 0 
+                        ? `${Math.round(((stats.unusedLicenseKeys || 0) / stats.totalLicenseKeys) * 100)}% باقی‌مانده`
+                        : '0% باقی‌مانده'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* AI Requests & Registration Chart */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -1709,6 +1849,188 @@ const AdminPanel: React.FC = () => {
                     بعدی
                   </button>
                 </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* License Keys Management */}
+        {activeTab === 'licenses' && (
+          <div className="space-y-6">
+            {/* Stats Cards */}
+            {licenseKeysStats && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="backdrop-blur-xl rounded-2xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-gray-400 text-sm">کل لایسنس‌ها</div>
+                    <Key size={20} className="text-purple-400" />
+                  </div>
+                  <div className="text-white text-2xl font-bold">
+                    {licenseKeysStats.total_licenses?.toLocaleString('fa-IR') || 0}
+                  </div>
+                </div>
+                <div className="backdrop-blur-xl rounded-2xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-gray-400 text-sm">استفاده شده</div>
+                    <CheckCircle2 size={20} className="text-green-400" />
+                  </div>
+                  <div className="text-white text-2xl font-bold">
+                    {licenseKeysStats.used_licenses?.toLocaleString('fa-IR') || 0}
+                  </div>
+                </div>
+                <div className="backdrop-blur-xl rounded-2xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-gray-400 text-sm">استفاده نشده</div>
+                    <XCircle size={20} className="text-yellow-400" />
+                  </div>
+                  <div className="text-white text-2xl font-bold">
+                    {licenseKeysStats.unused_licenses?.toLocaleString('fa-IR') || 0}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Search & Filters */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    value={licenseKeysSearch}
+                    onChange={(e) => setLicenseKeysSearch(e.target.value)}
+                    placeholder="جستجو در لایسنس‌ها..."
+                    className="w-full pr-10 pl-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/60"
+                  />
+                </div>
+                <select
+                  value={licenseKeysStatus}
+                  onChange={(e) => setLicenseKeysStatus(e.target.value)}
+                  className="px-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white focus:outline-none focus:border-purple-500/60"
+                >
+                  <option value="all">همه لایسنس‌ها</option>
+                  <option value="used">استفاده شده</option>
+                  <option value="unused">استفاده نشده</option>
+                </select>
+                <button
+                  onClick={handleGenerateLicenseKeys}
+                  disabled={generatingLicenses}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all flex items-center gap-2"
+                >
+                  {generatingLicenses ? (
+                    <>
+                      <Loader size={18} className="animate-spin" />
+                      در حال تولید...
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={18} />
+                      تولید لایسنس
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* License Keys List */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
+              {loadingLicenseKeys ? (
+                <div className="text-center py-12">
+                  <RefreshCw size={32} className="animate-spin text-purple-400 mx-auto mb-4" />
+                  <p className="text-gray-400">در حال بارگذاری...</p>
+                </div>
+              ) : licenseKeys.length === 0 ? (
+                <div className="text-center py-12">
+                  <Key size={48} className="text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-400">لایسنس‌ای یافت نشد</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {licenseKeys.map((license: any) => (
+                      <div
+                        key={license.ID || license.id}
+                        className={`p-4 rounded-xl border ${
+                          license.IsUsed || license.is_used
+                            ? 'bg-gray-800/40 border-gray-700/40'
+                            : 'bg-green-900/20 border-green-700/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <code className="text-white font-mono text-lg font-bold">
+                                {license.LicenseKey || license.license_key}
+                              </code>
+                              {license.IsUsed || license.is_used ? (
+                                <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded-lg text-xs font-medium">
+                                  استفاده شده
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium">
+                                  استفاده نشده
+                                </span>
+                              )}
+                            </div>
+                            {license.IsUsed || license.is_used ? (
+                              <div className="text-gray-400 text-sm">
+                                {license.User || license.user ? (
+                                  <>
+                                    استفاده شده توسط: <span className="text-white font-medium">
+                                      {license.User?.FirstName || license.user?.first_name || ''} {license.User?.LastName || license.user?.last_name || ''}
+                                    </span>
+                                    {license.User?.Username || license.user?.username ? (
+                                      <span className="text-gray-500"> (@{license.User?.Username || license.user?.username})</span>
+                                    ) : null}
+                                  </>
+                                ) : null}
+                                {license.UsedAt || license.used_at ? (
+                                  <span className="mr-4">
+                                    در تاریخ: {new Date(license.UsedAt || license.used_at).toLocaleDateString('fa-IR')}
+                                  </span>
+                                ) : null}
+                              </div>
+                            ) : (
+                              <div className="text-gray-400 text-sm">
+                                آماده استفاده
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {licenseKeysTotal > 50 && (
+                    <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-700/40">
+                      <div className="text-gray-400 text-sm">
+                        نمایش {((licenseKeysPage - 1) * 50) + 1} تا {Math.min(licenseKeysPage * 50, licenseKeysTotal)} از {licenseKeysTotal.toLocaleString('fa-IR')} لایسنس
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setLicenseKeysPage(p => Math.max(1, p - 1))}
+                          disabled={licenseKeysPage === 1}
+                          className="px-4 py-2 bg-gray-800/40 hover:bg-gray-800/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1"
+                        >
+                          <ChevronRight size={16} />
+                          قبلی
+                        </button>
+                        <span className="text-white px-4 py-2">
+                          صفحه {licenseKeysPage.toLocaleString('fa-IR')}
+                        </span>
+                        <button
+                          onClick={() => setLicenseKeysPage(p => p + 1)}
+                          disabled={licenseKeysPage * 50 >= licenseKeysTotal}
+                          className="px-4 py-2 bg-gray-800/40 hover:bg-gray-800/60 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1"
+                        >
+                          بعدی
+                          <ChevronLeft size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

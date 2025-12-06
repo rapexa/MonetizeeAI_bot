@@ -644,8 +644,77 @@ func processUserInput(input string, user *User) string {
 		if strings.TrimSpace(input) == "" {
 			return ""
 		}
-		if input == "5a7474e6746067c57382ac1727a400fa65b7398a3774c3b19272916549c93a8d" {
-			user.License = input
+
+		licenseKey := strings.TrimSpace(input)
+		user.License = licenseKey
+
+		// First, check if this is a pre-generated license key
+		var license License
+		if err := db.Where("license_key = ?", licenseKey).First(&license).Error; err == nil {
+			// License key found in pre-generated licenses
+			if license.IsUsed {
+				// License already used
+				var usedByUser User
+				if license.UsedBy != nil {
+					db.First(&usedByUser, *license.UsedBy)
+				}
+				msg := tgbotapi.NewMessage(user.TelegramID,
+					"❌ این لایسنس قبلاً استفاده شده است.\n\n"+
+						"🔑 لایسنس‌ها فقط یکبار قابل استفاده هستند.\n\n"+
+						"💡 اگر لایسنس معتبری ندارید، می‌توانید اشتراک خریداری کنید:")
+				planKeyboard := getPlanSelectionKeyboard()
+				msg.ReplyMarkup = planKeyboard
+				bot.Send(msg)
+				return ""
+			}
+
+			// License is valid and unused - activate it immediately
+			now := time.Now()
+			license.IsUsed = true
+			license.UsedBy = &user.ID
+			license.UsedAt = &now
+			db.Save(&license)
+
+			// Activate lifetime subscription for user
+			user.IsVerified = true
+			user.SubscriptionType = "paid"
+			user.PlanName = "ultimate"
+			user.SubscriptionExpiry = nil // Lifetime
+			db.Save(user)
+
+			// Invalidate cache
+			userCache.InvalidateUser(user.TelegramID)
+
+			// Clear state
+			userStates[user.TelegramID] = ""
+
+			// Send success message
+			successMsg := fmt.Sprintf(
+				"✅ *لایسنس با موفقیت فعال شد!*\n\n"+
+					"🎉 اشتراک مادام‌العمر شما فعال شد.\n\n"+
+					"🔑 لایسنس: `%s`\n"+
+					"👤 کاربر: %s %s\n\n"+
+					"از خدمات ما لذت ببرید! 🚀",
+				licenseKey,
+				user.FirstName,
+				user.LastName)
+
+			msg := tgbotapi.NewMessage(user.TelegramID, successMsg)
+			msg.ParseMode = "Markdown"
+			msg.ReplyMarkup = getMainMenuKeyboard(user)
+			bot.Send(msg)
+
+			logger.Info("License activated",
+				zap.Int64("user_id", user.TelegramID),
+				zap.String("license_key", licenseKey),
+				zap.Uint("license_id", license.ID))
+
+			return ""
+		}
+
+		// If not found in pre-generated licenses, check old hardcoded license (for backward compatibility)
+		if licenseKey == "5a7474e6746067c57382ac1727a400fa65b7398a3774c3b19272916549c93a8d" {
+			user.License = licenseKey
 			db.Save(user)
 
 			// Create verification request (name and phone already collected)
@@ -690,21 +759,21 @@ func processUserInput(input string, user *User) string {
 			msg := tgbotapi.NewMessage(user.TelegramID, "✅ لایسنس معتبر است.\n\n⏳ لطفا منتظر تایید ادمین باشید.")
 			bot.Send(msg)
 			return ""
-		} else {
-			// Invalid license - show buy subscription option
-			msg := tgbotapi.NewMessage(user.TelegramID,
-				"❌ لایسنس وارد شده معتبر نیست. \n\n"+"لطفا فقط کد لایسنس معتبر را کپی کنید و  وارد کنید.\n\n"+
-					"💡 اگر لایسنس معتبری ندارید، می‌توانید اشتراک خریداری کنید:")
-
-			// Show payment plans
-			planKeyboard := getPlanSelectionKeyboard()
-			msg.ReplyMarkup = planKeyboard
-			bot.Send(msg)
-
-			// Keep state as StateWaitingForLicense so user can try again or select plan
-			// User can click on plan buttons (callback) or try entering license again
-			return ""
 		}
+
+		// Invalid license - show buy subscription option
+		msg := tgbotapi.NewMessage(user.TelegramID,
+			"❌ لایسنس وارد شده معتبر نیست.\n\n"+
+				"لطفا فقط کد لایسنس معتبر را کپی کنید و وارد کنید.\n\n"+
+				"💡 اگر لایسنس معتبری ندارید، می‌توانید اشتراک خریداری کنید:")
+
+		// Show payment plans
+		planKeyboard := getPlanSelectionKeyboard()
+		msg.ReplyMarkup = planKeyboard
+		bot.Send(msg)
+
+		// Keep state as StateWaitingForLicense so user can try again or select plan
+		return ""
 
 	case StateWaitingForPlanSelection:
 		// First check if user now has active subscription (payment might have completed)
