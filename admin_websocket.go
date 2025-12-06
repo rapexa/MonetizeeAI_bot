@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -89,17 +90,41 @@ type WSMessage struct {
 
 // Real-time stats payload
 type StatsPayload struct {
-	TotalUsers      int64                `json:"totalUsers"`
-	ActiveUsers     int64                `json:"activeUsers"`
-	FreeTrialUsers  int64                `json:"freeTrialUsers"`
-	PaidUsers       int64                `json:"paidUsers"`
-	TodayRevenue    int                  `json:"todayRevenue"`
-	MonthRevenue    int                  `json:"monthRevenue"`
-	OnlineAdmins    int                  `json:"onlineAdmins"`
-	PendingLicenses int64                `json:"pendingLicenses"`
-	RecentUsers     []User               `json:"recentUsers"`
-	RecentPayments  []PaymentTransaction `json:"recentPayments"`
-	Timestamp       time.Time            `json:"timestamp"`
+	TotalUsers           int64                `json:"totalUsers"`
+	ActiveUsers          int64                `json:"activeUsers"`
+	ActiveUsersToday     int64                `json:"activeUsersToday"`
+	FreeTrialUsers       int64                `json:"freeTrialUsers"`
+	PaidUsers            int64                `json:"paidUsers"`
+	TodayRevenue         int                  `json:"todayRevenue"`
+	MonthRevenue         int                  `json:"monthRevenue"`
+	OnlineAdmins         int                  `json:"onlineAdmins"`
+	PendingLicenses      int64                `json:"pendingLicenses"`
+	ActiveLicenses       int64                `json:"activeLicenses"`
+	AverageProgress      float64              `json:"averageProgress"`      // Average progress percentage across 29 stages
+	AITotalRequests      int64                `json:"aiTotalRequests"`      // Total AI requests count
+	RecentUsers          []User               `json:"recentUsers"`
+	RecentPayments       []PaymentTransaction `json:"recentPayments"`
+	RecentErrors         []ErrorLog           `json:"recentErrors"`         // Recent error logs
+	Alerts               []Alert              `json:"alerts"`               // System alerts
+	Timestamp            time.Time            `json:"timestamp"`
+}
+
+// ErrorLog represents an error log entry
+type ErrorLog struct {
+	ID        uint      `json:"id"`
+	Level     string    `json:"level"`     // error, warning, info
+	Message   string    `json:"message"`
+	Source    string    `json:"source"`    // API, Payment, Server, etc.
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+// Alert represents a system alert
+type Alert struct {
+	ID        uint      `json:"id"`
+	Type      string    `json:"type"`      // api, payment, server, etc.
+	Severity  string    `json:"severity"`  // critical, warning, info
+	Message   string    `json:"message"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 // Handle WebSocket connection for admin
@@ -302,9 +327,15 @@ func getRealtimeStats() StatsPayload {
 	db.Model(&User{}).Where("subscription_type = ?", "free_trial").Count(&freeTrialUsers)
 	db.Model(&User{}).Where("subscription_type = ?", "paid").Count(&paidUsers)
 
+	// Active users today (users who were active today - updated_at in last 24 hours)
+	today := time.Now().Truncate(24 * time.Hour)
+	var activeUsersToday int64
+	db.Model(&User{}).
+		Where("is_active = ? AND updated_at >= ?", true, today).
+		Count(&activeUsersToday)
+
 	// Calculate revenue
 	var todayRevenue, monthRevenue int
-	today := time.Now().Truncate(24 * time.Hour)
 	monthStart := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.Now().Location())
 
 	db.Model(&PaymentTransaction{}).
@@ -317,9 +348,28 @@ func getRealtimeStats() StatsPayload {
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&monthRevenue)
 
-	// Pending licenses
-	var pendingLicenses int64
+	// Pending and active licenses
+	var pendingLicenses, activeLicenses int64
 	db.Model(&LicenseVerification{}).Where("status = ?", "pending").Count(&pendingLicenses)
+	db.Model(&LicenseVerification{}).Where("status = ?", "approved").Count(&activeLicenses)
+
+	// Calculate average progress percentage (based on current_session out of 29 stages)
+	var avgProgress float64
+	var progressResult struct {
+		Average float64
+	}
+	db.Model(&User{}).
+		Where("is_active = ? AND current_session > 0", true).
+		Select("AVG(current_session) * 100.0 / 29.0 as average").
+		Scan(&progressResult)
+	avgProgress = progressResult.Average
+	if avgProgress > 100 {
+		avgProgress = 100
+	}
+
+	// Count total AI requests (from ChatMessage table)
+	var aiTotalRequests int64
+	db.Model(&ChatMessage{}).Count(&aiTotalRequests)
 
 	// Recent users (last 10)
 	var recentUsers []User
@@ -329,24 +379,71 @@ func getRealtimeStats() StatsPayload {
 	var recentPayments []PaymentTransaction
 	db.Order("created_at DESC").Limit(10).Find(&recentPayments)
 
+	// Recent errors (from AdminAction or logger - simplified for now)
+	recentErrors := getRecentErrors()
+
+	// System alerts
+	alerts := getSystemAlerts()
+
 	// Online admins count
 	adminHub.mu.RLock()
 	onlineAdmins := len(adminHub.clients)
 	adminHub.mu.RUnlock()
 
 	return StatsPayload{
-		TotalUsers:      totalUsers,
-		ActiveUsers:     activeUsers,
-		FreeTrialUsers:  freeTrialUsers,
-		PaidUsers:       paidUsers,
-		TodayRevenue:    todayRevenue,
-		MonthRevenue:    monthRevenue,
-		OnlineAdmins:    onlineAdmins,
-		PendingLicenses: pendingLicenses,
-		RecentUsers:     recentUsers,
-		RecentPayments:  recentPayments,
-		Timestamp:       time.Now(),
+		TotalUsers:       totalUsers,
+		ActiveUsers:      activeUsers,
+		ActiveUsersToday: activeUsersToday,
+		FreeTrialUsers:   freeTrialUsers,
+		PaidUsers:        paidUsers,
+		TodayRevenue:     todayRevenue,
+		MonthRevenue:     monthRevenue,
+		OnlineAdmins:     onlineAdmins,
+		PendingLicenses:  pendingLicenses,
+		ActiveLicenses:   activeLicenses,
+		AverageProgress:  avgProgress,
+		AITotalRequests:  aiTotalRequests,
+		RecentUsers:      recentUsers,
+		RecentPayments:   recentPayments,
+		RecentErrors:     recentErrors,
+		Alerts:           alerts,
+		Timestamp:        time.Now(),
 	}
+}
+
+// Get recent errors from system
+func getRecentErrors() []ErrorLog {
+	// For now, return empty array - can be extended to read from logger files or database
+	// TODO: Implement reading from logger or error log table
+	return []ErrorLog{}
+}
+
+// Get system alerts
+func getSystemAlerts() []Alert {
+	var alerts []Alert
+	
+	// Check API connectivity (simplified - always assume OK for now)
+	// TODO: Implement actual API health checks
+	
+	// Check for failed payments
+	var failedPayments int64
+	today := time.Now().Truncate(24 * time.Hour)
+	db.Model(&PaymentTransaction{}).
+		Where("status = ? AND created_at >= ?", "failed", today).
+		Count(&failedPayments)
+	
+	if failedPayments > 5 {
+		alerts = append(alerts, Alert{
+			Type:     "payment",
+			Severity: "warning",
+			Message:  fmt.Sprintf("%d پرداخت ناموفق در امروز", failedPayments),
+			CreatedAt: time.Now(),
+		})
+	}
+	
+	// Check for database connectivity (simplified - if we got here, DB is OK)
+	
+	return alerts
 }
 
 // Send users list to client

@@ -33,7 +33,14 @@ import {
   Ticket,
   AlertCircle as AlertCircleIcon,
   CheckCircle2,
-  Lock as LockIcon
+  Lock as LockIcon,
+  Rocket,
+  Brain,
+  AlertTriangle,
+  Zap,
+  Key,
+  TrendingDown,
+  Loader
 } from 'lucide-react';
 import adminApiService from '../services/adminApi';
 
@@ -43,17 +50,39 @@ import adminApiService from '../services/adminApi';
 //   payload: any;
 // }
 
+interface ErrorLog {
+  id: number;
+  level: string;
+  message: string;
+  source: string;
+  createdAt: string;
+}
+
+interface Alert {
+  id: number;
+  type: string;
+  severity: string;
+  message: string;
+  createdAt: string;
+}
+
 interface StatsPayload {
   totalUsers: number;
   activeUsers: number;
+  activeUsersToday: number;
   freeTrialUsers: number;
   paidUsers: number;
   todayRevenue: number;
   monthRevenue: number;
   onlineAdmins: number;
   pendingLicenses: number;
+  activeLicenses: number;
+  averageProgress: number;
+  aiTotalRequests: number;
   recentUsers: User[];
   recentPayments: PaymentTransaction[];
+  recentErrors: ErrorLog[];
+  alerts: Alert[];
   timestamp: string;
 }
 
@@ -84,6 +113,207 @@ interface PaymentTransaction {
   CreatedAt: string;
 }
 
+// Registration Chart Component
+const RegistrationChart: React.FC<{ data: any[]; period: 'day' | 'week' | 'month' }> = ({ data, period }) => {
+  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  
+  // Generate date range based on period
+  const generateDateRange = () => {
+    const dates: string[] = [];
+    const labels: string[] = [];
+    const today = new Date();
+    
+    let count = 0;
+    if (period === 'day') count = 7; // Last 7 days (API returns daily data)
+    else if (period === 'week') count = 7; // Last 7 days
+    else count = 30; // Last 30 days
+    
+    for (let i = count - 1; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      dates.push(dateStr);
+      
+      // Format label based on period
+      if (period === 'day' || period === 'week') {
+        const dayName = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه'][date.getDay()];
+        const dayShort = ['ی', 'د', 'س', 'چ', 'پ', 'ج', 'ش'][date.getDay()];
+        const dayNum = date.getDate();
+        labels.push(`${dayShort} ${dayNum}`);
+      } else {
+        // For month, show day number only
+        const dayNum = date.getDate();
+        labels.push(`${dayNum}`);
+      }
+    }
+    
+    return { dates, labels };
+  };
+  
+  const { dates, labels } = generateDateRange();
+  
+  // Map API data to dates - data format: [{date: "2024-01-01", count: 5}, ...]
+  const values = dates.map(dateStr => {
+    // Try exact match first
+    let found = data.find((item: any) => {
+      if (!item || !item.date) return false;
+      const itemDate = typeof item.date === 'string' ? item.date.split('T')[0] : item.date;
+      return itemDate === dateStr;
+    });
+    
+    // If not found, try partial match
+    if (!found) {
+      found = data.find((item: any) => {
+        if (!item || !item.date) return false;
+        return String(item.date).startsWith(dateStr);
+      });
+    }
+    
+    return found ? (Number(found.count) || 0) : 0;
+  });
+  
+  const maxValue = Math.max(...values, 1);
+  const yMax = Math.ceil(maxValue * 1.15);
+  
+  const width = 800;
+  const height = 192;
+  const margin = { top: 10, right: 10, bottom: 30, left: 40 };
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+  
+  const xAt = (i: number) => (i / Math.max(labels.length - 1, 1)) * innerW + margin.left;
+  const yAt = (v: number) => margin.top + innerH - (v / yMax) * innerH;
+  
+  const pathData = values
+    .map((v, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i)} ${yAt(v)}`)
+    .join(' ');
+  
+  const handleMove: React.MouseEventHandler<SVGRectElement> = (e) => {
+    const rect = (e.target as SVGRectElement).getBoundingClientRect();
+    const x = e.clientX - rect.left - margin.left;
+    const step = innerW / Math.max(labels.length - 1, 1);
+    const idx = Math.max(0, Math.min(labels.length - 1, Math.round(x / step)));
+    setActiveIdx(idx);
+  };
+  
+  const handleLeave = () => setActiveIdx(null);
+  
+  const gridLines = 4;
+  
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full select-none">
+      {/* Grid */}
+      {[...Array(gridLines + 1)].map((_, i) => {
+        const y = margin.top + (i / gridLines) * innerH;
+        const value = Math.round(yMax * (1 - i / gridLines));
+        return (
+          <g key={i}>
+            <line x1={margin.left} x2={width - margin.right} y1={y} y2={y} stroke="#374151" strokeOpacity={0.5} />
+            <text x={margin.left - 8} y={y + 3} fontSize={9} textAnchor="end" fill="#9CA3AF">{value}</text>
+          </g>
+        );
+      })}
+      
+      {/* X axis labels */}
+      {labels.map((lbl, i) => {
+        // Show fewer labels to avoid clutter
+        if (period === 'day' && i % 4 !== 0 && i !== labels.length - 1) return null;
+        if (period === 'week' && i % 2 !== 0 && i !== labels.length - 1) return null;
+        if (period === 'month' && i % 5 !== 0 && i !== labels.length - 1) return null;
+        
+        return (
+          <text key={i} x={xAt(i)} y={height - 8} fontSize={9} textAnchor="middle" fill="#9CA3AF">{lbl}</text>
+        );
+      })}
+      
+      {/* Line */}
+      <path d={pathData} fill="none" stroke="#3b82f6" strokeWidth={2.5} strokeLinecap="round" />
+      
+      {/* Area fill */}
+      <path 
+        d={`${pathData} L ${xAt(labels.length - 1)} ${height - margin.bottom} L ${margin.left} ${height - margin.bottom} Z`}
+        fill="url(#gradient)" 
+        opacity={0.2}
+      />
+      <defs>
+        <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+          <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      
+      {/* Points */}
+      {values.map((v, i) => (
+        <circle 
+          key={i}
+          cx={xAt(i)}
+          cy={yAt(v)}
+          r={activeIdx === i ? 4 : 3}
+          fill="#3b82f6"
+          opacity={activeIdx === i ? 1 : 0.8}
+          className="cursor-pointer transition-all duration-200"
+        />
+      ))}
+      
+      {/* Tooltip */}
+      {activeIdx !== null && (
+        <g>
+          <line 
+            x1={xAt(activeIdx)} 
+            x2={xAt(activeIdx)} 
+            y1={margin.top} 
+            y2={margin.top + innerH} 
+            stroke="#3b82f6" 
+            strokeWidth={1.5}
+            strokeDasharray="4 4"
+          />
+          <rect 
+            x={xAt(activeIdx) - 50} 
+            y={yAt(values[activeIdx]) - 35} 
+            width={100} 
+            height={30} 
+            rx={8}
+            fill="#0f172a"
+            stroke="#3b82f6"
+            strokeWidth={1}
+          />
+          <text 
+            x={xAt(activeIdx)} 
+            y={yAt(values[activeIdx]) - 20} 
+            fontSize={11} 
+            textAnchor="middle" 
+            fill="#E5E7EB"
+            fontWeight="bold"
+          >
+            {values[activeIdx].toLocaleString('fa-IR')} کاربر
+          </text>
+          <text 
+            x={xAt(activeIdx)} 
+            y={yAt(values[activeIdx]) - 8} 
+            fontSize={9} 
+            textAnchor="middle" 
+            fill="#9CA3AF"
+          >
+            {labels[activeIdx]}
+          </text>
+        </g>
+      )}
+      
+      {/* Interaction overlay */}
+      <rect
+        x={margin.left}
+        y={margin.top}
+        width={innerW}
+        height={innerH}
+        fill="transparent"
+        onMouseMove={handleMove}
+        onMouseLeave={handleLeave}
+        className="cursor-pointer"
+      />
+    </svg>
+  );
+};
+
 const AdminPanel: React.FC = () => {
   // WebSocket removed - using REST API for all users (both Telegram and Web)
   // This ensures consistent behavior and avoids authentication issues
@@ -95,6 +325,11 @@ const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'payments' | 'content' | 'analytics' | 'tickets'>('dashboard');
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
+  
+  // Dashboard chart states
+  const [chartData, setChartData] = useState<any>(null);
+  const [chartPeriod, setChartPeriod] = useState<'day' | 'week' | 'month'>('week');
+  const [loadingChart, setLoadingChart] = useState(false);
   
   // Users state
   const [users, setUsers] = useState<User[]>([]);
@@ -201,6 +436,21 @@ const AdminPanel: React.FC = () => {
     }
   }, []);
   
+  // Load chart data
+  const loadChartData = useCallback(async (period: 'day' | 'week' | 'month' = 'week') => {
+    setLoadingChart(true);
+    try {
+      const response = await adminApiService.getChartData('users', period);
+      if (response.success && response.data) {
+        setChartData(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading chart data:', error);
+    } finally {
+      setLoadingChart(false);
+    }
+  }, []);
+
   // Poll stats every 5 seconds for all users (both Telegram and Web)
   // We use REST API for all users to ensure consistent behavior
   useEffect(() => {
@@ -211,6 +461,7 @@ const AdminPanel: React.FC = () => {
 
     // Initial fetch
     fetchStatsFromAPI();
+    loadChartData(chartPeriod);
 
     // Poll every 5 seconds
     const interval = setInterval(() => {
@@ -218,7 +469,7 @@ const AdminPanel: React.FC = () => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [fetchStatsFromAPI]);
+  }, [fetchStatsFromAPI, loadChartData, chartPeriod]);
 
   // NOTE: WebSocket is disabled - we use REST API for all users (both Telegram and Web)
   // This ensures consistent behavior and avoids authentication issues
@@ -746,146 +997,288 @@ const AdminPanel: React.FC = () => {
       <div className="pt-28 px-4 max-w-7xl mx-auto mt-4">
         {activeTab === 'dashboard' && stats && (
           <div className="space-y-6">
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <Users size={20} className="text-blue-400" />
-                  <span className="text-gray-400 text-sm">کل کاربران</span>
+            {/* 🚀 Mission Control Header */}
+            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-full blur-3xl"></div>
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <Rocket size={32} className="text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                      مرکز کنترل ماموریت
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    </h2>
+                    <p className="text-gray-400 text-sm mt-1">وضعیت سیستم و آمار لحظه‌ای</p>
+                  </div>
                 </div>
-                <p className="text-3xl font-bold text-white">{stats.totalUsers.toLocaleString('fa-IR')}</p>
-                <p className="text-xs text-green-400 mt-1">
-                  {stats.activeUsers.toLocaleString('fa-IR')} فعال
-                </p>
-              </div>
-
-              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <DollarSign size={20} className="text-green-400" />
-                  <span className="text-gray-400 text-sm">درآمد ماه</span>
+                <div className="text-left">
+                  <p className="text-xs text-gray-400">آخرین بروزرسانی</p>
+                  <p className="text-white text-sm font-medium">{new Date(stats.timestamp).toLocaleTimeString('fa-IR')}</p>
                 </div>
-                <p className="text-2xl font-bold text-white">
-                  {formatCurrency(stats.monthRevenue)}
-                </p>
-                <p className="text-xs text-blue-400 mt-1">
-                  امروز: {formatCurrency(stats.todayRevenue)}
-                </p>
-              </div>
-
-              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <UserCheck size={20} className="text-purple-400" />
-                  <span className="text-gray-400 text-sm">کاربران پولی</span>
-                </div>
-                <p className="text-3xl font-bold text-white">{stats.paidUsers.toLocaleString('fa-IR')}</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {stats.freeTrialUsers.toLocaleString('fa-IR')} تست رایگان
-                </p>
-              </div>
-
-              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <Activity size={20} className="text-orange-400" />
-                  <span className="text-gray-400 text-sm">ادمین‌های آنلاین</span>
-                </div>
-                <p className="text-3xl font-bold text-white">{stats.onlineAdmins}</p>
-                <p className="text-xs text-yellow-400 mt-1">
-                  {stats.pendingLicenses.toLocaleString('fa-IR')} لایسنس در انتظار
-                </p>
               </div>
             </div>
 
-            {/* Recent Users */}
-            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Users size={20} />
-                کاربران اخیر
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-700/60">
-                      <th className="text-right text-xs text-gray-400 pb-2">نام</th>
-                      <th className="text-right text-xs text-gray-400 pb-2">نوع اشتراک</th>
-                      <th className="text-right text-xs text-gray-400 pb-2">امتیاز</th>
-                      <th className="text-right text-xs text-gray-400 pb-2">تاریخ</th>
-                      <th className="text-right text-xs text-gray-400 pb-2">وضعیت</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.recentUsers.map((user: any) => (
-                      <tr key={user.ID} className="border-b border-gray-700/30">
-                        <td className="py-3 text-white text-sm">
-                          {[user.FirstName, user.LastName].filter(Boolean).join(' ') || user.Username}
-                        </td>
-                        <td className="py-3 text-gray-300 text-sm">
-                          {user.PlanName || user.SubscriptionType}
-                        </td>
-                        <td className="py-3 text-blue-400 text-sm font-medium">
-                          {(user.Points ?? user.points ?? 0).toLocaleString('fa-IR')}
-                        </td>
-                        <td className="py-3 text-gray-400 text-xs">
-                          {formatDate(user.CreatedAt)}
-                        </td>
-                        <td className="py-3">
+            {/* Key Metrics Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Total Users */}
+              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 relative overflow-hidden group hover:border-blue-500/50 transition-all" style={{ backgroundColor: '#10091c' }}>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                      <Users size={24} className="text-blue-400" />
+                    </div>
+                    <TrendingUp size={20} className="text-green-400" />
+                  </div>
+                  <p className="text-gray-400 text-sm mb-1">کل کاربران</p>
+                  <p className="text-3xl font-bold text-white mb-2">{stats.totalUsers.toLocaleString('fa-IR')}</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <p className="text-xs text-green-400">{stats.activeUsers.toLocaleString('fa-IR')} فعال</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Users Today */}
+              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 relative overflow-hidden group hover:border-green-500/50 transition-all" style={{ backgroundColor: '#10091c' }}>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-2xl"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                      <Activity size={24} className="text-green-400" />
+                    </div>
+                    <Zap size={20} className="text-yellow-400" />
+                  </div>
+                  <p className="text-gray-400 text-sm mb-1">کاربران فعال امروز</p>
+                  <p className="text-3xl font-bold text-white mb-2">{(stats.activeUsersToday || 0).toLocaleString('fa-IR')}</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <p className="text-xs text-green-400">آنلاین</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Licenses */}
+              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 relative overflow-hidden group hover:border-purple-500/50 transition-all" style={{ backgroundColor: '#10091c' }}>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                      <Key size={24} className="text-purple-400" />
+                    </div>
+                  </div>
+                  <p className="text-gray-400 text-sm mb-1">لایسنس‌های فعال</p>
+                  <p className="text-3xl font-bold text-white mb-2">{(stats.activeLicenses || 0).toLocaleString('fa-IR')}</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                    <p className="text-xs text-purple-400">{stats.pendingLicenses || 0} در انتظار</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Average Progress */}
+              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 relative overflow-hidden group hover:border-orange-500/50 transition-all" style={{ backgroundColor: '#10091c' }}>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
+                      <Award size={24} className="text-orange-400" />
+                    </div>
+                  </div>
+                  <p className="text-gray-400 text-sm mb-1">میانگین پیشرفت</p>
+                  <p className="text-3xl font-bold text-white mb-2">{Math.round(stats.averageProgress || 0)}%</p>
+                  <div className="mt-3">
+                    <div className="w-full h-2 bg-gray-700/50 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(stats.averageProgress || 0, 100)}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">از 29 مرحله</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Requests & Registration Chart */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* AI Requests */}
+              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl flex items-center justify-center">
+                      <Brain size={20} className="text-purple-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">درخواست‌های AI</h3>
+                      <p className="text-xs text-gray-400">کل درخواست‌ها</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <p className="text-4xl font-bold text-white mb-2">{(stats.aiTotalRequests || 0).toLocaleString('fa-IR')}</p>
+                  <p className="text-xs text-gray-400">درخواست پردازش شده</p>
+                </div>
+              </div>
+
+              {/* Registration Chart */}
+              <div className="lg:col-span-2 backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl flex items-center justify-center">
+                      <LineChart size={20} className="text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">نمودار ثبت‌نام</h3>
+                      <p className="text-xs text-gray-400">روند ثبت‌نام کاربران</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {['day', 'week', 'month'].map((period) => (
+                      <button
+                        key={period}
+                        onClick={() => {
+                          setChartPeriod(period as any);
+                          loadChartData(period as any);
+                        }}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                          chartPeriod === period
+                            ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                            : 'text-gray-400 hover:text-white hover:bg-gray-700/40'
+                        }`}
+                      >
+                        {period === 'day' ? 'روزانه' : period === 'week' ? 'هفتگی' : 'ماهانه'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="h-48">
+                  {loadingChart ? (
+                    <div className="h-full flex items-center justify-center">
+                      <Loader size={24} className="text-gray-400 animate-spin" />
+                    </div>
+                  ) : chartData && chartData.length > 0 ? (
+                    <RegistrationChart data={chartData} period={chartPeriod} />
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+                      داده‌ای برای نمایش وجود ندارد
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Users & Alerts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Recent Users */}
+              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <Users size={20} />
+                  آخرین کاربران ثبت‌نامی
+                </h3>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {stats.recentUsers && stats.recentUsers.length > 0 ? (
+                    stats.recentUsers.slice(0, 5).map((user: any) => (
+                      <div key={user.ID} className="flex items-center justify-between p-3 bg-gray-800/30 rounded-xl hover:bg-gray-800/50 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center">
+                            <User size={18} className="text-blue-400" />
+                          </div>
+                          <div>
+                            <p className="text-white text-sm font-medium">
+                              {[user.FirstName, user.LastName].filter(Boolean).join(' ') || user.Username || 'بدون نام'}
+                            </p>
+                            <p className="text-xs text-gray-400">{formatDate(user.CreatedAt)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
                           {user.IsActive && !user.IsBlocked ? (
                             <CheckCircle size={16} className="text-green-400" />
                           ) : (
                             <XCircle size={16} className="text-red-400" />
                           )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-400 text-sm py-8">کاربری یافت نشد</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Alerts */}
+              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <AlertTriangle size={20} className="text-yellow-400" />
+                  هشدارها و وضعیت سیستم
+                </h3>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {stats.alerts && stats.alerts.length > 0 ? (
+                    stats.alerts.map((alert, idx) => (
+                      <div 
+                        key={idx}
+                        className={`p-3 rounded-xl border ${
+                          alert.severity === 'critical'
+                            ? 'bg-red-500/10 border-red-500/30'
+                            : alert.severity === 'warning'
+                            ? 'bg-yellow-500/10 border-yellow-500/30'
+                            : 'bg-blue-500/10 border-blue-500/30'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle 
+                            size={16} 
+                            className={
+                              alert.severity === 'critical' ? 'text-red-400' :
+                              alert.severity === 'warning' ? 'text-yellow-400' :
+                              'text-blue-400'
+                            }
+                          />
+                          <div className="flex-1">
+                            <p className="text-white text-sm font-medium">{alert.message}</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {new Date(alert.createdAt).toLocaleString('fa-IR')}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-400 text-sm py-8">
+                      <CheckCircle2 size={32} className="text-green-400 mx-auto mb-2" />
+                      <p>همه سیستم‌ها به درستی کار می‌کنند</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Recent Payments */}
-            <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60" style={{ backgroundColor: '#10091c' }}>
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <CreditCard size={20} />
-                پرداخت‌های اخیر
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-700/60">
-                      <th className="text-right text-xs text-gray-400 pb-2">نوع</th>
-                      <th className="text-right text-xs text-gray-400 pb-2">مبلغ</th>
-                      <th className="text-right text-xs text-gray-400 pb-2">وضعیت</th>
-                      <th className="text-right text-xs text-gray-400 pb-2">تاریخ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.recentPayments.map((payment) => (
-                      <tr key={payment.ID} className="border-b border-gray-700/30">
-                        <td className="py-3 text-white text-sm">
-                          {payment.Type}
-                        </td>
-                        <td className="py-3 text-green-400 text-sm font-bold">
-                          {formatCurrency(payment.Amount)}
-                        </td>
-                        <td className="py-3">
-                          <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                            payment.Status === 'success'
-                              ? 'bg-green-500/20 text-green-400'
-                              : payment.Status === 'pending'
-                              ? 'bg-yellow-500/20 text-yellow-400'
-                              : 'bg-red-500/20 text-red-400'
-                          }`}>
-                            {payment.Status}
-                          </span>
-                        </td>
-                        <td className="py-3 text-gray-400 text-xs">
-                          {formatDate(payment.CreatedAt)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {/* Recent Errors */}
+            {stats.recentErrors && stats.recentErrors.length > 0 && (
+              <div className="backdrop-blur-xl rounded-3xl p-6 border border-gray-700/60 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <AlertCircleIcon size={20} className="text-red-400" />
+                  آخرین خطاها
+                </h3>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {stats.recentErrors.slice(0, 5).map((error, idx) => (
+                    <div key={idx} className="flex items-start gap-3 p-3 bg-red-500/10 rounded-xl border border-red-500/20">
+                      <AlertCircleIcon size={16} className="text-red-400 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-white text-sm">{error.message}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-400">{error.source}</span>
+                          <span className="text-xs text-gray-500">•</span>
+                          <span className="text-xs text-gray-400">{new Date(error.createdAt).toLocaleString('fa-IR')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
