@@ -114,28 +114,95 @@ const Levels: React.FC = () => {
     const el = videoRefs.current[videoIndex];
     if (!el) return;
 
-    const active = !!document.fullscreenElement || pseudoFullscreenIdx !== null;
+    const active = !!document.fullscreenElement || 
+                   !!(document as any).webkitFullscreenElement || 
+                   !!(document as any).mozFullScreenElement || 
+                   !!(document as any).msFullscreenElement ||
+                   pseudoFullscreenIdx !== null;
+    
     if (!active) {
+      // Try all fullscreen methods for maximum compatibility
+      const anyVideo: any = el as any;
+      const anyDoc: any = document as any;
+      
+      // Method 1: Standard Fullscreen API
       if (el.requestFullscreen) {
         try {
           await el.requestFullscreen();
           setIsFullscreen(true);
           return;
-        } catch (_) {}
+        } catch (err) {
+          logger.debug('requestFullscreen failed:', err);
+        }
       }
-      const anyVideo: any = el as any;
-      if (anyVideo && typeof anyVideo.webkitEnterFullscreen === 'function') {
+      
+      // Method 2: WebKit (Safari, Chrome)
+      if (anyVideo.webkitRequestFullscreen) {
+        try {
+          anyVideo.webkitRequestFullscreen();
+          setIsFullscreen(true);
+          return;
+        } catch (err) {
+          logger.debug('webkitRequestFullscreen failed:', err);
+        }
+      }
+      
+      // Method 3: Mozilla (Firefox)
+      if (anyVideo.mozRequestFullScreen) {
+        try {
+          anyVideo.mozRequestFullScreen();
+          setIsFullscreen(true);
+          return;
+        } catch (err) {
+          logger.debug('mozRequestFullScreen failed:', err);
+        }
+      }
+      
+      // Method 4: MS (IE/Edge)
+      if (anyVideo.msRequestFullscreen) {
+        try {
+          anyVideo.msRequestFullscreen();
+          setIsFullscreen(true);
+          return;
+        } catch (err) {
+          logger.debug('msRequestFullscreen failed:', err);
+        }
+      }
+      
+      // Method 5: iOS Safari native fullscreen
+      if (anyVideo.webkitEnterFullscreen) {
         try {
           anyVideo.webkitEnterFullscreen();
           setIsFullscreen(true);
           return;
-        } catch (_) {}
+        } catch (err) {
+          logger.debug('webkitEnterFullscreen failed:', err);
+        }
       }
+      
+      // Method 6: Fallback to pseudo-fullscreen (works on all devices)
       setPseudoFullscreenIdx(videoIndex);
+      setIsFullscreen(true);
     } else {
+      // Exit fullscreen - try all methods
+      const anyDoc: any = document as any;
+      
       if (document.fullscreenElement) {
-        try { await document.exitFullscreen(); } catch (_) {}
+        try {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (anyDoc.webkitExitFullscreen) {
+            await anyDoc.webkitExitFullscreen();
+          } else if (anyDoc.mozCancelFullScreen) {
+            await anyDoc.mozCancelFullScreen();
+          } else if (anyDoc.msExitFullscreen) {
+            await anyDoc.msExitFullscreen();
+          }
+        } catch (err) {
+          logger.debug('exitFullscreen failed:', err);
+        }
       }
+      
       setIsFullscreen(false);
       setPseudoFullscreenIdx(null);
     }
@@ -143,31 +210,77 @@ const Levels: React.FC = () => {
 
   // Listen for fullscreen changes and manage pseudo state/body overflow
   useEffect(() => {
+    const anyDoc: any = document as any;
+    
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-      if (!document.fullscreenElement) {
+      const isFullscreen = !!(
+        document.fullscreenElement ||
+        anyDoc.webkitFullscreenElement ||
+        anyDoc.mozFullScreenElement ||
+        anyDoc.msFullscreenElement
+      );
+      setIsFullscreen(isFullscreen);
+      if (!isFullscreen) {
         setPseudoFullscreenIdx(null);
       }
     };
+    
     const handleWebkitEnd = () => {
       setIsFullscreen(false);
       setPseudoFullscreenIdx(null);
     };
+    
+    // Add all fullscreen event listeners for maximum compatibility
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
     document.addEventListener('webkitendfullscreen', handleWebkitEnd as any);
+    
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
       document.removeEventListener('webkitendfullscreen', handleWebkitEnd as any);
     };
   }, []);
 
   useEffect(() => {
     if (pseudoFullscreenIdx !== null) {
+      // Prevent scrolling and ensure fullscreen overlay
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      // Prevent Telegram WebApp from interfering
+      try {
+        // @ts-ignore
+        if (window?.Telegram?.WebApp) {
+          // @ts-ignore
+          window.Telegram.WebApp.disableVerticalSwipes();
+        }
+      } catch (_) {}
     } else {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      // Re-enable Telegram WebApp features
+      try {
+        // @ts-ignore
+        if (window?.Telegram?.WebApp) {
+          // @ts-ignore
+          window.Telegram.WebApp.enableVerticalSwipes();
+        }
+      } catch (_) {}
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    };
   }, [pseudoFullscreenIdx]);
 
   useEffect(() => {
@@ -3669,25 +3782,35 @@ const Levels: React.FC = () => {
                       {selectedStage.videos && selectedStage.videos.length > 0 ? (
                         selectedStage.videos.map((video, index) => (
                           <div key={`${selectedStage.id}-video-${index}`} className="mb-4">
-                            <div className={`relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4 ${pseudoFullscreenIdx === index ? 'fixed inset-0 z-[9999]' : ''}`}>
-                              <div className={`aspect-video relative ${pseudoFullscreenIdx === index ? 'w-screen h-screen' : ''}`}>
+                            <div className={`relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4 ${pseudoFullscreenIdx === index ? 'fixed inset-0 z-[99999] bg-black rounded-none' : ''}`}>
+                              <div className={`aspect-video relative flex items-center justify-center ${pseudoFullscreenIdx === index ? 'w-[100vw] h-[100vh] max-w-[100vw] max-h-[100vh]' : ''}`}>
                                 <video 
                                   key={`${selectedStage.id}-video-element-${index}`}
                                   ref={(el) => videoRefs.current[index] = el}
                                   controls 
                                   controlsList="nodownload"
-                                  className="w-full h-full object-contain"
+                                  className={`w-full h-full object-contain ${pseudoFullscreenIdx === index ? 'w-[100vw] h-[100vh] max-w-[100vw] max-h-[100vh]' : ''}`}
                                   poster="/video-thumbnail.jpg"
+                                  playsInline
                                 >
                                   <source src={video.url} type="video/mp4" />
                                   مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
                                 </video>
                                 <button
                                   onClick={() => toggleFullscreen(index)}
-                                  className="absolute bottom-3 left-3 bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-1 rounded-full border border-white/20 flex items-center gap-2"
+                                  className={`absolute ${pseudoFullscreenIdx === index ? 'top-3 right-3' : 'bottom-3 left-3'} bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white text-xs px-3 py-2 rounded-full border border-white/30 flex items-center gap-2 z-10 transition-all duration-300`}
                                 >
-                                  <Maximize2 className="w-4 h-4" />
-                                  تمام صفحه
+                                  {pseudoFullscreenIdx === index ? (
+                                    <>
+                                      <X className="w-4 h-4" />
+                                      خروج
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Maximize2 className="w-4 h-4" />
+                                      تمام صفحه
+                                    </>
+                                  )}
                                 </button>
                               </div>
                             </div>
@@ -3711,25 +3834,26 @@ const Levels: React.FC = () => {
                       ) : selectedStage.videoUrl ? (
                         // Legacy single video support
                         <div key={`${selectedStage.id}-legacy-video`} className="mb-4">
-                          <div className={`relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4 ${pseudoFullscreenIdx === -1 ? 'fixed inset-0 z-[9999]' : ''}`}>
-                            <div className={`aspect-video relative ${pseudoFullscreenIdx === -1 ? 'w-screen h-screen' : ''}`}>
+                          <div className={`relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg mb-4 ${pseudoFullscreenIdx === -1 ? 'fixed inset-0 z-[99999] bg-black rounded-none' : ''}`}>
+                            <div className={`aspect-video relative flex items-center justify-center ${pseudoFullscreenIdx === -1 ? 'w-[100vw] h-[100vh] max-w-[100vw] max-h-[100vh]' : ''}`}>
                               <video 
                                 key={`${selectedStage.id}-legacy-video-element`}
                                 ref={(el) => videoRefs.current[-1] = el}
                                 controls 
                                 controlsList="nodownload"
-                                className="w-full h-full object-contain"
+                                className={`w-full h-full object-contain ${pseudoFullscreenIdx === -1 ? 'w-[100vw] h-[100vh] max-w-[100vw] max-h-[100vh]' : ''}`}
                                 poster="/video-thumbnail.jpg"
+                                playsInline
                               >
                                 <source src={selectedStage.videoUrl} type="video/mp4" />
                                 مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
                               </video>
                               <button
                                 onClick={() => toggleFullscreen(-1)}
-                                className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white p-2 rounded-full border border-white/20 hover:bg-black/80 transition-all duration-300 hover:scale-110"
-                                title="تمام صفحه"
+                                className={`absolute ${pseudoFullscreenIdx === -1 ? 'top-3 right-3' : 'top-3 left-3'} bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white p-2 rounded-full border border-white/30 transition-all duration-300 hover:scale-110 z-10`}
+                                title={pseudoFullscreenIdx === -1 ? 'خروج از تمام صفحه' : 'تمام صفحه'}
                               >
-                                <Maximize2 size={16} />
+                                {pseudoFullscreenIdx === -1 ? <X size={16} /> : <Maximize2 size={16} />}
                               </button>
                       </div>
                     </div>

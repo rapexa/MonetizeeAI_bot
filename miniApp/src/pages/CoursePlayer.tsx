@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { /* Clock, */ CheckCircle2, ArrowLeft, Maximize2, Minimize2, Lock } from 'lucide-react';
+import { /* Clock, */ CheckCircle2, ArrowLeft, Maximize2, Minimize2, Lock, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import CourseSubscriptionCard from '../components/CourseSubscriptionCard';
 
@@ -153,30 +153,95 @@ const CoursePlayer: React.FC = () => {
 
   const toggleFullscreen = async () => {
     const el = videoRef.current;
-    const active = !!document.fullscreenElement || pseudoFullscreen;
+    if (!el) return;
+
+    const anyDoc: any = document as any;
+    const active = !!document.fullscreenElement || 
+                   !!anyDoc.webkitFullscreenElement || 
+                   !!anyDoc.mozFullScreenElement || 
+                   !!anyDoc.msFullscreenElement ||
+                   pseudoFullscreen;
+    
     if (!active) {
-      if (el && el.requestFullscreen) {
+      // Try all fullscreen methods for maximum compatibility
+      const anyVideo: any = el as any;
+      
+      // Method 1: Standard Fullscreen API
+      if (el.requestFullscreen) {
         try {
           await el.requestFullscreen();
           setIsFullscreen(true);
           return;
-        } catch (_) {}
+        } catch (err) {
+          console.debug('requestFullscreen failed:', err);
+        }
       }
-      const anyVideo: any = el as any;
-      if (anyVideo && typeof anyVideo.webkitEnterFullscreen === 'function') {
+      
+      // Method 2: WebKit (Safari, Chrome)
+      if (anyVideo.webkitRequestFullscreen) {
+        try {
+          anyVideo.webkitRequestFullscreen();
+          setIsFullscreen(true);
+          return;
+        } catch (err) {
+          console.debug('webkitRequestFullscreen failed:', err);
+        }
+      }
+      
+      // Method 3: Mozilla (Firefox)
+      if (anyVideo.mozRequestFullScreen) {
+        try {
+          anyVideo.mozRequestFullScreen();
+          setIsFullscreen(true);
+          return;
+        } catch (err) {
+          console.debug('mozRequestFullScreen failed:', err);
+        }
+      }
+      
+      // Method 4: MS (IE/Edge)
+      if (anyVideo.msRequestFullscreen) {
+        try {
+          anyVideo.msRequestFullscreen();
+          setIsFullscreen(true);
+          return;
+        } catch (err) {
+          console.debug('msRequestFullscreen failed:', err);
+        }
+      }
+      
+      // Method 5: iOS Safari native fullscreen
+      if (anyVideo.webkitEnterFullscreen) {
         try {
           anyVideo.webkitEnterFullscreen();
           setIsFullscreen(true);
           return;
-        } catch (_) {}
+        } catch (err) {
+          console.debug('webkitEnterFullscreen failed:', err);
+        }
       }
+      
+      // Method 6: Fallback to pseudo-fullscreen (works on all devices)
       setPseudoFullscreen(true);
+      setIsFullscreen(true);
     } else {
+      // Exit fullscreen - try all methods
       if (document.fullscreenElement) {
         try {
-          await document.exitFullscreen();
-        } catch (_) {}
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (anyDoc.webkitExitFullscreen) {
+            await anyDoc.webkitExitFullscreen();
+          } else if (anyDoc.mozCancelFullScreen) {
+            await anyDoc.mozCancelFullScreen();
+          } else if (anyDoc.msExitFullscreen) {
+            await anyDoc.msExitFullscreen();
+          }
+        } catch (err) {
+          console.debug('exitFullscreen failed:', err);
+        }
       }
+      
       setIsFullscreen(false);
       setPseudoFullscreen(false);
     }
@@ -184,32 +249,76 @@ const CoursePlayer: React.FC = () => {
 
   // Listen for fullscreen changes
   React.useEffect(() => {
+    const anyDoc: any = document as any;
+    
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-      if (!document.fullscreenElement) {
+      const isFullscreen = !!(
+        document.fullscreenElement ||
+        anyDoc.webkitFullscreenElement ||
+        anyDoc.mozFullScreenElement ||
+        anyDoc.msFullscreenElement
+      );
+      setIsFullscreen(isFullscreen);
+      if (!isFullscreen) {
         setPseudoFullscreen(false);
       }
     };
+    
     const handleWebkitEnd = () => {
       setIsFullscreen(false);
       setPseudoFullscreen(false);
     };
+    
+    // Add all fullscreen event listeners for maximum compatibility
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
     document.addEventListener('webkitendfullscreen', handleWebkitEnd as any);
+    
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
       document.removeEventListener('webkitendfullscreen', handleWebkitEnd as any);
     };
   }, []);
 
   React.useEffect(() => {
     if (pseudoFullscreen) {
+      // Prevent scrolling and ensure fullscreen overlay
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      // Prevent Telegram WebApp from interfering
+      try {
+        // @ts-ignore
+        if (window?.Telegram?.WebApp) {
+          // @ts-ignore
+          window.Telegram.WebApp.disableVerticalSwipes();
+        }
+      } catch (_) {}
     } else {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      // Re-enable Telegram WebApp features
+      try {
+        // @ts-ignore
+        if (window?.Telegram?.WebApp) {
+          // @ts-ignore
+          window.Telegram.WebApp.enableVerticalSwipes();
+        }
+      } catch (_) {}
     }
     return () => {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
     };
   }, [pseudoFullscreen]);
 
@@ -401,8 +510,8 @@ const CoursePlayer: React.FC = () => {
 
       <div className={`pt-24 mx-auto p-4 space-y-6 ${isFullscreen ? 'max-w-6xl' : 'max-w-md'}`}>
         {/* Video Player Card */}
-        <div className={`${pseudoFullscreen ? 'fixed inset-0 z-[9999]' : ''} backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen || pseudoFullscreen ? 'shadow-2xl' : ''}`} style={{ backgroundColor: '#10091c' }}>
-          <div className={`relative ${pseudoFullscreen ? 'w-screen h-screen' : ''}`}>
+        <div className={`${pseudoFullscreen ? 'fixed inset-0 z-[99999] bg-black rounded-none' : ''} backdrop-blur-xl rounded-3xl border border-gray-700/60 shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen || pseudoFullscreen ? 'shadow-2xl' : ''}`} style={{ backgroundColor: pseudoFullscreen ? '#000000' : '#10091c' }}>
+          <div className={`relative flex items-center justify-center ${pseudoFullscreen ? 'w-[100vw] h-[100vh] max-w-[100vw] max-h-[100vh]' : ''}`}>
             {/* Check if user can access current session */}
             {current && canAccessSession(course.sessions.findIndex(s => s.id === current.id)) ? (
               <video
@@ -410,7 +519,7 @@ const CoursePlayer: React.FC = () => {
                 key={current?.id}
                 controls
                 playsInline
-                className={`w-full bg-black transition-all duration-300 ${(isFullscreen || pseudoFullscreen) ? 'h-[100vh]' : 'h-52'}`}
+                className={`w-full bg-black transition-all duration-300 ${(isFullscreen || pseudoFullscreen) ? 'h-[100vh] w-[100vw] object-contain' : 'h-52'}`}
                 controlsList="nodownload"
                 disablePictureInPicture
                 // @ts-ignore - non-standard but supported in Chromium
@@ -437,10 +546,10 @@ const CoursePlayer: React.FC = () => {
             </div> */}
             <button
               onClick={toggleFullscreen}
-              className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white p-2 rounded-full border border-white/20 hover:bg-black/80 transition-all duration-300 hover:scale-110"
-              title={isFullscreen ? 'خروج از تمام صفحه' : 'تمام صفحه'}
+              className={`absolute ${pseudoFullscreen ? 'top-3 right-3' : 'top-3 left-3'} bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white p-2 rounded-full border border-white/30 transition-all duration-300 hover:scale-110 z-10`}
+              title={(isFullscreen || pseudoFullscreen) ? 'خروج از تمام صفحه' : 'تمام صفحه'}
             >
-              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              {(isFullscreen || pseudoFullscreen) ? <X size={16} /> : <Maximize2 size={16} />}
             </button>
           </div>
         </div>

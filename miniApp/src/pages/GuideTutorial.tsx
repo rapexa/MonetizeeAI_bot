@@ -78,28 +78,93 @@ const GuideTutorial: React.FC = () => {
     const el = videoRef.current;
     if (!el) return;
 
-    const active = !!document.fullscreenElement || pseudoFullscreen;
+    const anyDoc: any = document as any;
+    const active = !!document.fullscreenElement || 
+                   !!anyDoc.webkitFullscreenElement || 
+                   !!anyDoc.mozFullScreenElement || 
+                   !!anyDoc.msFullscreenElement ||
+                   pseudoFullscreen;
+    
     if (!active) {
+      // Try all fullscreen methods for maximum compatibility
+      const anyVideo: any = el as any;
+      
+      // Method 1: Standard Fullscreen API
       if (el.requestFullscreen) {
         try {
           await el.requestFullscreen();
           setIsFullscreen(true);
           return;
-        } catch (_) {}
+        } catch (err) {
+          console.debug('requestFullscreen failed:', err);
+        }
       }
-      const anyVideo: any = el as any;
-      if (anyVideo && typeof anyVideo.webkitEnterFullscreen === 'function') {
+      
+      // Method 2: WebKit (Safari, Chrome)
+      if (anyVideo.webkitRequestFullscreen) {
+        try {
+          anyVideo.webkitRequestFullscreen();
+          setIsFullscreen(true);
+          return;
+        } catch (err) {
+          console.debug('webkitRequestFullscreen failed:', err);
+        }
+      }
+      
+      // Method 3: Mozilla (Firefox)
+      if (anyVideo.mozRequestFullScreen) {
+        try {
+          anyVideo.mozRequestFullScreen();
+          setIsFullscreen(true);
+          return;
+        } catch (err) {
+          console.debug('mozRequestFullScreen failed:', err);
+        }
+      }
+      
+      // Method 4: MS (IE/Edge)
+      if (anyVideo.msRequestFullscreen) {
+        try {
+          anyVideo.msRequestFullscreen();
+          setIsFullscreen(true);
+          return;
+        } catch (err) {
+          console.debug('msRequestFullscreen failed:', err);
+        }
+      }
+      
+      // Method 5: iOS Safari native fullscreen
+      if (anyVideo.webkitEnterFullscreen) {
         try {
           anyVideo.webkitEnterFullscreen();
           setIsFullscreen(true);
           return;
-        } catch (_) {}
+        } catch (err) {
+          console.debug('webkitEnterFullscreen failed:', err);
+        }
       }
+      
+      // Method 6: Fallback to pseudo-fullscreen (works on all devices)
       setPseudoFullscreen(true);
+      setIsFullscreen(true);
     } else {
+      // Exit fullscreen - try all methods
       if (document.fullscreenElement) {
-        try { await document.exitFullscreen(); } catch (_) {}
+        try {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (anyDoc.webkitExitFullscreen) {
+            await anyDoc.webkitExitFullscreen();
+          } else if (anyDoc.mozCancelFullScreen) {
+            await anyDoc.mozCancelFullScreen();
+          } else if (anyDoc.msExitFullscreen) {
+            await anyDoc.msExitFullscreen();
+          }
+        } catch (err) {
+          console.debug('exitFullscreen failed:', err);
+        }
       }
+      
       setIsFullscreen(false);
       setPseudoFullscreen(false);
     }
@@ -107,31 +172,77 @@ const GuideTutorial: React.FC = () => {
 
   // Sync fullscreen state and manage pseudo/body overflow
   useEffect(() => {
+    const anyDoc: any = document as any;
+    
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-      if (!document.fullscreenElement) {
+      const isFullscreen = !!(
+        document.fullscreenElement ||
+        anyDoc.webkitFullscreenElement ||
+        anyDoc.mozFullScreenElement ||
+        anyDoc.msFullscreenElement
+      );
+      setIsFullscreen(isFullscreen);
+      if (!isFullscreen) {
         setPseudoFullscreen(false);
       }
     };
+    
     const handleWebkitEnd = () => {
       setIsFullscreen(false);
       setPseudoFullscreen(false);
     };
+    
+    // Add all fullscreen event listeners for maximum compatibility
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
     document.addEventListener('webkitendfullscreen', handleWebkitEnd as any);
+    
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
       document.removeEventListener('webkitendfullscreen', handleWebkitEnd as any);
     };
   }, []);
 
   useEffect(() => {
     if (pseudoFullscreen) {
+      // Prevent scrolling and ensure fullscreen overlay
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      // Prevent Telegram WebApp from interfering
+      try {
+        // @ts-ignore
+        if (window?.Telegram?.WebApp) {
+          // @ts-ignore
+          window.Telegram.WebApp.disableVerticalSwipes();
+        }
+      } catch (_) {}
     } else {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      // Re-enable Telegram WebApp features
+      try {
+        // @ts-ignore
+        if (window?.Telegram?.WebApp) {
+          // @ts-ignore
+          window.Telegram.WebApp.enableVerticalSwipes();
+        }
+      } catch (_) {}
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    };
   }, [pseudoFullscreen]);
 
   useEffect(() => {
@@ -190,7 +301,7 @@ const GuideTutorial: React.FC = () => {
 
         {/* Video Container */}
         <div 
-          className={`relative bg-black rounded-2xl overflow-hidden shadow-2xl border border-purple-500/30 ${pseudoFullscreen ? 'fixed inset-0 z-[9999]' : ''}`}
+          className={`relative bg-black rounded-2xl overflow-hidden shadow-2xl border border-purple-500/30 ${pseudoFullscreen ? 'fixed inset-0 z-[99999] bg-black rounded-none' : ''}`}
           onMouseEnter={() => setShowControls(true)}
           onMouseLeave={() => isPlaying && setShowControls(false)}
         >
@@ -198,7 +309,7 @@ const GuideTutorial: React.FC = () => {
           {/* Video */}
           <video
             ref={videoRef}
-            className={`w-full ${pseudoFullscreen ? 'h-[100vh]' : 'aspect-video'}`}
+            className={`w-full ${pseudoFullscreen ? 'h-[100vh] w-[100vw] max-w-[100vw] max-h-[100vh] object-contain' : 'aspect-video'}`}
             onClick={togglePlay}
             preload="auto"
             autoPlay
