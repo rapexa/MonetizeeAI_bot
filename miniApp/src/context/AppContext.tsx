@@ -218,6 +218,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!isAPIConnected) return;
     
     try {
+      // CRITICAL FIX: Clear cache before refreshing to ensure fresh data
+      // This is especially important after quiz evaluation
+      apiService.clearCache();
+      
       // ⚡ PERFORMANCE: Parallelize API calls instead of sequential
       const [userResponse, progressResponse, profileResponse] = await Promise.all([
         apiService.getCurrentUser(),

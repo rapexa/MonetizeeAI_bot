@@ -613,6 +613,11 @@ const Levels: React.FC = () => {
     const currentSession = userData.currentSession || 1;
     const completedStages = currentSession - 1;
     
+    // CRITICAL FIX: Check if previous stage was passed in quiz results
+    // This ensures that even if backend didn't update, frontend can unlock next stage
+    const previousStageId = stageId - 1;
+    const previousStagePassed = stageQuizResults[previousStageId]?.passed === true;
+    
     // Check subscription limits
     const canAccessStage = () => {
       // If user has paid subscription, they can access all stages
@@ -636,7 +641,19 @@ const Levels: React.FC = () => {
     }
     
     let status: 'locked' | 'available' | 'in_progress' | 'completed';
-    if (stageId <= completedStages) {
+    
+    // CRITICAL FIX: If previous stage was passed, unlock next stage
+    // This ensures that even if backend didn't update CurrentSession, frontend can still unlock
+    if (previousStagePassed && stageId === previousStageId + 1) {
+      status = 'available';
+      logger.debug(`🔓 Unlocking stage ${stageId} because previous stage ${previousStageId} was passed:`, {
+        stageId,
+        previousStageId,
+        previousStagePassed,
+        currentSession,
+        completedStages
+      });
+    } else if (stageId <= completedStages) {
       status = 'completed';
     } else if (stageId === completedStages + 1) {
       status = 'available'; // Current stage user can work on
@@ -644,13 +661,16 @@ const Levels: React.FC = () => {
       status = 'locked';
     }
     
-    // Log for debugging (only for stages 1-10 to avoid spam)
-    if (stageId <= 10) {
+    // Log for debugging (only for stages 1-15 to avoid spam)
+    if (stageId <= 15) {
       logger.debug(`🔍 getStageStatus(${stageId}):`, {
         currentSession,
         completedStages,
         status,
-        calculation: `${stageId} vs ${completedStages}`
+        previousStageId,
+        previousStagePassed,
+        calculation: `${stageId} vs ${completedStages}`,
+        unlockedByQuiz: previousStagePassed && stageId === previousStageId + 1
       });
     }
     
@@ -663,7 +683,8 @@ const Levels: React.FC = () => {
       // User's current session means they have completed sessions up to currentSession - 1
       const completedStages = userData.currentSession - 1;
       
-      // Allow access to stages up to completed + 1 (next available stage)
+      // CRITICAL FIX: Allow access to stages up to completed + 1 (next available stage)
+      // This ensures that if user is at stage 11, they can access stage 12
       const availableStages = [];
       for (let i = 1; i <= Math.min(completedStages + 1, 29); i++) {
         availableStages.push(i);
@@ -671,10 +692,17 @@ const Levels: React.FC = () => {
       
       setPassedStages(new Set(availableStages));
       
-      logger.debug('🔓 Updated available stages based on user progress:', {
+      // CRITICAL: Force regenerate levels when currentSession changes
+      // This ensures stages are immediately updated with correct status
+      const updatedLevels = generateLevels();
+      setLevels(updatedLevels);
+      
+      logger.debug('🔓 Updated available stages and regenerated levels based on user progress:', {
         currentSession: userData.currentSession,
         completedStages,
-        availableStages: availableStages.length
+        availableStages: availableStages.length,
+        nextAvailableStage: completedStages + 1,
+        levelsRegenerated: true
       });
     }
   }, [userData.currentSession]);
@@ -775,23 +803,37 @@ const Levels: React.FC = () => {
   }, []);
 
   // CRITICAL: Regenerate levels when currentSession changes (after quiz pass)
+  // This is a separate effect to ensure levels are always up-to-date
   useEffect(() => {
     if (userData.currentSession) {
       logger.debug('🔄 userData.currentSession changed, regenerating levels...', {
         currentSession: userData.currentSession,
         levelsCount: levels.length,
-        selectedStageId: selectedStage?.id
+        selectedStageId: selectedStage?.id,
+        completedStages: userData.currentSession - 1,
+        nextAvailableStage: userData.currentSession
       });
       
       // Generate new levels with updated status
       const updatedLevels = generateLevels();
       setLevels(updatedLevels);
       
-      // Log level generation result
+      // Log level generation result for debugging
       const level1 = updatedLevels[0];
       if (level1) {
+        const currentStageId = userData.currentSession;
+        const nextStageId = userData.currentSession + 1;
         logger.debug('📊 Level 1 stages after regeneration:', {
-          stages: level1.stages.slice(0, 10).map(s => ({ id: s.id, status: s.status }))
+          currentStageId,
+          nextStageId,
+          currentStageStatus: level1.stages.find(s => s.id === currentStageId)?.status,
+          nextStageStatus: level1.stages.find(s => s.id === nextStageId)?.status,
+          stages: level1.stages.slice(0, 15).map(s => ({ 
+            id: s.id, 
+            status: s.status,
+            isCurrent: s.id === currentStageId,
+            isNext: s.id === nextStageId
+          }))
         });
       }
       
@@ -799,7 +841,8 @@ const Levels: React.FC = () => {
       if (selectedStage) {
         logger.debug('🔄 Updating selected stage with new status...', {
           selectedStageId: selectedStage.id,
-          selectedStageCurrentStatus: selectedStage.status
+          selectedStageCurrentStatus: selectedStage.status,
+          currentSession: userData.currentSession
         });
         
         let updatedStage: Stage | null = null;
@@ -2049,39 +2092,72 @@ const Levels: React.FC = () => {
             }
           }));
           
-          // If passed and next stage unlocked, update progress
-          if (passed && next_stage_unlocked) {
+          // CRITICAL FIX: If quiz passed, ALWAYS unlock next stage and refresh
+          // Even if next_stage_unlocked is false from backend, we should still try to unlock
+          if (passed) {
             logger.debug('🎉 Quiz passed! Unlocking next stage...', {
               stageId: selectedStage.id,
               nextStageId: selectedStage.id + 1,
-              currentSessionBefore: userData.currentSession
+              currentSessionBefore: userData.currentSession,
+              nextStageUnlocked: next_stage_unlocked
             });
+            
+            // Always add next stage to passed stages if quiz passed
             setPassedStages(prev => new Set([...prev, selectedStage.id + 1]));
             
-            // Refresh user data to get updated progress from API
-            // This will update userData.currentSession from the backend
-            logger.debug('🔄 Refreshing user data from API...');
+            // CRITICAL: Always refresh user data to get latest currentSession from backend
+            // This ensures that even if backend updated CurrentSession, we get the latest value
+            logger.debug('🔄 Refreshing user data from API (forcing cache clear)...');
             try {
+              // Clear cache first to ensure fresh data
+              apiService.clearCache();
+              
+              // Refresh user data
               await refreshUserDataFromContext();
               
               // Wait for React state to update after refresh
               // The useEffect watching userData.currentSession will automatically regenerate levels
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              await new Promise(resolve => setTimeout(resolve, 1500));
               
-              logger.debug('✅ User progress updated, levels will be regenerated by useEffect:', {
+              // Force regenerate levels immediately after refresh
+              const updatedLevels = generateLevels();
+              setLevels(updatedLevels);
+              
+              // Update selected stage if it exists in updated levels
+              if (selectedStage) {
+                for (const level of updatedLevels) {
+                  const updatedStage = level.stages.find(s => s.id === selectedStage.id);
+                  if (updatedStage) {
+                    setSelectedStage(updatedStage);
+                    break;
+                  }
+                }
+              }
+              
+              logger.debug('✅ User progress updated and levels regenerated:', {
                 currentSession: userData.currentSession,
                 nextStageId: selectedStage.id + 1,
-                nextStageUnlocked: next_stage_unlocked
+                nextStageUnlocked: next_stage_unlocked,
+                levelsRegenerated: true
               });
             } catch (refreshError) {
               logger.error('❌ Error refreshing user data after quiz pass:', refreshError);
+              
+              // FALLBACK: Even if refresh fails, manually unlock next stage
+              // This ensures user can continue even if there's a temporary API issue
+              logger.warn('⚠️ Refresh failed, manually unlocking next stage as fallback');
+              const fallbackLevels = generateLevels();
+              setLevels(fallbackLevels);
             }
-          } else if (passed && !next_stage_unlocked) {
-            logger.warn('⚠️ Quiz passed but next stage not unlocked', {
-              stageId: selectedStage.id,
-              passed,
-              next_stage_unlocked
-            });
+            
+            // If next_stage_unlocked is false but passed is true, log warning
+            if (!next_stage_unlocked) {
+              logger.warn('⚠️ Quiz passed but backend did not unlock next stage. Forcing unlock on frontend.', {
+                stageId: selectedStage.id,
+                passed,
+                next_stage_unlocked
+              });
+            }
           }
           
           logger.debug('✅ Quiz evaluated successfully:', { passed, score, next_stage_unlocked });
