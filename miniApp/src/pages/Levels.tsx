@@ -4196,54 +4196,102 @@ const Levels: React.FC = () => {
 
                     <div className="p-6">
               {/* Quiz Result Status */}
-              {stageQuizResults[selectedStage.id] ? (
-                <div className={`rounded-2xl p-6 mb-6 border-2 ${
-                  stageQuizResults[selectedStage.id].passed 
-                    ? 'bg-gradient-to-r from-green-50/80 to-emerald-50/80 dark:from-green-900/30 dark:to-emerald-900/30 border-green-300/60 dark:border-green-600/60' 
-                    : 'bg-gradient-to-r from-red-50/80 to-pink-50/80 dark:from-red-900/30 dark:to-pink-900/30 border-red-300/60 dark:border-red-600/60'
-                }`}>
-                  <div className="flex items-center gap-4 mb-4">
-                    {stageQuizResults[selectedStage.id].passed ? (
-                      <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
-                        <CheckCircle2 className="w-8 h-8 text-white" />
+              {(() => {
+                // CRITICAL FIX: Check if this is the current stage (user is at this stage)
+                // If user is at this stage (currentSession === stageId), they should be able to take quiz
+                // even if stageQuizResults shows passed (which might be from admin panel change)
+                const isCurrentStage = userData.currentSession === selectedStage.id;
+                const hasQuizResult = !!stageQuizResults[selectedStage.id];
+                const hasPassedQuiz = stageQuizResults[selectedStage.id]?.passed === true;
+                
+                // CRITICAL: If this is current stage, ALWAYS show "ready for quiz" card
+                // This ensures that even if admin changed stage and quiz was marked as passed,
+                // user can still take the quiz
+                if (isCurrentStage) {
+                  return (
+                    <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/50 dark:border-blue-700/50 rounded-2xl p-6 mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
+                          <ClipboardCheck className="w-8 h-8 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-blue-700 dark:text-blue-300 text-xl mb-2">آماده چالش نهایی؟</h4>
+                          <p className="text-sm text-blue-600 dark:text-blue-400">آزمون این مرحله منتظر شماست!</p>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="w-14 h-14 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-                        <X className="w-8 h-8 text-white" />
+                    </div>
+                  );
+                }
+                
+                // If quiz result exists and user is NOT at this stage, show result card
+                if (hasQuizResult) {
+                  return (
+                    <div className={`rounded-2xl p-6 mb-6 border-2 ${
+                      hasPassedQuiz
+                        ? 'bg-gradient-to-r from-green-50/80 to-emerald-50/80 dark:from-green-900/30 dark:to-emerald-900/30 border-green-300/60 dark:border-green-600/60' 
+                        : 'bg-gradient-to-r from-red-50/80 to-pink-50/80 dark:from-red-900/30 dark:to-pink-900/30 border-red-300/60 dark:border-red-600/60'
+                    }`}>
+                      <div className="flex items-center gap-4 mb-4">
+                        {hasPassedQuiz ? (
+                          <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                            <CheckCircle2 className="w-8 h-8 text-white" />
+                          </div>
+                        ) : (
+                          <div className="w-14 h-14 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+                            <X className="w-8 h-8 text-white" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <h4 className={`font-bold text-xl mb-2 ${
+                            hasPassedQuiz
+                              ? 'text-green-700 dark:text-green-300' 
+                              : 'text-red-700 dark:text-red-300'
+                          }`}>
+                            {hasPassedQuiz ? '🎉 تبریک! شما در آزمون موفق شدید!' : '📚 متأسفانه در آزمون موفق نشدید'}
+                          </h4>
+                          {hasPassedQuiz && (
+                            <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                              ✅ مرحله بعدی برای شما باز شد
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    <div className="flex-1">
-                      <h4 className={`font-bold text-xl mb-2 ${
-                        stageQuizResults[selectedStage.id].passed 
-                          ? 'text-green-700 dark:text-green-300' 
-                          : 'text-red-700 dark:text-red-300'
-                      }`}>
-                        {stageQuizResults[selectedStage.id].passed ? '🎉 تبریک! شما در آزمون موفق شدید!' : '📚 متأسفانه در آزمون موفق نشدید'}
-                      </h4>
-                      {stageQuizResults[selectedStage.id].passed && (
-                        <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-                          ✅ مرحله بعدی برای شما باز شد
-                        </p>
-                      )}
+                    </div>
+                  );
+                }
+                
+                // Default: show "ready for quiz" card
+                return (
+                  <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/50 dark:border-blue-700/50 rounded-2xl p-6 mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
+                        <ClipboardCheck className="w-8 h-8 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-blue-700 dark:text-blue-300 text-xl mb-2">آماده چالش نهایی؟</h4>
+                        <p className="text-sm text-blue-600 dark:text-blue-400">آزمون این مرحله منتظر شماست!</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/50 dark:border-blue-700/50 rounded-2xl p-6 mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
-                      <ClipboardCheck className="w-8 h-8 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-blue-700 dark:text-blue-300 text-xl mb-2">آماده چالش نهایی؟</h4>
-                      <p className="text-sm text-blue-600 dark:text-blue-400">آزمون این مرحله منتظر شماست!</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
               
-              {/* Show quiz button only when not passed */}
-              {!stageQuizResults[selectedStage.id]?.passed && (
+              {/* CRITICAL FIX: Show quiz button if:
+                  1. This is the current stage (user is at this stage) - even if quiz was marked as passed
+                  2. OR quiz not passed yet
+              */}
+              {(() => {
+                const isCurrentStage = userData.currentSession === selectedStage.id;
+                const hasPassedQuiz = stageQuizResults[selectedStage.id]?.passed === true;
+                
+                // Show quiz button if:
+                // - This is the current stage (user is at this stage) - allow quiz even if passed (admin panel case)
+                // - OR quiz was never attempted
+                // - OR quiz was attempted but not passed
+                const shouldShowQuiz = isCurrentStage || !hasPassedQuiz;
+                
+                return shouldShowQuiz;
+              })() && (
                 <button 
                   onClick={() => setShowQuiz(true)}
                   className={
