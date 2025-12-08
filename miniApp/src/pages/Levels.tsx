@@ -4176,20 +4176,6 @@ const Levels: React.FC = () => {
                             }`}>
                               قدم سوم: آزمون نهایی
                             </h3>
-                            <p className={`text-sm mt-1 transition-all duration-300 ${
-                              stageQuizResults[selectedStage.id]?.passed 
-                                ? 'text-green-200' 
-                                : stageQuizResults[selectedStage.id] 
-                                ? 'text-red-200'
-                                : 'text-gray-300'
-                            }`}>
-                              {stageQuizResults[selectedStage.id]?.passed 
-                                ? '✅ تکمیل شده' 
-                                : stageQuizResults[selectedStage.id] 
-                                ? '❌ نیاز به تلاش مجدد'
-                                : 'تست میزان یادگیری شما'
-                              }
-                            </p>
                           </div>
                       </div>
                     </div>
