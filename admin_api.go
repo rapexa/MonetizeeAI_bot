@@ -922,11 +922,26 @@ func changeUserSessionAPI(c *gin.Context) {
 	oldSession := user.CurrentSession
 	user.CurrentSession = req.SessionNumber
 
-	if err := db.Save(&user).Error; err != nil {
+	// Use explicit WHERE clause for atomic update
+	updates := map[string]interface{}{
+		"current_session": req.SessionNumber,
+	}
+	if err := db.Model(&User{}).Where("id = ?", user.ID).Updates(updates).Error; err != nil {
 		logger.Error("Failed to update user session", zap.Error(err), zap.Uint("user_id", user.ID))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Failed to update user session",
+		})
+		return
+	}
+
+	// Verify the update
+	var verifyUser User
+	if err := db.First(&verifyUser, user.ID).Error; err != nil {
+		logger.Error("Failed to verify user session update", zap.Error(err), zap.Uint("user_id", user.ID))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to verify session update",
 		})
 		return
 	}
@@ -941,11 +956,23 @@ func changeUserSessionAPI(c *gin.Context) {
 		zap.Uint("user_id", user.ID),
 		zap.Int("old_session", oldSession),
 		zap.Int("new_session", req.SessionNumber),
+		zap.Int("verified_session", verifyUser.CurrentSession),
+		zap.Bool("update_verified", verifyUser.CurrentSession == req.SessionNumber),
 		zap.Int64("admin_telegram_id", c.GetInt64("admin_telegram_id")))
+
+	// Calculate which stages are now available
+	completedStages := req.SessionNumber - 1
+	availableStage := req.SessionNumber
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": fmt.Sprintf("User session changed from %d to %d", oldSession, req.SessionNumber),
+		"message": fmt.Sprintf("User session changed from %d to %d. Stage %d is now available for the user.", oldSession, req.SessionNumber, availableStage),
+		"data": gin.H{
+			"old_session":      oldSession,
+			"new_session":      req.SessionNumber,
+			"completed_stages": completedStages,
+			"available_stage":  availableStage,
+		},
 	})
 }
 

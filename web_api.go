@@ -2638,6 +2638,8 @@ func handleQuizEvaluation(c *gin.Context) {
 				zap.Int("new_session", newSession),
 				zap.Int("score", score),
 				zap.Error(err))
+			// Even if update fails, don't set nextStageUnlocked to true
+			nextStageUnlocked = false
 		} else {
 			// CRITICAL: Update the user object in memory too
 			user.CurrentSession = newSession
@@ -2653,14 +2655,24 @@ func handleQuizEvaluation(c *gin.Context) {
 				logger.Error("Failed to verify user session update",
 					zap.Int64("user_id", user.TelegramID),
 					zap.Error(err))
+				// If verification fails, still consider it unlocked since update succeeded
 			} else {
-				logger.Info("✅ User session updated successfully",
-					zap.Int64("user_id", user.TelegramID),
-					zap.Int("stage_id", req.StageID),
-					zap.Int("old_session", user.CurrentSession-1),
-					zap.Int("new_session", verifyUser.CurrentSession),
-					zap.Int("score", score),
-					zap.Bool("verified", verifyUser.CurrentSession == newSession))
+				if verifyUser.CurrentSession == newSession {
+					logger.Info("✅ User session updated successfully - next stage unlocked",
+						zap.Int64("user_id", user.TelegramID),
+						zap.Int("stage_id", req.StageID),
+						zap.Int("old_session", user.CurrentSession-1),
+						zap.Int("new_session", verifyUser.CurrentSession),
+						zap.Int("next_stage_id", newSession+1),
+						zap.Int("score", score),
+						zap.Bool("verified", true))
+				} else {
+					logger.Warn("⚠️ User session update verification mismatch",
+						zap.Int64("user_id", user.TelegramID),
+						zap.Int("expected_session", newSession),
+						zap.Int("actual_session", verifyUser.CurrentSession))
+					// Still consider it unlocked since update succeeded
+				}
 			}
 		}
 	}
