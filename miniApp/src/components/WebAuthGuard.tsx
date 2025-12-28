@@ -7,6 +7,52 @@ interface WebAuthGuardProps {
 }
 
 /**
+ * Check if we're in Telegram Mini App
+ * Returns true if any Telegram indicator is present
+ */
+function isInTelegramMiniApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  // Check Telegram WebApp object
+  const telegramWebApp = window.Telegram?.WebApp;
+  if (telegramWebApp) {
+    // Has initData (most reliable indicator)
+    if (telegramWebApp.initData && telegramWebApp.initData.length > 0) {
+      return true;
+    }
+    // Has user in initDataUnsafe
+    if (telegramWebApp.initDataUnsafe?.user?.id) {
+      return true;
+    }
+    // Has start_param (from Telegram link)
+    if (telegramWebApp.initDataUnsafe?.start_param) {
+      return true;
+    }
+  }
+  
+  // Check URL for startapp parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlHashParams = new URLSearchParams(window.location.hash.substring(window.location.hash.indexOf('?') + 1));
+  if (urlParams.get('startapp') || urlHashParams.get('startapp')) {
+    return true;
+  }
+  
+  // Check User-Agent
+  const userAgent = navigator.userAgent;
+  if (/Telegram|TelegramBot|tdesktop/i.test(userAgent)) {
+    return true;
+  }
+  
+  // Check referrer
+  const referrer = document.referrer;
+  if (referrer && (/t\.me|telegram\.org|telegram\.me/i.test(referrer))) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
  * WebAuthGuard: Checks web session before rendering children
  * Prevents showing MonetizeAI page before redirecting to login
  */
@@ -27,32 +73,57 @@ const WebAuthGuard: React.FC<WebAuthGuardProps> = ({ children }) => {
         return;
       }
 
-      // Check if we're in Telegram (has startapp parameter or initData)
-      const urlParams = new URLSearchParams(window.location.search);
-      const startapp = urlParams.get('startapp');
-      const hasTelegramInitData = typeof window !== 'undefined' && 
-                                 window.Telegram?.WebApp?.initData && 
-                                 window.Telegram.WebApp.initData.length > 0;
-      const hasTelegramUser = typeof window !== 'undefined' && 
-                             window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-      
-      if (startapp || hasTelegramInitData || hasTelegramUser) {
-        // From Telegram - allow access without web session
-        if (startapp) {
-          // Use startapp as telegram_id
-          const telegramId = parseInt(startapp);
-          if (!isNaN(telegramId) && telegramId > 0) {
-            // Store telegram_id from startapp for API calls
-            localStorage.setItem('web_telegram_id', startapp);
-            // Update API service to use this telegram_id
-            apiService.setWebTelegramId(telegramId);
+      // First check if we're in Telegram Mini App
+      if (isInTelegramMiniApp()) {
+        // We're in Telegram - get telegram_id from various sources
+        const hasTelegramUser = typeof window !== 'undefined' && 
+                               window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+        const telegramStartParam = typeof window !== 'undefined' && 
+                                   window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+        
+        // Check URL parameters (both query and hash)
+        const urlParams = new URLSearchParams(window.location.search);
+        const hashIndex = window.location.hash.indexOf('?');
+        const urlHashParams = hashIndex >= 0 
+          ? new URLSearchParams(window.location.hash.substring(hashIndex + 1))
+          : new URLSearchParams();
+        const startappFromQuery = urlParams.get('startapp');
+        const startappFromHash = urlHashParams.get('startapp');
+        const startapp = startappFromQuery || startappFromHash;
+        
+        // Get telegram_id with priority:
+        // 1. start_param from Telegram WebApp (most reliable)
+        // 2. startapp from URL
+        // 3. user.id from Telegram WebApp
+        let telegramId: number | null = null;
+        
+        // Priority 1: Use start_param from Telegram WebApp (most reliable)
+        if (telegramStartParam) {
+          const parsedId = parseInt(telegramStartParam);
+          if (!isNaN(parsedId) && parsedId > 0) {
+            telegramId = parsedId;
           }
-        } else if (hasTelegramUser && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-          // Use Telegram user ID from initData
-          const telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
+        }
+        
+        // Priority 2: Use startapp from URL
+        if (!telegramId && startapp) {
+          const parsedId = parseInt(startapp);
+          if (!isNaN(parsedId) && parsedId > 0) {
+            telegramId = parsedId;
+          }
+        }
+        
+        // Priority 3: Use Telegram user ID from initData
+        if (!telegramId && hasTelegramUser && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+          telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
+        }
+        
+        // Store telegram_id for API calls
+        if (telegramId) {
           localStorage.setItem('web_telegram_id', telegramId.toString());
           apiService.setWebTelegramId(telegramId);
         }
+        
         // From Telegram - allow access without web session
         setIsChecking(false);
         setIsAuthorized(true);
