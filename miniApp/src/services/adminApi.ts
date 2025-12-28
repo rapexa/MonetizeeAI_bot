@@ -59,9 +59,9 @@ async function makeRequest<T = any>(
     };
 
     // Use Telegram auth if available, otherwise use web session token
+    // ⚠️ SECURITY: Removed X-Telegram-WebApp header - backend doesn't trust it anymore
     if (initData) {
       headers['X-Telegram-Init-Data'] = initData;
-      headers['X-Telegram-WebApp'] = 'true';
       // Also send start_param if available
       const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
       if (startParam) {
@@ -260,9 +260,9 @@ const adminApiService = {
     const webToken = getWebSessionToken();
     
     const headers: HeadersInit = {};
+    // ⚠️ SECURITY: Removed X-Telegram-WebApp header - backend doesn't trust it anymore
     if (initData) {
       headers['X-Telegram-Init-Data'] = initData;
-      headers['X-Telegram-WebApp'] = 'true';
     } else if (webToken) {
       headers['Authorization'] = `Bearer ${webToken}`;
       headers['X-Web-Auth'] = 'true';

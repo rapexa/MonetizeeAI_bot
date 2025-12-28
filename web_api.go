@@ -260,11 +260,12 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Check for Telegram WebApp indicators
+		// ⚠️ SECURITY: Do NOT trust X-Telegram-WebApp or X-Telegram-Start-Param headers
+		// because the frontend always sends them, even from web browsers
+		// Only trust: startapp query parameter, X-Telegram-Init-Data (validated), User-Agent, and Referer
 		userAgent := c.GetHeader("User-Agent")
 		referer := c.GetHeader("Referer")
 		initData := c.GetHeader("X-Telegram-Init-Data")
-		telegramWebApp := c.GetHeader("X-Telegram-WebApp")
-		startParam := c.GetHeader("X-Telegram-Start-Param")
 
 		// Log the request for debugging
 		// Debug logging removed for production
@@ -278,39 +279,43 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		// Check if request comes from Telegram WebApp
 		isTelegramWebApp := false
 
-		// Method 1: Check User-Agent for Telegram indicators
+		// Method 1: Check User-Agent for Telegram indicators (reliable - cannot be faked by frontend)
 		if strings.Contains(strings.ToLower(userAgent), "telegram") {
 			isTelegramWebApp = true
-			// logger.Debug("✅ Telegram detected in User-Agent")
+			logger.Debug("✅ Telegram detected in User-Agent",
+				zap.String("user_agent", userAgent))
 		}
 
-		// Method 2: Check Referer for Telegram domains
+		// Method 2: Check Referer for Telegram domains (reliable - cannot be faked by frontend)
 		if referer != "" && (strings.Contains(referer, "t.me") ||
 			strings.Contains(referer, "telegram.org") ||
 			strings.Contains(referer, "telegram.me")) {
 			isTelegramWebApp = true
-			// logger.Debug("✅ Telegram detected in Referer")
+			logger.Debug("✅ Telegram detected in Referer",
+				zap.String("referer", referer))
 		}
 
-		// Method 3: Check for Telegram WebApp init data header
+		// Method 3: Check for Telegram WebApp init data header (should be validated)
+		// Note: This should be cryptographically validated, but for now we check if it exists
+		// TODO: Add proper cryptographic validation of initData
 		if initData != "" {
-			isTelegramWebApp = true
-			// logger.Debug("✅ Telegram init data found")
+			// Only trust initData if it's not empty and looks valid
+			// Basic check: initData should contain user data
+			if strings.Contains(initData, "user=") || strings.Contains(initData, "hash=") {
+				isTelegramWebApp = true
+				logger.Debug("✅ Telegram init data found (basic validation passed)")
+			}
 		}
 
-		// Method 3.1: Check for X-Telegram-WebApp header
-		if telegramWebApp == "true" {
-			isTelegramWebApp = true
-			// logger.Debug("✅ Telegram WebApp header found")
-		}
+		// ⚠️ REMOVED: X-Telegram-WebApp header check
+		// Frontend always sends this header, even from web browsers
+		// DO NOT TRUST THIS HEADER
 
-		// Method 3.2: Check for start param header
-		if startParam != "" {
-			isTelegramWebApp = true
-			// logger.Debug("✅ Telegram start param found")
-		}
+		// ⚠️ REMOVED: X-Telegram-Start-Param header check
+		// Frontend might send this header, but it's not reliable
+		// Use startapp query parameter instead (already checked above)
 
-		// Method 4: Check for specific Telegram WebApp User-Agent patterns
+		// Method 4: Check for specific Telegram WebApp User-Agent patterns (reliable)
 		telegramPatterns := []string{
 			"TelegramBot",
 			"Telegram",
@@ -322,7 +327,9 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		for _, pattern := range telegramPatterns {
 			if strings.Contains(userAgent, pattern) {
 				isTelegramWebApp = true
-				// logger.Debug("✅ Telegram pattern matched", zap.String("pattern", pattern))
+				logger.Debug("✅ Telegram pattern matched",
+					zap.String("pattern", pattern),
+					zap.String("user_agent", userAgent))
 				break
 			}
 		}
@@ -341,15 +348,18 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		// If we reach here, it means:
 		// 1. No startapp parameter (not from Telegram Mini App)
 		// 2. No valid web session
-		// 3. No Telegram WebApp indicators
+		// 3. No Telegram WebApp indicators (User-Agent, Referer, or validated Init-Data)
+		// Note: X-Telegram-WebApp header is IGNORED because frontend always sends it
 		if !isTelegramWebApp {
-			logger.Warn("🚫 Access blocked - no startapp, no web session, and no Telegram indicators",
+			logger.Warn("🚫 Access blocked - no startapp, no web session, and no reliable Telegram indicators",
 				zap.String("ip", c.ClientIP()),
 				zap.String("user_agent", userAgent),
 				zap.String("referer", referer),
 				zap.String("path", c.Request.URL.Path),
 				zap.String("normalized_path", path),
-				zap.String("startapp", c.Query("startapp")), // Log startapp value (should be empty)
+				zap.String("startapp", c.Query("startapp")),                       // Log startapp value (should be empty)
+				zap.String("x_telegram_webapp", c.GetHeader("X-Telegram-WebApp")), // Log but don't trust
+				zap.Bool("has_init_data", initData != ""),
 				zap.Bool("is_api", strings.HasPrefix(c.Request.URL.Path, "/api/")),
 				zap.String("cookie_token", func() string {
 					if _, err := c.Cookie("web_session_token"); err == nil {

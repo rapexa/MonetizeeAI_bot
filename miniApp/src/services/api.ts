@@ -175,14 +175,19 @@ class APIService {
       };
 
       // Add Telegram WebApp authentication headers (if in Telegram)
-      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-        // Add init data if available
-        if (window.Telegram.WebApp.initData) {
-          headers['X-Telegram-Init-Data'] = window.Telegram.WebApp.initData;
-        }
+      // ⚠️ SECURITY: Only send X-Telegram-WebApp header if we have valid initData
+      // Don't trust just the presence of window.Telegram.WebApp (it can exist in web browsers too)
+      const isInTelegram = this.isInTelegram();
+      const hasInitData = typeof window !== 'undefined' && 
+                         window.Telegram?.WebApp?.initData && 
+                         window.Telegram.WebApp.initData.length > 0;
+      
+      if (isInTelegram && hasInitData && window.Telegram?.WebApp) {
+        // Only send Telegram headers if we're actually in Telegram with valid initData
+        headers['X-Telegram-Init-Data'] = window.Telegram.WebApp.initData;
         
-        // Add user agent info to help with authentication
-        headers['X-Telegram-WebApp'] = 'true';
+        // ⚠️ REMOVED: X-Telegram-WebApp header - backend doesn't trust it anymore
+        // Backend now only trusts: startapp query parameter, validated initData, User-Agent, and Referer
         
         // Add start param if available
         if (window.Telegram.WebApp.initDataUnsafe?.start_param) {
