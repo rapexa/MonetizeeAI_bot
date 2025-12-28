@@ -48,23 +48,6 @@ video:-ms-fullscreen {
   background: #000 !important;
 }
 
-/* CRITICAL: Hide native fullscreen button in Android Chrome/WebView */
-video::-webkit-media-controls-fullscreen-button {
-  display: none !important;
-}
-
-video::-webkit-media-controls {
-  /* Ensure our custom button is always visible */
-  z-index: 1 !important;
-}
-
-/* Ensure custom fullscreen button is always on top */
-.video-pseudo-fullscreen button,
-[style*="z-index: 99999"] {
-  z-index: 99999 !important;
-  position: relative !important;
-}
-
 /* Pseudo-fullscreen container (CSS fallback when native APIs fail) */
 .video-pseudo-fullscreen {
   position: fixed !important;
