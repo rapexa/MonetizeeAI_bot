@@ -231,19 +231,28 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
     const scrollY = window.scrollY;
     const scrollX = window.scrollX;
 
-    // CRITICAL: For Android, we need to prevent all scrolling and fix viewport
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.height = '100%';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.left = `-${scrollX}px`;
-    document.body.style.right = '0';
-    document.body.style.bottom = '0';
-    
-    // Add class for CSS targeting
-    document.body.classList.add('video-fullscreen-active');
-    document.documentElement.classList.add('video-fullscreen-active');
+    // CRITICAL: For Mobile (Android & iOS), we need to prevent all scrolling and fix viewport
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      document.body.style.height = '100dvh'; // Dynamic viewport for mobile
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = `-${scrollX}px`;
+      document.body.style.right = '0';
+      document.body.style.bottom = '0';
+      document.body.style.margin = '0';
+      document.body.style.padding = '0';
+      
+      // Add class for CSS targeting
+      document.body.classList.add('video-fullscreen-active');
+      document.documentElement.classList.add('video-fullscreen-active');
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.height = '100vh';
+      document.documentElement.style.height = '100dvh';
+    });
 
     // Make container fullscreen
     const containerElement = container as HTMLElement;
@@ -280,25 +289,31 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
       overflow: containerElement.style.overflow,
     };
     
-    // Apply fullscreen styles - CRITICAL for Android
-    containerElement.style.setProperty('position', 'fixed', 'important');
-    containerElement.style.setProperty('top', '0', 'important');
-    containerElement.style.setProperty('left', '0', 'important');
-    containerElement.style.setProperty('right', '0', 'important');
-    containerElement.style.setProperty('bottom', '0', 'important');
-    containerElement.style.setProperty('width', '100vw', 'important');
-    containerElement.style.setProperty('height', '100vh', 'important');
-    containerElement.style.setProperty('height', '100dvh', 'important'); // Dynamic viewport for Android
-    containerElement.style.setProperty('max-width', '100vw', 'important');
-    containerElement.style.setProperty('max-height', '100vh', 'important');
-    containerElement.style.setProperty('max-height', '100dvh', 'important');
-    containerElement.style.setProperty('z-index', '99999', 'important');
-    containerElement.style.setProperty('background-color', '#000', 'important');
-    containerElement.style.setProperty('margin', '0', 'important');
-    containerElement.style.setProperty('padding', '0', 'important');
-    containerElement.style.setProperty('border-radius', '0', 'important');
-    containerElement.style.setProperty('overflow', 'visible', 'important');
-    containerElement.classList.add('video-pseudo-fullscreen');
+    // Apply fullscreen styles - CRITICAL for Mobile (Android & iOS)
+    // Use requestAnimationFrame to ensure DOM is ready before applying styles
+    requestAnimationFrame(() => {
+      containerElement.style.setProperty('position', 'fixed', 'important');
+      containerElement.style.setProperty('top', '0', 'important');
+      containerElement.style.setProperty('left', '0', 'important');
+      containerElement.style.setProperty('right', '0', 'important');
+      containerElement.style.setProperty('bottom', '0', 'important');
+      containerElement.style.setProperty('width', '100vw', 'important');
+      containerElement.style.setProperty('height', '100vh', 'important');
+      containerElement.style.setProperty('height', '100dvh', 'important'); // Dynamic viewport for mobile
+      containerElement.style.setProperty('max-width', '100vw', 'important');
+      containerElement.style.setProperty('max-height', '100vh', 'important');
+      containerElement.style.setProperty('max-height', '100dvh', 'important');
+      containerElement.style.setProperty('z-index', '99999', 'important');
+      containerElement.style.setProperty('background-color', '#000', 'important');
+      containerElement.style.setProperty('margin', '0', 'important');
+      containerElement.style.setProperty('padding', '0', 'important');
+      containerElement.style.setProperty('border-radius', '0', 'important');
+      containerElement.style.setProperty('overflow', 'hidden', 'important');
+      // Force hardware acceleration
+      containerElement.style.setProperty('transform', 'translateZ(0)', 'important');
+      containerElement.style.setProperty('-webkit-transform', 'translateZ(0)', 'important');
+      containerElement.classList.add('video-pseudo-fullscreen');
+    });
     
     // Store original styles and parent fixes for cleanup
     (containerElement as any).__originalContainerStyles = originalContainerStyles;
@@ -315,15 +330,21 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
       margin: video.style.margin,
     };
     
-    video.style.width = '100vw';
-    video.style.height = '100vh';
-    video.style.height = '100dvh'; // Dynamic viewport for Android
-    video.style.maxWidth = '100vw';
-    video.style.maxHeight = '100vh';
-    video.style.maxHeight = '100dvh';
-    video.style.objectFit = 'contain';
-    video.style.display = 'block';
-    video.style.margin = 'auto';
+    // Apply video fullscreen styles with requestAnimationFrame
+    requestAnimationFrame(() => {
+      video.style.setProperty('width', '100vw', 'important');
+      video.style.setProperty('height', '100vh', 'important');
+      video.style.setProperty('height', '100dvh', 'important'); // Dynamic viewport for mobile
+      video.style.setProperty('max-width', '100vw', 'important');
+      video.style.setProperty('max-height', '100vh', 'important');
+      video.style.setProperty('max-height', '100dvh', 'important');
+      video.style.setProperty('object-fit', 'contain', 'important');
+      video.style.setProperty('display', 'block', 'important');
+      video.style.setProperty('margin', 'auto', 'important');
+      // Force hardware acceleration
+      video.style.setProperty('transform', 'translateZ(0)', 'important');
+      video.style.setProperty('-webkit-transform', 'translateZ(0)', 'important');
+    });
     
     // Store original styles for cleanup
     (video as any).__originalVideoStyles = originalVideoStyles;
@@ -339,22 +360,28 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
 
     // Store cleanup function
     (container as any).__fullscreenCleanup = () => {
-      // Restore body styles
-      document.body.style.overflow = originalOverflow;
-      document.body.style.position = originalPosition;
-      document.body.style.width = originalWidth;
-      document.body.style.height = originalHeight;
-      document.body.style.top = originalTop;
-      document.body.style.left = originalLeft;
-      document.body.style.right = originalRight;
-      document.body.style.bottom = originalBottom;
-      
-      // Remove classes
-      document.body.classList.remove('video-fullscreen-active');
-      document.documentElement.classList.remove('video-fullscreen-active');
-      
-      // Restore scroll position
-      window.scrollTo(scrollX, scrollY);
+      // Restore body and html styles
+      requestAnimationFrame(() => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.position = originalPosition;
+        document.body.style.width = originalWidth;
+        document.body.style.height = originalHeight;
+        document.body.style.top = originalTop;
+        document.body.style.left = originalLeft;
+        document.body.style.right = originalRight;
+        document.body.style.bottom = originalBottom;
+        document.body.style.margin = '';
+        document.body.style.padding = '';
+        
+        // Remove classes
+        document.body.classList.remove('video-fullscreen-active');
+        document.documentElement.classList.remove('video-fullscreen-active');
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.height = '';
+        
+        // Restore scroll position
+        window.scrollTo(scrollX, scrollY);
+      });
 
       // Restore parent containers
       const fixedParents = (containerElement as any).__fixedParents;

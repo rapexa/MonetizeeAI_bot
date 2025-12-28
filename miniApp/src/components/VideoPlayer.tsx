@@ -5,7 +5,8 @@
  * Handles fullscreen, platform-specific quirks, and all edge cases
  */
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Maximize2, X } from 'lucide-react';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { getPlatformInfo } from '../utils/platformDetection';
@@ -100,7 +101,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   
   // Fullscreen management
   const {
-    isFullscreen,
     isPseudoFullscreen,
     toggleFullscreen,
     isFullscreenActive,
@@ -109,9 +109,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     containerRef,
     enablePseudoFullscreen: true,
   });
-
-  // Track if video is ready
-  const [isVideoReady, setIsVideoReady] = useState(false);
 
   /**
    * Set correct video attributes based on platform
@@ -147,7 +144,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     // Mark video as ready when metadata is loaded
     const handleLoadedMetadata = () => {
-      setIsVideoReady(true);
       onLoadedData?.();
     };
 
@@ -239,7 +235,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     ${className}
   `.trim().replace(/\s+/g, ' ');
 
-  return (
+  // Render video player content
+  const videoContent = (
     <div
       ref={containerRef}
       className={containerClasses}
@@ -322,16 +319,25 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
         )}
 
-        {/* Fullscreen button */}
-        {renderFullscreenButton
-          ? renderFullscreenButton({
-              isFullscreen: isFullscreenActive(),
-              toggleFullscreen,
-            })
-          : defaultFullscreenButton()}
-      </div>
-    </div>
+         {/* Fullscreen button */}
+         {renderFullscreenButton
+           ? renderFullscreenButton({
+               isFullscreen: isFullscreenActive(),
+               toggleFullscreen,
+             })
+           : defaultFullscreenButton()}
+       </div>
+     </div>
   );
+
+  // CRITICAL for Mobile: Use Portal to render fullscreen video directly to body
+  // This escapes all parent containers that might block fullscreen
+  if (isPseudoFullscreen && platformInfo.isMobile && typeof document !== 'undefined') {
+    return createPortal(videoContent, document.body);
+  }
+
+  // For desktop or non-fullscreen: render normally
+  return videoContent;
 };
 
 export default VideoPlayer;
