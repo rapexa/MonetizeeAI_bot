@@ -158,8 +158,32 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// 🎯 BEST METHOD: Check for startapp query parameter FIRST
+		// If startapp parameter exists, it means the request came from Telegram
+		// This is the most reliable way to detect Telegram Mini App access
+		// If startapp exists, no need to check web session - allow access directly
+		startappParam := c.Query("startapp")
+		if startappParam != "" {
+			// Request came from Telegram - allow access
+			logger.Info("✅ Telegram Mini App detected via startapp parameter",
+				zap.String("path", path),
+				zap.String("startapp", startappParam),
+				zap.String("ip", c.ClientIP()))
+			c.Set("telegram_id", 0) // Will be set from initData later
+			c.Set("from_telegram", true)
+			c.Next()
+			return
+		}
+
+		// IMPORTANT:
+		// - Root path "/" requires Telegram or web session
+		// - All other API routes (like /api/v1/user/*) require Telegram or web session
+		// - All other paths require Telegram or web session
+		// Only admin routes are allowed without Telegram/web session
+
 		// Check for valid web session token (for regular users, not admins)
 		// This allows web users to access the app if they have a valid session
+		// Only check web session if startapp parameter is NOT present
 		// Try multiple methods to get token (in order of priority):
 		// 1. Cookie (for HTML requests from frontend - most reliable for page loads)
 		// 2. Authorization header (for API requests)
@@ -234,12 +258,6 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 					}()))
 			}
 		}
-
-		// IMPORTANT:
-		// - Root path "/" requires Telegram
-		// - All other API routes (like /api/v1/user/*) require Telegram
-		// - All other paths require Telegram
-		// Only admin routes are allowed without Telegram
 
 		// Check for Telegram WebApp indicators
 		userAgent := c.GetHeader("User-Agent")
@@ -320,13 +338,18 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Block non-Telegram requests without web session
+		// If we reach here, it means:
+		// 1. No startapp parameter (not from Telegram Mini App)
+		// 2. No valid web session
+		// 3. No Telegram WebApp indicators
 		if !isTelegramWebApp {
-			logger.Warn("🚫 Non-Telegram access blocked - no session",
+			logger.Warn("🚫 Access blocked - no startapp, no web session, and no Telegram indicators",
 				zap.String("ip", c.ClientIP()),
 				zap.String("user_agent", userAgent),
 				zap.String("referer", referer),
 				zap.String("path", c.Request.URL.Path),
 				zap.String("normalized_path", path),
+				zap.String("startapp", c.Query("startapp")), // Log startapp value (should be empty)
 				zap.Bool("is_api", strings.HasPrefix(c.Request.URL.Path, "/api/")),
 				zap.String("cookie_token", func() string {
 					if _, err := c.Cookie("web_session_token"); err == nil {
@@ -347,11 +370,12 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 				// For frontend routes (non-API), redirect to /web-login if not already there
 				// CRITICAL: Check normalized path, not original path
 				if path != "/web-login" && path != "/web-login/" && !strings.HasPrefix(path, "/web-login/") {
-					logger.Info("🔄 Redirecting to /web-login - no session or Telegram",
+					logger.Info("🔄 Redirecting to /web-login - no startapp, no web session, and no Telegram",
 						zap.String("original_path", c.Request.URL.Path),
 						zap.String("normalized_path", path),
 						zap.String("ip", c.ClientIP()),
-						zap.String("method", c.Request.Method))
+						zap.String("method", c.Request.Method),
+						zap.String("startapp", c.Query("startapp")))
 					c.Redirect(http.StatusFound, "/web-login")
 					c.Abort()
 					return
