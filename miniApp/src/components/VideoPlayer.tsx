@@ -5,7 +5,7 @@
  * Handles fullscreen, platform-specific quirks, and all edge cases
  */
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Maximize2, X } from 'lucide-react';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { getPlatformInfo } from '../utils/platformDetection';
@@ -100,7 +100,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   
   // Fullscreen management
   const {
-    isFullscreen,
     isPseudoFullscreen,
     toggleFullscreen,
     isFullscreenActive,
@@ -109,9 +108,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     containerRef,
     enablePseudoFullscreen: true,
   });
-
-  // Track if video is ready
-  const [isVideoReady, setIsVideoReady] = useState(false);
 
   /**
    * Set correct video attributes based on platform
@@ -130,6 +126,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     // Android/Chrome: playsInline helps prevent unwanted fullscreen
     if (platformInfo.isAndroid) {
       video.setAttribute('playsinline', 'true');
+      // CRITICAL: Disable native fullscreen button in Android controls
+      // This ensures our custom button is the only way to fullscreen
+      video.setAttribute('controlsList', 'nodownload nofullscreen');
     }
 
     // Prevent picture-in-picture (can interfere with fullscreen)
@@ -147,7 +146,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     // Mark video as ready when metadata is loaded
     const handleLoadedMetadata = () => {
-      setIsVideoReady(true);
       onLoadedData?.();
     };
 
@@ -187,9 +185,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       <button
         onClick={(e) => {
           e.stopPropagation();
+          e.preventDefault();
           toggleFullscreen();
         }}
-        className={`absolute ${buttonPosition} bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white p-2 rounded-full border border-white/30 transition-all duration-300 hover:scale-110 z-10 flex items-center gap-2`}
+        className={`absolute ${buttonPosition} bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white p-2 rounded-full border border-white/30 transition-all duration-300 hover:scale-110 flex items-center gap-2`}
+        style={{
+          zIndex: 99999, // CRITICAL: Must be above video controls
+          pointerEvents: 'auto', // Ensure button is clickable
+        }}
         title={isActive ? 'خروج از تمام صفحه' : 'تمام صفحه'}
         aria-label={isActive ? 'خروج از تمام صفحه' : 'تمام صفحه'}
       >
@@ -280,7 +283,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           ref={videoRef}
           className={videoClasses}
           controls
-          controlsList="nodownload"
+          controlsList="nodownload nofullscreen"
           poster={poster}
           playsInline
           preload="metadata"
@@ -317,18 +320,31 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
         {/* Title overlay */}
         {title && (
-          <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full border border-white/20 z-10">
+          <div 
+            className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full border border-white/20"
+            style={{
+              zIndex: 99998, // Below fullscreen button but above video
+            }}
+          >
             {title}
           </div>
         )}
 
-        {/* Fullscreen button */}
-        {renderFullscreenButton
-          ? renderFullscreenButton({
-              isFullscreen: isFullscreenActive(),
-              toggleFullscreen,
-            })
-          : defaultFullscreenButton()}
+        {/* Fullscreen button - CRITICAL: Must be above video controls */}
+        <div
+          style={{
+            position: 'absolute',
+            zIndex: 99999,
+            pointerEvents: 'none', // Allow clicks to pass through container
+          }}
+        >
+          {renderFullscreenButton
+            ? renderFullscreenButton({
+                isFullscreen: isFullscreenActive(),
+                toggleFullscreen,
+              })
+            : defaultFullscreenButton()}
+        </div>
       </div>
     </div>
   );
