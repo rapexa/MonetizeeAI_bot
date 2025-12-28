@@ -65,6 +65,9 @@ const WebLogin: React.FC = () => {
         localStorage.setItem('web_session_token', response.data.token);
         localStorage.setItem('web_telegram_id', telegramId);
         
+        // Also set cookie for backend middleware to read (for HTML requests)
+        document.cookie = `web_session_token=${response.data.token}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax`;
+        
         // Update API service to use this telegram_id
         apiService.setWebTelegramId(telegramIdNum);
         

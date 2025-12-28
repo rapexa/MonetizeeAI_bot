@@ -160,9 +160,22 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 
 		// Check for valid web session token (for regular users, not admins)
 		// This allows web users to access the app if they have a valid session
-		token := c.GetHeader("Authorization")
+		// Try multiple methods to get token (in order of priority):
+		// 1. Cookie (for HTML requests from frontend - most reliable for page loads)
+		// 2. Authorization header (for API requests)
+		// 3. Query parameter (fallback)
+		var token string
+		// First try cookie (for HTML page requests)
+		cookieToken, err := c.Cookie("web_session_token")
+		if err == nil && cookieToken != "" {
+			token = cookieToken
+		}
+		// If no cookie, try Authorization header (for API requests)
 		if token == "" {
-			// Try to get from query parameter
+			token = c.GetHeader("Authorization")
+		}
+		// If still no token, try query parameter (fallback)
+		if token == "" {
 			token = c.Query("token")
 		}
 		if token != "" {
@@ -271,108 +284,37 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Block non-Telegram requests
+		// Block non-Telegram requests without web session
 		if !isTelegramWebApp {
-			logger.Warn("🚫 Non-Telegram access blocked",
+			logger.Warn("🚫 Non-Telegram access blocked - no session",
 				zap.String("ip", c.ClientIP()),
 				zap.String("user_agent", userAgent),
 				zap.String("referer", referer),
 				zap.String("path", c.Request.URL.Path),
 				zap.String("normalized_path", path))
 
-			// Return HTML page for non-API requests, JSON for API requests
-			// All API routes (except admin) require Telegram
+			// For API requests, return JSON error
 			if strings.HasPrefix(c.Request.URL.Path, "/api/") {
 				c.JSON(http.StatusForbidden, APIResponse{
 					Success: false,
-					Error:   "Access denied. This service is only available through Telegram Mini App.",
+					Error:   "Access denied. Please login via /web-login or use Telegram Mini App.",
 				})
 				c.Abort()
 				return
 			} else {
-				c.Header("Content-Type", "text/html; charset=utf-8")
-				c.String(http.StatusForbidden, `<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>دسترسی محدود - MonetizeAI</title>
-	<style>
-		* {
-			margin: 0;
-			padding: 0;
-			box-sizing: border-box;
-		}
-		body {
-			font-family: 'IranSansX', 'Vazir', system-ui, sans-serif;
-			background: linear-gradient(135deg, #0e0817 0%, #1a0d2e 100%);
-			color: #fff;
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			min-height: 100vh;
-			padding: 20px;
-		}
-		.container {
-			text-align: center;
-			max-width: 500px;
-			background: rgba(16, 9, 28, 0.8);
-			backdrop-filter: blur(10px);
-			border: 1px solid rgba(255, 255, 255, 0.1);
-			border-radius: 24px;
-			padding: 40px;
-			box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-		}
-		.icon {
-			font-size: 64px;
-			margin-bottom: 20px;
-		}
-		h1 {
-			font-size: 28px;
-			margin-bottom: 16px;
-			color: #fff;
-		}
-		p {
-			font-size: 16px;
-			line-height: 1.8;
-			color: #b8b8b8;
-			margin-bottom: 24px;
-		}
-		.telegram-link {
-			display: inline-block;
-			background: linear-gradient(135deg, #0088cc 0%, #0066aa 100%);
-			color: #fff;
-			text-decoration: none;
-			padding: 14px 32px;
-			border-radius: 12px;
-			font-weight: 600;
-			transition: transform 0.2s, box-shadow 0.2s;
-			margin-top: 20px;
-		}
-		.telegram-link:hover {
-			transform: translateY(-2px);
-			box-shadow: 0 4px 16px rgba(0, 136, 204, 0.4);
-		}
-	</style>
-</head>
-<body>
-	<div class="container">
-		<div class="icon">🔒</div>
-		<h1>دسترسی محدود</h1>
-		<p>
-			این سرویس فقط از طریق <strong>تلگرام</strong> و <strong>ربات</strong> قابل دسترسی است.
-			<br><br>
-			لطفاً برای استفاده از خدمات، از طریق ربات تلگرام وارد شوید.
-		</p>
-		<a href="https://t.me/your_bot_username" class="telegram-link">
-			باز کردن در تلگرام
-		</a>
-	</div>
-</body>
-</html>`)
+				// For frontend routes (non-API), redirect to /web-login if not already there
+				if path != "/web-login" && !strings.HasPrefix(path, "/web-login/") {
+					logger.Info("Redirecting to /web-login - no session or Telegram",
+						zap.String("original_path", path),
+						zap.String("ip", c.ClientIP()))
+					c.Redirect(http.StatusFound, "/web-login")
+					c.Abort()
+					return
+				}
+				// If already on /web-login, allow it (will be served by route handler before middleware)
+				c.Next()
+				return
 			}
-			c.Abort()
-			return
 		}
 
 		// logger.Debug("✅ Telegram WebApp access granted")
@@ -719,7 +661,7 @@ func StartWebAPI() {
 		r.Static("/fonts", frontendPath+"/fonts")
 
 		// Serve index.html for all other non-API routes (SPA routing)
-		// NOTE: This will only be reached if middleware allows it (Telegram users or admin routes)
+		// NOTE: This will only be reached if middleware allows it (Telegram users, web session, or admin routes)
 		r.NoRoute(func(c *gin.Context) {
 			path := c.Request.URL.Path
 			// Normalize path (remove double slashes)
@@ -742,10 +684,23 @@ func StartWebAPI() {
 				return
 			}
 
-			// If we reach here, it means:
+			// Double-check: If we reach here, middleware should have already verified:
 			// 1. User is from Telegram (middleware allowed it), OR
-			// 2. User is accessing admin routes (middleware allowed it)
-			// So serve index.html for SPA routing
+			// 2. User has valid web session (middleware allowed it), OR
+			// 3. User is accessing admin routes (middleware allowed it)
+			// But just to be safe, check web session one more time
+			hasWebSession := c.GetBool("web_session")
+			hasTelegramID := c.GetInt64("telegram_id") > 0
+
+			if !hasWebSession && !hasTelegramID {
+				// Should not reach here if middleware is working correctly, but redirect to be safe
+				logger.Warn("NoRoute reached without session - redirecting to /web-login",
+					zap.String("path", path))
+				c.Redirect(http.StatusFound, "/web-login")
+				return
+			}
+
+			// Serve index.html for SPA routing
 			indexPath := frontendPath + "/index.html"
 			if _, err := os.Stat(indexPath); err == nil {
 				c.File(indexPath)
@@ -3370,6 +3325,9 @@ func handleUserWebLogin(c *gin.Context) {
 	logger.Info("User web login successful",
 		zap.Int64("telegram_id", req.TelegramID),
 		zap.String("remote_addr", c.ClientIP()))
+
+	// Set cookie for HTML requests (24 hours expiry)
+	c.SetCookie("web_session_token", token, 24*60*60, "/", "", false, true) // HttpOnly=true for security
 
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
