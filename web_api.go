@@ -169,14 +169,36 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		cookieToken, err := c.Cookie("web_session_token")
 		if err == nil && cookieToken != "" {
 			token = cookieToken
+			logger.Debug("🔍 Web session token found in cookie",
+				zap.String("path", path),
+				zap.String("token_prefix", func() string {
+					if len(token) > 8 {
+						return token[:8] + "..."
+					}
+					return token
+				}()))
+		} else {
+			logger.Debug("🔍 No web session token in cookie",
+				zap.String("path", path),
+				zap.Error(err))
 		}
 		// If no cookie, try Authorization header (for API requests)
 		if token == "" {
-			token = c.GetHeader("Authorization")
+			authHeader := c.GetHeader("Authorization")
+			if authHeader != "" {
+				token = authHeader
+				logger.Debug("🔍 Web session token found in Authorization header",
+					zap.String("path", path))
+			}
 		}
 		// If still no token, try query parameter (fallback)
 		if token == "" {
-			token = c.Query("token")
+			queryToken := c.Query("token")
+			if queryToken != "" {
+				token = queryToken
+				logger.Debug("🔍 Web session token found in query parameter",
+					zap.String("path", path))
+			}
 		}
 		if token != "" {
 			// Remove "Bearer " prefix if present
@@ -197,6 +219,19 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 					zap.String("path", path))
 				c.Next()
 				return
+			} else if exists {
+				logger.Warn("⚠️ Web session expired",
+					zap.String("path", path),
+					zap.Time("expires_at", session.ExpiresAt))
+			} else {
+				logger.Debug("⚠️ Web session token not found in sessions",
+					zap.String("path", path),
+					zap.String("token_prefix", func() string {
+						if len(token) > 8 {
+							return token[:8] + "..."
+						}
+						return token
+					}()))
 			}
 		}
 
@@ -291,7 +326,14 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 				zap.String("user_agent", userAgent),
 				zap.String("referer", referer),
 				zap.String("path", c.Request.URL.Path),
-				zap.String("normalized_path", path))
+				zap.String("normalized_path", path),
+				zap.Bool("is_api", strings.HasPrefix(c.Request.URL.Path, "/api/")),
+				zap.String("cookie_token", func() string {
+					if _, err := c.Cookie("web_session_token"); err == nil {
+						return "present"
+					}
+					return "missing"
+				}()))
 
 			// For API requests, return JSON error
 			if strings.HasPrefix(c.Request.URL.Path, "/api/") {
@@ -303,10 +345,13 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 				return
 			} else {
 				// For frontend routes (non-API), redirect to /web-login if not already there
-				if path != "/web-login" && !strings.HasPrefix(path, "/web-login/") {
-					logger.Info("Redirecting to /web-login - no session or Telegram",
-						zap.String("original_path", path),
-						zap.String("ip", c.ClientIP()))
+				// CRITICAL: Check normalized path, not original path
+				if path != "/web-login" && path != "/web-login/" && !strings.HasPrefix(path, "/web-login/") {
+					logger.Info("🔄 Redirecting to /web-login - no session or Telegram",
+						zap.String("original_path", c.Request.URL.Path),
+						zap.String("normalized_path", path),
+						zap.String("ip", c.ClientIP()),
+						zap.String("method", c.Request.Method))
 					c.Redirect(http.StatusFound, "/web-login")
 					c.Abort()
 					return
@@ -692,11 +737,25 @@ func StartWebAPI() {
 			hasWebSession := c.GetBool("web_session")
 			hasTelegramID := c.GetInt64("telegram_id") > 0
 
+			// Also check cookie directly (double-check)
+			cookieToken, cookieErr := c.Cookie("web_session_token")
+			hasCookie := cookieErr == nil && cookieToken != ""
+
+			logger.Info("NoRoute handler reached",
+				zap.String("path", path),
+				zap.Bool("has_web_session", hasWebSession),
+				zap.Bool("has_telegram_id", hasTelegramID),
+				zap.Bool("has_cookie", hasCookie),
+				zap.String("ip", c.ClientIP()))
+
 			if !hasWebSession && !hasTelegramID {
 				// Should not reach here if middleware is working correctly, but redirect to be safe
-				logger.Warn("NoRoute reached without session - redirecting to /web-login",
-					zap.String("path", path))
+				logger.Warn("🚫 NoRoute reached without session - redirecting to /web-login",
+					zap.String("path", path),
+					zap.String("ip", c.ClientIP()),
+					zap.String("method", c.Request.Method))
 				c.Redirect(http.StatusFound, "/web-login")
+				c.Abort()
 				return
 			}
 
@@ -3327,7 +3386,10 @@ func handleUserWebLogin(c *gin.Context) {
 		zap.String("remote_addr", c.ClientIP()))
 
 	// Set cookie for HTML requests (24 hours expiry)
-	c.SetCookie("web_session_token", token, 24*60*60, "/", "", false, true) // HttpOnly=true for security
+	// In production, use secure cookies (HTTPS only)
+	// Domain is empty to allow cookie to work on all subdomains
+	secure := strings.ToLower(os.Getenv("DEVELOPMENT_MODE")) != "true"
+	c.SetCookie("web_session_token", token, 24*60*60, "/", "", secure, true) // HttpOnly=true, Secure in production
 
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
