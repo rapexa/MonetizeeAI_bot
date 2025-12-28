@@ -236,6 +236,29 @@ class APIService {
             message: result.error || 'اشتراک شما به پایان رسید است. لطفا به ربات برگردید و اشتراک خریداری کنید.'
           };
         }
+        // Handle access denied (403 Forbidden) - redirect to web login if not already there
+        if (response.status === 403) {
+          const errorMessage = (result.error || '').toLowerCase();
+          // Check if it's an authentication error (not subscription expired)
+          // Backend sends: "Access denied. Please login via /web-login or use Telegram Mini App."
+          if ((errorMessage.includes('access denied') || 
+               errorMessage.includes('please login') || 
+               errorMessage.includes('login via')) &&
+              !errorMessage.includes('subscription has expired')) {
+            // Only redirect if we're not already on web-login page
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/web-login')) {
+              // Clear any invalid web session tokens
+              localStorage.removeItem('web_session_token');
+              localStorage.removeItem('web_telegram_id');
+              // Redirect to web login
+              window.location.href = '/web-login';
+              return {
+                success: false,
+                error: 'Access denied. Redirecting to login...'
+              };
+            }
+          }
+        }
         throw new Error(result.error || `HTTP error! status: ${response.status}`);
       }
 
