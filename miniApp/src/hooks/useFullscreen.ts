@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getPlatformInfo } from '../utils/platformDetection';
+import { getPlatformInfo, type PlatformInfo } from '../utils/platformDetection';
 
 export interface UseFullscreenOptions {
   /**
@@ -89,7 +89,7 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
-  const platformInfo = getPlatformInfo();
+  const platformInfoRef = useRef<PlatformInfo>(getPlatformInfo());
   
   // Track if we're in a user gesture context (required for some fullscreen APIs)
   const userGestureRef = useRef(false);
@@ -160,7 +160,7 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
 
     // Method 5: iOS Safari Video Fullscreen (webkitEnterFullscreen)
     // This is iOS-specific and works differently - it's a native video player
-    if (platformInfo.isIOS && anyVideo.webkitEnterFullscreen) {
+    if (platformInfoRef.current.isIOS && anyVideo.webkitEnterFullscreen) {
       try {
         // This must be called in a user gesture context
         if (userGestureRef.current) {
@@ -175,7 +175,7 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
     }
 
     return false;
-  }, [videoRef, platformInfo.isIOS]);
+  }, [videoRef]);
 
   /**
    * Exit native fullscreen
@@ -203,6 +203,7 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
   /**
    * Enter pseudo-fullscreen (CSS-based fallback)
    * This works when native fullscreen APIs are blocked
+   * CRITICAL for Android WebView compatibility
    */
   const enterPseudoFullscreen = useCallback((): void => {
     if (!enablePseudoFullscreen) return;
@@ -216,21 +217,55 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
     setIsPseudoFullscreen(true);
     setIsFullscreen(true);
 
-    // Prevent body scrolling
+    // Store original styles for cleanup
     const originalOverflow = document.body.style.overflow;
     const originalPosition = document.body.style.position;
     const originalWidth = document.body.style.width;
     const originalHeight = document.body.style.height;
     const originalTop = document.body.style.top;
+    const originalLeft = document.body.style.left;
+    const originalRight = document.body.style.right;
+    const originalBottom = document.body.style.bottom;
 
     // Store original scroll position
     const scrollY = window.scrollY;
+    const scrollX = window.scrollX;
 
+    // CRITICAL: For Android, we need to prevent all scrolling and fix viewport
     document.body.style.overflow = 'hidden';
     document.body.style.position = 'fixed';
     document.body.style.width = '100%';
     document.body.style.height = '100%';
     document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = `-${scrollX}px`;
+    document.body.style.right = '0';
+    document.body.style.bottom = '0';
+    
+    // Add class for CSS targeting
+    document.body.classList.add('video-fullscreen-active');
+    document.documentElement.classList.add('video-fullscreen-active');
+
+    // Make container fullscreen
+    const containerElement = container as HTMLElement;
+    containerElement.style.position = 'fixed';
+    containerElement.style.top = '0';
+    containerElement.style.left = '0';
+    containerElement.style.right = '0';
+    containerElement.style.bottom = '0';
+    containerElement.style.width = '100vw';
+    containerElement.style.height = '100vh';
+    containerElement.style.maxWidth = '100vw';
+    containerElement.style.maxHeight = '100vh';
+    containerElement.style.zIndex = '99999';
+    containerElement.style.backgroundColor = '#000';
+    containerElement.classList.add('video-pseudo-fullscreen');
+
+    // Make video fullscreen
+    video.style.width = '100vw';
+    video.style.height = '100vh';
+    video.style.maxWidth = '100vw';
+    video.style.maxHeight = '100vh';
+    video.style.objectFit = 'contain';
 
     // Disable Telegram WebApp gestures that might interfere
     try {
@@ -243,14 +278,43 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
 
     // Store cleanup function
     (container as any).__fullscreenCleanup = () => {
+      // Restore body styles
       document.body.style.overflow = originalOverflow;
       document.body.style.position = originalPosition;
       document.body.style.width = originalWidth;
       document.body.style.height = originalHeight;
       document.body.style.top = originalTop;
+      document.body.style.left = originalLeft;
+      document.body.style.right = originalRight;
+      document.body.style.bottom = originalBottom;
+      
+      // Remove classes
+      document.body.classList.remove('video-fullscreen-active');
+      document.documentElement.classList.remove('video-fullscreen-active');
       
       // Restore scroll position
-      window.scrollTo(0, scrollY);
+      window.scrollTo(scrollX, scrollY);
+
+      // Restore container styles
+      containerElement.style.position = '';
+      containerElement.style.top = '';
+      containerElement.style.left = '';
+      containerElement.style.right = '';
+      containerElement.style.bottom = '';
+      containerElement.style.width = '';
+      containerElement.style.height = '';
+      containerElement.style.maxWidth = '';
+      containerElement.style.maxHeight = '';
+      containerElement.style.zIndex = '';
+      containerElement.style.backgroundColor = '';
+      containerElement.classList.remove('video-pseudo-fullscreen');
+
+      // Restore video styles
+      video.style.width = '';
+      video.style.height = '';
+      video.style.maxWidth = '';
+      video.style.maxHeight = '';
+      video.style.objectFit = '';
 
       // Re-enable Telegram WebApp gestures
       try {
@@ -286,7 +350,14 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
     // Mark that we're in a user gesture context
     userGestureRef.current = true;
     
-    // Try native fullscreen first
+    // For Android, prioritize pseudo-fullscreen as native API often fails in WebView
+    if (platformInfoRef.current.isAndroid && enablePseudoFullscreen) {
+      enterPseudoFullscreen();
+      onEnter?.();
+      return;
+    }
+    
+    // Try native fullscreen first (for iOS and Desktop)
     const nativeSuccess = await enterNativeFullscreen();
     
     if (nativeSuccess) {
