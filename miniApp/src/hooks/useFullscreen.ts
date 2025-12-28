@@ -247,25 +247,86 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
 
     // Make container fullscreen
     const containerElement = container as HTMLElement;
-    containerElement.style.position = 'fixed';
-    containerElement.style.top = '0';
-    containerElement.style.left = '0';
-    containerElement.style.right = '0';
-    containerElement.style.bottom = '0';
-    containerElement.style.width = '100vw';
-    containerElement.style.height = '100vh';
-    containerElement.style.maxWidth = '100vw';
-    containerElement.style.maxHeight = '100vh';
-    containerElement.style.zIndex = '99999';
-    containerElement.style.backgroundColor = '#000';
+    
+    // CRITICAL: Fix parent containers that might block fullscreen (Android issue)
+    const parents: HTMLElement[] = [];
+    let parent = containerElement.parentElement;
+    while (parent && parent !== document.body) {
+      parents.push(parent);
+      // Store original overflow
+      (parent as any).__originalOverflow = (parent as any).__originalOverflow || window.getComputedStyle(parent).overflow;
+      // Force overflow visible for fullscreen
+      parent.style.overflow = 'visible';
+      parent.style.position = 'relative';
+      parent = parent.parentElement;
+    }
+    
+    // CRITICAL: Store original container styles
+    const originalContainerStyles = {
+      position: containerElement.style.position,
+      top: containerElement.style.top,
+      left: containerElement.style.left,
+      right: containerElement.style.right,
+      bottom: containerElement.style.bottom,
+      width: containerElement.style.width,
+      height: containerElement.style.height,
+      maxWidth: containerElement.style.maxWidth,
+      maxHeight: containerElement.style.maxHeight,
+      zIndex: containerElement.style.zIndex,
+      backgroundColor: containerElement.style.backgroundColor,
+      margin: containerElement.style.margin,
+      padding: containerElement.style.padding,
+      borderRadius: containerElement.style.borderRadius,
+      overflow: containerElement.style.overflow,
+    };
+    
+    // Apply fullscreen styles - CRITICAL for Android
+    containerElement.style.setProperty('position', 'fixed', 'important');
+    containerElement.style.setProperty('top', '0', 'important');
+    containerElement.style.setProperty('left', '0', 'important');
+    containerElement.style.setProperty('right', '0', 'important');
+    containerElement.style.setProperty('bottom', '0', 'important');
+    containerElement.style.setProperty('width', '100vw', 'important');
+    containerElement.style.setProperty('height', '100vh', 'important');
+    containerElement.style.setProperty('height', '100dvh', 'important'); // Dynamic viewport for Android
+    containerElement.style.setProperty('max-width', '100vw', 'important');
+    containerElement.style.setProperty('max-height', '100vh', 'important');
+    containerElement.style.setProperty('max-height', '100dvh', 'important');
+    containerElement.style.setProperty('z-index', '99999', 'important');
+    containerElement.style.setProperty('background-color', '#000', 'important');
+    containerElement.style.setProperty('margin', '0', 'important');
+    containerElement.style.setProperty('padding', '0', 'important');
+    containerElement.style.setProperty('border-radius', '0', 'important');
+    containerElement.style.setProperty('overflow', 'visible', 'important');
     containerElement.classList.add('video-pseudo-fullscreen');
+    
+    // Store original styles and parent fixes for cleanup
+    (containerElement as any).__originalContainerStyles = originalContainerStyles;
+    (containerElement as any).__fixedParents = parents;
 
-    // Make video fullscreen
+    // Make video fullscreen - CRITICAL for Android
+    const originalVideoStyles = {
+      width: video.style.width,
+      height: video.style.height,
+      maxWidth: video.style.maxWidth,
+      maxHeight: video.style.maxHeight,
+      objectFit: video.style.objectFit,
+      display: video.style.display,
+      margin: video.style.margin,
+    };
+    
     video.style.width = '100vw';
     video.style.height = '100vh';
+    video.style.height = '100dvh'; // Dynamic viewport for Android
     video.style.maxWidth = '100vw';
     video.style.maxHeight = '100vh';
+    video.style.maxHeight = '100dvh';
     video.style.objectFit = 'contain';
+    video.style.display = 'block';
+    video.style.margin = 'auto';
+    
+    // Store original styles for cleanup
+    (video as any).__originalVideoStyles = originalVideoStyles;
 
     // Disable Telegram WebApp gestures that might interfere
     try {
@@ -295,26 +356,72 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
       // Restore scroll position
       window.scrollTo(scrollX, scrollY);
 
-      // Restore container styles
-      containerElement.style.position = '';
-      containerElement.style.top = '';
-      containerElement.style.left = '';
-      containerElement.style.right = '';
-      containerElement.style.bottom = '';
-      containerElement.style.width = '';
-      containerElement.style.height = '';
-      containerElement.style.maxWidth = '';
-      containerElement.style.maxHeight = '';
-      containerElement.style.zIndex = '';
-      containerElement.style.backgroundColor = '';
+      // Restore parent containers
+      const fixedParents = (containerElement as any).__fixedParents;
+      if (fixedParents && Array.isArray(fixedParents)) {
+        fixedParents.forEach((parent: HTMLElement) => {
+          const originalOverflow = (parent as any).__originalOverflow;
+          if (originalOverflow !== undefined) {
+            parent.style.overflow = originalOverflow;
+            delete (parent as any).__originalOverflow;
+          }
+          parent.style.position = '';
+        });
+      }
+      
+      // Restore container styles from stored original
+      const originalStyles = (containerElement as any).__originalContainerStyles;
+      if (originalStyles) {
+        containerElement.style.removeProperty('position');
+        containerElement.style.removeProperty('top');
+        containerElement.style.removeProperty('left');
+        containerElement.style.removeProperty('right');
+        containerElement.style.removeProperty('bottom');
+        containerElement.style.removeProperty('width');
+        containerElement.style.removeProperty('height');
+        containerElement.style.removeProperty('max-width');
+        containerElement.style.removeProperty('max-height');
+        containerElement.style.removeProperty('z-index');
+        containerElement.style.removeProperty('background-color');
+        containerElement.style.removeProperty('margin');
+        containerElement.style.removeProperty('padding');
+        containerElement.style.removeProperty('border-radius');
+        containerElement.style.removeProperty('overflow');
+        
+        // Restore original values if they existed
+        if (originalStyles.position) containerElement.style.position = originalStyles.position;
+        if (originalStyles.top) containerElement.style.top = originalStyles.top;
+        if (originalStyles.left) containerElement.style.left = originalStyles.left;
+        if (originalStyles.right) containerElement.style.right = originalStyles.right;
+        if (originalStyles.bottom) containerElement.style.bottom = originalStyles.bottom;
+        if (originalStyles.width) containerElement.style.width = originalStyles.width;
+        if (originalStyles.height) containerElement.style.height = originalStyles.height;
+        if (originalStyles.maxWidth) containerElement.style.maxWidth = originalStyles.maxWidth;
+        if (originalStyles.maxHeight) containerElement.style.maxHeight = originalStyles.maxHeight;
+        if (originalStyles.zIndex) containerElement.style.zIndex = originalStyles.zIndex;
+        if (originalStyles.backgroundColor) containerElement.style.backgroundColor = originalStyles.backgroundColor;
+        if (originalStyles.margin) containerElement.style.margin = originalStyles.margin;
+        if (originalStyles.padding) containerElement.style.padding = originalStyles.padding;
+        if (originalStyles.borderRadius) containerElement.style.borderRadius = originalStyles.borderRadius;
+        if (originalStyles.overflow) containerElement.style.overflow = originalStyles.overflow;
+        
+        delete (containerElement as any).__originalContainerStyles;
+        delete (containerElement as any).__fixedParents;
+      }
       containerElement.classList.remove('video-pseudo-fullscreen');
 
-      // Restore video styles
-      video.style.width = '';
-      video.style.height = '';
-      video.style.maxWidth = '';
-      video.style.maxHeight = '';
-      video.style.objectFit = '';
+      // Restore video styles from stored original
+      const originalVideoStyles = (video as any).__originalVideoStyles;
+      if (originalVideoStyles) {
+        video.style.width = originalVideoStyles.width;
+        video.style.height = originalVideoStyles.height;
+        video.style.maxWidth = originalVideoStyles.maxWidth;
+        video.style.maxHeight = originalVideoStyles.maxHeight;
+        video.style.objectFit = originalVideoStyles.objectFit;
+        video.style.display = originalVideoStyles.display;
+        video.style.margin = originalVideoStyles.margin;
+        delete (video as any).__originalVideoStyles;
+      }
 
       // Re-enable Telegram WebApp gestures
       try {

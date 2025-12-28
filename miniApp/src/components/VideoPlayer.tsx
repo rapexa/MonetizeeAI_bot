@@ -246,9 +246,36 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       style={{
         // Ensure proper z-index in fullscreen
         zIndex: isPseudoFullscreen ? 99999 : undefined,
+        // CRITICAL for Android: Force fullscreen styles inline
+        ...(isPseudoFullscreen ? {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          maxWidth: '100vw',
+          maxHeight: '100vh',
+          backgroundColor: '#000',
+          margin: 0,
+          padding: 0,
+        } : {}),
       }}
     >
-      <div className={videoContainerClasses}>
+      <div 
+        className={videoContainerClasses}
+        style={{
+          // CRITICAL for Android: Force fullscreen styles inline
+          ...(isPseudoFullscreen ? {
+            width: '100vw',
+            height: '100vh',
+            maxWidth: '100vw',
+            maxHeight: '100vh',
+            position: 'relative',
+          } : {}),
+        }}
+      >
         <video
           ref={videoRef}
           className={videoClasses}
@@ -261,23 +288,26 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           onEnded={handleEnded}
           style={{
             // Ensure video fills container properly
-            maxWidth: '100%',
-            maxHeight: '100%',
-            // Prevent unwanted scaling on mobile
-            objectFit: 'contain',
+            maxWidth: isPseudoFullscreen ? '100vw' : '100%',
+            maxHeight: isPseudoFullscreen ? '100vh' : '100%',
+            // CRITICAL for Android: Force fullscreen dimensions
+            ...(isPseudoFullscreen ? {
+              width: '100vw',
+              height: '100vh',
+              objectFit: 'contain',
+              display: 'block',
+              margin: 'auto',
+            } : {
+              // Prevent unwanted scaling on mobile
+              objectFit: 'contain',
+            }),
             // Handle safe-area insets on iOS
-            paddingTop: isPseudoFullscreen && platformInfo.isIOS
-              ? 'env(safe-area-inset-top)'
-              : undefined,
-            paddingBottom: isPseudoFullscreen && platformInfo.isIOS
-              ? 'env(safe-area-inset-bottom)'
-              : undefined,
-            paddingLeft: isPseudoFullscreen && platformInfo.isIOS
-              ? 'env(safe-area-inset-left)'
-              : undefined,
-            paddingRight: isPseudoFullscreen && platformInfo.isIOS
-              ? 'env(safe-area-inset-right)'
-              : undefined,
+            ...(isPseudoFullscreen && platformInfo.isIOS ? {
+              paddingTop: 'env(safe-area-inset-top)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+              paddingLeft: 'env(safe-area-inset-left)',
+              paddingRight: 'env(safe-area-inset-right)',
+            } : {}),
           }}
           {...videoProps}
         >
