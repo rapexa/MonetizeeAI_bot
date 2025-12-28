@@ -707,7 +707,7 @@ class APIService {
       'Authorization': `Bearer ${token}`
     };
     
-    const url = `${this.baseURL}/api/v1/web/verify?telegram_id=${telegramId}`;
+    const url = `${this.baseURL}/web/verify?telegram_id=${telegramId}`;
     
     try {
       const controller = new AbortController();

@@ -27,11 +27,33 @@ const WebAuthGuard: React.FC<WebAuthGuardProps> = ({ children }) => {
         return;
       }
 
-      // Check if we're in Telegram (has startapp parameter)
+      // Check if we're in Telegram (has startapp parameter or initData)
       const urlParams = new URLSearchParams(window.location.search);
       const startapp = urlParams.get('startapp');
-      if (startapp) {
-        // From Telegram - allow access
+      const hasTelegramInitData = typeof window !== 'undefined' && 
+                                 window.Telegram?.WebApp?.initData && 
+                                 window.Telegram.WebApp.initData.length > 0;
+      const hasTelegramUser = typeof window !== 'undefined' && 
+                             window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      
+      if (startapp || hasTelegramInitData || hasTelegramUser) {
+        // From Telegram - allow access without web session
+        if (startapp) {
+          // Use startapp as telegram_id
+          const telegramId = parseInt(startapp);
+          if (!isNaN(telegramId) && telegramId > 0) {
+            // Store telegram_id from startapp for API calls
+            localStorage.setItem('web_telegram_id', startapp);
+            // Update API service to use this telegram_id
+            apiService.setWebTelegramId(telegramId);
+          }
+        } else if (hasTelegramUser && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+          // Use Telegram user ID from initData
+          const telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
+          localStorage.setItem('web_telegram_id', telegramId.toString());
+          apiService.setWebTelegramId(telegramId);
+        }
+        // From Telegram - allow access without web session
         setIsChecking(false);
         setIsAuthorized(true);
         return;
