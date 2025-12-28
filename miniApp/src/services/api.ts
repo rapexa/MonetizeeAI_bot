@@ -91,76 +91,6 @@ class APIService {
     return this.cachedIsInTelegram;
   }
 
-  getTelegramId(): number | null {
-    if (this.cachedTelegramId !== null) {
-      return this.cachedTelegramId;
-    }
-
-    try {
-      // ⚡ PERFORMANCE: Removed verbose debug logging
-
-      // Method 1: Try initDataUnsafe
-      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-        const telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
-        this.cachedTelegramId = telegramId;
-        this.saveTelegramIdToStorage(telegramId);
-        logger.debug(`🔍 Got Telegram ID from initDataUnsafe: ${telegramId}`);
-        return telegramId;
-      }
-
-      // Method 2: Try parsing initData string
-      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) {
-        const initData = window.Telegram.WebApp.initData;
-        const userMatch = initData.match(/user=([^&]+)/);
-        if (userMatch) {
-          try {
-            const userData = JSON.parse(decodeURIComponent(userMatch[1]));
-            if (userData.id) {
-              const telegramId = userData.id;
-              this.cachedTelegramId = telegramId;
-              this.saveTelegramIdToStorage(telegramId);
-              logger.debug(`🔍 Got Telegram ID from initData string: ${telegramId}`);
-              return telegramId;
-            }
-          } catch (e) {
-            logger.debug('❌ Failed to parse user data from initData string');
-          }
-        }
-      }
-
-      // Method 3: Try URL parameters (startapp)
-      if (typeof window !== 'undefined') {
-        const urlParams = new URLSearchParams(window.location.search);
-        const startParam = urlParams.get('startapp');
-        if (startParam && !isNaN(Number(startParam))) {
-          const telegramId = Number(startParam);
-          this.cachedTelegramId = telegramId;
-          this.saveTelegramIdToStorage(telegramId);
-          logger.debug(`🔍 Got Telegram ID from URL startapp: ${telegramId}`);
-          return telegramId;
-        }
-      }
-
-      // Method 4: Use test user for browser testing (both dev and production)
-      // Priority: Always use 76599340 as test user when not in Telegram
-      if (!this.isInTelegram()) {
-        // Clear any saved telegram_id from localStorage to force using test user
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('telegram_id');
-        }
-        this.cachedTelegramId = 76599340; // Test user: RAPEXA (@Rapexam)
-        this.saveTelegramIdToStorage(76599340);
-        logger.debug(`🔍 Using test user ID for browser testing: ${this.cachedTelegramId} (RAPEXA)`);
-        return this.cachedTelegramId;
-      }
-
-      logger.debug('❌ No Telegram ID found - user must access from Telegram');
-      return null;
-    } catch (error) {
-      logger.error('❌ Error getting Telegram ID:', error || '');
-      return null;
-    }
-  }
 
   private saveTelegramIdToStorage(telegramId: number): void {
     if (typeof window !== 'undefined') {
@@ -244,7 +174,7 @@ class APIService {
         'Content-Type': 'application/json',
       };
 
-      // Add Telegram WebApp authentication headers
+      // Add Telegram WebApp authentication headers (if in Telegram)
       if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
         // Add init data if available
         if (window.Telegram.WebApp.initData) {
@@ -257,6 +187,12 @@ class APIService {
         // Add start param if available
         if (window.Telegram.WebApp.initDataUnsafe?.start_param) {
           headers['X-Telegram-Start-Param'] = window.Telegram.WebApp.initDataUnsafe.start_param;
+        }
+      } else {
+        // If not in Telegram, check for web session token
+        const webToken = localStorage.getItem('web_session_token');
+        if (webToken) {
+          headers['Authorization'] = `Bearer ${webToken}`;
         }
       }
 
@@ -721,6 +657,144 @@ class APIService {
       this.clearTicketsCache();
     }
     return response;
+  }
+
+  // Web login methods
+  async webLogin(telegramId: number, password: string): Promise<APIResponse<{ token: string; telegram_id: number }>> {
+    return this.makeRequest<{ token: string; telegram_id: number }>('POST', '/web/login', {
+      telegram_id: telegramId,
+      password: password
+    });
+  }
+
+  async verifyWebSession(telegramId: number): Promise<APIResponse<{ valid: boolean }>> {
+    const token = localStorage.getItem('web_session_token');
+    if (!token) {
+      return { success: false, error: 'No session token' };
+    }
+    
+    // Add token to headers
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+    
+    const url = `${this.baseURL}/api/v1/web/verify?telegram_id=${telegramId}`;
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      const result = await response.json();
+      
+      if (!response.ok) {
+        return {
+          success: false,
+          error: result.error || 'Session verification failed'
+        };
+      }
+      
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  setWebTelegramId(telegramId: number): void {
+    this.cachedTelegramId = telegramId;
+    this.saveTelegramIdToStorage(telegramId);
+  }
+
+  // Override getTelegramId to check web session first
+  getTelegramId(): number | null {
+    // First check if we have a web session
+    const webTelegramId = localStorage.getItem('web_telegram_id');
+    if (webTelegramId) {
+      const id = parseInt(webTelegramId);
+      if (!isNaN(id) && id > 0) {
+        if (this.cachedTelegramId !== id) {
+          this.cachedTelegramId = id;
+        }
+        return id;
+      }
+    }
+
+    // Fall back to original Telegram WebApp detection
+    if (this.cachedTelegramId !== null) {
+      return this.cachedTelegramId;
+    }
+
+    try {
+      // Method 1: Try initDataUnsafe
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+        const telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
+        this.cachedTelegramId = telegramId;
+        this.saveTelegramIdToStorage(telegramId);
+        logger.debug(`🔍 Got Telegram ID from initDataUnsafe: ${telegramId}`);
+        return telegramId;
+      }
+
+      // Method 2: Try parsing initData string
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) {
+        const initData = window.Telegram.WebApp.initData;
+        const userMatch = initData.match(/user=([^&]+)/);
+        if (userMatch) {
+          try {
+            const userData = JSON.parse(decodeURIComponent(userMatch[1]));
+            if (userData.id) {
+              const telegramId = userData.id;
+              this.cachedTelegramId = telegramId;
+              this.saveTelegramIdToStorage(telegramId);
+              logger.debug(`🔍 Got Telegram ID from initData string: ${telegramId}`);
+              return telegramId;
+            }
+          } catch (e) {
+            logger.debug('❌ Failed to parse user data from initData string');
+          }
+        }
+      }
+
+      // Method 3: Try URL parameters (startapp)
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const startParam = urlParams.get('startapp');
+        if (startParam && !isNaN(Number(startParam))) {
+          const telegramId = Number(startParam);
+          this.cachedTelegramId = telegramId;
+          this.saveTelegramIdToStorage(telegramId);
+          logger.debug(`🔍 Got Telegram ID from URL startapp: ${telegramId}`);
+          return telegramId;
+        }
+      }
+
+      // Method 4: Use test user for browser testing (only if not in Telegram and no web session)
+      if (!this.isInTelegram() && !webTelegramId) {
+        // Clear any saved telegram_id from localStorage to force using test user
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('telegram_id');
+        }
+        this.cachedTelegramId = 76599340; // Test user: RAPEXA (@Rapexam)
+        this.saveTelegramIdToStorage(76599340);
+        logger.debug(`🔍 Using test user ID for browser testing: ${this.cachedTelegramId} (RAPEXA)`);
+        return this.cachedTelegramId;
+      }
+
+      logger.debug('❌ No Telegram ID found - user must access from Telegram or login via web');
+      return null;
+    } catch (error) {
+      logger.error('❌ Error getting Telegram ID:', error || '');
+      return null;
+    }
   }
 }
 

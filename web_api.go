@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -134,21 +136,55 @@ func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Check if path should be allowed without Telegram auth
-		// ONLY Admin routes and Admin API routes are allowed - everything else requires Telegram
+		// Admin routes, web login routes, and static files are allowed
 		if path == "/health" ||
 			strings.HasPrefix(path, "/static/") ||
 			strings.HasPrefix(path, "/assets/") ||
 			strings.HasPrefix(path, "/api/v1/admin/") || // Only admin API routes, not all /api/
 			strings.HasPrefix(path, "/v1/admin/") ||
+			strings.HasPrefix(path, "/api/v1/web/login") || // Web login endpoint
+			strings.HasPrefix(path, "/api/v1/web/verify") || // Web verify endpoint
+			strings.HasPrefix(path, "/api/v1/web/logout") || // Web logout endpoint
 			path == "/admin-login" ||
 			strings.HasPrefix(path, "/admin-login/") ||
 			path == "/admin-panel" ||
-			strings.HasPrefix(path, "/admin-panel/") {
+			strings.HasPrefix(path, "/admin-panel/") ||
+			path == "/web-login" ||
+			strings.HasPrefix(path, "/web-login/") {
 			logger.Info("✅ Allowing access without Telegram auth",
 				zap.String("path", path),
 				zap.String("original_path", c.Request.URL.Path))
 			c.Next()
 			return
+		}
+
+		// Check for valid web session token (for regular users, not admins)
+		// This allows web users to access the app if they have a valid session
+		token := c.GetHeader("Authorization")
+		if token == "" {
+			// Try to get from query parameter
+			token = c.Query("token")
+		}
+		if token != "" {
+			// Remove "Bearer " prefix if present
+			if strings.HasPrefix(token, "Bearer ") {
+				token = strings.TrimPrefix(token, "Bearer ")
+			}
+
+			userWebSessionsMutex.RLock()
+			session, exists := userWebSessions[token]
+			userWebSessionsMutex.RUnlock()
+
+			if exists && time.Now().Before(session.ExpiresAt) {
+				// Valid web session found - set telegram_id in context and allow access
+				c.Set("telegram_id", session.TelegramID)
+				c.Set("web_session", true)
+				logger.Info("✅ Web session authenticated",
+					zap.Int64("telegram_id", session.TelegramID),
+					zap.String("path", path))
+				c.Next()
+				return
+			}
 		}
 
 		// IMPORTANT:
@@ -407,6 +443,9 @@ func StartWebAPI() {
 	// 🔒 SECURITY: Start cleanup for Mini App rate limiting
 	cleanupMiniAppRateLimitCache()
 
+	// Start user web session cleanup
+	startUserWebSessionCleanup()
+
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
@@ -423,6 +462,11 @@ func StartWebAPI() {
 			"method":  c.Request.Method,
 		})
 	})
+
+	// 🔐 User web login routes (for regular users, not admins)
+	r.POST("/api/v1/web/login", handleUserWebLogin)
+	r.GET("/api/v1/web/verify", handleVerifyUserWebSession)
+	r.POST("/api/v1/web/logout", handleUserWebLogout)
 
 	// Add CORS middleware
 	config := cors.DefaultConfig()
@@ -534,6 +578,31 @@ func StartWebAPI() {
 <body>
 	<div style="text-align: center; padding: 50px;">
 		<h1>Admin Login</h1>
+		<p>Frontend files not found. Please build the frontend first.</p>
+	</div>
+</body>
+</html>`)
+		}
+	})
+
+	// Web login route - accessible without Telegram
+	r.GET("/web-login", func(c *gin.Context) {
+		indexPath := frontendPath + "/index.html"
+		if _, err := os.Stat(indexPath); err == nil {
+			c.File(indexPath)
+		} else {
+			// If index.html not found, return simple HTML response
+			c.Header("Content-Type", "text/html; charset=utf-8")
+			c.String(http.StatusOK, `<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Web Login - MonetizeAI</title>
+</head>
+<body>
+	<div style="text-align: center; padding: 50px;">
+		<h1>Web Login</h1>
 		<p>Frontend files not found. Please build the frontend first.</p>
 	</div>
 </body>
@@ -3195,4 +3264,246 @@ func handleCloseTicket(c *gin.Context) {
 		Success: true,
 		Data:    ticket,
 	})
+}
+
+// ==================== User Web Login Handlers ====================
+
+// handleUserWebLogin handles user web login (not admin)
+func handleUserWebLogin(c *gin.Context) {
+	type LoginRequest struct {
+		TelegramID int64  `json:"telegram_id" binding:"required"`
+		Password   string `json:"password" binding:"required"`
+	}
+
+	var req LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Warn("User web login failed - invalid JSON",
+			zap.Error(err),
+			zap.String("remote_addr", c.ClientIP()))
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid request",
+		})
+		return
+	}
+
+	// Validate telegram_id is positive
+	if req.TelegramID <= 0 {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid telegram_id",
+		})
+		return
+	}
+
+	// Check if password matches telegram_id (password is the telegram_id as string)
+	expectedPassword := fmt.Sprintf("%d", req.TelegramID)
+	if req.Password != expectedPassword {
+		logger.Warn("User web login failed - invalid password",
+			zap.Int64("telegram_id", req.TelegramID),
+			zap.String("remote_addr", c.ClientIP()))
+		c.JSON(http.StatusUnauthorized, APIResponse{
+			Success: false,
+			Error:   "Invalid password",
+		})
+		return
+	}
+
+	// Check if user exists and is registered in bot
+	var user User
+	if err := db.Where("telegram_id = ?", req.TelegramID).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			logger.Warn("User web login failed - user not registered",
+				zap.Int64("telegram_id", req.TelegramID),
+				zap.String("remote_addr", c.ClientIP()))
+			c.JSON(http.StatusUnauthorized, APIResponse{
+				Success: false,
+				Error:   "User not registered in bot. Please register first in Telegram bot.",
+			})
+			return
+		}
+		logger.Error("Database error in user web login", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Database error",
+		})
+		return
+	}
+
+	// Check if user is active
+	if !user.IsActive {
+		logger.Warn("User web login failed - user is blocked",
+			zap.Int64("telegram_id", req.TelegramID),
+			zap.String("remote_addr", c.ClientIP()))
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   "User account is blocked",
+		})
+		return
+	}
+
+	// Generate session token
+	token, err := generateUserWebSessionToken()
+	if err != nil {
+		logger.Error("Failed to generate user web session token", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Internal server error",
+		})
+		return
+	}
+
+	// Create session (24 hours expiry)
+	session := UserWebSession{
+		TelegramID: req.TelegramID,
+		ExpiresAt:  time.Now().Add(24 * time.Hour),
+		CreatedAt:  time.Now(),
+	}
+
+	userWebSessionsMutex.Lock()
+	userWebSessions[token] = session
+	userWebSessionsMutex.Unlock()
+
+	// Clean up expired sessions
+	go cleanupExpiredUserWebSessions()
+
+	logger.Info("User web login successful",
+		zap.Int64("telegram_id", req.TelegramID),
+		zap.String("remote_addr", c.ClientIP()))
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data: gin.H{
+			"token":       token,
+			"telegram_id": req.TelegramID,
+		},
+	})
+}
+
+// handleVerifyUserWebSession verifies user web session
+func handleVerifyUserWebSession(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		// Try to get from query parameter
+		token = c.Query("token")
+	}
+
+	if token == "" {
+		c.JSON(http.StatusUnauthorized, APIResponse{
+			Success: false,
+			Error:   "No token provided",
+		})
+		return
+	}
+
+	// Remove "Bearer " prefix if present
+	if strings.HasPrefix(token, "Bearer ") {
+		token = strings.TrimPrefix(token, "Bearer ")
+	}
+
+	telegramIDStr := c.Query("telegram_id")
+	telegramID, err := strconv.ParseInt(telegramIDStr, 10, 64)
+	if err != nil || telegramID <= 0 {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid telegram_id",
+		})
+		return
+	}
+
+	userWebSessionsMutex.RLock()
+	session, exists := userWebSessions[token]
+	userWebSessionsMutex.RUnlock()
+
+	if !exists {
+		c.JSON(http.StatusUnauthorized, APIResponse{
+			Success: false,
+			Error:   "Invalid token",
+		})
+		return
+	}
+
+	if time.Now().After(session.ExpiresAt) {
+		// Remove expired session
+		userWebSessionsMutex.Lock()
+		delete(userWebSessions, token)
+		userWebSessionsMutex.Unlock()
+		c.JSON(http.StatusUnauthorized, APIResponse{
+			Success: false,
+			Error:   "Token expired",
+		})
+		return
+	}
+
+	if session.TelegramID != telegramID {
+		c.JSON(http.StatusUnauthorized, APIResponse{
+			Success: false,
+			Error:   "Token does not match telegram_id",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data: gin.H{
+			"valid":       true,
+			"telegram_id": session.TelegramID,
+		},
+	})
+}
+
+// handleUserWebLogout handles user web logout
+func handleUserWebLogout(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "No token provided",
+		})
+		return
+	}
+
+	// Remove "Bearer " prefix if present
+	if strings.HasPrefix(token, "Bearer ") {
+		token = strings.TrimPrefix(token, "Bearer ")
+	}
+
+	userWebSessionsMutex.Lock()
+	delete(userWebSessions, token)
+	userWebSessionsMutex.Unlock()
+
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    gin.H{"message": "Logged out successfully"},
+	})
+}
+
+// Helper functions for user web sessions
+func generateUserWebSessionToken() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
+func cleanupExpiredUserWebSessions() {
+	userWebSessionsMutex.Lock()
+	defer userWebSessionsMutex.Unlock()
+
+	now := time.Now()
+	for token, session := range userWebSessions {
+		if now.After(session.ExpiresAt) {
+			delete(userWebSessions, token)
+		}
+	}
+}
+
+func startUserWebSessionCleanup() {
+	ticker := time.NewTicker(1 * time.Hour)
+	go func() {
+		for range ticker.C {
+			cleanupExpiredUserWebSessions()
+		}
+	}()
 }

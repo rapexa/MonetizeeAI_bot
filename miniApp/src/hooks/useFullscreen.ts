@@ -116,7 +116,6 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
     if (!video) return false;
 
     const anyVideo = video as any;
-    const anyDoc = document as any;
 
     // Method 1: Standard Fullscreen API (Chrome, Firefox, Edge)
     if (video.requestFullscreen) {
@@ -352,6 +351,7 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
     // Disable Telegram WebApp gestures that might interfere
     try {
       if (window.Telegram?.WebApp) {
+        // @ts-ignore - Telegram WebApp API may have these methods
         window.Telegram.WebApp.disableVerticalSwipes?.();
       }
     } catch (err) {
@@ -453,6 +453,7 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
       // Re-enable Telegram WebApp gestures
       try {
         if (window.Telegram?.WebApp) {
+          // @ts-ignore - Telegram WebApp API may have these methods
           window.Telegram.WebApp.enableVerticalSwipes?.();
         }
       } catch (err) {
@@ -479,19 +480,21 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
 
   /**
    * Enter fullscreen (tries native first, falls back to pseudo)
+   * CRITICAL: For mobile, always use pseudo-fullscreen (native doesn't work in WebView)
    */
   const enterFullscreen = useCallback(async (): Promise<void> => {
     // Mark that we're in a user gesture context
     userGestureRef.current = true;
     
-    // For Android, prioritize pseudo-fullscreen as native API often fails in WebView
-    if (platformInfoRef.current.isAndroid && enablePseudoFullscreen) {
+    // CRITICAL FIX: For ALL mobile devices (Android & iOS), use pseudo-fullscreen
+    // Native fullscreen API doesn't work reliably in Telegram WebView
+    if (platformInfoRef.current.isMobile && enablePseudoFullscreen) {
       enterPseudoFullscreen();
       onEnter?.();
       return;
     }
     
-    // Try native fullscreen first (for iOS and Desktop)
+    // Only for Desktop: Try native fullscreen first
     const nativeSuccess = await enterNativeFullscreen();
     
     if (nativeSuccess) {

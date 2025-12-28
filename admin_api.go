@@ -12,8 +12,8 @@ import (
 
 	"MonetizeeAI_bot/logger"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gin-gonic/gin"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -27,6 +27,16 @@ type WebSession struct {
 	Username  string
 	ExpiresAt time.Time
 	CreatedAt time.Time
+}
+
+// User web session storage (for regular users, not admins)
+var userWebSessions = make(map[string]UserWebSession)
+var userWebSessionsMutex sync.RWMutex
+
+type UserWebSession struct {
+	TelegramID int64
+	ExpiresAt  time.Time
+	CreatedAt  time.Time
 }
 
 // Setup admin API routes
@@ -644,7 +654,7 @@ func getAdminUserDetail(c *gin.Context) {
 	// Total time spent: difference between created_at and updated_at (in days, then convert to hours)
 	daysSinceJoin := time.Since(user.CreatedAt).Hours() / 24
 	totalTimeHours := time.Since(user.CreatedAt).Hours()
-	
+
 	// Average daily time (if user has been active for more than 1 day)
 	var avgDailyTimeHours float64
 	if daysSinceJoin > 1 {
@@ -684,10 +694,10 @@ func getAdminUserDetail(c *gin.Context) {
 				"phone":               user.Phone,
 				"phone_number":        user.PhoneNumber,
 				"current_session":     user.CurrentSession,
-				"subscription_type":    user.SubscriptionType,
+				"subscription_type":   user.SubscriptionType,
 				"plan_name":           user.PlanName,
 				"subscription_expiry": user.SubscriptionExpiry,
-				"is_active":          user.IsActive,
+				"is_active":           user.IsActive,
 				"is_blocked":          user.IsBlocked,
 				"is_verified":         user.IsVerified,
 				"points":              user.Points,
@@ -1422,8 +1432,8 @@ func getLicenseKeysStats(c *gin.Context) {
 		"success": true,
 		"data": gin.H{
 			"total_licenses":  totalLicenses,
-			"used_licenses":    usedLicenses,
-			"unused_licenses":  unusedLicenses,
+			"used_licenses":   usedLicenses,
+			"unused_licenses": unusedLicenses,
 			"usage_percentage": func() float64 {
 				if totalLicenses == 0 {
 					return 0
@@ -1656,7 +1666,7 @@ func exportUnusedLicenseKeys(c *gin.Context) {
 	content.WriteString("# لیست لایسنس‌های استفاده نشده\n")
 	content.WriteString(fmt.Sprintf("# تعداد کل: %d\n", len(licenses)))
 	content.WriteString(fmt.Sprintf("# تاریخ استخراج: %s\n\n", time.Now().Format("2006-01-02 15:04:05")))
-	
+
 	for i, license := range licenses {
 		content.WriteString(license.LicenseKey)
 		if i < len(licenses)-1 {

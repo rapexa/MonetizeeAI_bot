@@ -32,6 +32,7 @@ const SubscriptionManagement = lazy(() => import('./pages/SubscriptionManagement
 const GuideTutorial = lazy(() => import('./pages/GuideTutorial'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+const WebLogin = lazy(() => import('./pages/WebLogin'));
 const TestPage = lazy(() => import('./pages/TestPage'));
 
 // ⚡ PERFORMANCE: Simple loading component for lazy loaded pages
@@ -123,6 +124,9 @@ function AppRouter() {
         <Routes>
           {/* Admin Login - Full page without layout */}
           <Route path="/admin-login" element={<AdminLogin />} />
+          
+          {/* Web Login - Full page without layout */}
+          <Route path="/web-login" element={<WebLogin />} />
           
           {/* Admin Panel - Full page without layout */}
           <Route path="/admin-panel" element={<AdminPanel />} />
