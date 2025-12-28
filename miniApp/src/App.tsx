@@ -5,6 +5,7 @@ import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import TelegramWebAppGuard from './components/TelegramWebAppGuard';
+import WebAuthGuard from './components/WebAuthGuard';
 
 // ⚡ PERFORMANCE: Eager load only Dashboard (main page) and Layout
 import Dashboard from './pages/Dashboard';
@@ -208,7 +209,9 @@ function App() {
   return (
     <ErrorBoundary>
       <TelegramWebAppGuard>
-        {appContent}
+        <WebAuthGuard>
+          {appContent}
+        </WebAuthGuard>
       </TelegramWebAppGuard>
     </ErrorBoundary>
   );

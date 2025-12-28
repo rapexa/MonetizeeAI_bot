@@ -71,9 +71,11 @@ const WebLogin: React.FC = () => {
         // Update API service to use this telegram_id
         apiService.setWebTelegramId(telegramIdNum);
         
-        // Redirect to dashboard or intended page
+        // Redirect to dashboard or intended page and refresh to load all data
         const from = (location.state as any)?.from?.pathname || '/';
-        navigate(from, { replace: true });
+        // Use window.location.href to force a full page reload
+        // This ensures all data (chats, user info, etc.) is properly loaded
+        window.location.href = from;
       } else {
         if (response.error?.includes('not registered')) {
           setError('این کاربر در ربات ثبت‌نام نکرده است. لطفاً ابتدا وارد ربات شوید و ثبت‌نام کنید.');
