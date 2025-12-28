@@ -28,6 +28,7 @@ import {
   Cog,
   TrendingUp,
   X,
+  Maximize2,
 
   Video,
   ArrowRight,
