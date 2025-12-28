@@ -181,7 +181,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const isActive = isFullscreenActive();
     const buttonPosition = isActive || isPseudoFullscreen
       ? 'top-3 right-3'
-      : 'bottom-3 left-3';
+      : 'top-3 left-3';
 
     return (
       <button
