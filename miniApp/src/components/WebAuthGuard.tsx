@@ -9,11 +9,22 @@ interface WebAuthGuardProps {
 /**
  * Check if we're in Telegram Mini App
  * Returns true if any Telegram indicator is present
+ * Priority: Check URL startapp parameter FIRST (most reliable for initial load)
  */
 function isInTelegramMiniApp(): boolean {
   if (typeof window === 'undefined') return false;
   
-  // Check Telegram WebApp object
+  // PRIORITY 1: Check URL for startapp parameter FIRST (works even before Telegram script loads)
+  const urlParams = new URLSearchParams(window.location.search);
+  const hashIndex = window.location.hash.indexOf('?');
+  const urlHashParams = hashIndex >= 0 
+    ? new URLSearchParams(window.location.hash.substring(hashIndex + 1))
+    : new URLSearchParams();
+  if (urlParams.get('startapp') || urlHashParams.get('startapp')) {
+    return true;
+  }
+  
+  // PRIORITY 2: Check Telegram WebApp object (may not be loaded yet)
   const telegramWebApp = window.Telegram?.WebApp;
   if (telegramWebApp) {
     // Has initData (most reliable indicator)
@@ -30,20 +41,13 @@ function isInTelegramMiniApp(): boolean {
     }
   }
   
-  // Check URL for startapp parameter
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlHashParams = new URLSearchParams(window.location.hash.substring(window.location.hash.indexOf('?') + 1));
-  if (urlParams.get('startapp') || urlHashParams.get('startapp')) {
-    return true;
-  }
-  
-  // Check User-Agent
+  // PRIORITY 3: Check User-Agent
   const userAgent = navigator.userAgent;
   if (/Telegram|TelegramBot|tdesktop/i.test(userAgent)) {
     return true;
   }
   
-  // Check referrer
+  // PRIORITY 4: Check referrer
   const referrer = document.referrer;
   if (referrer && (/t\.me|telegram\.org|telegram\.me/i.test(referrer))) {
     return true;
@@ -118,13 +122,15 @@ const WebAuthGuard: React.FC<WebAuthGuardProps> = ({ children }) => {
           telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
         }
         
-        // Store telegram_id for API calls
+        // Store telegram_id for API calls (if found)
         if (telegramId) {
           localStorage.setItem('web_telegram_id', telegramId.toString());
           apiService.setWebTelegramId(telegramId);
         }
         
         // From Telegram - allow access without web session
+        // Even if telegramId is not found, we're in Telegram so allow access
+        // The API service will handle getting telegram_id from other sources
         setIsChecking(false);
         setIsAuthorized(true);
         return;
