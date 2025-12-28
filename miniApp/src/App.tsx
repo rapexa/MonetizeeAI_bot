@@ -175,43 +175,39 @@ function AppRouter() {
 }
 
 function App() {
-  const appContent = (
-    <div className="min-h-screen transition-colors duration-300 app-container" dir="rtl" style={{ backgroundColor: '#0e0817', fontFamily: 'IranSansX, Vazir, system-ui, sans-serif' }}>
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          html.dark .app-container {
-            background: #08000f !important;
-          }
-          @media (prefers-color-scheme: dark) {
-            .app-container {
-              background: #08000f !important;
-            }
-          }
-          /* Global font application */
-          * {
-            font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
-          }
-          body, html {
-            font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
-          }
-        `
-      }} />
-      <ThemeProvider>
-        <AppProvider>
-          <Router>
-            <AppRouter />
-          </Router>
-        </AppProvider>
-      </ThemeProvider>
-    </div>
-  );
-
   return (
     <ErrorBoundary>
       <TelegramWebAppGuard>
-        <WebAuthGuard>
-          {appContent}
-        </WebAuthGuard>
+        <div className="min-h-screen transition-colors duration-300 app-container" dir="rtl" style={{ backgroundColor: '#0e0817', fontFamily: 'IranSansX, Vazir, system-ui, sans-serif' }}>
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              html.dark .app-container {
+                background: #08000f !important;
+              }
+              @media (prefers-color-scheme: dark) {
+                .app-container {
+                  background: #08000f !important;
+                }
+              }
+              /* Global font application */
+              * {
+                font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
+              }
+              body, html {
+                font-family: 'IranSansX', Vazir, system-ui, sans-serif !important;
+              }
+            `
+          }} />
+          <ThemeProvider>
+            <AppProvider>
+              <Router>
+                <WebAuthGuard>
+                  <AppRouter />
+                </WebAuthGuard>
+              </Router>
+            </AppProvider>
+          </ThemeProvider>
+        </div>
       </TelegramWebAppGuard>
     </ErrorBoundary>
   );
