@@ -715,65 +715,10 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="min-h-screen transition-colors duration-300 dashboard-container" 
-           style={{ 
-                         backgroundColor: '#0e0817',
-             '--dark-bg': '#0e0817'
-           } as React.CSSProperties & { '--dark-bg': string }}>
-        <style dangerouslySetInnerHTML={{
-          __html: `
-            html.dark .dashboard-container {
-              background: #0F0F0F !important;
-          }
-          @media (prefers-color-scheme: dark) {
-            .dashboard-container {
-              background: #0F0F0F !important;
-            }
-          }
-          .animation-delay-150 {
-            animation-delay: 150ms;
-          }
-          @keyframes slideDown {
-            from {
-              transform: translateY(-100%);
-              opacity: 0;
-            }
-            to {
-              transform: translateY(0);
-              opacity: 1;
-            }
-          }
-          .animate-slideDown {
-            animation: slideDown 0.5s ease-out forwards;
-          }
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-            }
-            to {
-              opacity: 1;
-            }
-          }
-          .animate-fadeIn {
-            animation: fadeIn 0.3s ease-out forwards;
-          }
-          @keyframes scaleIn {
-            from {
-              transform: scale(0.9);
-              opacity: 0;
-            }
-            to {
-              transform: scale(1);
-              opacity: 1;
-            }
-          }
-          .animate-scaleIn {
-            animation: scaleIn 0.4s ease-out forwards;
-          }
-        `
-      }} />
+      <div className="min-h-screen transition-colors duration-300" 
+           style={{ backgroundColor: '#0e0817' }}>
       
-            <div className="p-4 lg:p-0 space-y-6 max-w-md lg:max-w-4xl mx-auto" style={{ backgroundColor: '#0e0817' }}>
+            <div className="p-4 lg:p-0 space-y-6 max-w-md lg:max-w-none mx-auto lg:mx-0 lg:bg-white lg:rounded-2xl lg:shadow-sm lg:border lg:border-gray-200" style={{ backgroundColor: '#0e0817' }}>
 
       {/* Loading State - Show when we don't have real data yet */}
       {(!hasRealData && loadingUser) && (

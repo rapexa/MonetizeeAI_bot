@@ -84,67 +84,44 @@ html, body {
 
 /* Desktop Layout Styles */
 @media (min-width: 1024px) {
-  /* Smooth scrollbar for desktop */
+  /* Modern scrollbar - Thin & Minimal */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: rgba(14, 8, 23, 0.5);
-    border-radius: 10px;
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #5a189a 0%, #7222f2 100%);
+    background: #d1d5db;
     border-radius: 10px;
-    border: 2px solid rgba(14, 8, 23, 0.5);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #7222f2 0%, #5a189a 100%);
+    background: #9ca3af;
   }
 
-  /* Custom scrollbar for sidebar */
-  .custom-scrollbar::-webkit-scrollbar {
+  /* Tailwind scrollbar utilities */
+  .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
   }
 
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(14, 8, 23, 0.3);
+  .scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
+    background: #d1d5db;
     border-radius: 10px;
   }
 
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #5a189a 0%, #7222f2 100%);
-    border-radius: 10px;
+  .scrollbar-track-transparent::-webkit-scrollbar-track {
+    background: transparent;
   }
 
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #7222f2 0%, #5a189a 100%);
-  }
-
-  /* Sidebar slide-in animation */
-  @keyframes sidebarSlideIn {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-
-  .sidebar-enter {
-    animation: sidebarSlideIn 0.4s ease-out;
-  }
-
-  /* Page transition */
+  /* Page transitions */
   @keyframes fadeInUp {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(10px);
     }
     to {
       opacity: 1;
@@ -153,12 +130,6 @@ html, body {
   }
 
   .page-transition {
-    animation: fadeInUp 0.4s ease-out;
-  }
-
-  /* Header styles */
-  .desktop-header {
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    animation: fadeInUp 0.3s ease-out;
   }
 }

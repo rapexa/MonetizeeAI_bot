@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { 
   User, 
-  Settings, 
-  MessageCircle, 
-  ChevronLeft, 
-  Mic, 
-  MicOff,
-  Heart
+  Bell,
+  Search,
+  ChevronDown,
+  Settings,
+  LogOut,
+  CreditCard,
+  HelpCircle
 } from 'lucide-react';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { userData } = useApp();
-  const [language, setLanguage] = useState<'FA' | 'EN'>('FA');
-  const [audioControl, setAudioControl] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [telegramProfilePhoto, setTelegramProfilePhoto] = useState<string | null>(null);
 
   // Load profile photo
@@ -35,119 +36,145 @@ const Header: React.FC = () => {
     return () => clearTimeout(timer);
   }, [userData]);
 
+  // Get page title based on current route
+  const getPageTitle = () => {
+    const path = location.pathname;
+    if (path === '/') return 'داشبورد';
+    if (path === '/levels') return 'مراحل آموزشی';
+    if (path === '/ai-coach') return 'دستیار هوشمند';
+    if (path === '/tools') return 'ابزارهای کاری';
+    if (path === '/profile') return 'پروفایل من';
+    return 'MonetizeAI';
+  };
+
   return (
-    <header className="hidden lg:flex fixed top-0 left-0 right-72 h-16 z-50 bg-[#1a1a1a] border-b border-white/10 backdrop-blur-xl">
+    <header className="hidden lg:flex fixed top-0 left-0 right-[280px] h-16 z-40 bg-white border-b border-gray-200">
       <div className="w-full h-full flex items-center justify-between px-6">
-        {/* Left Section: User Avatar & Language Toggle */}
+        {/* Left Section: Page Title */}
         <div className="flex items-center gap-4">
-          {/* User Avatar */}
-          <div 
-            className="w-10 h-10 rounded-full overflow-hidden cursor-pointer hover:ring-2 hover:ring-[#7222f2]/50 transition-all duration-300"
-            onClick={() => navigate('/profile')}
+          <h1 className="text-lg font-bold text-gray-900">
+            {getPageTitle()}
+          </h1>
+        </div>
+
+        {/* Center Section: Search Bar */}
+        <div className="flex-1 max-w-md mx-8">
+          <div className="relative">
+            <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="جستجو در پلتفرم..."
+              className="w-full h-10 pr-11 pl-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Right Section: Actions & Profile */}
+        <div className="flex items-center gap-3">
+          {/* Notifications */}
+          <button
+            className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="اعلان‌ها"
           >
-            {telegramProfilePhoto ? (
-              <img 
-                src={telegramProfilePhoto} 
-                alt="Profile" 
-                className="w-full h-full object-cover"
-                onError={() => setTelegramProfilePhoto(null)}
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-[#2c189a] to-[#7222f2] flex items-center justify-center">
-                <User size={20} className="text-white" />
+            <Bell size={20} className="text-gray-600" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+          </button>
+
+          {/* Help */}
+          <button
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="راهنما"
+            onClick={() => navigate('/guide-tutorial')}
+          >
+            <HelpCircle size={20} className="text-gray-600" />
+          </button>
+
+          {/* Divider */}
+          <div className="h-8 w-px bg-gray-200"></div>
+
+          {/* User Profile Menu */}
+          <div className="relative">
+            <button
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              className="flex items-center gap-3 p-2 pr-3 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              <div className="flex flex-col items-end">
+                <span className="text-sm font-semibold text-gray-900">
+                  {userData.username || userData.firstName || 'کاربر'}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {userData.subscriptionType === 'paid' ? 'اشتراک فعال' : 'نسخه رایگان'}
+                </span>
               </div>
-            )}
-          </div>
-
-          {/* Language Toggle */}
-          <div className="flex items-center bg-white/5 rounded-full p-1 border border-white/10">
-            <button
-              onClick={() => setLanguage('EN')}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
-                language === 'EN' 
-                  ? 'bg-gradient-to-r from-[#7222f2] to-[#5a189a] text-white shadow-lg' 
-                  : 'text-white/60 hover:text-white/80'
-              }`}
-            >
-              EN
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center ring-2 ring-gray-100">
+                {telegramProfilePhoto ? (
+                  <img 
+                    src={telegramProfilePhoto} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                    onError={() => setTelegramProfilePhoto(null)}
+                  />
+                ) : (
+                  <User size={18} className="text-white" />
+                )}
+              </div>
+              <ChevronDown size={16} className={`text-gray-400 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
             </button>
-            <button
-              onClick={() => setLanguage('FA')}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
-                language === 'FA' 
-                  ? 'bg-gradient-to-r from-[#7222f2] to-[#5a189a] text-white shadow-lg' 
-                  : 'text-white/60 hover:text-white/80'
-              }`}
-            >
-              FA
-            </button>
-          </div>
-        </div>
 
-        {/* Center Section: Audio Control Status */}
-        <div className="flex items-center gap-3">
-          {/* Audio Control Icon */}
-          <button
-            onClick={() => setAudioControl(!audioControl)}
-            className="p-2 hover:bg-white/5 rounded-lg transition-all duration-300 hover:scale-110"
-            title={audioControl ? 'فعال کردن کنترل صوتی' : 'غیرفعال کردن کنترل صوتی'}
-          >
-            {audioControl ? (
-              <Mic size={18} className="text-white/80" />
-            ) : (
-              <MicOff size={18} className="text-white/50" />
+            {/* Dropdown Menu */}
+            {showProfileMenu && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowProfileMenu(false)}
+                ></div>
+                <div className="absolute left-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+                  <button
+                    onClick={() => {
+                      navigate('/profile');
+                      setShowProfileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <User size={16} />
+                    <span>پروفایل من</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/subscription-management');
+                      setShowProfileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <CreditCard size={16} />
+                    <span>مدیریت اشتراک</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/settings');
+                      setShowProfileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Settings size={16} />
+                    <span>تنظیمات</span>
+                  </button>
+                  <div className="h-px bg-gray-200 my-2"></div>
+                  <button
+                    onClick={() => {
+                      if (window.Telegram?.WebApp) {
+                        window.Telegram.WebApp.close();
+                      }
+                      setShowProfileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut size={16} />
+                    <span>خروج از حساب</span>
+                  </button>
+                </div>
+              </>
             )}
-          </button>
-
-          {/* Audio Control Status Text */}
-          <div className="bg-white/5 rounded-lg px-4 py-2 border border-white/10">
-            <p className="text-xs text-white/70">
-              {audioControl ? 'کنترل صوتی فعال است' : 'کنترل صوتی خاموش است'}
-            </p>
-          </div>
-
-          {/* Settings Icon */}
-          <button
-            onClick={() => navigate('/settings')}
-            className="p-2 hover:bg-white/5 rounded-lg transition-all duration-300 hover:scale-110"
-            title="تنظیمات"
-          >
-            <Settings size={18} className="text-white/80" />
-          </button>
-        </div>
-
-        {/* Right Section: Navigation & Brand */}
-        <div className="flex items-center gap-3">
-          {/* Back Button */}
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 hover:bg-white/5 rounded-lg transition-all duration-300 hover:scale-110"
-            title="بازگشت"
-          >
-            <ChevronLeft size={20} className="text-white/80" />
-          </button>
-
-          {/* Chat Button */}
-          <button
-            onClick={() => navigate('/ai-coach')}
-            className="p-2 hover:bg-white/5 rounded-lg transition-all duration-300 hover:scale-110 relative"
-            title="چت"
-          >
-            <MessageCircle size={18} className="text-white/80" />
-            {/* Optional: Notification badge */}
-          </button>
-
-          {/* Brand Logo */}
-          <div 
-            className="flex items-center gap-2 cursor-pointer group"
-            onClick={() => navigate('/')}
-          >
-            <span className="text-lg font-bold bg-gradient-to-r from-[#7222f2] to-[#5a189a] bg-clip-text text-transparent group-hover:from-[#5a189a] group-hover:to-[#7222f2] transition-all duration-300">
-              MonetizeAI
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7222f2] to-[#5a189a] flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
-              <Heart size={16} className="text-white fill-white" />
-            </div>
           </div>
         </div>
       </div>
