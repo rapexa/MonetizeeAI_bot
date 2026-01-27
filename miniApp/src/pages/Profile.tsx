@@ -472,10 +472,10 @@ const Profile: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen transition-colors duration-300 profile-container" style={{ backgroundColor: '#0e0817' }}>
-              <div className="pt-24 pb-12 p-4 space-y-8 max-w-md mx-auto">
+    <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
+              <div className="pt-24 lg:pt-8 pb-12 px-4 lg:px-6 space-y-8 max-w-md lg:max-w-6xl mx-auto">
         {/* Fixed Header */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl lg:hidden">
           <div className="flex items-center justify-between p-4 max-w-md mx-auto">
             {/* Icon Container */}
             <div className="relative">
@@ -494,8 +494,10 @@ const Profile: React.FC = () => {
           </div>
         </div>
 
+        {/* Profile Grid - Desktop: 2 columns, Mobile: 1 column */}
+        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
         {/* Profile Card */}
-        <div className="backdrop-blur-xl rounded-3xl p-8 border border-gray-700/60 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 group" style={{ backgroundColor: '#10091c' }}>
+        <div className="backdrop-blur-xl rounded-2xl lg:rounded-3xl p-6 lg:p-8 border border-gray-700/60 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 group" style={{ backgroundColor: '#10091c' }}>
           <div className="flex items-center gap-4 mb-5">
             <div className="p-4 rounded-2xl bg-gradient-to-r from-[#2c189a] to-[#5a189a] shadow-xl border border-white/20 group-hover:scale-110 transition-transform duration-300">
               <div className="scale-125 text-white">

@@ -501,7 +501,7 @@ const Tools: React.FC = () => {
   return (
     <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
       {/* Fixed Header */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl lg:hidden">
         <div className="flex items-center justify-between p-4 max-w-md mx-auto">
           {/* Icon Container */}
           <div className="relative">
@@ -521,7 +521,7 @@ const Tools: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="pt-24 max-w-6xl mx-auto p-6">
+      <div className="pt-24 lg:pt-8 max-w-7xl mx-auto px-4 lg:px-6 py-6">
         {/* Subscription limit warning - only show if user is free_trial
         {userData.subscriptionType === 'free_trial' || !userData.subscriptionType || userData.subscriptionType === 'none' ? (
           <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl backdrop-blur-xl">
@@ -542,13 +542,13 @@ const Tools: React.FC = () => {
         {/* Internal AI Tools */}
         <div className="mb-12 mt-8">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">ابزارهای AI داخلی</h2>
+            <h2 className="text-2xl lg:text-3xl font-bold text-white mb-2">ابزارهای AI داخلی</h2>
             <p className="text-gray-400">ابزارهای هوشمند MonetizeAI برای رشد کسب‌وکار</p>
           </div>
           
           {/* Small AI Tools - All four on top */}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
             {internalTools.map((tool) => {
               const Icon = tool.icon;
               

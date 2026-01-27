@@ -33,7 +33,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           style={isSubscriptionExpiredState ? { filter: 'blur(8px)', userSelect: 'none' as any } : {}}
         >
           {/* Desktop: Content with proper spacing, Mobile: Full width */}
-          <div className="w-full h-full lg:bg-gray-50">
+          <div className="w-full h-full lg:bg-[#0a0118]">
             <div className="w-full h-full lg:p-6">
               {children}
             </div>

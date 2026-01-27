@@ -3294,23 +3294,11 @@ const Levels: React.FC = () => {
   return (
       <>
         {renderSubscriptionCard()}
-      <div className="min-h-screen transition-colors duration-300 page-container" style={{ backgroundColor: '#0E0817' }}>
-        <style dangerouslySetInnerHTML={{
-          __html: `
-            html.dark .page-container {
-              background: #0E0817 !important;
-            }
-            @media (prefers-color-scheme: dark) {
-              .page-container {
-                background: #0E0817 !important;
-              }
-            }
-          `
-        }} />
+      <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0E0817' }}>
         {/* Header */}
-        <div className={`relative px-8 py-6 bg-gradient-to-r ${selectedLevel.gradient} overflow-hidden`}>
+        <div className={`relative px-4 lg:px-8 py-4 lg:py-6 bg-gradient-to-r ${selectedLevel.gradient} overflow-hidden`}>
           <div className="absolute inset-0 bg-gradient-to-r from-[#2c189a] to-[#5a189a]"></div>
-          <div className="relative z-10 max-w-6xl mx-auto">
+          <div className="relative z-10 max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-6">
               <button 
                 onClick={() => setViewMode('list')}
@@ -3352,9 +3340,9 @@ const Levels: React.FC = () => {
                 <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
               </div>
 
-        <div className="max-w-6xl mx-auto p-6">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-4 lg:py-6">
                 {/* Level Description */}
-                <div className="relative overflow-hidden backdrop-blur-2xl rounded-3xl p-8 mb-8 border border-gray-800/60" style={{ backgroundColor: '#11091C' }}>
+                <div className="relative overflow-hidden backdrop-blur-2xl rounded-2xl lg:rounded-3xl p-5 lg:p-8 mb-6 lg:mb-8 border border-gray-800/60" style={{ backgroundColor: '#11091C' }}>
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-full blur-3xl"></div>
                   <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-purple-500/20 to-pink-500/20 rounded-full blur-2xl"></div>
                   
@@ -3555,11 +3543,11 @@ const Levels: React.FC = () => {
     return (
       <>
         {renderSubscriptionCard()}
-      <div className="min-h-screen transition-colors duration-300 page-container" style={{ backgroundColor: '#0E0817' }}>
+      <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0E0817' }}>
         {/* Header */}
-        <div className="relative px-8 py-6 backdrop-blur-xl border-b border-gray-800/60 overflow-hidden" style={{ backgroundColor: '#0E0817' }}>
+        <div className="relative px-4 lg:px-8 py-4 lg:py-6 backdrop-blur-xl border-b border-gray-800/60 overflow-hidden" style={{ backgroundColor: '#0E0817' }}>
           <div className="absolute inset-0 bg-gradient-to-r from-[#2c189a] to-[#5a189a]"></div>
-          <div className="relative z-10 max-w-6xl mx-auto">
+          <div className="relative z-10 max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-6">
               <button 
                 onClick={() => setViewMode('detail')}
@@ -3593,7 +3581,7 @@ const Levels: React.FC = () => {
                 <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-full blur-2xl"></div>
               </div>
 
-                <div className="max-w-7xl mx-auto p-6 relative">
+                <div className="max-w-7xl mx-auto px-4 lg:px-6 py-4 lg:py-6 relative">
                   {/* Connecting Dashed Line from Learning Path to Quiz */}
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-0.5 pointer-events-none">
                     <div 

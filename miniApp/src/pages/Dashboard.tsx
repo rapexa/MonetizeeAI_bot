@@ -718,7 +718,7 @@ const Dashboard: React.FC = () => {
       <div className="min-h-screen transition-colors duration-300" 
            style={{ backgroundColor: '#0e0817' }}>
       
-            <div className="p-4 lg:p-0 space-y-6 max-w-md lg:max-w-none mx-auto lg:mx-0 lg:bg-white lg:rounded-2xl lg:shadow-sm lg:border lg:border-gray-200" style={{ backgroundColor: '#0e0817' }}>
+            <div className="p-4 lg:p-0 space-y-6 max-w-md mx-auto lg:max-w-none lg:mx-0" style={{ backgroundColor: '#0e0817' }}>
 
       {/* Loading State - Show when we don't have real data yet */}
       {(!hasRealData && loadingUser) && (
@@ -738,8 +738,13 @@ const Dashboard: React.FC = () => {
       {(hasRealData || (!loadingUser && !isAPIConnected)) && (
         <>
         
+          {/* Desktop: 2 Column Grid Layout, Mobile: Single Column */}
+          <div className="lg:grid lg:grid-cols-12 lg:gap-6 space-y-6 lg:space-y-0">
+            {/* Left Column - Main Content (8 columns) */}
+            <div className="lg:col-span-8 space-y-6">
+          
           {/* Enhanced Profile Header */}
-              <div className="flex items-center justify-between mb-6 backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+              <div className="flex items-center justify-between backdrop-blur-xl rounded-3xl p-5 lg:p-6 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
         <div 
           className="flex items-center gap-3 cursor-pointer group"
           onClick={() => navigate('/profile')}
@@ -814,7 +819,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Big Income Card */}
-      <div className="group backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+      <div className="group backdrop-blur-xl rounded-3xl p-5 lg:p-7 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
 
         
         {/* Animated Green Lights */}
@@ -940,13 +945,9 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="w-64 h-px bg-gray-200/30 dark:bg-gray-700/30 my-6 mx-auto"></div>
-
       {/* Progress Section */}
-      <div className="mt-8">
-
-        
-                <div className="rounded-3xl p-5 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-300 group backdrop-blur-xl max-w-4xl mx-auto" style={{ backgroundColor: '#10091c' }}>
+      <div>
+                <div className="rounded-3xl p-5 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-300 group backdrop-blur-xl" style={{ backgroundColor: '#10091c' }}>
           <div className="flex flex-col space-y-4">
             {/* Title Section */}
             <div className="text-center">
@@ -997,22 +998,20 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="w-64 h-px bg-gray-200/30 dark:bg-gray-700/30 my-6 mx-auto"></div>
-
       {/* AI-Powered Tools Section */}
-      <div className="mt-8">
-        <div className="text-center mb-6">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">ابزارهای AI هوشمند</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">ابزارهای قدرتمند کسب‌وکار مبتنی بر هوش مصنوعی</p>
+      <div>
+        <div className="text-center mb-4">
+          <h3 className="text-base lg:text-lg font-bold text-white">ابزارهای AI هوشمند</h3>
+          <p className="text-xs lg:text-sm text-gray-400">ابزارهای قدرتمند کسب‌وکار</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-2 gap-3">
           {/* ایده یابی */}
           <div
             onClick={() => {
               navigate('/business-builder-ai');
             }}
-            className="text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
+            className="text-center group transition-all duration-500 h-20 lg:h-24 flex flex-col justify-center backdrop-blur-xl rounded-2xl lg:rounded-3xl p-4 lg:p-5 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
             style={{ backgroundColor: '#10091c' }}
           >
             {/* Animated Background Pattern */}
@@ -1047,7 +1046,7 @@ const Dashboard: React.FC = () => {
             onClick={() => {
               navigate('/sell-kit-ai');
             }}
-            className="text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
+            className="text-center group transition-all duration-500 h-20 lg:h-24 flex flex-col justify-center backdrop-blur-xl rounded-2xl lg:rounded-3xl p-4 lg:p-5 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
             style={{ backgroundColor: '#10091c' }}
           >
             {/* Animated Background Pattern */}
@@ -1082,7 +1081,7 @@ const Dashboard: React.FC = () => {
             onClick={() => {
               navigate('/client-finder-ai');
             }}
-            className="text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
+            className="text-center group transition-all duration-500 h-20 lg:h-24 flex flex-col justify-center backdrop-blur-xl rounded-2xl lg:rounded-3xl p-4 lg:p-5 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
             style={{ backgroundColor: '#10091c' }}
           >
             {/* Animated Background Pattern */}
@@ -1117,7 +1116,7 @@ const Dashboard: React.FC = () => {
             onClick={() => {
               navigate('/sales-path-ai');
             }}
-            className="text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
+            className="text-center group transition-all duration-500 h-20 lg:h-24 flex flex-col justify-center backdrop-blur-xl rounded-2xl lg:rounded-3xl p-4 lg:p-5 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
             style={{ backgroundColor: '#10091c' }}
           >
             {/* Animated Background Pattern */}
@@ -1149,9 +1148,9 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Sales Management System Card */}
-        <div className="mt-3">
+        <div className="mt-3 lg:col-span-2">
           <div 
-            className="text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
+            className="text-center group transition-all duration-500 h-20 lg:h-24 flex flex-col justify-center backdrop-blur-xl rounded-2xl lg:rounded-3xl p-4 lg:p-5 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
             style={{ backgroundColor: '#10091c' }}
             onClick={() => {
               navigate('/crm');
@@ -1186,17 +1185,18 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-
-
-      <div className="w-64 h-px bg-gray-200/30 dark:bg-gray-700/30 my-6 mx-auto"></div>
-
+            </div>
+            
+            {/* Right Column - AI Coach (4 columns) - Desktop Only */}
+            <div className="lg:col-span-4 lg:block hidden">
+              <div className="sticky top-20 space-y-6">
       {/* AI Coach Chat */}
-      <div className="mb-6">
-                  <div className="text-center">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">AI کوچ شخصی</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">مربی هوشمند شما برای رشد کسب‌وکار</p>
+      <div>
+                  <div className="text-center mb-4">
+            <h3 className="text-base font-bold text-white">AI کوچ شخصی</h3>
+            <p className="text-xs text-gray-400">مربی هوشمند شما</p>
           </div>
-        <div className="backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg transition-all duration-300 mb-10" style={{ backgroundColor: '#10091c' }}>
+        <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg transition-all duration-300" style={{ backgroundColor: '#10091c' }}>
           <div className="space-y-4">
             {/* Header with AI Coach */}
             <div className="flex items-center justify-between">
@@ -1359,8 +1359,43 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
-
-
+              </div>
+            </div>
+            
+            {/* Mobile: AI Coach at bottom */}
+            <div className="lg:hidden">
+              <div className="text-center mb-4">
+                <h3 className="text-base font-bold text-white">AI کوچ شخصی</h3>
+                <p className="text-xs text-gray-400">مربی هوشمند شما</p>
+              </div>
+              <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg" style={{ backgroundColor: '#10091c' }}>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-[#2c189a] to-[#5a189a] rounded-xl flex items-center justify-center shadow-lg">
+                        <Brain size={18} className="text-white" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white">AI کوچ</h4>
+                        <p className="text-xs text-gray-300">آماده کمک</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-green-400 bg-green-900/40 px-2 py-1 rounded-full text-xs font-medium">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      آنلاین
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => navigate('/ai-coach')}
+                    className="w-full bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white py-3 rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    <MessageCircle size={16} />
+                    <span>شروع گفتگو</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
 
       {/* Current Level Card */}
 

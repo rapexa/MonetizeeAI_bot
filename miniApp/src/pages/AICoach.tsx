@@ -266,7 +266,7 @@ const AICoach: React.FC = () => {
       {renderSubscriptionCard()}
       <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0e0817' }}>
         {/* Fixed Header */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl lg:hidden">
           <div className="flex items-center justify-between p-4 max-w-md mx-auto">
             {/* Icon Container */}
             <div className="relative">
@@ -295,9 +295,9 @@ const AICoach: React.FC = () => {
         </div>
 
         {/* Main Content */}
-        <div className="pt-24 max-w-4xl mx-auto p-6 pb-32">
+        <div className="pt-24 lg:pt-8 max-w-6xl mx-auto px-4 lg:px-6 pb-32 lg:pb-8">
           {/* Chat Messages */}
-          <div className="h-[calc(100vh-200px)] overflow-y-auto space-y-1">
+          <div className="h-[calc(100vh-200px)] lg:h-[calc(100vh-180px)] overflow-y-auto space-y-1 lg:space-y-2">
             {chatMessages.map((msg, index) => (
               <div
                 key={msg.id}
@@ -340,7 +340,7 @@ const AICoach: React.FC = () => {
         </div>
 
         {/* Message Input - Fixed at Bottom */}
-        <div className={`fixed bottom-20 left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-4 backdrop-blur-xl rounded-3xl border border-gray-700/60 p-7 shadow-lg transition-all duration-500 ${isEditingPrompt ? 'ring-2 ring-[#7222F2]/50' : ''} pb-safe-area-inset-bottom z-40`} style={{ backgroundColor: '#10091c' }}>
+        <div className={`fixed bottom-20 lg:bottom-8 left-1/2 transform -translate-x-1/2 w-full max-w-4xl px-4 backdrop-blur-xl rounded-2xl lg:rounded-3xl border border-gray-700/60 p-5 lg:p-7 shadow-lg transition-all duration-500 ${isEditingPrompt ? 'ring-2 ring-[#7222F2]/50' : ''} z-40`} style={{ backgroundColor: '#10091c' }}>
           {isEditingPrompt ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
