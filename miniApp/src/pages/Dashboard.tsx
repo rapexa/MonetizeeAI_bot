@@ -773,7 +773,7 @@ const Dashboard: React.FC = () => {
         `
       }} />
       
-            <div className="p-4 space-y-6 max-w-md mx-auto" style={{ backgroundColor: '#0e0817' }}>
+            <div className="p-4 lg:p-0 space-y-6 max-w-md lg:max-w-4xl mx-auto" style={{ backgroundColor: '#0e0817' }}>
 
       {/* Loading State - Show when we don't have real data yet */}
       {(!hasRealData && loadingUser) && (

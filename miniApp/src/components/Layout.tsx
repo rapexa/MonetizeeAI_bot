@@ -1,5 +1,6 @@
 import React from 'react';
 import BottomNav from './BottomNav';
+import Sidebar from './Sidebar';
 import { useApp } from '../context/AppContext';
 
 interface LayoutProps {
@@ -17,17 +18,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen flex flex-col relative" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      {/* Main content with blur effect if subscription expired */}
-      <div 
-        className={`flex-1 pb-20 transition-all duration-300 ${isSubscriptionExpiredState ? 'blur-sm pointer-events-none' : ''}`}
-        style={isSubscriptionExpiredState ? { filter: 'blur(8px)', userSelect: 'none' as any } : {}}
-      >
-        {children}
+      {/* Desktop Sidebar - Only visible on large screens (lg: 1024px+) */}
+      <Sidebar />
+
+      {/* Main content area - Responsive layout */}
+      <div className="flex-1 flex flex-col lg:mr-72 transition-all duration-300 desktop-content-wrapper">
+        {/* Main content with blur effect if subscription expired */}
+        <div 
+          className={`flex-1 pb-20 lg:pb-0 transition-all duration-300 ${isSubscriptionExpiredState ? 'blur-sm pointer-events-none' : ''}`}
+          style={isSubscriptionExpiredState ? { filter: 'blur(8px)', userSelect: 'none' as any } : {}}
+        >
+          {/* Desktop: Content with padding and max-width, Mobile: Full width */}
+          <div className="w-full lg:max-w-[calc(100vw-20rem)] lg:mx-auto lg:px-8 lg:py-8 page-container page-transition">
+            {children}
+          </div>
+        </div>
       </div>
       
-      {/* Bottom nav with blur effect if subscription expired */}
+      {/* Bottom nav - Only visible on mobile (hidden on lg and above) */}
       <div 
-        className={isSubscriptionExpiredState ? 'blur-sm pointer-events-none' : ''}
+        className={`lg:hidden ${isSubscriptionExpiredState ? 'blur-sm pointer-events-none' : ''}`}
         style={isSubscriptionExpiredState ? { filter: 'blur(8px)', userSelect: 'none' as any } : {}}
       >
         <BottomNav />
