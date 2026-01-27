@@ -738,8 +738,85 @@ const Dashboard: React.FC = () => {
       {(hasRealData || (!loadingUser && !isAPIConnected)) && (
         <>
         
-          {/* Main Content - Centered */}
-          <div className="max-w-4xl mx-auto space-y-6">
+          {/* Desktop: 2 Column Grid Layout, Mobile: Single Column */}
+          <div className="lg:grid lg:grid-cols-12 lg:gap-6 space-y-6 lg:space-y-0">
+            {/* Left Column - Main Content (8 columns) */}
+            <div className="lg:col-span-8 space-y-6">
+          
+          {/* Enhanced Profile Header */}
+              <div className="flex items-center justify-between backdrop-blur-xl rounded-3xl p-5 lg:p-6 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+        <div 
+          className="flex items-center gap-3 cursor-pointer group"
+          onClick={() => navigate('/profile')}
+        >
+          <div className="w-12 h-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full flex items-center justify-center shadow-lg overflow-hidden">
+              {telegramProfilePhoto || profileImage ? (
+              <img 
+                src={telegramProfilePhoto || profileImage || ''} 
+                alt="Profile" 
+                className="w-full h-full object-cover rounded-full"
+                onError={(e) => {
+                  // If image fails to load, hide it and show icon
+                  e.currentTarget.style.display = 'none';
+                  setTelegramProfilePhoto(null);
+                  setProfileImage(null);
+                }}
+              />
+            ) : (
+              <User size={18} className="text-white drop-shadow-lg" />
+            )}
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-white drop-shadow-lg">
+              {userData.username ? `@${userData.username}` : userData.firstName || '@hosein_dev'}
+            </h2>
+            
+            {/* Subscription Badge - Compact */}
+            <div className="mt-1">
+              {(() => {
+                // تشخیص دقیق نوع اشتراک از API
+                const subType = userData.subscriptionType?.toLowerCase();
+                const planName = userData.planName?.toLowerCase();
+                
+                if (subType === 'ultimate' || planName === 'ultimate') {
+                  return (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-green-500/20 text-green-400 border border-green-500/30 backdrop-blur-sm">
+                      اشتراک مادام‌العمر
+                    </span>
+                  );
+                } else if (subType === 'pro' || planName === 'pro') {
+                  return (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-500/25 text-purple-200 border border-purple-400/35 shadow-sm shadow-purple-500/15">
+                      اشتراک شش ماهه
+                    </span>
+                  );
+                } else if (subType === 'starter' || planName === 'starter') {
+                  return (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-green-500/20 text-green-200 border border-green-500/25">
+                      اشتراک ماهانه
+                    </span>
+                  );
+                } else {
+                  return (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-600/10 text-gray-400 border border-gray-600/15">
+                      اشتراک رایگان
+                    </span>
+                  );
+                }
+              })()}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            className="p-3 hover:bg-white/20 backdrop-blur-sm rounded-xl transition-all duration-300 relative group border border-white/20"
+            onClick={() => navigate('/profile')}
+          >
+            <Settings size={20} className="text-white drop-shadow-lg group-hover:scale-110 transition-all duration-300" />
+          </button>
+
+        </div>
+      </div>
 
       {/* Big Income Card */}
       <div className="group backdrop-blur-xl rounded-3xl p-5 lg:p-7 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
@@ -747,6 +824,7 @@ const Dashboard: React.FC = () => {
         
         {/* Animated Green Lights */}
         <div className="absolute inset-0 bg-gradient-to-br from-green-400/15 via-green-500/10 to-transparent rounded-3xl"></div>
+        <div className="absolute inset-0 opacity-100 group-hover:opacity-100 transition-all duration-700"></div>
         
         {/* Background Pattern */}
         <div className="absolute inset-4 opacity-5">
@@ -1079,7 +1157,7 @@ const Dashboard: React.FC = () => {
             }}
           >
             {/* Animated Background Pattern */}
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700">
+            <div className="absolute inset-0 opacity-100 group-hover:opacity-100 transition-all duration-700">
               <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-xl bg-green-500/20 animate-pulse"></div>
               <div className="absolute bottom-0 left-0 w-12 h-12 rounded-full blur-lg bg-green-400/15 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
             </div>
@@ -1106,6 +1184,217 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+            </div>
+            
+            {/* Right Column - AI Coach (4 columns) - Desktop Only */}
+            <div className="lg:col-span-4 lg:block hidden">
+              <div className="sticky top-20 space-y-6">
+      {/* AI Coach Chat */}
+      <div>
+                  <div className="text-center mb-4">
+            <h3 className="text-base font-bold text-white">AI کوچ شخصی</h3>
+            <p className="text-xs text-gray-400">مربی هوشمند شما</p>
+          </div>
+        <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg transition-all duration-300" style={{ backgroundColor: '#10091c' }}>
+          <div className="space-y-4">
+            {/* Header with AI Coach */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-[#2c189a] to-[#5a189a] rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
+                  <Brain size={20} className="text-white" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-gray-900 dark:text-white transition-colors duration-300">
+                    AI کوچ
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 transition-colors duration-300">آماده کمک به شما</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate('/chatbot', { state: { fromPage: 'dashboard' } })}
+                  className="p-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl transition-colors duration-200 group"
+                  title="چت کامل"
+                >
+                  <Maximize2 size={16} className="text-gray-400 group-hover:text-white transition-colors" />
+                </button>
+                <div className="flex items-center gap-1 text-green-600 dark:text-green-400 bg-green-100/70 dark:bg-green-900/40 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium border border-green-200/50 dark:border-green-700/50">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  آنلاین
+                </div>
+              </div>
+            </div>
+
+
+
+            {/* Chat Interface */}
+            <div className={`backdrop-blur-md rounded-xl p-4 border border-gray-700/60 shadow-lg transition-all duration-500 relative ${isEditingPrompt ? 'ring-2 ring-purple-400/50' : ''}`} style={{ backgroundColor: '#10091c' }}>
+              {/* Scroll to Bottom Button - Fixed Position */}
+              {showScrollButton && (
+                <button
+                  onClick={scrollToBottom}
+                  className="absolute top-2 left-2 w-10 h-10 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg border border-white/20 z-10"
+                  title="اسکرول به پایین"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                    <path d="M12 5v14"/>
+                    <path d="M19 12l-7 7-7-7"/>
+                  </svg>
+                </button>
+              )}
+              
+              {/* Chat Messages */}
+              <div 
+                ref={chatContainerRef}
+                className={`overflow-y-auto space-y-3 mb-4 transition-all duration-500 ${isEditingPrompt ? 'h-20' : 'h-56'}`}
+                onScroll={checkScrollPosition}
+              >
+                {chatMessages.map((message, index) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.sender === 'user' ? 'justify-start' : 'justify-end'} animate-fade-in`}
+                  >
+                    {message.sender === 'user' ? (
+                      <div className="flex flex-col max-w-[80%]">
+                        <div className="bg-gradient-to-r from-[#2c189a] to-[#5a189a] rounded-lg rounded-br-md px-3 py-2">
+                          <p className="text-white text-xs leading-relaxed">{message.text}</p>
+                        </div>
+                        <span className="text-xs text-gray-400 dark:text-gray-400 mt-1 px-1 text-right">{message.timestamp}</span>
+                      </div>
+                    ) : (
+                      <AIMessage
+                        message={message.text}
+                        timestamp={message.timestamp}
+                        isLatest={index === chatMessages.length - 1}
+                        isNew={message.isNew || false}
+                        onTypingComplete={scrollToBottom}
+                      />
+                    )}
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+              
+              {/* Chat Input */}
+              {isEditingPrompt ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h6 className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                      ویرایش پرامپت - جاهای خالی رو پر کنید:
+                    </h6>
+                    <button
+                      onClick={handleCancelPromptEdit}
+                      className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      انصراف ✕
+                    </button>
+                  </div>
+                  
+                  <textarea
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    placeholder="پرامپت خود را ویرایش کنید..."
+                    className="w-full h-32 px-4 py-3 bg-white/80 dark:bg-gray-700/70 backdrop-blur-md rounded-xl border border-purple-300/50 dark:border-purple-600/50 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 resize-none leading-relaxed"
+                  />
+                  
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleSendMessage}
+                      disabled={!chatMessage.trim()}
+                      className="flex-1 min-w-0 px-4 py-3 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-[#2c189a]/50 disabled:to-[#5a189a]/50 text-white rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 border border-white/10 flex items-center justify-center gap-2"
+                    >
+                      <span className="truncate">ارسال پرامپت</span>
+                      <span>🚀</span>
+                    </button>
+                    <button 
+                      onClick={handleCancelPromptEdit}
+                      className="px-4 py-3 bg-gray-200/70 dark:bg-gray-600/70 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-300/70 dark:hover:bg-gray-500/70 transition-all duration-300 flex-shrink-0"
+                    >
+                      انصراف
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      placeholder="سوال خود را بپرسید..."
+                      value={chatMessage}
+                      onChange={(e) => setChatMessage(e.target.value)}
+                      className="flex-1 min-w-0 px-3 py-2 bg-white/70 dark:bg-gray-700/60 backdrop-blur-md rounded-xl border border-purple-200/30 dark:border-purple-700/30 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      style={{ fontSize: '16px', height: '40px' }}
+                    />
+                    <button 
+                      onClick={handleSendMessage}
+                      disabled={!chatMessage.trim()}
+                      className="w-10 h-10 bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 disabled:from-[#2c189a]/50 disabled:to-[#5a189a]/50 text-white rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 border border-white/10 flex-shrink-0 flex items-center justify-center"
+                    >
+                      <span className="text-lg">➤</span>
+                    </button>
+                  </div>
+                  
+                  {/* Minimal Prompts Button */}
+                  <button
+                    onClick={() => navigate('/ready-prompts')}
+                    className="w-full py-2 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-200/50 dark:border-purple-700/50 hover:border-purple-300/70 dark:hover:border-purple-600/70 rounded-lg hover:bg-purple-50/30 dark:hover:bg-purple-900/20 transition-all duration-300 flex items-center justify-center gap-1 truncate"
+                  >
+                    <Sparkles size={12} className="flex-shrink-0" />
+                    <span className="truncate">پرامپت‌های آماده</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Action */}
+            <button 
+              onClick={() => navigate('/ai-coach')}
+              className="w-full bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white py-3 rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 backdrop-blur-sm border border-white/10 hover:scale-[1.02] min-w-0"
+            >
+              <MessageCircle size={16} className="flex-shrink-0" />
+              <span className="truncate">باز کردن چت کامل</span>
+            </button>
+          </div>
+        </div>
+      </div>
+              </div>
+            </div>
+            
+            {/* Mobile: AI Coach at bottom */}
+            <div className="lg:hidden">
+              <div className="text-center mb-4">
+                <h3 className="text-base font-bold text-white">AI کوچ شخصی</h3>
+                <p className="text-xs text-gray-400">مربی هوشمند شما</p>
+              </div>
+              <div className="backdrop-blur-xl rounded-3xl p-5 border border-gray-700/60 shadow-lg" style={{ backgroundColor: '#10091c' }}>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-[#2c189a] to-[#5a189a] rounded-xl flex items-center justify-center shadow-lg">
+                        <Brain size={18} className="text-white" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white">AI کوچ</h4>
+                        <p className="text-xs text-gray-300">آماده کمک</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-green-400 bg-green-900/40 px-2 py-1 rounded-full text-xs font-medium">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      آنلاین
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => navigate('/ai-coach')}
+                    className="w-full bg-gradient-to-r from-[#2c189a] to-[#5a189a] hover:from-[#2c189a]/90 hover:to-[#5a189a]/90 text-white py-3 rounded-xl text-sm font-medium hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    <MessageCircle size={16} />
+                    <span>شروع گفتگو</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
       {/* Current Level Card */}
