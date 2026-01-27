@@ -339,7 +339,6 @@ html, body {
   .mobile-input-fix {
     padding-bottom: max(1rem, calc(env(safe-area-inset-bottom) + env(keyboard-inset-height, 0px)));
   }
->>>>>>> Stashed changes
 }
 
 /* Ensure proper viewport handling for mobile keyboards */
