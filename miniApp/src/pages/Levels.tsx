@@ -4404,7 +4404,7 @@ const Levels: React.FC = () => {
         {/* Header */}
               <div className="pt-24 p-4 space-y-6 max-w-md mx-auto">
         {/* Sticky Header */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl lg:hidden">
           <div className="flex items-center justify-between p-4 max-w-md mx-auto">
             {/* Icon Container */}
             <div className="relative">
@@ -4424,7 +4424,7 @@ const Levels: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto p-4">
+      <div className="max-w-6xl mx-auto p-4 lg:pt-8">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
