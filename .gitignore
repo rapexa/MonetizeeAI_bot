@@ -21,6 +21,21 @@
 go.work
 go.work.sum
 
-# env file
+# Environment files
 .env
+.env.production
+.env.local
+
+# IDE
 .idea/
+
+# Build outputs
+bot
+MonetizeeAI_bot
+
+# Frontend build outputs (scoped to miniApp)
+miniApp/dist/
+miniApp/node_modules/
+
+# OS files
+.DS_Store
