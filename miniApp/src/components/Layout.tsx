@@ -1,6 +1,7 @@
 import React from 'react';
 import BottomNav from './BottomNav';
 import Sidebar from './Sidebar';
+import Header from './Header';
 import { useApp } from '../context/AppContext';
 
 interface LayoutProps {
@@ -21,15 +22,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Desktop Sidebar - Only visible on large screens (lg: 1024px+) */}
       <Sidebar />
 
+      {/* Desktop Header - Only visible on large screens */}
+      <Header />
+
       {/* Main content area - Responsive layout */}
-      <div className="flex-1 flex flex-col lg:mr-72 transition-all duration-300 desktop-content-wrapper">
+      <div className="flex-1 flex flex-col lg:mr-64 lg:pt-16 transition-all duration-300 desktop-content-wrapper">
         {/* Main content with blur effect if subscription expired */}
         <div 
           className={`flex-1 pb-20 lg:pb-0 transition-all duration-300 ${isSubscriptionExpiredState ? 'blur-sm pointer-events-none' : ''}`}
           style={isSubscriptionExpiredState ? { filter: 'blur(8px)', userSelect: 'none' as any } : {}}
         >
           {/* Desktop: Content with padding and max-width, Mobile: Full width */}
-          <div className="w-full lg:max-w-[calc(100vw-20rem)] lg:mx-auto lg:px-8 lg:py-8 page-container page-transition">
+          <div className="w-full lg:max-w-[calc(100vw-18rem)] lg:mx-auto lg:px-8 lg:py-6 page-container page-transition">
             {children}
           </div>
         </div>
