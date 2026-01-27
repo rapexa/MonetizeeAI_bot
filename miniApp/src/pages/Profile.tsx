@@ -642,6 +642,7 @@ const Profile: React.FC = () => {
             تیکت
           </button>
           </div>
+        </div>
       </div>
 
       {/* Edit Profile Modal */}
