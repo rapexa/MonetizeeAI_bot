@@ -39,3 +39,7 @@ miniApp/node_modules/
 
 # OS files
 .DS_Store
+
+# runtime
+bot
+logs/
