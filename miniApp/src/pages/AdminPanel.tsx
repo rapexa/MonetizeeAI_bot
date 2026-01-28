@@ -382,50 +382,7 @@ const AdminPanel: React.FC = () => {
   const [generatingLicenses, setGeneratingLicenses] = useState(false);
   const [exportingLicenses, setExportingLicenses] = useState(false);
 
-  // Check authentication on mount
-  // IMPORTANT: For both Telegram and Web users, we use web login
-  // This ensures consistent authentication and avoids Telegram auth issues
-  useEffect(() => {
-    const checkAuth = async () => {
-      // Check if we have web session token
-      const webToken = localStorage.getItem('admin_session_token');
-      
-      if (webToken) {
-        // Web authentication (works for both Telegram and Web users)
-        try {
-          const response = await adminApiService.checkAuth();
-          if (response.success) {
-            console.log('✅ Authentication successful');
-            setAccessDenied(false);
-            setIsWebUser(true); // Mark as web user (uses REST API instead of WebSocket)
-            setConnected(true); // Show as connected
-            // Fetch stats from REST API
-            await fetchStatsFromAPI();
-            return;
-          } else {
-            // Token invalid, redirect to login
-            console.log('⚠️ Token invalid, redirecting to login');
-            localStorage.removeItem('admin_session_token');
-            window.location.href = '/admin-login';
-            return;
-          }
-        } catch (error) {
-          console.error('Auth check failed:', error);
-          localStorage.removeItem('admin_session_token');
-          window.location.href = '/admin-login';
-          return;
-        }
-      }
-
-      // No token found - redirect to login (for both Telegram and Web users)
-      console.log('⚠️ No authentication token found, redirecting to login');
-      window.location.href = '/admin-login';
-    };
-
-    checkAuth();
-  }, []);
-
-  // Fetch stats from REST API (for web users)
+  // Fetch stats from REST API (for web users) - defined before checkAuth effect so it can be in deps
   const fetchStatsFromAPI = useCallback(async () => {
     const webToken = localStorage.getItem('admin_session_token');
     if (!webToken) {
@@ -448,6 +405,43 @@ const AdminPanel: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  // Check authentication on mount
+  // IMPORTANT: For both Telegram and Web users, we use web login
+  useEffect(() => {
+    const checkAuth = async () => {
+      const webToken = localStorage.getItem('admin_session_token');
+
+      if (webToken) {
+        try {
+          const response = await adminApiService.checkAuth();
+          if (response.success) {
+            console.log('✅ Authentication successful');
+            setAccessDenied(false);
+            setIsWebUser(true);
+            setConnected(true);
+            await fetchStatsFromAPI();
+            return;
+          } else {
+            console.log('⚠️ Token invalid, redirecting to login');
+            localStorage.removeItem('admin_session_token');
+            window.location.href = '/admin-login';
+            return;
+          }
+        } catch (error) {
+          console.error('Auth check failed:', error);
+          localStorage.removeItem('admin_session_token');
+          window.location.href = '/admin-login';
+          return;
+        }
+      }
+
+      console.log('⚠️ No authentication token found, redirecting to login');
+      window.location.href = '/admin-login';
+    };
+
+    checkAuth();
+  }, [fetchStatsFromAPI]);
   
   // Load chart data
   const loadChartData = useCallback(async (period: 'day' | 'week' | 'month' = 'week') => {
@@ -718,7 +712,7 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  // Load data when tab changes
+  // Load data when tab changes (intentionally omit load* from deps to avoid extra calls on fn ref change)
   useEffect(() => {
     if (activeTab === 'users') {
       loadUsers();
@@ -730,6 +724,7 @@ const AdminPanel: React.FC = () => {
       loadLicenseKeys();
       loadLicenseKeysStats();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run only on tab/filter change; loaders are stable by design
   }, [activeTab, usersPage, usersSearch, usersFilter, paymentsPage, paymentsFilter, ticketsPage, ticketsStatus, ticketsPriority, ticketsSearch, licenseKeysPage, licenseKeysStatus, licenseKeysSearch]);
 
   // Manual refresh

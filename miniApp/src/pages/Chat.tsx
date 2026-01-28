@@ -96,7 +96,7 @@ const Chat: React.FC = () => {
     }
   };
 
-  // Initialize user and messages
+  // Initialize user and messages (users is static map; omit from deps to avoid re-run every render)
   useEffect(() => {
     if (userId && users[userId]) {
       setUser(users[userId]);
@@ -183,6 +183,7 @@ const Chat: React.FC = () => {
 
       setMessages(sampleMessages[userId] || []);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- users is static; omit to avoid re-run every render
   }, [userId]);
 
   const scrollToBottom = () => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContextDef';
 import { 
   User, 
   Bell,

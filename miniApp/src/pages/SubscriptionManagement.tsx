@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, ArrowRight, CreditCard } from 'lucide-react';
 import apiService from '../services/api';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContextDef';
 
 interface TimeLeft {
   days: number;

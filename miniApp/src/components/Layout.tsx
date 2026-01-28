@@ -2,7 +2,7 @@ import React from 'react';
 import BottomNav from './BottomNav';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContextDef';
 
 interface LayoutProps {
   children: React.ReactNode;

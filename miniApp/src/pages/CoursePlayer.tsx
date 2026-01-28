@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { /* Clock, */ CheckCircle2, ArrowLeft, Lock } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContextDef';
 import CourseSubscriptionCard from '../components/CourseSubscriptionCard';
 import VideoPlayer from '../components/VideoPlayer';
 
@@ -144,9 +144,9 @@ const CoursePlayer: React.FC = () => {
 
   React.useEffect(() => {
     if (course && (!current || !course.sessions.find(s => s.id === current.id))) {
-      // Always set first session for display (limitation checked when accessing content)
       setCurrent(course.sessions[0]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run on courseId only; adding course/current would cause loops
   }, [courseId]);
 
   // Fullscreen functionality is now handled by VideoPlayer component

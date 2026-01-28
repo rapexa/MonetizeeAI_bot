@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Send, Brain, Sparkles, Settings, X, Trash2, Plus, History, Crown, Zap as ZapIcon } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContextDef';
 import apiService from '../services/api';
 import AIMessage from '../components/AIMessage';
 import { useAutoScroll } from '../hooks/useAutoScroll';
@@ -22,7 +22,7 @@ const AICoach: React.FC = () => {
     timestamp: string;
     isNew?: boolean;
   }>>([]);
-  const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
+  const { messagesEndRef, scrollToBottom } = useAutoScroll(chatMessages);
 
   // Check if user can use chat
   const canUseChat = () => {

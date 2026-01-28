@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContextDef';
 import apiService from '../services/api';
 // SubscriptionModal removed per request
 import AIMessage from '../components/AIMessage';
@@ -125,7 +125,7 @@ const Levels: React.FC = () => {
   const [, setIsNextLevelPopupOpen] = useState(false);
   const [showSubscriptionCard, setShowSubscriptionCard] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
-  const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
+  const { messagesEndRef, scrollToBottom } = useAutoScroll(chatMessages);
   const chatContainerRef = React.useRef<HTMLDivElement>(null);
   
   // Check if user is at bottom of chat
@@ -530,6 +530,7 @@ const Levels: React.FC = () => {
         levelsRegenerated: true
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run on currentSession only; generateLevels is stable
   }, [userData.currentSession]);
 
   // Generate quiz results based on user's current session and merge with localStorage
@@ -562,9 +563,9 @@ const Levels: React.FC = () => {
       
       setStageQuizResults(mergedResults);
     } else {
-      // User is at stage 1, no completed stages - keep localStorage results
       logger.debug('📱 User at stage 1, keeping localStorage results:', stageQuizResults);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run on currentSession only; stageQuizResults read for merge
   }, [userData.currentSession]);
 
   // Save quiz results to localStorage whenever they change
@@ -615,9 +616,8 @@ const Levels: React.FC = () => {
   // Define levels state - will be initialized after generateLevels function definition
   const [levels, setLevels] = useState<Level[]>([]);
   
-  // Initialize levels only when userData is ready
+  // Initialize levels only when userData is ready (mount only)
   useEffect(() => {
-    // Only initialize if we have real user data (not defaults)
     if (userData.currentSession && userData.currentSession > 1) {
       logger.debug('📱 Initializing levels with real user data...');
       setLevels(generateLevels());
@@ -625,6 +625,7 @@ const Levels: React.FC = () => {
       logger.debug('📱 Initializing levels with default data...');
       setLevels(generateLevels());
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only init; regenerate on currentSession in separate effect
   }, []);
 
   // CRITICAL: Regenerate levels when currentSession changes (after quiz pass)
@@ -694,14 +695,14 @@ const Levels: React.FC = () => {
         }
       }
     }
-  }, [userData.currentSession]); // Only trigger when currentSession changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run on currentSession only; generateLevels/levels/selectedStage used inside
+  }, [userData.currentSession]);
 
   // Auto-select current level based on user progress
   useEffect(() => {
     if (levels.length > 0 && !selectedLevel && userData.currentSession) {
-      // Find the level containing the current session
       const currentStage = userData.currentSession;
-      let targetLevel = levels[0]; // Default to first level
+      let targetLevel = levels[0];
       
       for (const level of levels) {
         for (const stage of level.stages) {
@@ -3064,10 +3065,10 @@ const Levels: React.FC = () => {
     setLevels([...newLevels]); // Force array update
     logger.debug('✅ Levels updated, progress sample:', newLevels.slice(0, 5).map(l => `Level ${l.id}: ${l.progress}%`));
     
-    // Debug: Check if levels state actually updated
     setTimeout(() => {
       logger.debug('🔍 Levels state after update:', levels.slice(0, 3).map(l => `Level ${l.id}: ${l.progress}%`));
     }, 100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run on progress/session; generateLevels/levels used inside
   }, [userData.currentSession, userData.progressOverall, userData.completedTasks]);
 
   // Load chat history on component mount
@@ -3231,6 +3232,7 @@ const Levels: React.FC = () => {
         navigate(location.pathname, { replace: true, state: {} });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run on selectedStage/navigation; promptText not needed for this block
   }, [location.state?.selectedStage, levels, navigate, location.pathname]);
 
   const getStatusIcon = (status: string) => {

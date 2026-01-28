@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContextDef';
 import { useNavigate, useLocation } from 'react-router-dom';
 import apiService from '../services/api';
 // import Card from '../components/Card';
@@ -301,10 +301,10 @@ const Dashboard: React.FC = () => {
   React.useEffect(() => {
     if (location.state?.promptText) {
       setChatMessage(location.state.promptText);
-      setIsEditingPrompt(true); // Enable editing mode
-      // Clear the state to prevent re-processing
+      setIsEditingPrompt(true);
       navigate(location.pathname, { replace: true, state: {} });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run on state/navigate; pathname would re-trigger after clear
   }, [location.state, navigate]);
 
   const handleCancelPromptEdit = () => {

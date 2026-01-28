@@ -277,12 +277,12 @@ const EnergyBoost: React.FC = () => {
     setSelectedChallenge(null);
   };
 
-  const completeChallenge = () => {
+  const completeChallenge = React.useCallback(() => {
     if (selectedChallenge) {
       setShowSessionComplete(true);
       setIsRunning(false);
     }
-  };
+  }, [selectedChallenge]);
 
   const saveSession = () => {
     if (selectedChallenge) {
@@ -348,7 +348,7 @@ const EnergyBoost: React.FC = () => {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isRunning, timeLeft]);
+  }, [isRunning, timeLeft, completeChallenge]);
 
   // Sound notification
   useEffect(() => {

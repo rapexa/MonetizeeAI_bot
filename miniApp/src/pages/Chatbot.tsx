@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContextDef';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Send, WifiOff, Brain, X, Sparkles, Crown } from 'lucide-react';
 import apiService from '../services/api';
@@ -21,7 +21,7 @@ const Chatbot: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const { messagesEndRef } = useAutoScroll([messages]);
+  const { messagesEndRef } = useAutoScroll(messages);
 
   // Check if user can use chat
   const canUseChat = () => {

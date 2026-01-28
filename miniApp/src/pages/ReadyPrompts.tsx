@@ -8,7 +8,7 @@ import {
   X,
   Crown
 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContextDef';
 import PromptCopySubscriptionCard from '../components/PromptCopySubscriptionCard';
 import PromptAccessSubscriptionCard from '../components/PromptAccessSubscriptionCard';
 

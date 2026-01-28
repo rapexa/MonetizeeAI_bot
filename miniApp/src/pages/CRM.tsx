@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 import '../components/DatePicker.css';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContextDef';
 import { useDebounce } from '../hooks/useDebounce';
 
 type LeadStatus = 'cold' | 'warm' | 'hot' | 'converted';
@@ -122,6 +122,7 @@ const CRM: React.FC = () => {
         setShowLead(updatedLead);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- omit showLead to avoid loop (we only sync when leads change)
   }, [leads]);
 
   const [query, setQuery] = React.useState('');

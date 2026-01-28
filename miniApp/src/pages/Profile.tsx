@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContextDef';
 import apiService from '../services/api';
 import TicketModal from '../components/TicketModal';
 import { 
@@ -346,13 +346,11 @@ const Profile: React.FC = () => {
     const status = urlParams.get('Status');
 
     if (authority && status === 'OK') {
-      // User returned from ZarinPal
       setPaymentAuthority(authority);
       pollPaymentStatus(authority);
-      
-      // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount when returning from ZarinPal
   }, []);
 
   // Check if user came from "buy subscription" button - open subscription modal automatically

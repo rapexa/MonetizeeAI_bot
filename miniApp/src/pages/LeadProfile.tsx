@@ -116,6 +116,7 @@ const LeadProfile: React.FC = () => {
     if (notes.length > 0) {
       setCurrentNote(notes[notes.length - 1].text);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount; adding notes would re-sync on every note change
   }, []);
 
   // Save tasks to localStorage whenever it changes - update global tasks

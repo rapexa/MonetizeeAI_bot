@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
-import { useApp } from '../context/AppContext';
+import { useTheme } from '../context/themeContextDef';
+import { useApp } from '../context/appContextDef';
 import Card from '../components/Card';
 import { 
   ArrowRight, 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContextDef';
 import AIToolSubscriptionCard from '../components/AIToolSubscriptionCard';
 import { 
   Map, 

@@ -3,7 +3,7 @@ import { X, Send, Brain } from 'lucide-react';
 import AIMessage from './AIMessage';
 import { useAutoScroll } from '../hooks/useAutoScroll';
 import apiService from '../services/api';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContextDef';
 
 interface ChatMessage {
   id: number;
@@ -37,7 +37,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
   const chatMessages = externalChatMessages || internalChatMessages;
   const setChatMessages = externalSetChatMessages || setInternalChatMessages;
   
-  const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
+  const { messagesEndRef, scrollToBottom } = useAutoScroll(chatMessages);
 
   // Welcome message only for internal chat (when no external messages provided)
   useEffect(() => {
