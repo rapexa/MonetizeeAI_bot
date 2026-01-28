@@ -2,22 +2,22 @@
 const isDevelopment = import.meta.env.DEV;
 
 export const logger = {
-  debug: (...args: any[]) => {
+  debug: (...args: unknown[]) => {
     if (isDevelopment) {
       console.log('[DEBUG]', ...args);
     }
   },
-  info: (...args: any[]) => {
+  info: (...args: unknown[]) => {
     if (isDevelopment) {
       console.info('[INFO]', ...args);
     }
   },
-  warn: (...args: any[]) => {
+  warn: (...args: unknown[]) => {
     if (isDevelopment) {
       console.warn('[WARN]', ...args);
     }
   },
-  error: (...args: any[]) => {
+  error: (...args: unknown[]) => {
     // Always log errors, even in production
     console.error('[ERROR]', ...args);
   }

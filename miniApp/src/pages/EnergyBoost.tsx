@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/Card';
-import { ArrowRight, Zap, Target, Trophy, Clock, Play, Pause, RotateCcw, Star, Award, TrendingUp, Brain, Heart, CheckCircle, X, Flame, Timer, User, Settings, Volume2, VolumeX, SkipForward, Rewind, FastForward } from 'lucide-react';
+import { ArrowRight, Zap, Target, Trophy, Clock, Play, Pause, RotateCcw, Star, Award, TrendingUp, Brain, Heart, CheckCircle, X, Flame, Timer, Volume2, VolumeX, Rewind, FastForward } from 'lucide-react';
 
 interface Challenge {
   id: number;
@@ -355,6 +355,9 @@ const EnergyBoost: React.FC = () => {
     if (timeLeft === 0 && activeTimer && soundEnabled) {
       // Play completion sound
       const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+      audio.play().catch(() => {
+        // Ignore audio play errors
+      });
     }
   }, [timeLeft, activeTimer, soundEnabled]);
 

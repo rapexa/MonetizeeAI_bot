@@ -9,15 +9,9 @@ import {
   Download, 
   RefreshCw, 
   ArrowLeft,
-  ArrowRight,
   Calendar,
   Star,
   Heart,
-  TrendingUp,
-  MessageCircle,
-  Megaphone,
-  Award,
-  Zap,
   BarChart,
   Lightbulb,
   Instagram,
@@ -44,9 +38,9 @@ const SalesPathAI: React.FC = () => {
     goal: ''
   });
   const [isGenerating, setIsGenerating] = React.useState(false);
-  const [result, setResult] = React.useState<any>(null);
+  const [result, setResult] = React.useState<Record<string, unknown> | null>(null);
   const [activeTab, setActiveTab] = React.useState<'custom' | 'templates'>('custom');
-  const [selectedTemplate, setSelectedTemplate] = React.useState<any>(null);
+  const [, setSelectedTemplate] = React.useState<unknown>(null);
 
   // Sales Path Templates Database
   const salesTemplates = [
@@ -222,7 +216,7 @@ const SalesPathAI: React.FC = () => {
     }
   ];
 
-  const selectTemplate = (template: any) => {
+  const selectTemplate = (template: { targetSales?: string; channel?: string }) => {
     setSelectedTemplate(template);
     setFormData({
       productName: formData.productName,
@@ -569,14 +563,14 @@ const SalesPathAI: React.FC = () => {
                       برنامه فروش ۷ روزه
                     </h4>
                     <div className="space-y-3">
-                      {(result.dailyPlan || []).map((day: any, index: number) => (
+                      {((result.dailyPlan as Record<string, unknown>[]) || []).map((day: Record<string, unknown>, index: number) => (
                         <div key={index} className="flex gap-3 p-3 bg-gray-700/40 rounded-lg border border-gray-600/30">
                           <div className="w-8 h-8 bg-gradient-to-r from-[#2c189a] to-[#5a189a] text-white rounded-full flex items-center justify-center text-sm font-bold">
-                            {day.day}
+                            {String(day.day ?? '')}
                           </div>
                           <div className="flex-1">
-                            <h5 className="text-white font-semibold mb-1">{day.action}</h5>
-                            <p className="text-gray-300 text-sm">{day.content}</p>
+                            <h5 className="text-white font-semibold mb-1">{String(day.action ?? '')}</h5>
+                            <p className="text-gray-300 text-sm">{String(day.content ?? '')}</p>
                           </div>
                         </div>
                       ))}

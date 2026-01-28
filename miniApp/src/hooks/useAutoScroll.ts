@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-export const useAutoScroll = (dependencies: any[]) => {
+export const useAutoScroll = (dependencies: unknown[]) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);

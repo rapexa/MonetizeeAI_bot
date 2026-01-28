@@ -25,7 +25,7 @@ const Header: React.FC = () => {
       if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
         const user = window.Telegram.WebApp.initDataUnsafe?.user;
         if (user) {
-          const photoUrl = (user as any).photo_url;
+          const photoUrl = 'photo_url' in user ? (user as { photo_url?: string }).photo_url : undefined;
           if (photoUrl) {
             setTelegramProfilePhoto(photoUrl);
           }

@@ -32,9 +32,9 @@ import {
   FileCheck,
   Database,
   Target,
+  Megaphone,
   UserCheck,
   BarChart3,
-  Megaphone,
   User as UserIcon,
   Clipboard
 } from 'lucide-react';
@@ -68,7 +68,7 @@ const BusinessBuilderAI: React.FC = () => {
     title: string;
     category: string;
     description: string;
-    icon: any;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
     color: string;
   } | null>(null);
 
@@ -356,7 +356,7 @@ const BusinessBuilderAI: React.FC = () => {
     }
   ];
 
-  const selectBusinessIdea = (idea: any) => {
+  const selectBusinessIdea = (idea: { id: number; title: string; category: string; description: string; targetMarket?: string; features?: string[] }) => {
     setSelectedIdea(idea);
     setFormData({
       userName: formData.userName,

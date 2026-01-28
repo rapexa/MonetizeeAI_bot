@@ -80,11 +80,11 @@ const Dashboard: React.FC = () => {
       if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
         const user = window.Telegram.WebApp.initDataUnsafe?.user;
         if (user) {
-          const photoUrl = (user as any).photo_url;
+          const photoUrl = (user as Record<string, unknown>).photo_url as string | undefined;
           if (photoUrl) {
             setTelegramProfilePhoto(photoUrl);
           } else if (userData.telegramId) {
-            const userPhotoUrl = (userData as any).profilePhotoUrl;
+            const userPhotoUrl = (userData as Record<string, unknown>).profilePhotoUrl as string | undefined;
             if (userPhotoUrl) {
               setTelegramProfilePhoto(userPhotoUrl);
             }

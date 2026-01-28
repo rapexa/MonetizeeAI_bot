@@ -59,6 +59,7 @@ const Profile: React.FC = () => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const subscriptionPlans = [
     {
       id: 'basic',
@@ -190,6 +191,7 @@ const Profile: React.FC = () => {
     navigate('/subscription-management');
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSelectPlan = (planId: string) => {
     // اینجا منطق انتخاب پلن را اضافه کنید
     console.log('Selected plan:', planId);

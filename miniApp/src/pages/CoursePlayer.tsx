@@ -153,9 +153,11 @@ const CoursePlayer: React.FC = () => {
 
   React.useEffect(() => {
     try {
-      // @ts-ignore
+      // @ts-expect-error - Telegram WebApp API may not be typed
       window?.Telegram?.WebApp?.expand?.();
-    } catch (_) {}
+    } catch {
+      /* Ignore Telegram WebApp API errors */
+    }
   }, []);
 
   if (!course) {

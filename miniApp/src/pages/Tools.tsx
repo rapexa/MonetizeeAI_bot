@@ -1,37 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ArrowRight, Wrench, Rocket, Package, Search, Map, ExternalLink, Sparkles, Brain, Target, Users, BarChart3, Globe, Zap, Shield, Clock,
-  Palette, FileText, Image, Layers, PenTool, Eye, TrendingUp, Activity, BarChart, PieChart, LineChart, Mail, MessageSquare, ShoppingCart, CreditCard, DollarSign,
-  Settings, Calendar, FolderOpen, Cloud, Link, Workflow, Cpu, Database, Server, Network, Zap as ZapIcon, GitBranch, GitCommit, GitPullRequest, Trophy, X, Crown
+  Wrench, Rocket, Package, Search, Map, ExternalLink, Sparkles, Brain, Target, Users, BarChart3, Globe, Zap, Shield, Clock,
+  Palette, FileText, Image, Layers, PenTool, Eye, TrendingUp, Activity, BarChart, Mail, MessageSquare, ShoppingCart, CreditCard, DollarSign,
+  Settings, Calendar, FolderOpen, Cloud, Link, Workflow, Cpu, Database, Server, Network, GitBranch, X
 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
 
 const Tools: React.FC = () => {
   const navigate = useNavigate();
-  const { userData } = useApp();
-
-  // Check if user can access AI tools
-  // Paid users: always have access
-  // Free trial users: can access once (check if already used)
-  const canAccessAITools = () => {
-    if (userData.subscriptionType === 'paid') {
-      return true;
-    }
-    // Free trial users can access if they haven't used it yet
-    // We'll check individual tools in the click handlers
-    return true; // Allow access, but individual tools will check usage
-  };
-
-  // Check if user can access specific AI tool (for free_trial users)
-  const hasUsedAITool = (toolKey: string) => {
-    return localStorage.getItem(toolKey) === 'true';
-  };
-
-  // Check if user can access CRM - NO RESTRICTIONS, everyone has access
-  const canAccessCRM = () => {
-    return true; // CRM is available for everyone, no restrictions
-  };
 
   const internalTools = [
     {
@@ -551,7 +527,6 @@ const Tools: React.FC = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
             {internalTools.map((tool) => {
               const Icon = tool.icon;
-              
               return (
                 <div
                   key={tool.id}
@@ -618,7 +593,8 @@ const Tools: React.FC = () => {
                   </div>
                   
                   {/* Main Content */}
-                  <div className="relative z-10 text-lg font-bold text-white flex items-center justify-center transition-all duration-300 group-hover:scale-105">
+                  <div className="relative z-10 text-lg font-bold text-white flex items-center justify-center gap-2 transition-all duration-300 group-hover:scale-105">
+                    <Icon size={20} className="flex-shrink-0 opacity-90" />
                     <span
                       className={`${
                         tool.id === 'business-builder' ? 'text-blue-500 drop-shadow-lg group-hover:text-blue-400' :

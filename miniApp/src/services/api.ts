@@ -1,7 +1,7 @@
 // Production-safe logger
 import { logger } from '../utils/logger';
 
-export interface APIResponse<T = any> {
+export interface APIResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -54,7 +54,7 @@ class APIService {
   private cachedTelegramId: number | null = null;
   private cachedIsInTelegram: boolean | null = null;
   // ⚡ PERFORMANCE: Request cache (5 minute TTL for GET requests)
-  private requestCache = new Map<string, CacheEntry<any>>();
+  private requestCache = new Map<string, CacheEntry<unknown>>();
 
   constructor() {
     // Hardcoded API URL as requested
@@ -68,7 +68,7 @@ class APIService {
       try {
         window.Telegram.WebApp.ready();
         window.Telegram.WebApp.expand();
-      } catch (error) {
+      } catch {
         // Silently fail - don't log in production
       }
     }
@@ -156,7 +156,7 @@ class APIService {
     });
   }
 
-  async makeRequest<T = any>(method: string, endpoint: string, data?: any, useCache: boolean = false): Promise<APIResponse<T>> {
+  async makeRequest<T = unknown>(method: string, endpoint: string, data?: Record<string, unknown>, useCache: boolean = false): Promise<APIResponse<T>> {
     try {
       const url = `${this.baseURL}${endpoint}`;
       
@@ -305,7 +305,7 @@ class APIService {
       
       clearTimeout(timeoutId);
       return response.ok;
-    } catch (error) {
+    } catch {
       // Silently fail health check - don't log in production
       return false;
     }
@@ -558,7 +558,7 @@ class APIService {
   // Quiz evaluation - Evaluate quiz answers with ChatGPT
   async evaluateQuiz(quizData: {
     stage_id: number;
-    answers: { [key: string]: any };
+    answers: { [key: string]: unknown };
   }): Promise<APIResponse<{
     passed: boolean;
     score: number;
@@ -626,20 +626,20 @@ class APIService {
   }
 
   // Ticket methods
-  async getUserTickets(): Promise<APIResponse<any[]>> {
+  async getUserTickets(): Promise<APIResponse<unknown[]>> {
     const telegramId = this.getTelegramId();
     if (!telegramId) {
       return { success: false, error: 'No user ID available' };
     }
-    return this.makeRequest<any[]>('GET', `/user/${telegramId}/tickets`, undefined, true);
+    return this.makeRequest<unknown[]>('GET', `/user/${telegramId}/tickets`, undefined, true);
   }
 
-  async createTicket(data: { subject: string; priority: string; message: string }): Promise<APIResponse<any>> {
+  async createTicket(data: { subject: string; priority: string; message: string }): Promise<APIResponse<unknown>> {
     const telegramId = this.getTelegramId();
     if (!telegramId) {
       return { success: false, error: 'No user ID available' };
     }
-    const response = await this.makeRequest<any>('POST', '/tickets', {
+    const response = await this.makeRequest<unknown>('POST', '/tickets', {
       telegram_id: telegramId,
       subject: data.subject,
       priority: data.priority,
@@ -652,16 +652,16 @@ class APIService {
     return response;
   }
 
-  async getTicket(ticketId: number): Promise<APIResponse<any>> {
-    return this.makeRequest<any>('GET', `/tickets/${ticketId}`, undefined, true);
+  async getTicket(ticketId: number): Promise<APIResponse<unknown>> {
+    return this.makeRequest<unknown>('GET', `/tickets/${ticketId}`, undefined, true);
   }
 
-  async replyTicket(ticketId: number, message: string): Promise<APIResponse<any>> {
+  async replyTicket(ticketId: number, message: string): Promise<APIResponse<unknown>> {
     const telegramId = this.getTelegramId();
     if (!telegramId) {
       return { success: false, error: 'No user ID available' };
     }
-    const response = await this.makeRequest<any>('POST', `/tickets/${ticketId}/reply`, {
+    const response = await this.makeRequest<unknown>('POST', `/tickets/${ticketId}/reply`, {
       telegram_id: telegramId,
       message: message
     });
@@ -672,12 +672,12 @@ class APIService {
     return response;
   }
 
-  async closeTicket(ticketId: number): Promise<APIResponse<any>> {
+  async closeTicket(ticketId: number): Promise<APIResponse<unknown>> {
     const telegramId = this.getTelegramId();
     if (!telegramId) {
       return { success: false, error: 'No user ID available' };
     }
-    const response = await this.makeRequest<any>('POST', `/tickets/${ticketId}/close`, {
+    const response = await this.makeRequest<unknown>('POST', `/tickets/${ticketId}/close`, {
       telegram_id: telegramId
     });
     // Clear tickets cache after closing a ticket
@@ -786,7 +786,7 @@ class APIService {
               logger.debug(`🔍 Got Telegram ID from initData string: ${telegramId}`);
               return telegramId;
             }
-          } catch (e) {
+          } catch {
             logger.debug('❌ Failed to parse user data from initData string');
           }
         }

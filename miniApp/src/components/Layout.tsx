@@ -30,7 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Main content with blur effect if subscription expired */}
         <div 
           className={`flex-1 pb-20 lg:pb-8 transition-all duration-300 ${isSubscriptionExpiredState ? 'blur-sm pointer-events-none' : ''}`}
-          style={isSubscriptionExpiredState ? { filter: 'blur(8px)', userSelect: 'none' as any } : {}}
+          style={isSubscriptionExpiredState ? { filter: 'blur(8px)', userSelect: 'none' as const } : {}}
         >
           {/* Desktop: Content with proper spacing, Mobile: Full width */}
           <div className="w-full h-full lg:bg-[#0a0118]">
@@ -44,7 +44,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Bottom nav - Only visible on mobile (hidden on lg and above) */}
       <div 
         className={`lg:hidden ${isSubscriptionExpiredState ? 'blur-sm pointer-events-none' : ''}`}
-        style={isSubscriptionExpiredState ? { filter: 'blur(8px)', userSelect: 'none' as any } : {}}
+        style={isSubscriptionExpiredState ? { filter: 'blur(8px)', userSelect: 'none' as const } : {}}
       >
         <BottomNav />
       </div>

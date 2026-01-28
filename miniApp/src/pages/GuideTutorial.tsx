@@ -2,6 +2,21 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Play, Pause, Volume2, VolumeX, Maximize, Minimize } from 'lucide-react';
 
+type DocWithVendorFullscreen = Document & {
+  webkitFullscreenElement?: Element | null;
+  mozFullScreenElement?: Element | null;
+  msFullscreenElement?: Element | null;
+  webkitExitFullscreen?: () => Promise<void>;
+  mozCancelFullScreen?: () => Promise<void>;
+  msExitFullscreen?: () => Promise<void>;
+};
+type VideoWithVendorFullscreen = HTMLVideoElement & {
+  webkitRequestFullscreen?: () => void;
+  mozRequestFullScreen?: () => void;
+  msRequestFullscreen?: () => void;
+  webkitEnterFullscreen?: () => void;
+};
+
 const GuideTutorial: React.FC = () => {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -78,16 +93,16 @@ const GuideTutorial: React.FC = () => {
     const el = videoRef.current;
     if (!el) return;
 
-    const anyDoc: any = document as any;
+    const doc = document as DocWithVendorFullscreen;
     const active = !!document.fullscreenElement || 
-                   !!anyDoc.webkitFullscreenElement || 
-                   !!anyDoc.mozFullScreenElement || 
-                   !!anyDoc.msFullscreenElement ||
+                   !!doc.webkitFullscreenElement || 
+                   !!doc.mozFullScreenElement || 
+                   !!doc.msFullscreenElement ||
                    pseudoFullscreen;
     
     if (!active) {
       // Try all fullscreen methods for maximum compatibility
-      const anyVideo: any = el as any;
+      const videoEl = el as VideoWithVendorFullscreen;
       
       // Method 1: Standard Fullscreen API
       if (el.requestFullscreen) {
@@ -101,9 +116,9 @@ const GuideTutorial: React.FC = () => {
       }
       
       // Method 2: WebKit (Safari, Chrome)
-      if (anyVideo.webkitRequestFullscreen) {
+      if (videoEl.webkitRequestFullscreen) {
         try {
-          anyVideo.webkitRequestFullscreen();
+          videoEl.webkitRequestFullscreen();
           setIsFullscreen(true);
           return;
         } catch (err) {
@@ -112,9 +127,9 @@ const GuideTutorial: React.FC = () => {
       }
       
       // Method 3: Mozilla (Firefox)
-      if (anyVideo.mozRequestFullScreen) {
+      if (videoEl.mozRequestFullScreen) {
         try {
-          anyVideo.mozRequestFullScreen();
+          videoEl.mozRequestFullScreen();
           setIsFullscreen(true);
           return;
         } catch (err) {
@@ -123,9 +138,9 @@ const GuideTutorial: React.FC = () => {
       }
       
       // Method 4: MS (IE/Edge)
-      if (anyVideo.msRequestFullscreen) {
+      if (videoEl.msRequestFullscreen) {
         try {
-          anyVideo.msRequestFullscreen();
+          videoEl.msRequestFullscreen();
           setIsFullscreen(true);
           return;
         } catch (err) {
@@ -134,9 +149,9 @@ const GuideTutorial: React.FC = () => {
       }
       
       // Method 5: iOS Safari native fullscreen
-      if (anyVideo.webkitEnterFullscreen) {
+      if (videoEl.webkitEnterFullscreen) {
         try {
-          anyVideo.webkitEnterFullscreen();
+          videoEl.webkitEnterFullscreen();
           setIsFullscreen(true);
           return;
         } catch (err) {
@@ -153,12 +168,12 @@ const GuideTutorial: React.FC = () => {
         try {
           if (document.exitFullscreen) {
             await document.exitFullscreen();
-          } else if (anyDoc.webkitExitFullscreen) {
-            await anyDoc.webkitExitFullscreen();
-          } else if (anyDoc.mozCancelFullScreen) {
-            await anyDoc.mozCancelFullScreen();
-          } else if (anyDoc.msExitFullscreen) {
-            await anyDoc.msExitFullscreen();
+          } else if (doc.webkitExitFullscreen) {
+            await doc.webkitExitFullscreen();
+          } else if (doc.mozCancelFullScreen) {
+            await doc.mozCancelFullScreen();
+          } else if (doc.msExitFullscreen) {
+            await doc.msExitFullscreen();
           }
         } catch (err) {
           console.debug('exitFullscreen failed:', err);
@@ -172,14 +187,14 @@ const GuideTutorial: React.FC = () => {
 
   // Sync fullscreen state and manage pseudo/body overflow
   useEffect(() => {
-    const anyDoc: any = document as any;
+    const doc = document as DocWithVendorFullscreen;
     
     const handleFullscreenChange = () => {
       const isFullscreen = !!(
         document.fullscreenElement ||
-        anyDoc.webkitFullscreenElement ||
-        anyDoc.mozFullScreenElement ||
-        anyDoc.msFullscreenElement
+        doc.webkitFullscreenElement ||
+        doc.mozFullScreenElement ||
+        doc.msFullscreenElement
       );
       setIsFullscreen(isFullscreen);
       if (!isFullscreen) {
@@ -187,7 +202,7 @@ const GuideTutorial: React.FC = () => {
       }
     };
     
-    const handleWebkitEnd = () => {
+    const handleWebkitEnd: EventListener = () => {
       setIsFullscreen(false);
       setPseudoFullscreen(false);
     };
@@ -197,14 +212,14 @@ const GuideTutorial: React.FC = () => {
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-    document.addEventListener('webkitendfullscreen', handleWebkitEnd as any);
+    document.addEventListener('webkitendfullscreen', handleWebkitEnd);
     
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
-      document.removeEventListener('webkitendfullscreen', handleWebkitEnd as any);
+      document.removeEventListener('webkitendfullscreen', handleWebkitEnd);
     };
   }, []);
 
@@ -217,12 +232,14 @@ const GuideTutorial: React.FC = () => {
       document.body.style.height = '100%';
       // Prevent Telegram WebApp from interfering
       try {
-        // @ts-ignore
+        // @ts-expect-error - Telegram WebApp API may not be typed
         if (window?.Telegram?.WebApp) {
-          // @ts-ignore
+          // @ts-expect-error - Telegram WebApp API may not be typed
           window.Telegram.WebApp.disableVerticalSwipes();
         }
-      } catch (_) {}
+      } catch {
+        /* Ignore Telegram WebApp API errors */
+      }
     } else {
       document.body.style.overflow = '';
       document.body.style.position = '';
@@ -230,12 +247,14 @@ const GuideTutorial: React.FC = () => {
       document.body.style.height = '';
       // Re-enable Telegram WebApp features
       try {
-        // @ts-ignore
+        // @ts-expect-error - Telegram WebApp API may not be typed
         if (window?.Telegram?.WebApp) {
-          // @ts-ignore
+          // @ts-expect-error - Telegram WebApp API may not be typed
           window.Telegram.WebApp.enableVerticalSwipes();
         }
-      } catch (_) {}
+      } catch {
+        /* Ignore Telegram WebApp API errors */
+      }
     }
     return () => {
       document.body.style.overflow = '';
@@ -247,9 +266,11 @@ const GuideTutorial: React.FC = () => {
 
   useEffect(() => {
     try {
-      // @ts-ignore
+      // @ts-expect-error - Telegram WebApp API may not be typed
       window?.Telegram?.WebApp?.expand?.();
-    } catch (_) {}
+    } catch {
+      /* intentionally empty - ignore Telegram WebApp expand */
+    }
   }, []);
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {

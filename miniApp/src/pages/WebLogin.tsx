@@ -25,7 +25,7 @@ const WebLogin: React.FC = () => {
             if (response.success) {
               setIsLoggedIn(true);
               // Redirect to dashboard or intended page
-              const from = (location.state as any)?.from?.pathname || '/';
+              const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/';
               navigate(from, { replace: true });
             } else {
               // Token invalid, clear it
@@ -72,7 +72,7 @@ const WebLogin: React.FC = () => {
         apiService.setWebTelegramId(telegramIdNum);
         
         // Redirect to dashboard or intended page and refresh to load all data
-        const from = (location.state as any)?.from?.pathname || '/';
+        const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/';
         // Use window.location.href to force a full page reload
         // This ensures all data (chats, user info, etc.) is properly loaded
         window.location.href = from;

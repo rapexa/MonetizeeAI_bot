@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
 import { Search, CheckCircle2 } from 'lucide-react';
 
 interface Member {

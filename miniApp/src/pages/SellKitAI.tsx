@@ -9,14 +9,10 @@ import {
   Download, 
   RefreshCw, 
   ArrowLeft,
-  ArrowRight,
   Gift,
   CheckCircle,
   ShoppingBag,
-  Layers,
   Globe,
-  BookOpen,
-  Zap,
   Megaphone,
   FileText,
   Instagram,
@@ -55,9 +51,9 @@ const SellKitAI: React.FC = () => {
     benefits: ''
   });
   const [isGenerating, setIsGenerating] = React.useState(false);
-  const [result, setResult] = React.useState<any>(null);
+  const [result, setResult] = React.useState<Record<string, unknown> | null>(null);
   const [activeTab, setActiveTab] = React.useState<'custom' | 'ready'>('custom');
-  const [selectedProduct, setSelectedProduct] = React.useState<any>(null);
+  const [, setSelectedProduct] = React.useState<unknown>(null);
 
   // Ready Services Database
   const readyProducts = [
@@ -338,7 +334,7 @@ const SellKitAI: React.FC = () => {
     }
   ];
 
-  const selectReadyProduct = (product: any) => {
+  const selectReadyProduct = (product: { name: string; description: string; targetAudience: string; benefits: string[] }) => {
     setSelectedProduct(product);
     setFormData({
       productName: product.name,

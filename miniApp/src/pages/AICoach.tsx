@@ -323,7 +323,7 @@ const AICoach: React.FC = () => {
                           const lastIndex = prev.length - 1;
                           const updated = [...prev];
                           if (updated[lastIndex].sender === 'ai' && updated[lastIndex].isNew) {
-                            updated[lastIndex] = { ...updated[lastIndex], isNew: false } as any;
+                            updated[lastIndex] = { ...updated[lastIndex], isNew: false };
                           }
                           return updated;
                         });

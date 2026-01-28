@@ -131,7 +131,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       
       if (authResponse.success && authResponse.data) {
-        const userInfo = authResponse.data as any;
+        const userInfo = authResponse.data as Record<string, unknown>;
         
         // Update userData with real data from API
         setUserData(prev => ({
@@ -173,7 +173,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } else {
         
         // Check if subscription has expired
-        if (authResponse.error === 'SUBSCRIPTION_EXPIRED' || (authResponse as any).subscriptionExpired) {
+        if (authResponse.error === 'SUBSCRIPTION_EXPIRED' || ('subscriptionExpired' in authResponse && authResponse.subscriptionExpired)) {
           setTelegramIdError('⚠️ اشتراک شما به پایان رسید!\n\n🔒 برای ادامه استفاده از امکانات، لطفا به ربات برگردید و اشتراک خریداری کنید یا لایسنس خود را وارد کنید.\n\n💎 برای بازگشت به ربات، روی دکمه زیر کلیک کنید:');
           setHasRealData(false);
         } else if (authResponse.error?.includes('No user ID available')) {
@@ -191,7 +191,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Also check subscription expiry from userData even if auth succeeded
       // This handles cases where API returns user data but subscription has expired
       if (authResponse.success && authResponse.data) {
-        const userInfo = authResponse.data as any;
+        const userInfo = authResponse.data as Record<string, unknown>;
         // Check if subscription has expired based on expiry date
         if (userInfo.subscription_type === 'paid' && userInfo.subscription_expiry) {
           const expiryDate = new Date(userInfo.subscription_expiry);
@@ -230,7 +230,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ]);
       
       if (userResponse.success && userResponse.data) {
-        const userInfo = userResponse.data as any;
+        const userInfo = userResponse.data as Record<string, unknown>;
         
         setUserData(prev => {
           const newUserData = {
@@ -275,7 +275,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setHasRealData(true);
         }
       }
-    } catch (error) {
+    } catch {
       // Silently fail - don't log errors on refresh for better performance
     }
   };

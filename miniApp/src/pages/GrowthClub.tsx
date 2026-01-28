@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/Card';
 import { 
@@ -717,7 +717,7 @@ const GrowthClub: React.FC = () => {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'feed' | 'members' | 'projects')}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-300 ${
                 activeTab === tab.id
                   ? 'bg-white dark:bg-gray-600 text-purple-700 dark:text-purple-300 shadow-lg'
@@ -761,7 +761,7 @@ const GrowthClub: React.FC = () => {
                 ].map((type) => (
                   <button
                     key={type.id}
-                    onClick={() => setNewPostType(type.id as any)}
+                    onClick={() => setNewPostType(type.id as 'text' | 'poll' | 'project')}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
                       newPostType === type.id
                         ? 'bg-purple-100/70 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'

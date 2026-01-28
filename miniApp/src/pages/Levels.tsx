@@ -1,11 +1,8 @@
-// @ts-nocheck - Some unused imports are kept for future use
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import apiService from '../services/api';
-import ChatModal from '../components/ChatModal';
 // SubscriptionModal removed per request
-import NextLevelPaywall from '../components/NextLevelPaywall';
 import AIMessage from '../components/AIMessage';
 import VideoPlayer from '../components/VideoPlayer';
 import { useAutoScroll } from '../hooks/useAutoScroll';
@@ -112,9 +109,11 @@ const Levels: React.FC = () => {
 
   useEffect(() => {
     try {
-      // @ts-ignore
+      // @ts-expect-error - Telegram WebApp API may not be typed
       window?.Telegram?.WebApp?.expand?.();
-    } catch (_) {}
+    } catch {
+      /* Ignore Telegram WebApp API errors */
+    }
   }, []);
 
   // Chat and edit mode states
@@ -123,7 +122,7 @@ const Levels: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<Array<{id: number, text: string, sender: 'user' | 'ai', timestamp: string, isNew?: boolean}>>([]);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
-  const [isNextLevelPopupOpen, setIsNextLevelPopupOpen] = useState(false);
+  const [, setIsNextLevelPopupOpen] = useState(false);
   const [showSubscriptionCard, setShowSubscriptionCard] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const { messagesEndRef, scrollToBottom } = useAutoScroll([chatMessages]);
@@ -182,13 +181,17 @@ const Levels: React.FC = () => {
         { transform: `translateY(120vh) rotate(${Math.random()*720}deg)`, opacity: 0.7 }
       ], { duration, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
       container.appendChild(el);
-      setTimeout(() => { try { container.removeChild(el); } catch {} }, duration + 100);
+      setTimeout(() => { try { container.removeChild(el); } catch {
+        /* Ignore DOM removal errors */
+      } }, duration + 100);
     }
   }, []);
 
   // When quiz passed, grant reward once and launch confetti (declared after points state below)
 
-  const goToNextStage = async () => {
+  // Unused function - kept for future use
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _goToNextStage = async () => {
     const currentId = selectedStage?.id || 1;
     const nextId = currentId + 1;
     
@@ -250,8 +253,8 @@ const Levels: React.FC = () => {
       setLevels(freshLevels);
       
       for (const lvl of freshLevels) {
-        const st = lvl.stages.find(s => s.id === nextId);
-        if (st) { nextLevel = lvl; nextStage = st; break; }
+        const stage = lvl.stages.find(s => s.id === nextId);
+        if (stage) { nextLevel = lvl; nextStage = stage; break; }
       }
     }
     
@@ -313,7 +316,7 @@ const Levels: React.FC = () => {
         stageTitle: nextStage.title,
         stageStatus: nextStage.status,
         hasVideos: !!nextStage.videos,
-        videosCount: nextStage.videos?.length || 0,
+        videosCount: (nextStage.videos ?? []).length,
         videoUrl: nextStage.videoUrl
       });
       
@@ -390,7 +393,7 @@ const Levels: React.FC = () => {
 
   const [showQuiz, setShowQuiz] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [userAnswers, setUserAnswers] = useState<{[key: number]: any}>({});
+  const [userAnswers, setUserAnswers] = useState<Record<number, unknown>>({});
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [quizResult, setQuizResult] = useState<{passed: boolean, score: number, feedback: string} | null>(null);
@@ -1865,7 +1868,7 @@ const Levels: React.FC = () => {
   };
 
   // Quiz Functions
-  const handleAnswerSelect = (questionId: number, answer: any) => {
+  const handleAnswerSelect = (questionId: number, answer: unknown) => {
     setUserAnswers(prev => ({
       ...prev,
       [questionId]: answer
@@ -1992,7 +1995,7 @@ const Levels: React.FC = () => {
         
         const questions = getQuizQuestions(selectedStage);
     let score = 0;
-    let correctAnswers = 0;
+    // let correctAnswers = 0; // Unused variable
     
     // Calculate score based on answers
     questions.forEach(question => {
@@ -2092,7 +2095,8 @@ const Levels: React.FC = () => {
   // which properly updates currentSession from the API
 
   // Function to clear quiz results (for testing/debugging) - unused, kept for future use
-  const clearQuizResults = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _clearQuizResults = () => {
     try {
       localStorage.removeItem('monetize-quiz-results');
       setStageQuizResults({});
@@ -2103,7 +2107,8 @@ const Levels: React.FC = () => {
   };
 
   // Function to navigate to next stage/level
-  const navigateToNext = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _navigateToNext = () => {
     if (!selectedStage || !selectedLevel) return;
     
     logger.debug('🔍 Navigating to next stage/level:', {
@@ -2258,7 +2263,7 @@ const Levels: React.FC = () => {
     }
   };
 
-  const generateAIResponse = (_userMessage: string) => {
+  const generateAIResponse = () => {
     // Simple AI response generation
     const responses = [
       'عالی! این ایده خیلی خوبیه. بیا بیشتر رویش کار کنیم.',
@@ -4235,7 +4240,7 @@ const Levels: React.FC = () => {
                           
                           {question.type === 'multiple' && (
                             <div className="space-y-3">
-                              {question.options?.map((option, index) => (
+                              {(question.options ?? []).map((option, index) => (
                                 <button
                                   key={index}
                                   onClick={() => handleAnswerSelect(question.id, index)}

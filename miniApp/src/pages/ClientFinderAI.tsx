@@ -36,9 +36,9 @@ const ClientFinderAI: React.FC = () => {
     platforms: [] as string[]
   });
   const [isGenerating, setIsGenerating] = React.useState(false);
-  const [result, setResult] = React.useState<any>(null);
+  const [result, setResult] = React.useState<Record<string, unknown> | null>(null);
   const [activeTab, setActiveTab] = React.useState<'custom' | 'strategies'>('custom');
-  const [, setSelectedStrategy] = React.useState<any>(null);
+  const [, setSelectedStrategy] = React.useState<Record<string, unknown> | null>(null);
 
   // Client Finding Strategies Database
   const clientStrategies = [
@@ -174,7 +174,7 @@ const ClientFinderAI: React.FC = () => {
     }
   ];
 
-  const selectStrategy = (strategy: any) => {
+  const selectStrategy = (strategy: { targetAudience?: string; platform?: string }) => {
     setSelectedStrategy(strategy);
     setFormData({
       product: formData.product,
@@ -519,14 +519,14 @@ const ClientFinderAI: React.FC = () => {
                       3 کانال برتر یافتن مشتری
                     </h4>
                     <div className="space-y-3">
-                      {(result.channels || []).map((channel: any, index: number) => (
+                      {((result.channels as Record<string, unknown>[]) || []).map((channel: Record<string, unknown>, index: number) => (
                         <div key={index} className="flex items-start gap-3 p-3 bg-gray-700/40 rounded-lg border border-gray-600/30">
                           <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
                             {index + 1}
                           </div>
                           <div className="flex-1">
-                            <h5 className="text-white font-semibold mb-1">{channel.name}</h5>
-                            <p className="text-gray-300 text-sm">{channel.reason}</p>
+                            <h5 className="text-white font-semibold mb-1">{String(channel.name ?? '')}</h5>
+                            <p className="text-gray-300 text-sm">{String(channel.reason ?? '')}</p>
                           </div>
                         </div>
                       ))}

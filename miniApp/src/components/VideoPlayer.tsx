@@ -134,7 +134,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     
     // Prevent remote playback (Chromecast, etc.)
     if ('disableRemotePlayback' in video) {
-      (video as any).disableRemotePlayback = true;
+      (video as HTMLVideoElement & { disableRemotePlayback?: boolean }).disableRemotePlayback = true;
     }
 
     // Prevent right-click context menu (security)

@@ -8,6 +8,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getPlatformInfo, type PlatformInfo } from '../utils/platformDetection';
 
+type DocWithVendorFullscreen = Document & {
+  webkitFullscreenElement?: Element | null;
+  mozFullScreenElement?: Element | null;
+  msFullscreenElement?: Element | null;
+  webkitExitFullscreen?: () => Promise<void>;
+  mozCancelFullScreen?: () => Promise<void>;
+  msExitFullscreen?: () => Promise<void>;
+};
+type ContainerWithCleanup = HTMLElement & {
+  __fullscreenCleanup?: () => void;
+  __originalContainerStyles?: Record<string, string>;
+  __fixedParents?: HTMLElement[];
+};
+type ElementWithOverflow = HTMLElement & { __originalOverflow?: string };
+type VideoWithStyles = HTMLVideoElement & { __originalVideoStyles?: Record<string, string> };
+
 export interface UseFullscreenOptions {
   /**
    * Video element ref
@@ -98,7 +114,7 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
    * Check if any fullscreen mode is currently active
    */
   const isFullscreenActive = useCallback((): boolean => {
-    const doc = document as any;
+    const doc = document as Document & { webkitFullscreenElement?: Element | null; mozFullScreenElement?: Element | null; msFullscreenElement?: Element | null };
     return !!(
       document.fullscreenElement ||
       doc.webkitFullscreenElement ||
@@ -115,7 +131,7 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
     const video = videoRef.current;
     if (!video) return false;
 
-    const anyVideo = video as any;
+    const anyVideo = video as HTMLVideoElement & { webkitEnterFullscreen?: () => void; webkitRequestFullscreen?: () => Promise<void>; mozRequestFullScreen?: () => Promise<void>; msRequestFullscreen?: () => Promise<void> };
 
     // Method 1: Standard Fullscreen API (Chrome, Firefox, Edge)
     if (video.requestFullscreen) {
@@ -180,18 +196,18 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
    * Exit native fullscreen
    */
   const exitNativeFullscreen = useCallback(async (): Promise<void> => {
-    const anyDoc = document as any;
+    const doc = document as DocWithVendorFullscreen;
 
     if (document.fullscreenElement) {
       try {
         if (document.exitFullscreen) {
           await document.exitFullscreen();
-        } else if (anyDoc.webkitExitFullscreen) {
-          await anyDoc.webkitExitFullscreen();
-        } else if (anyDoc.mozCancelFullScreen) {
-          await anyDoc.mozCancelFullScreen();
-        } else if (anyDoc.msExitFullscreen) {
-          await anyDoc.msExitFullscreen();
+        } else if (doc.webkitExitFullscreen) {
+          await doc.webkitExitFullscreen();
+        } else if (doc.mozCancelFullScreen) {
+          await doc.mozCancelFullScreen();
+        } else if (doc.msExitFullscreen) {
+          await doc.msExitFullscreen();
         }
       } catch (err) {
         console.debug('[Fullscreen] Exit failed:', err);
@@ -262,7 +278,7 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
     while (parent && parent !== document.body) {
       parents.push(parent);
       // Store original overflow
-      (parent as any).__originalOverflow = (parent as any).__originalOverflow || window.getComputedStyle(parent).overflow;
+      (parent as ElementWithOverflow).__originalOverflow = (parent as ElementWithOverflow).__originalOverflow ?? window.getComputedStyle(parent).overflow;
       // Force overflow visible for fullscreen
       parent.style.overflow = 'visible';
       parent.style.position = 'relative';
@@ -315,8 +331,9 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
     });
     
     // Store original styles and parent fixes for cleanup
-    (containerElement as any).__originalContainerStyles = originalContainerStyles;
-    (containerElement as any).__fixedParents = parents;
+    const containerWithStyles = containerElement as HTMLElement & { __originalContainerStyles?: Record<string, string>; __fixedParents?: HTMLElement[] };
+    containerWithStyles.__originalContainerStyles = originalContainerStyles;
+    containerWithStyles.__fixedParents = parents;
 
     // Make video fullscreen - CRITICAL for Android
     const originalVideoStyles = {
@@ -346,20 +363,21 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
     });
     
     // Store original styles for cleanup
-    (video as any).__originalVideoStyles = originalVideoStyles;
+    const videoWithStyles = video as HTMLVideoElement & { __originalVideoStyles?: Record<string, string> };
+    videoWithStyles.__originalVideoStyles = originalVideoStyles;
 
     // Disable Telegram WebApp gestures that might interfere
     try {
       if (window.Telegram?.WebApp) {
-        // @ts-ignore - Telegram WebApp API may have these methods
+        // @ts-expect-error - Telegram WebApp API may have these methods
         window.Telegram.WebApp.disableVerticalSwipes?.();
       }
-    } catch (err) {
+    } catch {
       // Ignore errors
     }
 
     // Store cleanup function
-    (container as any).__fullscreenCleanup = () => {
+    (container as ContainerWithCleanup).__fullscreenCleanup = () => {
       // Restore body and html styles
       requestAnimationFrame(() => {
         document.body.style.overflow = originalOverflow;
@@ -384,20 +402,20 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
       });
 
       // Restore parent containers
-      const fixedParents = (containerElement as any).__fixedParents;
+      const fixedParents = (containerElement as ContainerWithCleanup).__fixedParents;
       if (fixedParents && Array.isArray(fixedParents)) {
         fixedParents.forEach((parent: HTMLElement) => {
-          const originalOverflow = (parent as any).__originalOverflow;
+          const originalOverflow = (parent as ElementWithOverflow).__originalOverflow;
           if (originalOverflow !== undefined) {
             parent.style.overflow = originalOverflow;
-            delete (parent as any).__originalOverflow;
+            delete (parent as ElementWithOverflow).__originalOverflow;
           }
           parent.style.position = '';
         });
       }
       
       // Restore container styles from stored original
-      const originalStyles = (containerElement as any).__originalContainerStyles;
+      const originalStyles = (containerElement as ContainerWithCleanup).__originalContainerStyles;
       if (originalStyles) {
         containerElement.style.removeProperty('position');
         containerElement.style.removeProperty('top');
@@ -432,13 +450,13 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
         if (originalStyles.borderRadius) containerElement.style.borderRadius = originalStyles.borderRadius;
         if (originalStyles.overflow) containerElement.style.overflow = originalStyles.overflow;
         
-        delete (containerElement as any).__originalContainerStyles;
-        delete (containerElement as any).__fixedParents;
+        delete (containerElement as ContainerWithCleanup).__originalContainerStyles;
+        delete (containerElement as ContainerWithCleanup).__fixedParents;
       }
       containerElement.classList.remove('video-pseudo-fullscreen');
 
       // Restore video styles from stored original
-      const originalVideoStyles = (video as any).__originalVideoStyles;
+      const originalVideoStyles = (video as VideoWithStyles).__originalVideoStyles;
       if (originalVideoStyles) {
         video.style.width = originalVideoStyles.width;
         video.style.height = originalVideoStyles.height;
@@ -447,16 +465,16 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
         video.style.objectFit = originalVideoStyles.objectFit;
         video.style.display = originalVideoStyles.display;
         video.style.margin = originalVideoStyles.margin;
-        delete (video as any).__originalVideoStyles;
+        delete (video as VideoWithStyles).__originalVideoStyles;
       }
 
       // Re-enable Telegram WebApp gestures
       try {
         if (window.Telegram?.WebApp) {
-          // @ts-ignore - Telegram WebApp API may have these methods
+          // @ts-expect-error - Telegram WebApp API may have these methods
           window.Telegram.WebApp.enableVerticalSwipes?.();
         }
-      } catch (err) {
+      } catch {
         // Ignore errors
       }
     };
@@ -469,9 +487,9 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
     const video = videoRef.current;
     const container = containerRef?.current || video?.parentElement;
     
-    if (container && (container as any).__fullscreenCleanup) {
-      (container as any).__fullscreenCleanup();
-      delete (container as any).__fullscreenCleanup;
+    if (container && (container as ContainerWithCleanup).__fullscreenCleanup) {
+      (container as ContainerWithCleanup).__fullscreenCleanup();
+      delete (container as ContainerWithCleanup).__fullscreenCleanup;
     }
 
     setIsPseudoFullscreen(false);
@@ -541,14 +559,14 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
    * Listen for native fullscreen changes
    */
   useEffect(() => {
-    const anyDoc = document as any;
+    const doc = document as DocWithVendorFullscreen;
 
     const handleFullscreenChange = (): void => {
       const active = !!(
         document.fullscreenElement ||
-        anyDoc.webkitFullscreenElement ||
-        anyDoc.mozFullScreenElement ||
-        anyDoc.msFullscreenElement
+        doc.webkitFullscreenElement ||
+        doc.mozFullScreenElement ||
+        doc.msFullscreenElement
       );
 
       setIsFullscreen(active);
@@ -571,14 +589,14 @@ export function useFullscreen(options: UseFullscreenOptions): UseFullscreenRetur
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-    document.addEventListener('webkitendfullscreen', handleWebkitEnd as any);
+    document.addEventListener('webkitendfullscreen', handleWebkitEnd as EventListener);
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
-      document.removeEventListener('webkitendfullscreen', handleWebkitEnd as any);
+      document.removeEventListener('webkitendfullscreen', handleWebkitEnd as EventListener);
     };
   }, [isPseudoFullscreen, exitPseudoFullscreen]);
 

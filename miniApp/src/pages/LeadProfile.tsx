@@ -259,8 +259,8 @@ const LeadProfile: React.FC = () => {
           setShowCopyMessage(false);
         }, 2000);
       })
-      .catch(err => {
-        console.error('خطا در کپی کردن: ', err);
+      .catch(() => {
+        console.error('خطا در کپی کردن');
         // در صورت خطا، از روش فالبک استفاده می‌کنیم
         try {
           // ایجاد یک المان textarea موقت

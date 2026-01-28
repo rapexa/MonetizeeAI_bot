@@ -144,7 +144,7 @@ const SubscriptionManagement: React.FC = () => {
               window.location.href = payment_url;
             }
           }
-        } catch (error) {
+        } catch {
           window.location.href = payment_url;
         }
         
@@ -152,7 +152,7 @@ const SubscriptionManagement: React.FC = () => {
       } else {
         alert(response.error || 'خطا در ایجاد درخواست پرداخت. لطفا دوباره تلاش کنید.');
       }
-    } catch (error) {
+    } catch {
       alert('خطا در ارتباط با سرور. لطفا دوباره تلاش کنید.');
     } finally {
       setPaymentLoading(false);
@@ -190,7 +190,7 @@ const SubscriptionManagement: React.FC = () => {
         if (response.data?.pending) {
           setTimeout(checkStatus, 5000);
         }
-      } catch (error) {
+      } catch {
         setTimeout(checkStatus, 5000);
       }
     };

@@ -16,7 +16,7 @@ function getBaseURL(): string {
 
 const BASE_URL = getBaseURL();
 
-interface APIResponse<T = any> {
+interface APIResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -45,10 +45,10 @@ function getWebSessionToken(): string {
 /**
  * Make authenticated API request
  */
-async function makeRequest<T = any>(
+async function makeRequest<T = unknown>(
   endpoint: string,
   method: string = 'GET',
-  body?: any
+  body?: Record<string, unknown>
 ): Promise<APIResponse<T>> {
   try {
     const initData = getTelegramInitData();
@@ -223,24 +223,24 @@ const adminApiService = {
 
   // Sessions
   getSessions: () => makeRequest('/sessions'),
-  createSession: (session: any) => makeRequest('/sessions', 'POST', session),
-  updateSession: (sessionId: number, session: any) => 
+  createSession: (session: Record<string, unknown>) => makeRequest('/sessions', 'POST', session),
+  updateSession: (sessionId: number, session: Record<string, unknown>) => 
     makeRequest(`/sessions/${sessionId}`, 'PUT', session),
   deleteSession: (sessionId: number) => makeRequest(`/sessions/${sessionId}`, 'DELETE'),
 
   // Videos
   getVideos: (sessionId?: number) => 
     makeRequest(`/videos${sessionId ? `?session_id=${sessionId}` : ''}`),
-  createVideo: (video: any) => makeRequest('/videos', 'POST', video),
-  updateVideo: (videoId: number, video: any) => 
+  createVideo: (video: Record<string, unknown>) => makeRequest('/videos', 'POST', video),
+  updateVideo: (videoId: number, video: Record<string, unknown>) => 
     makeRequest(`/videos/${videoId}`, 'PUT', video),
   deleteVideo: (videoId: number) => makeRequest(`/videos/${videoId}`, 'DELETE'),
 
   // Exercises
   getExercises: (sessionId?: number) => 
     makeRequest(`/exercises${sessionId ? `?session_id=${sessionId}` : ''}`),
-  createExercise: (exercise: any) => makeRequest('/exercises', 'POST', exercise),
-  updateExercise: (exerciseId: number, exercise: any) => 
+  createExercise: (exercise: Record<string, unknown>) => makeRequest('/exercises', 'POST', exercise),
+  updateExercise: (exerciseId: number, exercise: Record<string, unknown>) => 
     makeRequest(`/exercises/${exerciseId}`, 'PUT', exercise),
   deleteExercise: (exerciseId: number) => makeRequest(`/exercises/${exerciseId}`, 'DELETE'),
 

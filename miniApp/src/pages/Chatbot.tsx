@@ -68,18 +68,18 @@ const Chatbot: React.FC = () => {
         try {
           const response = await apiService.getChatHistory();
           if (response.success && response.data) {
-            const historyMessages: Message[] = response.data.flatMap((item: any, index): Message[] => [
+            const historyMessages: Message[] = response.data.flatMap((item: Record<string, unknown>, index): Message[] => [
               {
                 id: index * 2 + 1,
                 text: String(item.message),
                 sender: 'user' as const,
-                timestamp: new Date(item.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+                timestamp: new Date(String(item.created_at)).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
               },
               {
                 id: index * 2 + 2,
                 text: String(item.response),
                 sender: 'ai' as const,
-                timestamp: new Date(item.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+                timestamp: new Date(String(item.created_at)).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
               }
             ]);
 

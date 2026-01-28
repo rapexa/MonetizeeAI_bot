@@ -85,7 +85,7 @@ function detectIOS(): boolean {
   // iOS Safari has touch events and specific vendor prefixes
   if ('ontouchstart' in window && 
       /Mac/.test(navigator.platform) && 
-      !(window as any).MSStream) {
+      !(window as Window & { MSStream?: unknown }).MSStream) {
     // This is likely iPad on iOS 13+
     return true;
   }
@@ -131,8 +131,8 @@ function checkFullscreenSupport(): {
     return { native: false, webkit: false, video: false };
   }
 
-  const doc = document as any;
-  const video = document.createElement('video') as any;
+  const doc = document as Document & { webkitFullscreenElement?: Element | null; mozFullScreenElement?: Element | null; msFullscreenElement?: Element | null };
+  const video = document.createElement('video') as HTMLVideoElement & { webkitEnterFullscreen?: () => void };
 
   return {
     // Standard Fullscreen API

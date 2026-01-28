@@ -208,13 +208,14 @@ const ChatModal: React.FC<ChatModalProps> = ({
                   onTypingComplete={() => {
                     // Freeze the latest AI message so it won't re-type on future renders
                     setChatMessages(prev => {
-                      if (!prev || prev.length === 0) return prev as any;
+                      if (!prev || prev.length === 0) return prev;
                       const lastIndex = prev.length - 1;
                       const updated = [...prev];
-                      if (updated[lastIndex].sender === 'ai' && (updated[lastIndex] as any).isNew) {
-                        updated[lastIndex] = { ...updated[lastIndex], isNew: false } as any;
+                      const lastMessage = updated[lastIndex];
+                      if (lastMessage.sender === 'ai' && 'isNew' in lastMessage && lastMessage.isNew) {
+                        updated[lastIndex] = { ...lastMessage, isNew: false };
                       }
-                      return updated as any;
+                      return updated;
                     });
                     scrollToBottom();
                   }}

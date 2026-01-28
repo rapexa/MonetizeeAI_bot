@@ -47,6 +47,9 @@ import adminApiService from '../services/adminApi';
 //   payload: any;
 // }
 
+type ChartDataItem = { date?: string; count?: number };
+type AdminTab = 'dashboard' | 'users' | 'payments' | 'content' | 'analytics' | 'tickets' | 'licenses';
+
 interface ErrorLog {
   id: number;
   level: string;
@@ -114,7 +117,7 @@ interface PaymentTransaction {
 }
 
 // Registration Chart Component
-const RegistrationChart: React.FC<{ data: any[]; period: 'day' | 'week' | 'month' }> = ({ data, period }) => {
+const RegistrationChart: React.FC<{ data: ChartDataItem[]; period: 'day' | 'week' | 'month' }> = ({ data, period }) => {
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   
   // Generate date range based on period
@@ -154,15 +157,15 @@ const RegistrationChart: React.FC<{ data: any[]; period: 'day' | 'week' | 'month
   // Map API data to dates - data format: [{date: "2024-01-01", count: 5}, ...]
   const values = dates.map(dateStr => {
     // Try exact match first
-    let found = data.find((item: any) => {
+    let found = data.find((item: ChartDataItem) => {
       if (!item || !item.date) return false;
-      const itemDate = typeof item.date === 'string' ? item.date.split('T')[0] : item.date;
+      const itemDate = typeof item.date === 'string' ? item.date.split('T')[0] : String(item.date);
       return itemDate === dateStr;
     });
     
     // If not found, try partial match
     if (!found) {
-      found = data.find((item: any) => {
+      found = data.find((item: ChartDataItem) => {
         if (!item || !item.date) return false;
         return String(item.date).startsWith(dateStr);
       });
@@ -326,7 +329,7 @@ const AdminPanel: React.FC = () => {
   const [accessDenied, setAccessDenied] = useState(false);
   
   // Dashboard chart states
-  const [chartData, setChartData] = useState<any>(null);
+  const [chartData, setChartData] = useState<ChartDataItem[] | null>(null);
   const [chartPeriod, setChartPeriod] = useState<'day' | 'week' | 'month'>('week');
   const [loadingChart, setLoadingChart] = useState(false);
   
@@ -347,7 +350,7 @@ const AdminPanel: React.FC = () => {
 
   // User detail modal state
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [userDetail, setUserDetail] = useState<any>(null);
+  const [userDetail, setUserDetail] = useState<Record<string, unknown> | null>(null);
   const [loadingUserDetail, setLoadingUserDetail] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -355,27 +358,27 @@ const AdminPanel: React.FC = () => {
   const [changingSession, setChangingSession] = useState(false);
 
   // Tickets state
-  const [tickets, setTickets] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<Record<string, unknown>[]>([]);
   const [ticketsPage, setTicketsPage] = useState(1);
   const [ticketsTotal, setTicketsTotal] = useState(0);
   const [ticketsStatus, setTicketsStatus] = useState('all');
   const [ticketsPriority, setTicketsPriority] = useState('all');
   const [ticketsSearch, setTicketsSearch] = useState('');
   const [loadingTickets, setLoadingTickets] = useState(false);
-  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
-  const [ticketDetail, setTicketDetail] = useState<any | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<Record<string, unknown> | null>(null);
+  const [ticketDetail, setTicketDetail] = useState<Record<string, unknown> | null>(null);
   const [loadingTicketDetail, setLoadingTicketDetail] = useState(false);
   const [ticketReplyMessage, setTicketReplyMessage] = useState('');
   const [sendingTicketReply, setSendingTicketReply] = useState(false);
 
   // License Keys state
-  const [licenseKeys, setLicenseKeys] = useState<any[]>([]);
+  const [licenseKeys, setLicenseKeys] = useState<Record<string, unknown>[]>([]);
   const [licenseKeysPage, setLicenseKeysPage] = useState(1);
   const [licenseKeysTotal, setLicenseKeysTotal] = useState(0);
   const [licenseKeysStatus, setLicenseKeysStatus] = useState('all');
   const [licenseKeysSearch, setLicenseKeysSearch] = useState('');
   const [loadingLicenseKeys, setLoadingLicenseKeys] = useState(false);
-  const [licenseKeysStats, setLicenseKeysStats] = useState<any>(null);
+  const [licenseKeysStats, setLicenseKeysStats] = useState<Record<string, unknown> | null>(null);
   const [generatingLicenses, setGeneratingLicenses] = useState(false);
   const [exportingLicenses, setExportingLicenses] = useState(false);
 
@@ -493,9 +496,9 @@ const AdminPanel: React.FC = () => {
       console.log('Users API Response:', response); // Debug log
       if (response.success && response.data) {
         // Ensure Points field exists for all users
-        const usersWithPoints = (response.data.users || []).map((user: any) => ({
+        const usersWithPoints = (response.data.users || []).map((user: Record<string, unknown>) => ({
           ...user,
-          Points: user.Points ?? user.points ?? 0,
+          Points: (user.Points ?? user.points ?? 0) as number,
         }));
         setUsers(usersWithPoints);
         setUsersTotal(response.data.total || 0);
@@ -576,7 +579,7 @@ const AdminPanel: React.FC = () => {
   };
 
   // Handle view ticket
-  const handleViewTicket = async (ticket: any) => {
+  const handleViewTicket = async (ticket: Record<string, unknown>) => {
     setSelectedTicket(ticket);
     const ticketId = ticket.ID || ticket.id || ticket.Id;
     if (ticketId) {
@@ -1083,7 +1086,7 @@ const AdminPanel: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as AdminTab)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-300 whitespace-nowrap text-sm ${
                   activeTab === tab.id
                     ? 'bg-white/20 text-white shadow-lg'
@@ -1302,8 +1305,8 @@ const AdminPanel: React.FC = () => {
                       <button
                         key={period}
                         onClick={() => {
-                          setChartPeriod(period as any);
-                          loadChartData(period as any);
+                          setChartPeriod(period as 'day' | 'week' | 'month');
+                          loadChartData(period as 'day' | 'week' | 'month');
                         }}
                         className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                           chartPeriod === period
@@ -1342,7 +1345,7 @@ const AdminPanel: React.FC = () => {
                 </h3>
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {stats.recentUsers && stats.recentUsers.length > 0 ? (
-                    stats.recentUsers.slice(0, 5).map((user: any) => (
+                    stats.recentUsers.slice(0, 5).map((user: Record<string, unknown>) => (
                       <div key={user.ID} className="flex items-center justify-between p-3 bg-gray-800/30 rounded-xl hover:bg-gray-800/50 transition-all">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center">
@@ -1773,7 +1776,7 @@ const AdminPanel: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {tickets.map((ticket: any) => {
+                  {tickets.map((ticket: Record<string, unknown>) => {
                     const getStatusColor = (status: string) => {
                       switch (status) {
                         case 'closed': return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
@@ -1986,7 +1989,7 @@ const AdminPanel: React.FC = () => {
               ) : (
                 <>
                   <div className="space-y-3">
-                    {licenseKeys.map((license: any) => (
+                    {licenseKeys.map((license: Record<string, unknown>) => (
                       <div
                         key={license.ID || license.id}
                         className={`p-4 rounded-xl border ${
@@ -2425,7 +2428,7 @@ const AdminPanel: React.FC = () => {
                     <div className="p-4 bg-gray-800/40 rounded-xl border border-gray-700/40">
                       <h3 className="text-lg font-bold text-white mb-4">تراکنش‌های اخیر</h3>
                       <div className="space-y-2">
-                        {userDetail.payments.slice(0, 5).map((payment: any) => (
+                        {(userDetail.payments as Record<string, unknown>[]).slice(0, 5).map((payment: Record<string, unknown>) => (
                           <div key={payment.id} className="flex items-center justify-between p-3 bg-gray-900/60 rounded-lg">
                             <div>
                               <div className="text-white text-sm font-medium">{payment.type}</div>
@@ -2500,22 +2503,24 @@ const AdminPanel: React.FC = () => {
 
                   {/* Messages */}
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {(ticketDetail.ticket?.Messages || ticketDetail.ticket?.messages) && (ticketDetail.ticket?.Messages || ticketDetail.ticket?.messages).length > 0 ? (
-                      (ticketDetail.ticket?.Messages || ticketDetail.ticket?.messages).map((msg: any) => (
+                    {(() => {
+                      const messages = (ticketDetail.ticket?.Messages ?? ticketDetail.ticket?.messages) ?? [];
+                      return messages.length > 0 ? (
+                      messages.map((msg: Record<string, unknown>) => (
                         <div
-                          key={msg.ID || msg.id}
+                          key={String(msg.ID ?? msg.id ?? '')}
                           className={`p-4 rounded-xl ${
-                            (msg.SenderType || msg.sender_type) === 'user'
+                            (msg.SenderType ?? msg.sender_type) === 'user'
                               ? 'bg-gradient-to-r from-[#2c189a]/20 to-[#5a189a]/20 border border-[#5a189a]/30'
                               : 'bg-gray-800/40 border border-gray-700/40'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium text-gray-300">
-                              {(msg.SenderType || msg.sender_type) === 'user' ? 'کاربر' : 'پشتیبان'}
+                              {(msg.SenderType ?? msg.sender_type) === 'user' ? 'کاربر' : 'پشتیبان'}
                             </span>
                             <span className="text-xs text-gray-500">
-                              {new Date(msg.CreatedAt || msg.created_at).toLocaleDateString('fa-IR', {
+                              {new Date(String(msg.CreatedAt ?? msg.created_at ?? '')).toLocaleDateString('fa-IR', {
                                 year: 'numeric',
                                 month: 'long',
                                 day: 'numeric',
@@ -2524,12 +2529,13 @@ const AdminPanel: React.FC = () => {
                               })}
                             </span>
                           </div>
-                          <p className="text-white whitespace-pre-wrap">{msg.Message || msg.message}</p>
+                          <p className="text-white whitespace-pre-wrap">{String(msg.Message ?? msg.message ?? '')}</p>
                         </div>
                       ))
                     ) : (
                       <p className="text-gray-400 text-center py-4">هنوز پیامی وجود ندارد</p>
-                    )}
+                    );
+                    })()}
                   </div>
 
                   {/* Reply Form */}

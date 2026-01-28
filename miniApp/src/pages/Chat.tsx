@@ -36,7 +36,6 @@ const Chat: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
