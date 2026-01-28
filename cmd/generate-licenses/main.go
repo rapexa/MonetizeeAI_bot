@@ -110,4 +110,3 @@ func main() {
 		fmt.Printf("   ... and %d more\n", len(licenses)-5)
 	}
 }
-

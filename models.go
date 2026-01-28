@@ -44,7 +44,7 @@ type User struct {
 
 	// Profile fields for miniApp
 	MonthlyIncome int64 `json:"monthly_income" gorm:"default:0"` // در تومان
-	Points         int  `json:"points" gorm:"default:0"`         // امتیاز کل کاربر
+	Points        int   `json:"points" gorm:"default:0"`         // امتیاز کل کاربر
 
 	// Subscription fields
 	SubscriptionType   string `gorm:"default:'none'"` // none, free_trial, paid
@@ -151,10 +151,10 @@ type ChatMessage struct {
 // Ticket represents a support ticket
 type Ticket struct {
 	gorm.Model
-	TelegramID int64  `gorm:"index" json:"telegram_id"`
-	Subject    string `gorm:"type:varchar(500)" json:"subject"`
-	Priority   string `gorm:"type:varchar(20);default:'normal'" json:"priority"` // low, normal, high, urgent
-	Status     string `gorm:"type:varchar(20);default:'open'" json:"status"`     // open, in_progress, answered, closed
+	TelegramID int64           `gorm:"index" json:"telegram_id"`
+	Subject    string          `gorm:"type:varchar(500)" json:"subject"`
+	Priority   string          `gorm:"type:varchar(20);default:'normal'" json:"priority"` // low, normal, high, urgent
+	Status     string          `gorm:"type:varchar(20);default:'open'" json:"status"`     // open, in_progress, answered, closed
 	Messages   []TicketMessage `gorm:"foreignKey:TicketID" json:"messages,omitempty"`
 }
 
@@ -259,12 +259,12 @@ type LicenseVerification struct {
 // License represents a pre-generated license key that can be used once
 type License struct {
 	gorm.Model
-	LicenseKey string `gorm:"uniqueIndex;size:100" json:"license_key"` // Format: XXXX-XXXXX-XXXXX-XXXXX
-	IsUsed     bool   `gorm:"default:false" json:"is_used"`            // Whether this license has been used
-	UsedBy     *uint  `json:"used_by"`                                 // User ID who used this license
-	User       *User  `gorm:"foreignKey:UsedBy;constraint:OnDelete:SET NULL" json:"user,omitempty"`
-	UsedAt     *time.Time `json:"used_at"`                             // When the license was used
-	CreatedBy  *uint      `gorm:"index" json:"created_by"`             // Admin who created this license (nullable)
+	LicenseKey string     `gorm:"uniqueIndex;size:100" json:"license_key"` // Format: XXXX-XXXXX-XXXXX-XXXXX
+	IsUsed     bool       `gorm:"default:false" json:"is_used"`            // Whether this license has been used
+	UsedBy     *uint      `json:"used_by"`                                 // User ID who used this license
+	User       *User      `gorm:"foreignKey:UsedBy;constraint:OnDelete:SET NULL" json:"user,omitempty"`
+	UsedAt     *time.Time `json:"used_at"`                 // When the license was used
+	CreatedBy  *uint      `gorm:"index" json:"created_by"` // Admin who created this license (nullable)
 	Admin      *Admin     `gorm:"foreignKey:CreatedBy;constraint:OnDelete:SET NULL" json:"admin,omitempty"`
 }
 

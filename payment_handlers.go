@@ -164,7 +164,12 @@ func handleSubscriptionPaymentButton(user *User, planType string) string {
 			tgbotapi.NewInlineKeyboardButtonURL("💳 پرداخت آنلاین", paymentURL),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("✅ چک کردن پرداخت", fmt.Sprintf("check_payment:%s", transaction.Authority)),
+			tgbotapi.NewInlineKeyboardButtonData("✅ چک کردن پرداخت", fmt.Sprintf("check_payment:%s", func() string {
+				if transaction.Authority != nil {
+					return *transaction.Authority
+				}
+				return ""
+			}())),
 		),
 	)
 

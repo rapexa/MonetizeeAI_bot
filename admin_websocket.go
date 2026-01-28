@@ -90,42 +90,42 @@ type WSMessage struct {
 
 // Real-time stats payload
 type StatsPayload struct {
-	TotalUsers           int64                `json:"totalUsers"`
-	ActiveUsers          int64                `json:"activeUsers"`
-	ActiveUsersToday     int64                `json:"activeUsersToday"`
-	FreeTrialUsers       int64                `json:"freeTrialUsers"`
-	PaidUsers            int64                `json:"paidUsers"`
-	TodayRevenue         int                  `json:"todayRevenue"`
-	MonthRevenue         int                  `json:"monthRevenue"`
-	OnlineAdmins         int                  `json:"onlineAdmins"`
-	PendingLicenses      int64                `json:"pendingLicenses"`
-	ActiveLicenses       int64                `json:"activeLicenses"`
-	TotalLicenseKeys     int64                `json:"totalLicenseKeys"`     // Total pre-generated license keys
-	UsedLicenseKeys      int64                `json:"usedLicenseKeys"`      // Used license keys
-	UnusedLicenseKeys    int64                `json:"unusedLicenseKeys"`   // Unused license keys
-	AverageProgress      float64              `json:"averageProgress"`      // Average progress percentage across 29 stages
-	AITotalRequests      int64                `json:"aiTotalRequests"`      // Total AI requests count
-	RecentUsers          []User               `json:"recentUsers"`
-	RecentPayments       []PaymentTransaction `json:"recentPayments"`
-	RecentErrors         []ErrorLog           `json:"recentErrors"`         // Recent error logs
-	Alerts               []Alert              `json:"alerts"`               // System alerts
-	Timestamp            time.Time            `json:"timestamp"`
+	TotalUsers        int64                `json:"totalUsers"`
+	ActiveUsers       int64                `json:"activeUsers"`
+	ActiveUsersToday  int64                `json:"activeUsersToday"`
+	FreeTrialUsers    int64                `json:"freeTrialUsers"`
+	PaidUsers         int64                `json:"paidUsers"`
+	TodayRevenue      int                  `json:"todayRevenue"`
+	MonthRevenue      int                  `json:"monthRevenue"`
+	OnlineAdmins      int                  `json:"onlineAdmins"`
+	PendingLicenses   int64                `json:"pendingLicenses"`
+	ActiveLicenses    int64                `json:"activeLicenses"`
+	TotalLicenseKeys  int64                `json:"totalLicenseKeys"`  // Total pre-generated license keys
+	UsedLicenseKeys   int64                `json:"usedLicenseKeys"`   // Used license keys
+	UnusedLicenseKeys int64                `json:"unusedLicenseKeys"` // Unused license keys
+	AverageProgress   float64              `json:"averageProgress"`   // Average progress percentage across 29 stages
+	AITotalRequests   int64                `json:"aiTotalRequests"`   // Total AI requests count
+	RecentUsers       []User               `json:"recentUsers"`
+	RecentPayments    []PaymentTransaction `json:"recentPayments"`
+	RecentErrors      []ErrorLog           `json:"recentErrors"` // Recent error logs
+	Alerts            []Alert              `json:"alerts"`       // System alerts
+	Timestamp         time.Time            `json:"timestamp"`
 }
 
 // ErrorLog represents an error log entry
 type ErrorLog struct {
 	ID        uint      `json:"id"`
-	Level     string    `json:"level"`     // error, warning, info
+	Level     string    `json:"level"` // error, warning, info
 	Message   string    `json:"message"`
-	Source    string    `json:"source"`    // API, Payment, Server, etc.
+	Source    string    `json:"source"` // API, Payment, Server, etc.
 	CreatedAt time.Time `json:"createdAt"`
 }
 
 // Alert represents a system alert
 type Alert struct {
 	ID        uint      `json:"id"`
-	Type      string    `json:"type"`      // api, payment, server, etc.
-	Severity  string    `json:"severity"`  // critical, warning, info
+	Type      string    `json:"type"`     // api, payment, server, etc.
+	Severity  string    `json:"severity"` // critical, warning, info
 	Message   string    `json:"message"`
 	CreatedAt time.Time `json:"createdAt"`
 }
@@ -433,28 +433,28 @@ func getRecentErrors() []ErrorLog {
 // Get system alerts
 func getSystemAlerts() []Alert {
 	var alerts []Alert
-	
+
 	// Check API connectivity (simplified - always assume OK for now)
 	// TODO: Implement actual API health checks
-	
+
 	// Check for failed payments
 	var failedPayments int64
 	today := time.Now().Truncate(24 * time.Hour)
 	db.Model(&PaymentTransaction{}).
 		Where("status = ? AND created_at >= ?", "failed", today).
 		Count(&failedPayments)
-	
+
 	if failedPayments > 5 {
 		alerts = append(alerts, Alert{
-			Type:     "payment",
-			Severity: "warning",
-			Message:  fmt.Sprintf("%d پرداخت ناموفق در امروز", failedPayments),
+			Type:      "payment",
+			Severity:  "warning",
+			Message:   fmt.Sprintf("%d پرداخت ناموفق در امروز", failedPayments),
 			CreatedAt: time.Now(),
 		})
 	}
-	
+
 	// Check for database connectivity (simplified - if we got here, DB is OK)
-	
+
 	return alerts
 }
 

@@ -33,8 +33,8 @@ func (uc *UserCache) GetUser(telegramID int64) (*User, error) {
 
 	// Fetch from database - only select needed fields for better performance
 	var user User
-	if err := db.Select("telegram_id", "username", "first_name", "last_name", "current_session", 
-		"is_verified", "is_active", "subscription_type", "plan_name", "subscription_expiry", 
+	if err := db.Select("telegram_id", "username", "first_name", "last_name", "current_session",
+		"is_verified", "is_active", "subscription_type", "plan_name", "subscription_expiry",
 		"free_trial_used", "chat_messages_used", "course_sessions_used", "points", "created_at", "updated_at").
 		Where("telegram_id = ?", telegramID).First(&user).Error; err != nil {
 		return nil, err
@@ -152,5 +152,3 @@ func (sc *SessionCache) InvalidateSessions() {
 	sc.expiresAt = time.Time{}
 	sc.mu.Unlock()
 }
-
-

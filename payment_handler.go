@@ -610,7 +610,7 @@ func (h *PaymentHandler) renderPaymentResultPage(w http.ResponseWriter, r *http.
         </div>
     </div>
 </body>
-</html>`, cardClass, icon, title, message,
+</html>`, title, cardClass, icon, title, message,
 		func() string {
 			if status == "success" && refID != "" {
 				return fmt.Sprintf(`<div class="details">
