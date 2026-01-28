@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Users, 
-  DollarSign, 
   Activity,
   Shield,
   Package,
   CreditCard,
-  UserCheck,
   RefreshCw,
   CheckCircle,
   XCircle,
@@ -30,7 +28,6 @@ import {
   TrendingUp,
   ChevronLeft,
   ChevronRight,
-  Ticket,
   AlertCircle as AlertCircleIcon,
   CheckCircle2,
   Lock as LockIcon,
@@ -39,7 +36,6 @@ import {
   AlertTriangle,
   Zap,
   Key,
-  TrendingDown,
   Loader,
   Download
 } from 'lucide-react';
@@ -140,7 +136,6 @@ const RegistrationChart: React.FC<{ data: any[]; period: 'day' | 'week' | 'month
       
       // Format label based on period
       if (period === 'day' || period === 'week') {
-        const dayName = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه'][date.getDay()];
         const dayShort = ['ی', 'د', 'س', 'چ', 'پ', 'ج', 'ش'][date.getDay()];
         const dayNum = date.getDate();
         labels.push(`${dayShort} ${dayNum}`);

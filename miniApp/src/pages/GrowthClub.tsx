@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/Card';
 import { 
@@ -15,56 +15,15 @@ import {
   BarChart3, 
   Users, 
   Search, 
-  Filter, 
   Crown, 
   CheckCircle, 
-  Send, 
-  Smile, 
-  Camera, 
-  Mic, 
   MapPin, 
-  Link, 
-  Hash, 
-  AtSign, 
   Calendar, 
   Clock, 
-  TrendingUp, 
-  Award, 
-  Star, 
-  Zap, 
-  Target, 
   Briefcase, 
-  Code, 
-  Palette, 
-  PenTool, 
-  Headphones, 
-  Globe, 
-  Smartphone, 
-  Monitor, 
-  Database, 
-  Settings, 
   Bell, 
-  Mail, 
-  Phone, 
   MessageSquare, 
-  UserPlus, 
-  X, 
-  ChevronDown, 
-  Eye, 
-  ThumbsUp, 
-  Repeat2, 
-  ExternalLink,
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  Download,
-  Upload,
-  Edit3,
-  Trash2,
-  Flag,
-  AlertCircle,
-  Info,
+  X,
   Tag
 } from 'lucide-react';
 
@@ -144,14 +103,13 @@ const GrowthClub: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'feed' | 'members' | 'projects' | 'messages'>('feed');
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [showCreateProject, setShowCreateProject] = useState(false);
+  const [, setShowCreateProject] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostType, setNewPostType] = useState<'text' | 'poll' | 'project'>('text');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedPostAuthor, setSelectedPostAuthor] = useState<Member | null>(null);
 
   // Sample data
@@ -357,21 +315,6 @@ const GrowthClub: React.FC = () => {
     }
   };
 
-  const handleLike = (postId: number) => {
-    // Handle like logic
-  };
-
-  const handleBookmark = (postId: number) => {
-    // Handle bookmark logic
-  };
-
-  const handleShare = (postId: number) => {
-    // Handle share logic
-  };
-
-  const handleVote = (postId: number, optionId: number) => {
-    // Handle poll vote logic
-  };
 
   const handleMemberClick = (member: Member) => {
     setSelectedMember(member);

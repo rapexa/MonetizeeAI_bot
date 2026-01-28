@@ -20,7 +20,7 @@ const BottomNav: React.FC = () => {
       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none"></div>
       
       <div className="flex justify-around items-center relative">
-        {tabs.map((tab, index) => {
+        {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;
           

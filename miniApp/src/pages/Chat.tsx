@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowRight, Send, Paperclip, Smile, MoreVertical, Search, Image, Mic, Plus, X, CheckCircle2, Crown } from 'lucide-react';
+import { ArrowRight, Send, Paperclip, Smile, MoreVertical, Search, Image, Plus, X, CheckCircle2, Crown } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -243,7 +243,7 @@ const Chat: React.FC = () => {
     }, 1500);
   };
 
-  const getAutoResponse = (message: string): string => {
+  const getAutoResponse = (): string => {
     const responses = [
       'ممنون از پیامت! خیلی جالب بود 😊',
       'عالی! منم همین تجربه رو داشتم 👍',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, MessageSquare, Clock, CheckCircle, AlertCircle, Lock } from 'lucide-react';
+import { X, Send, MessageSquare, Lock } from 'lucide-react';
 import apiService from '../services/api';
 
 interface Ticket {
@@ -46,7 +46,7 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
   const [replyMessage, setReplyMessage] = useState('');
 
   // Helper function to get ticket ID from either format (id or ID)
-  const getTicketId = (ticket: Ticket | any): number | undefined => {
+  const getTicketId = (ticket: Ticket | null): number | undefined => {
     return ticket?.id || ticket?.ID;
   };
 
@@ -325,7 +325,7 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
                           ? ticket.messages[0].message
                           : 'بدون پیام'}
                       </p>
-                      <p className="text-xs text-gray-500">{formatDate(ticket.created_at || (ticket as any).CreatedAt || '')}</p>
+                      <p className="text-xs text-gray-500">{formatDate(ticket.created_at || ticket.CreatedAt || '')}</p>
                     </div>
                   ))}
                 </div>
@@ -351,7 +351,7 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
                 <label className="block text-sm font-medium text-gray-300 mb-2">اولویت</label>
                 <select
                   value={createForm.priority}
-                  onChange={(e) => setCreateForm({ ...createForm, priority: e.target.value as any })}
+                  onChange={(e) => setCreateForm({ ...createForm, priority: e.target.value as 'low' | 'normal' | 'high' | 'urgent' })}
                   className="w-full px-4 py-3 bg-gray-800/40 border border-gray-700/40 rounded-xl text-white focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20 transition-all duration-300"
                 >
                   <option value="low">پایین</option>
@@ -416,7 +416,7 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
                     </span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500">{formatDate(selectedTicket.created_at || (selectedTicket as any).CreatedAt || '')}</p>
+                <p className="text-xs text-gray-500">{formatDate(selectedTicket.created_at || selectedTicket.CreatedAt || '')}</p>
               </div>
 
               {/* Messages */}
@@ -424,7 +424,7 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
                 {selectedTicket.messages && selectedTicket.messages.length > 0 ? (
                   selectedTicket.messages.map((msg, index) => (
                     <div
-                      key={msg.id || (msg as any).ID || index}
+                      key={msg.id || msg.ID || index}
                       className={`p-4 rounded-xl ${
                         msg.sender_type === 'user'
                           ? 'bg-gradient-to-r from-[#2c189a]/20 to-[#5a189a]/20 border border-[#5a189a]/30'
@@ -435,7 +435,7 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
                         <span className="text-sm font-medium text-gray-300">
                           {msg.sender_type === 'user' ? 'شما' : 'پشتیبان'}
                         </span>
-                        <span className="text-xs text-gray-500">{formatDate(msg.created_at || (msg as any).CreatedAt || '')}</span>
+                        <span className="text-xs text-gray-500">{formatDate(msg.created_at || msg.CreatedAt || '')}</span>
                       </div>
                       <p className="text-white whitespace-pre-wrap">{msg.message}</p>
                     </div>

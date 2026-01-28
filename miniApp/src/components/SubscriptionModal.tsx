@@ -19,10 +19,10 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
   const [selectedPlan, setSelectedPlan] = useState<string>('pro');
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 2, hours: 23, minutes: 45, seconds: 30 });
 
-  if (!isOpen) return null;
-
-  // Countdown timer
+  // Countdown timer - only run when modal is open
   useEffect(() => {
+    if (!isOpen) return;
+    
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         let { days, hours, minutes, seconds } = prev;
@@ -48,16 +48,20 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [isOpen]);
 
   // Prevent background scroll when modal is open
   useEffect(() => {
+    if (!isOpen) return;
+    
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = originalOverflow;
     };
-  }, []);
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   const plans = [
     {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/Card';
-import { ArrowRight, Zap, Target, Trophy, Clock, Play, Pause, RotateCcw, Star, Award, TrendingUp, Brain, Heart, CheckCircle, X, Plus, Flame, Timer, BarChart3, Calendar, User, Settings, Volume2, VolumeX, SkipForward, Rewind, FastForward } from 'lucide-react';
+import { ArrowRight, Zap, Target, Trophy, Clock, Play, Pause, RotateCcw, Star, Award, TrendingUp, Brain, Heart, CheckCircle, X, Flame, Timer, User, Settings, Volume2, VolumeX, SkipForward, Rewind, FastForward } from 'lucide-react';
 
 interface Challenge {
   id: number;

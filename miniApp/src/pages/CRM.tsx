@@ -407,7 +407,7 @@ const CRM: React.FC = () => {
             } else {
               alert('فایل نامعتبر است!');
             }
-          } catch (error) {
+          } catch {
             alert('خطا در خواندن فایل!');
           }
         };
@@ -1030,7 +1030,7 @@ const CRM: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-300 mb-2">نوع وظیفه</label>
                     <select
                       value={newTask.type}
-                    onChange={(e) => setNewTask(prev => ({ ...prev, type: e.target.value as any }))}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, type: e.target.value as 'call' | 'whatsapp' | 'sms' | 'meeting' }))}
                     className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
                   >
                     <option value="call">تماس</option>
@@ -1120,7 +1120,7 @@ const CRM: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-300 mb-2">نوع وظیفه</label>
                   <select 
                     value={editTask.type || 'call'}
-                    onChange={(e) => setEditTask(prev => prev ? { ...prev, type: e.target.value as any } : prev)}
+                    onChange={(e) => setEditTask(prev => prev ? { ...prev, type: e.target.value as 'call' | 'whatsapp' | 'sms' | 'meeting' } : prev)}
                     className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
                   >
                     <option value="call">تماس</option>
@@ -1133,7 +1133,7 @@ const CRM: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-300 mb-2">وضعیت</label>
                   <select 
                     value={editTask.status || 'pending'}
-                    onChange={(e) => setEditTask(prev => prev ? { ...prev, status: e.target.value as any } : prev)}
+                    onChange={(e) => setEditTask(prev => prev ? { ...prev, status: e.target.value as 'pending' | 'done' | 'overdue' } : prev)}
                     className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
                   >
                     <option value="pending">در انتظار</option>
@@ -1418,6 +1418,10 @@ const CRM: React.FC = () => {
 };
 
 const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
+  // Hooks must be called unconditionally at the top level
+  const [activeIdx, setActiveIdx] = React.useState<number | null>(null);
+  const [isLocked, setIsLocked] = React.useState<boolean>(false);
+
   // تابع تبدیل تاریخ میلادی به شمسی (دقیق‌تر)
   const toJalali = (gy: number, gm: number, gd: number) => {
     const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
@@ -1591,11 +1595,6 @@ const MiniLineChart: React.FC<{leads: Lead[]}> = ({ leads }) => {
 
   const leadsPath = toPath(newLeads);
   const salesPath = toPath(dailySales);
-
-  // فقط یک حالت برای نمایش tooltip داریم - یا hover یا click
-  const [activeIdx, setActiveIdx] = React.useState<number | null>(null);
-  // آیا tooltip در حالت کلیک شده است یا hover
-  const [isLocked, setIsLocked] = React.useState<boolean>(false);
   
   const handleMove: React.MouseEventHandler<SVGRectElement> = (e) => {
     // اگر tooltip قفل شده باشد (کلیک شده باشد)، با حرکت موس تغییر نمی‌کند

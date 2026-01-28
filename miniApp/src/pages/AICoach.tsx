@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Send, Brain, Sparkles, MessageSquare, Target, TrendingUp, Lightbulb, Copy, ChevronRight, Zap, BookOpen, Users, DollarSign, Rocket, BarChart3, Settings, X, Trash2, Plus, History, Crown, Zap as ZapIcon } from 'lucide-react';
+import { Send, Brain, Sparkles, Settings, X, Trash2, Plus, History, Crown, Zap as ZapIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import apiService from '../services/api';
 import AIMessage from '../components/AIMessage';
@@ -14,7 +14,6 @@ const AICoach: React.FC = () => {
   const [isEditingPrompt, setIsEditingPrompt] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [selectedAIModel, setSelectedAIModel] = useState('chatgpt-plus');
   const [showSubscriptionCard, setShowSubscriptionCard] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{
     id: number;

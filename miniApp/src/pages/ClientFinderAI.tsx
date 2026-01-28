@@ -9,18 +9,11 @@ import {
   Download, 
   RefreshCw, 
   ArrowLeft,
-  ArrowRight,
   Calendar,
   Target,
   Users,
-  MessageSquare,
-  Instagram,
-  Linkedin,
-  Mail,
-  Phone,
   MessageCircle,
   Hash,
-  MessageSquare as MessageSquareIcon,
   Users as UsersIcon,
   Trophy,
   Send,
@@ -29,8 +22,7 @@ import {
   Users2,
   Megaphone,
   BookOpen,
-  Gift,
-  MessageCircle as MessageCircleIcon
+  Gift
 } from 'lucide-react';
 
 const ClientFinderAI: React.FC = () => {
@@ -46,7 +38,7 @@ const ClientFinderAI: React.FC = () => {
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [result, setResult] = React.useState<any>(null);
   const [activeTab, setActiveTab] = React.useState<'custom' | 'strategies'>('custom');
-  const [selectedStrategy, setSelectedStrategy] = React.useState<any>(null);
+  const [, setSelectedStrategy] = React.useState<any>(null);
 
   // Client Finding Strategies Database
   const clientStrategies = [

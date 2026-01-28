@@ -9,15 +9,11 @@ import {
   Download, 
   RefreshCw, 
   ArrowLeft,
-  ArrowRight,
   Zap,
   CheckCircle,
-  Lightbulb,
   TrendingUp,
   Users,
   DollarSign,
-  Globe2,
-  Smartphone,
   BookOpen,
   Building2,
   FileText,
@@ -67,7 +63,7 @@ const BusinessBuilderAI: React.FC = () => {
   const [isGenerating, setIsGenerating] = React.useState<boolean>(false);
   const [result, setResult] = React.useState<BusinessResult | null>(null);
   const [activeTab, setActiveTab] = React.useState<'custom' | 'ideas'>('custom');
-  const [selectedIdea, setSelectedIdea] = React.useState<{
+  const [, setSelectedIdea] = React.useState<{
     id: number;
     title: string;
     category: string;

@@ -59,6 +59,7 @@ const LeadProfile: React.FC = () => {
   const [showPhonePopup, setShowPhonePopup] = React.useState(false);
   const [currentPhone, setCurrentPhone] = React.useState('');
   const [popupType, setPopupType] = React.useState<'call' | 'sms' | ''>('');
+  const [showCopyMessage, setShowCopyMessage] = React.useState(false);
   
   // Load tasks from localStorage - both global and lead-specific tasks
   const [tasks, setTasks] = React.useState<Task[]>(() => {
@@ -248,10 +249,7 @@ const LeadProfile: React.FC = () => {
     return formattedPhone;
   };
   
-  // تابع کپی کردن متن به کلیپ‌بورد
   // تابع کپی کردن متن به کلیپ‌بورد با نمایش پیام تأیید سازگار با موبایل
-  const [showCopyMessage, setShowCopyMessage] = React.useState(false);
-  
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
       .then(() => {
@@ -313,7 +311,7 @@ const LeadProfile: React.FC = () => {
       setCurrentPhone(formattedPhone);
       setPopupType('call');
       setShowPhonePopup(true);
-    } catch (error) {
+    } catch {
       // اگر لینک کار نکرد، فقط پاپ‌آپ را نمایش می‌دهیم
       setCurrentPhone(formattedPhone);
       setPopupType('call');
@@ -339,7 +337,7 @@ const LeadProfile: React.FC = () => {
       setCurrentPhone(formattedPhone);
       setPopupType('sms');
       setShowPhonePopup(true);
-    } catch (error) {
+    } catch {
       // اگر لینک کار نکرد، فقط پاپ‌آپ را نمایش می‌دهیم
       setCurrentPhone(formattedPhone);
       setPopupType('sms');
@@ -847,7 +845,7 @@ const LeadProfile: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-300 mb-2">نوع وظیفه</label>
                 <select 
                   value={newTask.type}
-                  onChange={(e) => setNewTask(prev => ({ ...prev, type: e.target.value as any }))}
+                  onChange={(e) => setNewTask(prev => ({ ...prev, type: e.target.value as 'call' | 'whatsapp' | 'sms' | 'meeting' }))}
                   className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
                 >
                   <option value="call">تماس</option>
@@ -860,7 +858,7 @@ const LeadProfile: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-300 mb-2">وضعیت</label>
                 <select 
                   value={newTask.status}
-                  onChange={(e) => setNewTask(prev => ({ ...prev, status: e.target.value as any }))}
+                  onChange={(e) => setNewTask(prev => ({ ...prev, status: e.target.value as 'pending' | 'done' | 'overdue' }))}
                   className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
                 >
                   <option value="pending">در انتظار</option>
@@ -962,7 +960,7 @@ const LeadProfile: React.FC = () => {
                   value={tasks[editingTask]?.type || 'call'}
                   onChange={(e) => {
                     const updatedTasks = [...tasks];
-                    updatedTasks[editingTask] = { ...updatedTasks[editingTask], type: e.target.value as any };
+                    updatedTasks[editingTask] = { ...updatedTasks[editingTask], type: e.target.value as 'call' | 'whatsapp' | 'sms' | 'meeting' };
                     setTasks(updatedTasks);
                   }}
                   className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
@@ -979,7 +977,7 @@ const LeadProfile: React.FC = () => {
                   value={tasks[editingTask]?.status || 'pending'}
                   onChange={(e) => {
                     const updatedTasks = [...tasks];
-                    updatedTasks[editingTask] = { ...updatedTasks[editingTask], status: e.target.value as any };
+                    updatedTasks[editingTask] = { ...updatedTasks[editingTask], status: e.target.value as 'pending' | 'done' | 'overdue' };
                     setTasks(updatedTasks);
                   }}
                   className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"

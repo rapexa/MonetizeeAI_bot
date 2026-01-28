@@ -24,7 +24,6 @@ interface Conversation {
 
 const Messages: React.FC = () => {
   const navigate = useNavigate();
-  const { userData } = useApp();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 

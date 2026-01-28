@@ -4,7 +4,7 @@ import { useTypingEffect } from '../hooks/useTypingEffect';
 
 interface AIMessageProps {
   message: string;
-  timestamp: string;
+  timestamp?: string;
   isLatest?: boolean;
   isNew?: boolean;
   onTypingComplete?: () => void;
@@ -44,7 +44,7 @@ const AIMessage: React.FC<AIMessageProps> = ({
           <Brain size={14} className="text-white relative z-10" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white text-base leading-relaxed whitespace-pre-wrap">
+          <p className="text-white text-base leading-relaxed whitespace-pre-wrap" aria-label={timestamp ? `پیام در ${timestamp}` : undefined}>
             {isNew && displayedText ? displayedText : message}
           </p>
           {isLatest && isTyping && (

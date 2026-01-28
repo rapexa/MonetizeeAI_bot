@@ -468,7 +468,7 @@ const ReadyPrompts: React.FC = () => {
     // You can add a toast notification here
   };
 
-  const usePrompt = (prompt: Prompt) => {
+  const handleUsePrompt = (prompt: Prompt) => {
     // Check if user can access this prompt before using it
     if (!canAccessPrompt(prompt)) {
       setShowAccessSubscriptionCard(true);
@@ -792,7 +792,7 @@ const ReadyPrompts: React.FC = () => {
                         onClick={(e) => {
                           e.stopPropagation();
                           if (canAccessPrompt(prompt)) {
-                            usePrompt(prompt);
+                            handleUsePrompt(prompt);
                           } else {
                             setShowAccessSubscriptionCard(true);
                           }
@@ -893,7 +893,7 @@ const ReadyPrompts: React.FC = () => {
                   <button
                     onClick={() => {
                       if (canAccessPrompt(selectedPrompt)) {
-                        usePrompt(selectedPrompt);
+                        handleUsePrompt(selectedPrompt);
                       } else {
                         setShowAccessSubscriptionCard(true);
                       }

@@ -11,14 +11,12 @@ import GuideModal from '../components/GuideModal';
 
 import { 
   TrendingUp, 
-  Users, 
   Sparkles, 
   Brain, 
   User, 
   Settings, 
   UserPlus, 
   MessageCircle, 
-  Zap, 
   DollarSign,
   X,
   Clock,
@@ -26,21 +24,14 @@ import {
   Trophy,
   Upload,
   AlertCircle,
-  Rocket,
-  Package,
-  Search,
-  Map,
   Maximize2,
-  BarChart3,
-  Crown,
   Edit3
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { userData, setUserData, isAPIConnected, isInTelegram, loadingUser, hasRealData, refreshUserData } = useApp();
+  const { userData, isAPIConnected, isInTelegram, loadingUser, hasRealData, refreshUserData } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
-  const [editingField, setEditingField] = React.useState<string | null>(null);
   const [animatedText, setAnimatedText] = React.useState<string>('');
   const [isEditingIncome, setIsEditingIncome] = React.useState<boolean>(false);
   const [tempIncome, setTempIncome] = React.useState<string>('');
@@ -51,29 +42,7 @@ const Dashboard: React.FC = () => {
   const [showGuideModal, setShowGuideModal] = React.useState<boolean>(false);
   const [showGuideNotification, setShowGuideNotification] = React.useState<boolean>(false);
 
-  // Check if user can access AI tools
-  // Paid users: always have access
-  // Free trial users: can access once (check if already used)
-  const canAccessAITools = () => {
-    if (userData.subscriptionType === 'paid') {
-      return true;
-    }
-    // Free trial users can access if they haven't used it yet
-    // We'll check individual tools in the click handlers
-    return true; // Allow access, but individual tools will check usage
-  };
 
-  // Check if user can access specific AI tool (for free_trial users)
-  const hasUsedAITool = (toolKey: string) => {
-    return localStorage.getItem(toolKey) === 'true';
-  };
-
-  // Check if user can access CRM - NO RESTRICTIONS, everyone has access
-  const canAccessCRM = () => {
-    return true; // CRM is available for everyone, no restrictions
-  };
-
-  const [tempValue, setTempValue] = React.useState<string>('');
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [showProfileUpload, setShowProfileUpload] = React.useState(false);
   const [profileImage, setProfileImage] = React.useState<string | null>(null);
@@ -139,10 +108,6 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(refreshInterval);
   }, [isAPIConnected, refreshUserData]);
   
-  // Manual refresh function for user action
-  const handleManualRefresh = async () => {
-    await refreshUserData();
-  };
 
   // Check and start guide notification timer on mount
   React.useEffect(() => {
@@ -441,56 +406,6 @@ const Dashboard: React.FC = () => {
     }
   ];
 
-  const quickActions = [
-    {
-      id: 'smart-assistant',
-      title: 'دستیار هوشمند',
-      icon: Brain,
-      color: 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30',
-      action: () => navigate('/chatbot')
-    },
-    {
-      id: 'energy-boost',
-      title: 'انرژی بوست',
-      icon: Zap,
-      color: 'text-orange-600 bg-orange-100 dark:text-orange-400 dark:bg-orange-900/30',
-      action: () => navigate('/energy-boost')
-    },
-    {
-      id: 'sales-path-ai',
-      title: 'مسیر فروش سریع',
-      icon: DollarSign,
-      color: 'text-emerald-600 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/30',
-      action: () => navigate('/sales-path-ai')
-    },
-    {
-      id: 'growth-club',
-      title: 'سوشال رشد',
-      icon: Users,
-      color: 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30',
-      action: () => navigate('/growth-club')
-    }
-  ];
-
-  const handleEditField = (field: string, currentValue: number) => {
-    setEditingField(field);
-    setTempValue(currentValue.toString());
-  };
-
-  const handleSaveField = (field: string) => {
-    const numValue = parseInt(tempValue.replace(/,/g, '')) || 0;
-    setUserData(prev => ({
-      ...prev,
-      [field]: numValue
-    }));
-    setEditingField(null);
-    setTempValue('');
-  };
-
-  const handleCancelEdit = () => {
-    setEditingField(null);
-    setTempValue('');
-  };
 
   const handleProfileImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -504,22 +419,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleNotificationAction = (notificationId: number, action: string) => {
-    // Handle notification actions
-    // Mark as read
-    const updatedNotifications = notifications.map(n => 
-      n.id === notificationId ? { ...n, unread: false } : n
-    );
-  };
-
-  const markAllAsRead = () => {
-    // Mark all notifications as read
-  };
-
-  const handleCurrentStageClick = () => {
-    // Navigate to the current stage page
-    navigate('/levels');
-  };
 
   const handleSendMessage = async () => {
     if (!chatMessage.trim()) return;

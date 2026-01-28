@@ -107,7 +107,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
           setCustomHour(date.getHours().toString().padStart(2, '0'));
           setCustomMinute(date.getMinutes().toString().padStart(2, '0'));
         }
-      } catch (error) {
+      } catch {
         console.error('Invalid date value');
       }
     } else if (isOpen && !selectedDate) {
@@ -168,7 +168,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
           const minutes = date.getMinutes().toString().padStart(2, '0');
           return `${jalali.year}/${jalali.month.toString().padStart(2, '0')}/${jalali.day.toString().padStart(2, '0')} - ${hours}:${minutes}`;
         }
-      } catch (error) {
+      } catch {
         return value;
       }
     }
