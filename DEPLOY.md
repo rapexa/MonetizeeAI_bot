@@ -372,4 +372,68 @@ TELEGRAM_BOT_TOKEN=...
 
 ---
 
+## Phase 2: Infrastructure Hardening
+
+Phase 2 introduces standardized API routing, observability, and security hardening.
+
+### Key Changes
+
+1. **API Base URL**: Frontend now uses `VITE_API_BASE_URL` (no hardcoded URL)
+2. **Canonical endpoints**: `/api/v1/*` (not `/api/api/v1/*`)
+3. **Request ID**: All API requests include `X-Request-Id` in logs and response
+4. **Secrets**: `ZARINPAL_MERCHANT_ID` and `IPPANEL_API_KEY` are required (fail-fast)
+
+### Phase 2 Deployment Steps
+
+```bash
+# 1. Pull and build
+cd /var/www/MonetizeeAI_bot
+git pull origin main
+./build.sh
+
+# 2. Build frontend with production API base
+cd miniApp
+echo "VITE_API_BASE_URL=https://sianmarketing.com/api/v1" > .env.production
+npm ci
+npm run build
+cd ..
+
+# 3. Verify .env has required secrets
+grep -E "^(ZARINPAL_MERCHANT_ID|IPPANEL_API_KEY)=" .env
+
+# 4. Restart backend
+sudo supervisorctl restart bot
+
+# 5. Run smoke tests
+./scripts/phase2-smoke.sh
+```
+
+### Phase 2 Smoke Tests
+
+```bash
+# Quick manual checks:
+curl -sI https://sianmarketing.com/ | grep Location        # Should redirect to /miniapp/
+curl -s https://sianmarketing.com/health | jq .data.status  # Should return "healthy"
+curl -sI https://sianmarketing.com/health | grep X-Request-Id  # Should have request ID
+```
+
+### Phase 2 Rollback
+
+If issues occur:
+
+```bash
+# Rollback code
+git checkout <previous-commit>
+./build.sh
+sudo supervisorctl restart bot
+
+# Rollback Nginx (if changed)
+sudo cp /etc/nginx/conf.d/sianmarketing.com.conf.backup.* /etc/nginx/conf.d/sianmarketing.com.conf
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+**Full Phase 2 documentation:** `docs/PHASE2_PLAN.md`
+
+---
+
 **For frontend-specific development, see:** `miniApp/DEVELOPMENT.md`

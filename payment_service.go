@@ -57,13 +57,14 @@ func extractZarinpalError(raw json.RawMessage) (string, int) {
 	}
 }
 
-// GetPaymentConfig loads payment configuration from environment variables
+// GetPaymentConfig loads payment configuration from environment variables.
+// ZARINPAL_MERCHANT_ID is required in production (no hardcoded secrets).
 func GetPaymentConfig() PaymentConfig {
-
 	return PaymentConfig{
-		MerchantID:    getEnvOrDefault("ZARINPAL_MERCHANT_ID", "3ef8ccdc-8fc9-43ba-8931-ad68cf890c7e"),
+		// 🔒 SECURITY: Merchant ID is required in production (no hardcoded secrets)
+		MerchantID:    getRequiredEnv("ZARINPAL_MERCHANT_ID", "DEMO_MERCHANT_ID"),
 		Sandbox:       false,
-		CallbackURL:   getEnvOrDefault("ZARINPAL_CALLBACK_URL", "https://web.sianacademy.com/payment-result.html"),
+		CallbackURL:   getEnvOrDefault("ZARINPAL_CALLBACK_URL", "https://sianmarketing.com/payment/callback"),
 		StarterPrice:  990000,  // ۹۹۰,۰۰۰ تومان (اشتراک ماهانه)
 		ProPrice:      3300000, // ۳,۳۰۰,۰۰۰ تومان (شش‌ماهه)
 		UltimatePrice: 7500000, // ۷,۵۰۰,۰۰۰ تومان (مادام‌العمر)

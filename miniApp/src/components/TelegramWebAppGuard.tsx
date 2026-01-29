@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getConfiguredApiBaseURL } from '../services/baseUrl';
 
 interface TelegramWebAppGuardProps {
   children: React.ReactNode;
@@ -14,8 +15,9 @@ const TelegramWebAppGuard: React.FC<TelegramWebAppGuardProps> = ({ children }) =
         const webToken = localStorage.getItem('web_session_token');
         const webTelegramId = localStorage.getItem('web_telegram_id');
         if (webToken && webTelegramId) {
+          const apiBase = getConfiguredApiBaseURL();
           // Try to verify session (non-blocking - don't wait for response)
-          fetch(`https://sianmarketing.com/api/api/v1/web/verify?telegram_id=${webTelegramId}`, {
+          fetch(`${apiBase}/web/verify?telegram_id=${webTelegramId}`, {
             headers: {
               'Authorization': `Bearer ${webToken}`
             }

@@ -510,12 +510,32 @@ func StartWebAPI() {
 		// logger.Debug("🔒 CORS: Production mode - restricted origins")
 	}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Telegram-Init-Data", "X-Telegram-WebApp", "X-Telegram-Start-Param"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Telegram-Init-Data", "X-Telegram-WebApp", "X-Telegram-Start-Param", "X-Request-Id"}
 	r.Use(cors.New(config))
 
-	// Middleware for logging
+	// 📌 REQUEST ID MIDDLEWARE (Phase 2: Observability)
+	// If X-Request-Id header exists, use it; otherwise generate one.
+	// Set it in context and response header for end-to-end tracing.
+	r.Use(func(c *gin.Context) {
+		requestID := c.GetHeader("X-Request-Id")
+		if requestID == "" {
+			// Generate a new request ID (16 bytes = 32 hex chars)
+			b := make([]byte, 16)
+			if _, err := rand.Read(b); err == nil {
+				requestID = hex.EncodeToString(b)
+			} else {
+				requestID = fmt.Sprintf("%d", time.Now().UnixNano())
+			}
+		}
+		c.Set("request_id", requestID)
+		c.Header("X-Request-Id", requestID)
+		c.Next()
+	})
+
+	// Middleware for logging (with request ID)
 	r.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
-		return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
+		requestID, _ := param.Keys["request_id"].(string)
+		return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\" [rid=%s]\n",
 			param.ClientIP,
 			param.TimeStamp.Format(time.RFC1123),
 			param.Method,
@@ -525,6 +545,7 @@ func StartWebAPI() {
 			param.Latency,
 			param.Request.UserAgent(),
 			param.ErrorMessage,
+			requestID,
 		)
 	}))
 
@@ -552,10 +573,12 @@ func StartWebAPI() {
 		c.Next()
 	})
 
-	// Debug middleware for API routes - log all API requests
+	// Debug middleware for API routes - log all API requests (with request ID)
 	r.Use(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+		if strings.HasPrefix(c.Request.URL.Path, "/api/") || c.Request.URL.Path == "/health" {
+			requestID, _ := c.Get("request_id")
 			logger.Info("API request received",
+				zap.String("request_id", fmt.Sprintf("%v", requestID)),
 				zap.String("method", c.Request.Method),
 				zap.String("path", c.Request.URL.Path),
 				zap.String("remote_addr", c.ClientIP()),
@@ -566,9 +589,14 @@ func StartWebAPI() {
 
 	// Health check endpoint (before auth middleware)
 	r.GET("/health", func(c *gin.Context) {
+		requestID, _ := c.Get("request_id")
 		c.JSON(http.StatusOK, APIResponse{
 			Success: true,
-			Data:    map[string]string{"status": "healthy", "service": "MonetizeeAI API"},
+			Data: map[string]string{
+				"status":     "healthy",
+				"service":    "MonetizeeAI API",
+				"request_id": fmt.Sprintf("%v", requestID),
+			},
 		})
 	})
 

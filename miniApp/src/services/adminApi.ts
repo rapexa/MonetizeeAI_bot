@@ -2,16 +2,13 @@
  * Admin API Service
  * Handles all API calls for Admin Panel
  */
+import { getConfiguredApiBaseURL } from './baseUrl';
 
 // Dynamic BASE_URL - works in both development and production
 function getBaseURL(): string {
-  // Check if we're in development (localhost)
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:8080/api/v1/admin';
-  }
-  
-  // Production: use fixed backend URL
-  return 'https://sianmarketing.com/api/api/v1/admin';
+  const apiBase = getConfiguredApiBaseURL();
+  // Admin endpoints live under /api/v1/admin
+  return `${apiBase}/admin`;
 }
 
 const BASE_URL = getBaseURL();

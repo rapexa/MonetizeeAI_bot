@@ -35,13 +35,15 @@ declare global {
   }
   
   interface ImportMetaEnv {
-    readonly VITE_API_BASE_URL: string;
+    readonly VITE_API_BASE_URL?: string;
   }
 
   interface ImportMeta {
     readonly env: ImportMetaEnv;
   }
 }
+
+import { getConfiguredApiBaseURL, getOriginFromApiBaseURL } from './baseUrl';
 
 // ⚡ PERFORMANCE: Request cache for GET requests
 interface CacheEntry<T> {
@@ -57,8 +59,8 @@ class APIService {
   private requestCache = new Map<string, CacheEntry<unknown>>();
 
   constructor() {
-    // Hardcoded API URL as requested
-    this.baseURL = 'https://sianmarketing.com/api/api/v1';
+    // Phase 2: API base is configurable (canonical prefix: /api/v1)
+    this.baseURL = getConfiguredApiBaseURL();
     this.initTelegramWebApp();
   }
 
@@ -158,7 +160,9 @@ class APIService {
 
   async makeRequest<T = unknown>(method: string, endpoint: string, data?: Record<string, unknown>, useCache: boolean = false): Promise<APIResponse<T>> {
     try {
-      const url = `${this.baseURL}${endpoint}`;
+      const url = endpoint.startsWith('http')
+        ? endpoint
+        : `${this.baseURL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
       
       // ⚡ PERFORMANCE: Check cache for GET requests
       if (method === 'GET' && useCache) {
@@ -298,13 +302,23 @@ class APIService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
       
-      const response = await fetch('https://sianmarketing.com/api/health', {
-        signal: controller.signal,
-        cache: 'no-store'
-      });
+      const origin = getOriginFromApiBaseURL(this.baseURL);
+
+      // Canonical health endpoint: /health
+      // Backward-compat: try /api/health as a fallback (to support current prod mapping during transition)
+      const tryUrls = [`${origin}/health`, `${origin}/api/health`];
+      let response: Response | null = null;
+      for (const url of tryUrls) {
+        try {
+          response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+          if (response.ok) break;
+        } catch {
+          // ignore and try next
+        }
+      }
       
       clearTimeout(timeoutId);
-      return response.ok;
+      return !!response?.ok;
     } catch {
       // Silently fail health check - don't log in production
       return false;

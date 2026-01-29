@@ -1,18 +1,22 @@
 # MonetizeeAI Bot Configuration
+# See .env.sample for full documentation.
 
-# Telegram Bot Token
+DEVELOPMENT_MODE=false
+
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-
-# Database Configuration
+GROQ_API_KEY=your_groq_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
 MYSQL_DSN=user:password@tcp(localhost:3306)/database_name?charset=utf8mb4&parseTime=True&loc=Local
 
-# OpenAI Configuration (for ChatGPT integration)
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Web API Configuration (for Mini App integration)
-WEB_API_ENABLED=false
+WEB_API_ENABLED=true
 WEB_API_PORT=8080
 
-# Mini App Configuration
-MINI_APP_ENABLED=false
+MINI_APP_ENABLED=true
 MINI_APP_URL=https://yourdomain.com/miniapp
+
+# Payment (🔒 Required in production)
+ZARINPAL_MERCHANT_ID=your_zarinpal_merchant_id_here
+ZARINPAL_CALLBACK_URL=https://yourdomain.com/payment/callback
+
+# SMS (🔒 Required in production)
+IPPANEL_API_KEY=your_ippanel_api_key_here
