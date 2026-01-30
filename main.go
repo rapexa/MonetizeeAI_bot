@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 	"os/signal"
@@ -17,6 +18,31 @@ import (
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 )
+
+// shouldLoadDotEnvStrict returns false when running in test/CI mode so .env is optional.
+// In production (go run / server), returns true so missing .env causes fatal.
+func shouldLoadDotEnvStrict() bool {
+	// Go test binary: testing package registers -test.v
+	if flag.Lookup("test.v") != nil {
+		return false
+	}
+	// Test binary path (e.g. /tmp/monetizee_test or __debug_bin.test)
+	if len(os.Args) > 0 && strings.HasSuffix(os.Args[0], ".test") {
+		return false
+	}
+	if os.Getenv("APP_ENV") == "test" || os.Getenv("GO_ENV") == "test" {
+		return false
+	}
+	if os.Getenv("CI") == "true" {
+		return false
+	}
+	return true
+}
+
+// isTestMode returns true when running under go test (skip DB/Groq init).
+func isTestMode() bool {
+	return !shouldLoadDotEnvStrict()
+}
 
 var (
 	bot        *tgbotapi.BotAPI
@@ -80,9 +106,15 @@ func initDB() {
 }
 
 func init() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
+	strict := shouldLoadDotEnvStrict()
+	if strict {
+		if err := godotenv.Load(); err != nil {
+			log.Fatal("Error loading .env file")
+		}
+	} else {
+		if err := godotenv.Load(); err != nil {
+			log.Print("Test/CI mode: .env optional, continuing without .env")
+		}
 	}
 
 	// Create logs directory if it doesn't exist
@@ -93,6 +125,11 @@ func init() {
 	// Initialize logger
 	logger.InitLogger()
 	defer logger.Sync()
+
+	if isTestMode() {
+		// Skip DB and Groq init so go test can run without .env or MySQL
+		return
+	}
 
 	// Initialize database
 	initDB()

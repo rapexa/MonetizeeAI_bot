@@ -52,9 +52,9 @@ else
 fi
 echo ""
 
-# Run tests
+# Run tests (APP_ENV=test so .env is optional and init skips DB/Groq)
 echo -e "${YELLOW}ℹ️  Running Go tests...${NC}"
-if go test ./... -v; then
+if APP_ENV=test go test ./... -v; then
     echo -e "${GREEN}✅ Go tests passed${NC}"
 else
     echo -e "${RED}❌ Go tests failed${NC}"

@@ -487,6 +487,7 @@ func StartWebAPI() {
 	// 🔐 User web login routes (for regular users, not admins)
 	r.POST("/api/v1/web/login", handleUserWebLogin)
 	r.GET("/api/v1/web/verify", handleVerifyUserWebSession)
+	r.HEAD("/api/v1/web/verify", handleVerifyUserWebSession)
 	r.POST("/api/v1/web/logout", handleUserWebLogout)
 
 	// Add CORS middleware
@@ -588,6 +589,7 @@ func StartWebAPI() {
 	})
 
 	// Health check endpoint (before auth middleware)
+	// GET returns 200 JSON; HEAD returns 200 with no body (no redirect)
 	r.GET("/health", func(c *gin.Context) {
 		requestID, _ := c.Get("request_id")
 		c.JSON(http.StatusOK, APIResponse{
@@ -598,6 +600,10 @@ func StartWebAPI() {
 				"request_id": fmt.Sprintf("%v", requestID),
 			},
 		})
+	})
+	r.HEAD("/health", func(c *gin.Context) {
+		c.Header("Content-Type", "application/json")
+		c.Status(http.StatusOK)
 	})
 
 	// Admin auth routes are already registered at the very beginning (before all middleware)
@@ -3462,23 +3468,28 @@ func handleUserWebLogin(c *gin.Context) {
 	})
 }
 
-// handleVerifyUserWebSession verifies user web session
+// handleVerifyUserWebSession verifies user web session.
+// GET returns JSON body; HEAD returns same status code with no body (X-Request-Id set by middleware).
 func handleVerifyUserWebSession(c *gin.Context) {
-	token := c.GetHeader("Authorization")
-	if token == "" {
-		// Try to get from query parameter
-		token = c.Query("token")
+	headOnly := c.Request.Method == "HEAD"
+
+	respond := func(statusCode int, body APIResponse) {
+		if headOnly {
+			c.AbortWithStatus(statusCode)
+			return
+		}
+		c.JSON(statusCode, body)
 	}
 
+	token := c.GetHeader("Authorization")
 	if token == "" {
-		c.JSON(http.StatusUnauthorized, APIResponse{
-			Success: false,
-			Error:   "No token provided",
-		})
+		token = c.Query("token")
+	}
+	if token == "" {
+		respond(http.StatusUnauthorized, APIResponse{Success: false, Error: "No token provided"})
 		return
 	}
 
-	// Remove "Bearer " prefix if present
 	if strings.HasPrefix(token, "Bearer ") {
 		token = strings.TrimPrefix(token, "Bearer ")
 	}
@@ -3486,10 +3497,7 @@ func handleVerifyUserWebSession(c *gin.Context) {
 	telegramIDStr := c.Query("telegram_id")
 	telegramID, err := strconv.ParseInt(telegramIDStr, 10, 64)
 	if err != nil || telegramID <= 0 {
-		c.JSON(http.StatusBadRequest, APIResponse{
-			Success: false,
-			Error:   "Invalid telegram_id",
-		})
+		respond(http.StatusBadRequest, APIResponse{Success: false, Error: "Invalid telegram_id"})
 		return
 	}
 
@@ -3498,34 +3506,24 @@ func handleVerifyUserWebSession(c *gin.Context) {
 	userWebSessionsMutex.RUnlock()
 
 	if !exists {
-		c.JSON(http.StatusUnauthorized, APIResponse{
-			Success: false,
-			Error:   "Invalid token",
-		})
+		respond(http.StatusUnauthorized, APIResponse{Success: false, Error: "Invalid token"})
 		return
 	}
 
 	if time.Now().After(session.ExpiresAt) {
-		// Remove expired session
 		userWebSessionsMutex.Lock()
 		delete(userWebSessions, token)
 		userWebSessionsMutex.Unlock()
-		c.JSON(http.StatusUnauthorized, APIResponse{
-			Success: false,
-			Error:   "Token expired",
-		})
+		respond(http.StatusUnauthorized, APIResponse{Success: false, Error: "Token expired"})
 		return
 	}
 
 	if session.TelegramID != telegramID {
-		c.JSON(http.StatusUnauthorized, APIResponse{
-			Success: false,
-			Error:   "Token does not match telegram_id",
-		})
+		respond(http.StatusUnauthorized, APIResponse{Success: false, Error: "Token does not match telegram_id"})
 		return
 	}
 
-	c.JSON(http.StatusOK, APIResponse{
+	respond(http.StatusOK, APIResponse{
 		Success: true,
 		Data: gin.H{
 			"valid":       true,
