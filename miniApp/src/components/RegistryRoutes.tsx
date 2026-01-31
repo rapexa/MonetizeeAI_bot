@@ -1,6 +1,7 @@
 /**
  * Renders Route elements for all enabled registry-driven features.
  * Include inside <Routes> so feature paths (e.g. /test) are handled.
+ * React Router v6: only <Route> or Fragment inside <Routes>.
  */
 
 import React from 'react';
@@ -11,7 +12,7 @@ import { featureScreens, type FeatureKey } from '../featureScreens';
 
 const featureKeysWithScreens: FeatureKey[] = Object.keys(featureScreens) as FeatureKey[];
 
-function useRegistryRouteEntries(): Array<{ path: string; featureKey: FeatureKey }> {
+function getRegistryRouteEntries(): Array<{ path: string; featureKey: FeatureKey }> {
   const desktop = getEnabledFeatures({ platform: 'desktop' });
   const mobile = getEnabledFeatures({ platform: 'mobile' });
   const pathToKey = new Map<string, FeatureKey>();
@@ -28,8 +29,8 @@ function useRegistryRouteEntries(): Array<{ path: string; featureKey: FeatureKey
   return Array.from(pathToKey.entries()).map(([path, featureKey]) => ({ path, featureKey }));
 }
 
-export default function RegistryRoutes() {
-  const entries = useRegistryRouteEntries();
+function RegistryRoutes(): React.ReactElement {
+  const entries = getRegistryRouteEntries();
   return (
     <>
       {entries.map(({ path, featureKey }) => (
@@ -42,3 +43,5 @@ export default function RegistryRoutes() {
     </>
   );
 }
+
+export default RegistryRoutes;
