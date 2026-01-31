@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"MonetizeeAI_bot/middleware"
@@ -62,22 +64,93 @@ func TestAPINoRouteReturns404JSONWithRequestID(t *testing.T) {
 	r.Use(middleware.RequestID())
 	r.NoRoute(noRouteHandler("./test-frontend"))
 
+	// HEAD request
+	t.Run("HEAD", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodHead, "/api/v1/does-not-exist", nil)
+		r.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("HEAD /api/v1/does-not-exist: expected 404, got %d", w.Code)
+		}
+		if w.Header().Get("X-Request-Id") == "" {
+			t.Error("expected X-Request-Id header on API 404 response")
+		}
+		if loc := w.Header().Get("Location"); loc != "" {
+			t.Errorf("expected no redirect; got Location %q", loc)
+		}
+	})
+
+	// GET request - verify JSON body
+	t.Run("GET", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/does-not-exist", nil)
+		r.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("GET /api/v1/does-not-exist: expected 404, got %d", w.Code)
+		}
+		if w.Header().Get("X-Request-Id") == "" {
+			t.Error("expected X-Request-Id header on API 404 response")
+		}
+		body := strings.TrimSpace(w.Body.String())
+		var resp APIResponse
+		if err := json.Unmarshal([]byte(body), &resp); err != nil {
+			t.Errorf("expected JSON body; got %q: %v", body, err)
+			return
+		}
+		if resp.Success || resp.Error != "Not found" {
+			t.Errorf("expected {\"success\":false,\"error\":\"Not found\"}; got %+v", resp)
+		}
+	})
+}
+
+// TestAPINoRouteWithAuthMiddlewareReturns404 asserts that with auth middleware, unmatched API paths
+// still return 404 (not 403) because FullPath=="" lets the request pass through to NoRoute.
+func TestAPINoRouteWithAuthMiddlewareReturns404(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(middleware.RequestID())
+	r.Use(telegramWebAppAuthMiddleware())
+	r.NoRoute(noRouteHandler("./test-frontend"))
+
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodHead, "/api/v1/does-not-exist", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/does-not-exist", nil)
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusNotFound {
-		t.Errorf("HEAD /api/v1/does-not-exist: expected 404, got %d", w.Code)
+		t.Errorf("GET /api/v1/does-not-exist (with auth): expected 404, got %d", w.Code)
 	}
 	if w.Header().Get("X-Request-Id") == "" {
-		t.Error("expected X-Request-Id header on API 404 response")
+		t.Error("expected X-Request-Id header")
 	}
-	if loc := w.Header().Get("Location"); loc != "" {
-		t.Errorf("expected no redirect; got Location %q", loc)
+	body := strings.TrimSpace(w.Body.String())
+	var resp APIResponse
+	if err := json.Unmarshal([]byte(body), &resp); err != nil {
+		t.Errorf("expected JSON body; got %q: %v", body, err)
+		return
 	}
-	if ct := w.Header().Get("Content-Type"); ct != "" && ct != "application/json; charset=utf-8" {
-		// HEAD may not set body; Content-Type optional for HEAD
-		t.Logf("Content-Type: %s (HEAD may omit)", ct)
+	if resp.Success || resp.Error != "Not found" {
+		t.Errorf("expected {\"success\":false,\"error\":\"Not found\"}; got %+v", resp)
+	}
+}
+
+// TestRealAPIRouteWithoutAuthReturns403 asserts that real API routes still get 403 when unauthenticated.
+func TestRealAPIRouteWithoutAuthReturns403(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(middleware.RequestID())
+	r.Use(telegramWebAppAuthMiddleware())
+	r.GET("/api/v1/requires-auth", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/requires-auth", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("GET /api/v1/requires-auth (no auth): expected 403, got %d", w.Code)
 	}
 }
 

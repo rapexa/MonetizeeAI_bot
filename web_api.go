@@ -116,6 +116,11 @@ func cleanupMiniAppRateLimitCache() {
 // 🔒 SECURITY: Telegram WebApp Authentication Middleware
 func telegramWebAppAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// If no route matched (FullPath empty), let NoRoute handle it → 404 JSON for API paths.
+		if c.FullPath() == "" {
+			c.Next()
+			return
+		}
 		// Skip authentication for health check, static files, admin routes, and admin login page
 		// Admin routes have their own authentication middleware
 		// Admin login page should be accessible from web without Telegram
