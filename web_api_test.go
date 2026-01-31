@@ -196,8 +196,8 @@ func TestMetricsReturns200FromLocal(t *testing.T) {
 		t.Errorf("GET /metrics (local): expected 200, got %d", w.Code)
 	}
 	body := w.Body.String()
-	if !strings.Contains(body, "http_requests_total") && !strings.Contains(body, "go_") {
-		t.Error("expected Prometheus metrics in response")
+	if !strings.Contains(body, "http_") && !strings.Contains(body, "payments_") {
+		t.Error("expected Prometheus metrics in response (http_* or payments_*)")
 	}
 }
 

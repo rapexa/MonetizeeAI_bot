@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -2950,21 +2951,51 @@ func handleBlockMiniAppUser(c *gin.Context) {
 }
 
 // metricsAllowlist returns true if clientIP is allowed to access /metrics.
-// Default: 127.0.0.1, ::1. Extra IPs from METRICS_ALLOWLIST (comma-separated).
+// Default: 127.0.0.1, ::1 only. METRICS_ALLOWLIST adds entries (comma-separated IPs or CIDRs, e.g. 172.18.0.0/16).
 func metricsAllowlist(clientIP string) bool {
-	allowed := map[string]bool{
-		"127.0.0.1": true,
-		"::1":       true,
+	ip := net.ParseIP(clientIP)
+	if ip == nil {
+		return false
 	}
+	// Use IPv4 form for matching if IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1)
+	if ip4 := ip.To4(); ip4 != nil {
+		ip = ip4
+	}
+
+	// Default: localhost only
+	allowlist := []string{"127.0.0.1/32", "::1/128"}
 	if extra := os.Getenv("METRICS_ALLOWLIST"); extra != "" {
-		for _, ip := range strings.Split(extra, ",") {
-			ip = strings.TrimSpace(ip)
-			if ip != "" {
-				allowed[ip] = true
+		for _, s := range strings.Split(extra, ",") {
+			s = strings.TrimSpace(s)
+			if s != "" {
+				allowlist = append(allowlist, s)
 			}
 		}
 	}
-	return allowed[clientIP]
+
+	for _, entry := range allowlist {
+		if strings.Contains(entry, "/") {
+			_, ipNet, err := net.ParseCIDR(entry)
+			if err != nil {
+				continue
+			}
+			if ipNet.Contains(ip) {
+				return true
+			}
+		} else {
+			allowedIP := net.ParseIP(entry)
+			if allowedIP == nil {
+				continue
+			}
+			if allowedIP4 := allowedIP.To4(); allowedIP4 != nil {
+				allowedIP = allowedIP4
+			}
+			if ip.Equal(allowedIP) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // handleMetrics serves Prometheus metrics. Returns 403 JSON if client IP not in allowlist.
@@ -2976,7 +3007,7 @@ func handleMetrics(c *gin.Context) {
 		})
 		return
 	}
-	promhttp.Handler().ServeHTTP(c.Writer, c.Request)
+	promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{DisableCompression: true}).ServeHTTP(c.Writer, c.Request)
 }
 
 // Helper function to get environment variable with default

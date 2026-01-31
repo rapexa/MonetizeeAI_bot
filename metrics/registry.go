@@ -7,8 +7,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+// Registry is the custom Prometheus registry containing only our application metrics.
+var Registry = prometheus.NewRegistry()
+
 var (
-	// HTTP metrics
 	httpRequestsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
@@ -33,7 +35,6 @@ var (
 		},
 	)
 
-	// Business metrics
 	verifyRequestsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "verify_requests_total",
@@ -59,7 +60,7 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(
+	Registry.MustRegister(
 		httpRequestsTotal,
 		httpRequestDuration,
 		httpInflightRequests,
