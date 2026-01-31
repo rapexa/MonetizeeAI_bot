@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"MonetizeeAI_bot/middleware"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,11 +14,7 @@ import (
 func TestHEADHealthReturns200(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	r.Use(func(c *gin.Context) {
-		c.Set("request_id", "test-id")
-		c.Header("X-Request-Id", "test-id")
-		c.Next()
-	})
+	r.Use(middleware.RequestID())
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "healthy"})
 	})
@@ -41,11 +39,7 @@ func TestHEADHealthReturns200(t *testing.T) {
 func TestHEADWebVerifyReturns401(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	r.Use(func(c *gin.Context) {
-		c.Set("request_id", "test-id")
-		c.Header("X-Request-Id", "test-id")
-		c.Next()
-	})
+	r.Use(middleware.RequestID())
 	r.GET("/api/v1/web/verify", handleVerifyUserWebSession)
 	r.HEAD("/api/v1/web/verify", handleVerifyUserWebSession)
 
