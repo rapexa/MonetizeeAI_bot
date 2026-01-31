@@ -154,6 +154,53 @@ func TestRealAPIRouteWithoutAuthReturns403(t *testing.T) {
 	}
 }
 
+// TestMetricsReturns403FromNonLocal asserts /metrics returns 403 when client IP is not in allowlist.
+func TestMetricsReturns403FromNonLocal(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(middleware.RequestID())
+	r.GET("/metrics", handleMetrics)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	req.RemoteAddr = "192.0.2.1:12345" // non-local IP
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("GET /metrics (non-local): expected 403, got %d", w.Code)
+	}
+	body := strings.TrimSpace(w.Body.String())
+	var resp APIResponse
+	if err := json.Unmarshal([]byte(body), &resp); err != nil {
+		t.Errorf("expected JSON body; got %q: %v", body, err)
+		return
+	}
+	if resp.Success || resp.Error != "Access denied" {
+		t.Errorf("expected Access denied; got %+v", resp)
+	}
+}
+
+// TestMetricsReturns200FromLocal asserts /metrics returns 200 when request is from localhost.
+func TestMetricsReturns200FromLocal(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(middleware.RequestID())
+	r.GET("/metrics", handleMetrics)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	req.RemoteAddr = "127.0.0.1:45678" // localhost
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("GET /metrics (local): expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "http_requests_total") && !strings.Contains(body, "go_") {
+		t.Error("expected Prometheus metrics in response")
+	}
+}
+
 // TestNonAPINoRouteRedirectsWithoutSession asserts non-API NoRoute redirects to /web-login when no session.
 func TestNonAPINoRouteRedirectsWithoutSession(t *testing.T) {
 	gin.SetMode(gin.TestMode)

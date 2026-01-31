@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"MonetizeeAI_bot/logger"
+	"MonetizeeAI_bot/metrics"
 
 	"go.uber.org/zap"
 )
@@ -59,6 +60,8 @@ func checkPendingPayments() {
 		return
 	}
 
+	metrics.SetPaymentsPendingCount(len(pendingTransactions))
+
 	if len(pendingTransactions) == 0 {
 		// Changed to Info for better visibility
 		logger.Info("No pending transactions to check",
@@ -77,6 +80,7 @@ func checkPendingPayments() {
 		// Re-check status from database to avoid race conditions
 		var currentTransaction PaymentTransaction
 		if err := db.Where("id = ?", transaction.ID).First(&currentTransaction).Error; err != nil {
+			metrics.IncPaymentCheck("error")
 			logger.Warn("Transaction not found, skipping",
 				zap.Uint("transaction_id", transaction.ID))
 			continue
@@ -84,6 +88,7 @@ func checkPendingPayments() {
 
 		// Skip if already processed (shouldn't happen, but safety check)
 		if currentTransaction.Status != "pending" {
+			metrics.IncPaymentCheck("skipped")
 			logger.Debug("Transaction already processed, skipping",
 				zap.Uint("transaction_id", transaction.ID),
 				zap.String("status", currentTransaction.Status))
@@ -92,6 +97,7 @@ func checkPendingPayments() {
 
 		auth := valueOrEmpty(transaction.Authority)
 		if auth == "" {
+			metrics.IncPaymentCheck("skipped")
 			logger.Debug("Skipping pending payment without authority yet",
 				zap.Uint("transaction_id", transaction.ID),
 				zap.Int("amount", transaction.Amount),
@@ -112,6 +118,7 @@ func checkPendingPayments() {
 		// it will return the current status without re-processing
 		verifiedTransaction, err := paymentService.VerifyPayment(auth, transaction.Amount)
 		if err != nil {
+			metrics.IncPaymentCheck("error")
 			logger.Warn("Payment verification failed",
 				zap.Uint("transaction_id", transaction.ID),
 				zap.String("authority", auth),
@@ -140,6 +147,7 @@ func checkPendingPayments() {
 				if err := db.First(&userCheck, transaction.UserID).Error; err == nil {
 					if userCheck.HasActiveSubscription() && userCheck.PlanName == transaction.Type {
 						// Subscription already active with this plan - likely processed by manual check
+						metrics.IncPaymentCheck("skipped")
 						logger.Info("Transaction already processed manually, subscription already active - skipping duplicate",
 							zap.String("authority", auth),
 							zap.Uint("user_id", transaction.UserID))
@@ -158,6 +166,7 @@ func checkPendingPayments() {
 				transaction.UserID,
 				transaction.Type,
 			); err != nil {
+				metrics.IncPaymentCheck("error")
 				logger.Error("Failed to update subscription after verification",
 					zap.Uint("user_id", transaction.UserID),
 					zap.String("plan_type", transaction.Type),
@@ -176,12 +185,18 @@ func checkPendingPayments() {
 					zap.Int64("telegram_id", user.TelegramID))
 			}
 
+			metrics.IncPaymentCheck("success")
 			logger.Info("Pending payment processed successfully",
 				zap.Uint("transaction_id", transaction.ID),
 				zap.String("authority", auth),
 				zap.Uint("user_id", transaction.UserID),
 				zap.String("plan_type", transaction.Type))
 		} else {
+			result := "pending"
+			if verifiedTransaction.Status == "failed" {
+				result = "failed"
+			}
+			metrics.IncPaymentCheck(result)
 			logger.Debug("Payment still pending or failed",
 				zap.Uint("transaction_id", transaction.ID),
 				zap.String("authority", auth),

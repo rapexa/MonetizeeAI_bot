@@ -15,11 +15,13 @@ import (
 	"time"
 
 	"MonetizeeAI_bot/logger"
+	"MonetizeeAI_bot/metrics"
 	"MonetizeeAI_bot/middleware"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -558,6 +560,9 @@ func StartWebAPI() {
 	// Standard request logger - one structured line per request after completion
 	r.Use(middleware.RequestLogger())
 
+	// Prometheus HTTP metrics (after logger, before recovery)
+	r.Use(middleware.PromMetrics())
+
 	// Recovery middleware
 	r.Use(gin.Recovery())
 
@@ -598,6 +603,9 @@ func StartWebAPI() {
 		c.Header("Content-Type", "application/json")
 		c.Status(http.StatusOK)
 	})
+
+	// Prometheus /metrics - IP allowlist only (127.0.0.1, ::1, METRICS_ALLOWLIST)
+	r.GET("/metrics", handleMetrics)
 
 	// Admin auth routes are already registered at the very beginning (before all middleware)
 	// No need to register them again here
@@ -2941,6 +2949,36 @@ func handleBlockMiniAppUser(c *gin.Context) {
 	})
 }
 
+// metricsAllowlist returns true if clientIP is allowed to access /metrics.
+// Default: 127.0.0.1, ::1. Extra IPs from METRICS_ALLOWLIST (comma-separated).
+func metricsAllowlist(clientIP string) bool {
+	allowed := map[string]bool{
+		"127.0.0.1": true,
+		"::1":       true,
+	}
+	if extra := os.Getenv("METRICS_ALLOWLIST"); extra != "" {
+		for _, ip := range strings.Split(extra, ",") {
+			ip = strings.TrimSpace(ip)
+			if ip != "" {
+				allowed[ip] = true
+			}
+		}
+	}
+	return allowed[clientIP]
+}
+
+// handleMetrics serves Prometheus metrics. Returns 403 JSON if client IP not in allowlist.
+func handleMetrics(c *gin.Context) {
+	if !metricsAllowlist(c.ClientIP()) {
+		c.JSON(http.StatusForbidden, APIResponse{
+			Success: false,
+			Error:   "Access denied",
+		})
+		return
+	}
+	promhttp.Handler().ServeHTTP(c.Writer, c.Request)
+}
+
 // Helper function to get environment variable with default
 func getEnvWithDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
@@ -3419,6 +3457,7 @@ func handleVerifyUserWebSession(c *gin.Context) {
 		token = c.Query("token")
 	}
 	if token == "" {
+		metrics.IncVerify("no_token")
 		respond(http.StatusUnauthorized, APIResponse{Success: false, Error: "No token provided"})
 		return
 	}
@@ -3430,6 +3469,7 @@ func handleVerifyUserWebSession(c *gin.Context) {
 	telegramIDStr := c.Query("telegram_id")
 	telegramID, err := strconv.ParseInt(telegramIDStr, 10, 64)
 	if err != nil || telegramID <= 0 {
+		metrics.IncVerify("bad_request")
 		respond(http.StatusBadRequest, APIResponse{Success: false, Error: "Invalid telegram_id"})
 		return
 	}
@@ -3439,6 +3479,7 @@ func handleVerifyUserWebSession(c *gin.Context) {
 	userWebSessionsMutex.RUnlock()
 
 	if !exists {
+		metrics.IncVerify("invalid_token")
 		respond(http.StatusUnauthorized, APIResponse{Success: false, Error: "Invalid token"})
 		return
 	}
@@ -3447,15 +3488,18 @@ func handleVerifyUserWebSession(c *gin.Context) {
 		userWebSessionsMutex.Lock()
 		delete(userWebSessions, token)
 		userWebSessionsMutex.Unlock()
+		metrics.IncVerify("expired")
 		respond(http.StatusUnauthorized, APIResponse{Success: false, Error: "Token expired"})
 		return
 	}
 
 	if session.TelegramID != telegramID {
+		metrics.IncVerify("mismatch")
 		respond(http.StatusUnauthorized, APIResponse{Success: false, Error: "Token does not match telegram_id"})
 		return
 	}
 
+	metrics.IncVerify("ok")
 	respond(http.StatusOK, APIResponse{
 		Success: true,
 		Data: gin.H{
