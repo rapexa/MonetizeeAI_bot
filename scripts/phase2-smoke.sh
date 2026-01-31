@@ -8,7 +8,7 @@
 # Example: ./scripts/phase2-smoke.sh https://sianmarketing.com
 # =============================================================================
 
-set -e
+set -Eeuo pipefail
 
 # Colors
 RED='\033[0;31m'
@@ -44,7 +44,7 @@ test_endpoint() {
     
     if [ "$http_code" = "CURL_ERROR" ]; then
         echo -e "${RED}FAIL${NC} (connection error)"
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
         return
     fi
     
@@ -52,18 +52,18 @@ test_endpoint() {
         if [ -n "$check_content" ]; then
             if echo "$body" | grep -q "$check_content"; then
                 echo -e "${GREEN}PASS${NC} (HTTP $http_code, content OK)"
-                ((PASSED++))
+                PASSED=$((PASSED + 1))
             else
                 echo -e "${YELLOW}WARN${NC} (HTTP $http_code, content mismatch)"
-                ((PASSED++))
+                PASSED=$((PASSED + 1))
             fi
         else
             echo -e "${GREEN}PASS${NC} (HTTP $http_code)"
-            ((PASSED++))
+            PASSED=$((PASSED + 1))
         fi
     else
         echo -e "${RED}FAIL${NC} (expected $expected_code, got $http_code)"
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
     fi
 }
 
@@ -81,7 +81,7 @@ test_redirect() {
     
     if echo "$headers" | grep -q "CURL_ERROR"; then
         echo -e "${RED}FAIL${NC} (connection error)"
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
         return
     fi
     
@@ -92,18 +92,18 @@ test_redirect() {
         if [ -n "$expected_location" ]; then
             if echo "$location" | grep -q "$expected_location"; then
                 echo -e "${GREEN}PASS${NC} (HTTP $http_code -> $location)"
-                ((PASSED++))
+                PASSED=$((PASSED + 1))
             else
                 echo -e "${YELLOW}WARN${NC} (HTTP $http_code, location: $location)"
-                ((PASSED++))
+                PASSED=$((PASSED + 1))
             fi
         else
             echo -e "${GREEN}PASS${NC} (HTTP $http_code)"
-            ((PASSED++))
+            PASSED=$((PASSED + 1))
         fi
     else
         echo -e "${RED}FAIL${NC} (expected $expected_code, got $http_code)"
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
     fi
 }
 
@@ -119,17 +119,17 @@ test_header() {
     
     if echo "$headers" | grep -q "CURL_ERROR"; then
         echo -e "${RED}FAIL${NC} (connection error)"
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
         return
     fi
     
     if echo "$headers" | grep -qi "^$header_name:"; then
         value=$(echo "$headers" | grep -i "^$header_name:" | head -1 | cut -d: -f2- | tr -d '\r' | xargs)
         echo -e "${GREEN}PASS${NC} ($header_name: $value)"
-        ((PASSED++))
+        PASSED=$((PASSED + 1))
     else
         echo -e "${RED}FAIL${NC} ($header_name not found)"
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
     fi
 }
 
