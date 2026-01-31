@@ -34,7 +34,7 @@ const GuideTutorial = lazy(() => import('./pages/GuideTutorial'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const WebLogin = lazy(() => import('./pages/WebLogin'));
-const TestPage = lazy(() => import('./pages/TestPage'));
+import RegistryRoutes from './components/RegistryRoutes';
 
 // ⚡ PERFORMANCE: Simple loading component for lazy loaded pages
 const PageLoader = () => (
@@ -164,7 +164,8 @@ function AppRouter() {
                   {/* SalesPanel removed */}
                   <Route path="/ready-prompts" element={<ReadyPrompts />} />
                   <Route path="/courses/:courseId" element={<CoursePlayer />} />
-                  <Route path="/test" element={<TestPage />} />
+                  {/* Registry-driven feature routes (e.g. /test for test-page) */}
+                  <RegistryRoutes />
                 </Routes>
               </Suspense>
             </Layout>

@@ -1,9 +1,20 @@
+import path from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@features': path.resolve(__dirname, '..', 'packages', 'features'),
+      // Resolve deps from app when bundling packages/features (outside miniApp)
+      'react-router-dom': path.resolve(__dirname, 'node_modules/react-router-dom'),
+      react: path.resolve(__dirname, 'node_modules/react'),
+      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+      'lucide-react': path.resolve(__dirname, 'node_modules/lucide-react'),
+    },
+  },
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
@@ -35,9 +46,8 @@ export default defineConfig({
           }
         },
       },
-      // ⚡ PERFORMANCE: Optimize chunk size
-      chunkSizeWarningLimit: 1000,
     },
+    chunkSizeWarningLimit: 1000,
     // ⚡ PERFORMANCE: Enable source maps only in dev
     sourcemap: false,
     // ⚡ PERFORMANCE: Reduce target for better compatibility and smaller bundles

@@ -14,11 +14,18 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Paths for feature portability */
+    "baseUrl": ".",
+    "paths": {
+      "@features": ["../packages/features"],
+      "@features/*": ["../packages/features/*"]
+    },
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src", "../packages/features"]
 }
