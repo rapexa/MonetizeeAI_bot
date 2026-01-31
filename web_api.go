@@ -437,6 +437,37 @@ type SessionInfoResponse struct {
 	IsCompleted bool   `json:"is_completed"`
 }
 
+// noRouteHandler returns the NoRoute handler. API paths get 404 JSON; non-API preserve redirect/SPA behavior.
+func noRouteHandler(frontendPath string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		path := c.Request.URL.Path
+		for strings.Contains(path, "//") {
+			path = strings.ReplaceAll(path, "//", "/")
+		}
+
+		if strings.HasPrefix(path, "/api/") || strings.HasPrefix(path, "/api/v1/") {
+			c.Header("Content-Type", "application/json; charset=utf-8")
+			c.JSON(http.StatusNotFound, APIResponse{Success: false, Error: "Not found"})
+			return
+		}
+
+		hasWebSession := c.GetBool("web_session")
+		hasTelegramID := c.GetInt64("telegram_id") > 0
+		if !hasWebSession && !hasTelegramID {
+			c.Redirect(http.StatusFound, "/web-login")
+			c.Abort()
+			return
+		}
+
+		indexPath := frontendPath + "/index.html"
+		if _, err := os.Stat(indexPath); err == nil {
+			c.File(indexPath)
+			return
+		}
+		c.JSON(http.StatusNotFound, APIResponse{Success: false, Error: "Frontend not found"})
+	}
+}
+
 // StartWebAPI initializes and starts the web API server
 // CRITICAL: This function must be called only once, from main().
 // Calling it multiple times will cause "handlers are already registered" panic.
@@ -730,75 +761,15 @@ func StartWebAPI() {
 		// Serve fonts
 		r.Static("/fonts", frontendPath+"/fonts")
 
-		// Serve index.html for all other non-API routes (SPA routing)
-		// NOTE: This will only be reached if middleware allows it (Telegram users, web session, or admin routes)
-		r.NoRoute(func(c *gin.Context) {
-			path := c.Request.URL.Path
-			// Normalize path (remove double slashes)
-			for strings.Contains(path, "//") {
-				path = strings.ReplaceAll(path, "//", "/")
-			}
-
-			// CRITICAL: Skip API routes - they should be handled by registered routes
-			// This is a fallback for routes that don't match any registered route
-			if strings.HasPrefix(path, "/api/") {
-				// Log for debugging
-				logger.Warn("API route not found (NoRoute handler) - this should not happen if routes are registered correctly",
-					zap.String("path", path),
-					zap.String("method", c.Request.Method),
-					zap.String("remote_addr", c.ClientIP()))
-				c.JSON(http.StatusNotFound, APIResponse{
-					Success: false,
-					Error:   "API endpoint not found: " + path,
-				})
-				return
-			}
-
-			// Double-check: If we reach here, middleware should have already verified:
-			// 1. User is from Telegram (middleware allowed it), OR
-			// 2. User has valid web session (middleware allowed it), OR
-			// 3. User is accessing admin routes (middleware allowed it)
-			// But just to be safe, check web session one more time
-			hasWebSession := c.GetBool("web_session")
-			hasTelegramID := c.GetInt64("telegram_id") > 0
-
-			// Also check cookie directly (double-check)
-			cookieToken, cookieErr := c.Cookie("web_session_token")
-			hasCookie := cookieErr == nil && cookieToken != ""
-
-			logger.Info("NoRoute handler reached",
-				zap.String("path", path),
-				zap.Bool("has_web_session", hasWebSession),
-				zap.Bool("has_telegram_id", hasTelegramID),
-				zap.Bool("has_cookie", hasCookie),
-				zap.String("ip", c.ClientIP()))
-
-			if !hasWebSession && !hasTelegramID {
-				// Should not reach here if middleware is working correctly, but redirect to be safe
-				logger.Warn("🚫 NoRoute reached without session - redirecting to /web-login",
-					zap.String("path", path),
-					zap.String("ip", c.ClientIP()),
-					zap.String("method", c.Request.Method))
-				c.Redirect(http.StatusFound, "/web-login")
-				c.Abort()
-				return
-			}
-
-			// Serve index.html for SPA routing
-			indexPath := frontendPath + "/index.html"
-			if _, err := os.Stat(indexPath); err == nil {
-				c.File(indexPath)
-			} else {
-				c.JSON(http.StatusNotFound, APIResponse{
-					Success: false,
-					Error:   "Frontend not found",
-				})
-			}
-		})
 		logger.Info("Frontend static files configured", zap.String("path", frontendPath))
 	} else {
 		logger.Warn("Frontend directory not found, skipping static file serving", zap.String("path", frontendPath))
 	}
+
+	// NoRoute handler - global, runs for all unmatched routes.
+	// RequestID middleware runs before this, so X-Request-Id is on all responses.
+	// API paths: 404 JSON, no redirect. Non-API: preserve current behavior (redirect or SPA).
+	r.NoRoute(noRouteHandler(frontendPath))
 
 	port := getEnvWithDefault("WEB_API_PORT", "8080")
 	logger.Info("Starting Web API server", zap.String("port", port))

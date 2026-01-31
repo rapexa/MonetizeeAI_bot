@@ -18,8 +18,8 @@
 
 | File | Change |
 |------|--------|
-| `web_api.go` | Uses `middleware.RequestID()` and `middleware.RequestLogger()`; removed inline request-id, `gin.LoggerWithFormatter`, and debug middleware |
-| `web_api_test.go` | Uses `middleware.RequestID()` in tests instead of inline middleware |
+| `web_api.go` | Uses `middleware.RequestID()` and `middleware.RequestLogger()`; global `noRouteHandler` for API 404 JSON; removed inline request-id, `gin.LoggerWithFormatter`, and debug middleware |
+| `web_api_test.go` | Uses `middleware.RequestID()` in tests; added `TestAPINoRouteReturns404JSONWithRequestID` and `TestNonAPINoRouteRedirectsWithoutSession` |
 
 ---
 
@@ -54,7 +54,10 @@ Use in handlers when adding request-level log fields.
 
 ### 2.4 NoRoute / 404
 
-Request ID middleware is global and runs for all requests. NoRoute handlers (including redirect to `/web-login`) and Gin’s default 404 all receive `X-Request-Id` in the response header.
+- **Global NoRoute** registered for all unmatched routes. Request ID middleware runs before it, so `X-Request-Id` is on every response.
+- **API paths** (`/api/` or `/api/v1/`): 404 JSON `{"success":false,"error":"Not found"}`, `Content-Type: application/json; charset=utf-8`, no redirect.
+- **Non-API paths**: Preserved behavior — no session → redirect to `/web-login`; with session → serve SPA `index.html` or "Frontend not found" 404.
+
 
 ---
 
