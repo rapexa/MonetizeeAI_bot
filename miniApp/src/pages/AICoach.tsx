@@ -339,7 +339,7 @@ const AICoach: React.FC = () => {
         </div>
 
         {/* Message Input - Fixed at Bottom */}
-        <div className={`fixed bottom-20 lg:bottom-8 left-1/2 transform -translate-x-1/2 w-full max-w-4xl px-4 backdrop-blur-xl rounded-2xl lg:rounded-3xl border border-gray-700/60 p-5 lg:p-7 shadow-lg transition-all duration-500 ${isEditingPrompt ? 'ring-2 ring-[#7222F2]/50' : ''} z-40`} style={{ backgroundColor: '#10091c' }}>
+        <div className={`fixed bottom-20 lg:bottom-8 left-1/2 lg:left-[calc((100vw-280px)/2)] transform -translate-x-1/2 w-full max-w-4xl px-4 backdrop-blur-xl rounded-2xl lg:rounded-3xl border border-gray-700/60 p-5 lg:p-7 shadow-lg transition-all duration-500 ${isEditingPrompt ? 'ring-2 ring-[#7222F2]/50' : ''} z-40`} style={{ backgroundColor: '#10091c' }}>
           {isEditingPrompt ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
