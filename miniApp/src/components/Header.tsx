@@ -4,7 +4,6 @@ import { useApp } from '../context/appContextDef';
 import { 
   User, 
   Bell,
-  Search,
   ChevronDown,
   Settings,
   LogOut,
@@ -55,18 +54,6 @@ const Header: React.FC = () => {
           <h1 className="text-lg font-bold text-white">
             {getPageTitle()}
           </h1>
-        </div>
-
-        {/* Center Section: Search Bar */}
-        <div className="flex-1 max-w-md mx-8">
-          <div className="relative">
-            <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7222F2]" />
-            <input
-              type="text"
-              placeholder="جستجو در پلتفرم..."
-              className="w-full h-10 pr-11 pl-4 bg-white/5 border border-[#5a189a]/30 rounded-xl text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5a189a] focus:border-[#5a189a] focus:bg-white/10 transition-all"
-            />
-          </div>
         </div>
 
         {/* Right Section: Actions & Profile */}

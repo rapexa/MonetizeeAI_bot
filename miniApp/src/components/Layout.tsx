@@ -42,7 +42,7 @@ const Layout: React.FC = () => {
         >
           {/* Desktop: Seamless full-bleed background (#0e0817), Mobile: Full width */}
           <div className="w-full h-full lg:bg-[#0e0817]">
-            <div className="w-full h-full p-4 lg:p-6">
+            <div className="w-full h-full lg:p-6">
               <Suspense fallback={<PageLoader />}>
                 <Outlet />
               </Suspense>

@@ -524,7 +524,7 @@ const Tools: React.FC = () => {
           
           {/* Small AI Tools - All four on top */}
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-5">
             {internalTools.map((tool) => {
               const Icon = tool.icon;
               return (
@@ -533,7 +533,7 @@ const Tools: React.FC = () => {
                   onClick={() => {
                     navigate(tool.path);
                   }}
-                  className="text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
+                  className="text-center group transition-all duration-500 h-20 lg:h-32 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 lg:p-6 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5"
                   style={{ backgroundColor: '#10091c' }}
                 >
                   {/* Animated Background Pattern */}
@@ -593,8 +593,8 @@ const Tools: React.FC = () => {
                   </div>
                   
                   {/* Main Content */}
-                  <div className="relative z-10 text-lg font-bold text-white flex items-center justify-center gap-2 transition-all duration-300 group-hover:scale-105">
-                    <Icon size={20} className="flex-shrink-0 opacity-90" />
+                  <div className="relative z-10 text-lg lg:text-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-300 group-hover:scale-105">
+                    <Icon size={20} className="flex-shrink-0 opacity-90 lg:w-6 lg:h-6" />
                     <span
                       className={`${
                         tool.id === 'business-builder' ? 'text-blue-500 drop-shadow-lg group-hover:text-blue-400' :
@@ -613,7 +613,7 @@ const Tools: React.FC = () => {
 
           {/* Large Sales Management System Card - below all small buttons */}
           <div 
-            className={`mt-3 text-center group transition-all duration-500 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5`}
+            className={`mt-3 lg:mt-4 text-center group transition-all duration-500 h-20 lg:h-32 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 lg:p-6 border border-gray-700/60 shadow-lg relative overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.03] hover:-translate-y-0.5`}
             style={{ backgroundColor: '#10091c' }}
             onClick={() => {
               navigate('/crm');
@@ -641,7 +641,7 @@ const Tools: React.FC = () => {
             </div>
             
             {/* Main Content */}
-            <div className="relative z-10 text-lg font-bold text-white flex items-center justify-center transition-all duration-300 group-hover:scale-105">
+            <div className="relative z-10 text-lg lg:text-xl font-bold text-white flex items-center justify-center transition-all duration-300 group-hover:scale-105">
               <span className="text-green-500 drop-shadow-lg group-hover:text-green-400 transition-colors duration-300">مدیریت فروش</span>
             </div>
           </div>
@@ -657,26 +657,26 @@ const Tools: React.FC = () => {
             <p className="text-gray-400">دو مسیر سریع و کاربردی برای رشد</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 lg:gap-5">
             {/* دوره درآمد دلاری واقعی */}
             <div
               onClick={() => navigate('/courses/real-dollar-income')}
-              className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-yellow-500/50 shadow-lg relative overflow-hidden"
+              className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 lg:h-28 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 lg:p-6 border border-yellow-500/50 shadow-lg relative overflow-hidden"
               style={{ backgroundColor: '#10091c' }}
             >
               <div className="flex items-center justify-center">
-                <div className="text-sm text-white font-bold transition-colors duration-300">دوره درآمد دلاری واقعی</div>
+                <div className="text-sm lg:text-base text-white font-bold transition-colors duration-300">دوره درآمد دلاری واقعی</div>
               </div>
             </div>
 
             {/* دوره طراحی سایت بدون کدنویسی */}
             <div
               onClick={() => navigate('/courses/no-code-web-design')}
-              className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 border border-rose-500/50 shadow-lg relative overflow-hidden"
+              className="text-center group cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 h-20 lg:h-28 flex flex-col justify-center backdrop-blur-xl rounded-3xl p-7 lg:p-6 border border-rose-500/50 shadow-lg relative overflow-hidden"
               style={{ backgroundColor: '#10091c' }}
             >
               <div className="flex items-center justify-center">
-                <div className="text-sm text-white font-bold transition-colors duration-300">دوره طراحی سایت بدون کدنویسی</div>
+                <div className="text-sm lg:text-base text-white font-bold transition-colors duration-300">دوره طراحی سایت بدون کدنویسی</div>
               </div>
             </div>
           </div>
@@ -759,14 +759,14 @@ const Tools: React.FC = () => {
           </div>
 
           {filteredExternalTools.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-5">
               {filteredExternalTools.map((tool) => {
                 const Icon = tool.icon;
                 return (
                   <div
                     key={tool.id}
                     onClick={() => window.open(tool.url, '_blank')}
-                    className="group cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-300 backdrop-blur-xl rounded-3xl p-7 border border-gray-700/60 shadow-lg relative overflow-hidden"
+                    className="group cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-300 backdrop-blur-xl rounded-3xl p-7 lg:p-6 lg:min-h-[140px] border border-gray-700/60 shadow-lg relative overflow-hidden"
                     style={{ backgroundColor: '#10091c' }}
                   >
                     <div className="flex items-center gap-3">
@@ -774,7 +774,7 @@ const Tools: React.FC = () => {
                         <Icon size={28} className="text-white" />
                       </div>
                       
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-2">
                         <h3 
                           className="text-white font-bold text-base"

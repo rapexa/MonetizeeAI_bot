@@ -84,17 +84,6 @@ const Sidebar: React.FC = () => {
                 }`}>
                   {tab.label}
                 </span>
-
-                {/* Badge */}
-                {tab.badge && (
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-[#5a189a] to-[#7222F2] text-white shadow-lg shadow-[#5a189a]/30' 
-                      : 'bg-white/10 text-[#7222F2]/80'
-                  }`}>
-                    {tab.badge}
-                  </span>
-                )}
               </button>
             );
           })}

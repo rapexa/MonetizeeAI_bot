@@ -4408,10 +4408,10 @@ const Levels: React.FC = () => {
     <>
       {renderSubscriptionCard()}
           <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: '#0E0817' }}>
-        {/* Header */}
-              <div className="pt-24 p-4 space-y-6 max-w-md mx-auto">
-        {/* Sticky Header */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
+        {/* Header - Mobile only (desktop uses global Layout Header) */}
+              <div className="pt-24 lg:pt-0 p-4 space-y-6 max-w-md mx-auto lg:max-w-none">
+        {/* Sticky Header - Hidden on desktop */}
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#2c189a]/95 via-[#5a189a]/95 to-[#7222F2]/95 backdrop-blur-xl border-b border-gray-700/60 shadow-2xl">
           <div className="flex items-center justify-between p-4 max-w-md mx-auto">
             {/* Icon Container */}
             <div className="relative">
