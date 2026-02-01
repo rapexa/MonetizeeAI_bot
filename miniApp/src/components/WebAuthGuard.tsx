@@ -7,51 +7,61 @@ interface WebAuthGuardProps {
 }
 
 /**
+ * Parse initData/tgWebAppData from URL hash to extract user id (works before Telegram script processes it)
+ */
+function parseUserIdFromHash(): number | null {
+  if (typeof window === 'undefined' || !window.location.hash) return null;
+  try {
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const tgWebAppData = hashParams.get('tgWebAppData');
+    if (tgWebAppData) {
+      const initData = decodeURIComponent(tgWebAppData);
+      const userMatch = initData.match(/user=([^&]+)/);
+      if (userMatch) {
+        const userData = JSON.parse(decodeURIComponent(userMatch[1]));
+        if (userData?.id) return userData.id;
+      }
+    }
+  } catch {
+    /* ignore parse errors */
+  }
+  return null;
+}
+
+/**
  * Check if we're in Telegram Mini App
- * Returns true if any Telegram indicator is present
- * Priority: Check URL startapp parameter FIRST (most reliable for initial load)
  */
 function isInTelegramMiniApp(): boolean {
   if (typeof window === 'undefined') return false;
   
-  // PRIORITY 1: Check URL for startapp parameter FIRST (works even before Telegram script loads)
+  // PRIORITY 1: tgWebAppData/tgWebAppVersion in hash (Telegram always injects this)
+  if (window.location.hash && (window.location.hash.includes('tgWebAppData') || window.location.hash.includes('tgWebAppVersion'))) {
+    return true;
+  }
+  
+  // PRIORITY 2: tgWebAppStartParam (GET param Telegram adds when opening from link)
   const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('tgWebAppStartParam')) return true;
+  
+  // PRIORITY 3: startapp in URL (from t.me link)
   const hashIndex = window.location.hash.indexOf('?');
   const urlHashParams = hashIndex >= 0 
     ? new URLSearchParams(window.location.hash.substring(hashIndex + 1))
     : new URLSearchParams();
-  if (urlParams.get('startapp') || urlHashParams.get('startapp')) {
-    return true;
-  }
+  if (urlParams.get('startapp') || urlHashParams.get('startapp')) return true;
   
-  // PRIORITY 2: Check Telegram WebApp object (may not be loaded yet)
+  // PRIORITY 4: Telegram WebApp object
   const telegramWebApp = window.Telegram?.WebApp;
-  if (telegramWebApp) {
-    // Has initData (most reliable indicator)
-    if (telegramWebApp.initData && telegramWebApp.initData.length > 0) {
-      return true;
-    }
-    // Has user in initDataUnsafe
-    if (telegramWebApp.initDataUnsafe?.user?.id) {
-      return true;
-    }
-    // Has start_param (from Telegram link)
-    if (telegramWebApp.initDataUnsafe?.start_param) {
-      return true;
-    }
-  }
-  
-  // PRIORITY 3: Check User-Agent
-  const userAgent = navigator.userAgent;
-  if (/Telegram|TelegramBot|tdesktop/i.test(userAgent)) {
+  if (telegramWebApp?.initData?.length || telegramWebApp?.initDataUnsafe?.user?.id || telegramWebApp?.initDataUnsafe?.start_param) {
     return true;
   }
   
-  // PRIORITY 4: Check referrer
+  // PRIORITY 5: User-Agent
+  if (/Telegram|TelegramBot|tdesktop/i.test(navigator.userAgent)) return true;
+  
+  // PRIORITY 6: Referrer
   const referrer = document.referrer;
-  if (referrer && (/t\.me|telegram\.org|telegram\.me/i.test(referrer))) {
-    return true;
-  }
+  if (referrer && /t\.me|telegram\.org|telegram\.me/i.test(referrer)) return true;
   
   return false;
 }
@@ -80,16 +90,25 @@ const WebAuthGuard: React.FC<WebAuthGuardProps> = ({ children }) => {
       // First check if we're in Telegram Mini App
       const tryGetTelegramUserId = (): number | null => {
         if (typeof window === 'undefined') return null;
-        // Priority 1: user.id from initDataUnsafe - the actual user opening the app (most reliable for Telegram)
+        // Priority 1: user.id from initDataUnsafe (Telegram script populates this)
         const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
         if (userId) return userId;
-        // Priority 2: start_param (when bot passes user ID via deep link)
+        // Priority 2: Parse from URL hash tgWebAppData (works immediately, before script)
+        const fromHash = parseUserIdFromHash();
+        if (fromHash) return fromHash;
+        // Priority 3: start_param from initDataUnsafe
         const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
         if (startParam) {
           const parsed = parseInt(startParam);
           if (!isNaN(parsed) && parsed > 0) return parsed;
         }
-        // Priority 3: startapp from URL
+        // Priority 4: tgWebAppStartParam GET param (Telegram adds this)
+        const tgStartParam = new URLSearchParams(window.location.search).get('tgWebAppStartParam');
+        if (tgStartParam) {
+          const parsed = parseInt(tgStartParam);
+          if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+        // Priority 5: startapp from URL
         const urlParams = new URLSearchParams(window.location.search);
         const hashIndex = window.location.hash.indexOf('?');
         const urlHashParams = hashIndex >= 0 
@@ -106,9 +125,9 @@ const WebAuthGuard: React.FC<WebAuthGuardProps> = ({ children }) => {
       if (isInTelegramMiniApp()) {
         let telegramId = tryGetTelegramUserId();
         
-        // If Telegram script might not be loaded yet, wait and retry once
-        if (!telegramId && typeof window !== 'undefined' && !window.Telegram?.WebApp?.initDataUnsafe) {
-          await new Promise((r) => setTimeout(r, 400));
+        // Brief wait for Telegram script if we got nothing yet (script loads sync in head now, but just in case)
+        if (!telegramId) {
+          await new Promise((r) => setTimeout(r, 300));
           telegramId = tryGetTelegramUserId();
         }
         

@@ -13,44 +13,8 @@
     <link rel="preload" as="font" href="/fonts/IranSansX/IRANSansX-DemiBold.ttf" type="font/ttf" crossorigin>
     <link rel="preload" as="font" href="/fonts/IranSansX/IRANSansX-Bold.ttf" type="font/ttf" crossorigin>
     
-    <!-- Telegram WebApp Script - Only load if in Telegram -->
-    <script>
-      (function() {
-        // Check if we're in Telegram before loading the script
-        function isInTelegram() {
-          // Check for startapp parameter (most reliable)
-          const urlParams = new URLSearchParams(window.location.search);
-          if (urlParams.get('startapp')) {
-            return true;
-          }
-          // Check User-Agent
-          const userAgent = navigator.userAgent;
-          if (/Telegram|TelegramBot|tdesktop/i.test(userAgent)) {
-            return true;
-          }
-          // Check referrer
-          const referrer = document.referrer;
-          if (referrer && (/t\.me|telegram\.org|telegram\.me/i.test(referrer))) {
-            return true;
-          }
-          return false;
-        }
-        
-        // Only load Telegram script if in Telegram
-        if (isInTelegram()) {
-          const script = document.createElement('script');
-          script.src = 'https://telegram.org/js/telegram-web-app.js';
-          script.onerror = function() {
-            console.warn('Telegram WebApp script failed to load');
-            window.Telegram = window.Telegram || { WebApp: {} };
-          };
-          document.head.appendChild(script);
-        } else {
-          // Create a minimal Telegram object for web access
-          window.Telegram = window.Telegram || { WebApp: {} };
-        }
-      })();
-    </script>
+    <!-- Telegram WebApp Script - MUST load for Mini App to work when opened from bot -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
       (function() {
         try {

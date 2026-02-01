@@ -812,20 +812,44 @@ class APIService {
         }
       }
 
-      // Method 3: Try URL parameters (startapp)
+      // Method 3: Parse from URL hash tgWebAppData (when opened from Telegram)
+      if (typeof window !== 'undefined' && window.location.hash) {
+        try {
+          const hashParams = new URLSearchParams(window.location.hash.slice(1));
+          const tgWebAppData = hashParams.get('tgWebAppData');
+          if (tgWebAppData) {
+            const initData = decodeURIComponent(tgWebAppData);
+            const userMatch = initData.match(/user=([^&]+)/);
+            if (userMatch) {
+              const userData = JSON.parse(decodeURIComponent(userMatch[1]));
+              if (userData?.id) {
+                const telegramId = userData.id;
+                this.cachedTelegramId = telegramId;
+                this.saveTelegramIdToStorage(telegramId);
+                logger.debug(`🔍 Got Telegram ID from hash tgWebAppData: ${telegramId}`);
+                return telegramId;
+              }
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
+      // Method 4: Try URL parameters (startapp, tgWebAppStartParam)
       if (typeof window !== 'undefined') {
         const urlParams = new URLSearchParams(window.location.search);
-        const startParam = urlParams.get('startapp');
+        const startParam = urlParams.get('startapp') || urlParams.get('tgWebAppStartParam');
         if (startParam && !isNaN(Number(startParam))) {
           const telegramId = Number(startParam);
           this.cachedTelegramId = telegramId;
           this.saveTelegramIdToStorage(telegramId);
-          logger.debug(`🔍 Got Telegram ID from URL startapp: ${telegramId}`);
+          logger.debug(`🔍 Got Telegram ID from URL: ${telegramId}`);
           return telegramId;
         }
       }
 
-      // Method 4: Use test user for browser testing (only if not in Telegram and no web session)
+      // Method 5: Use test user for browser testing (only if not in Telegram and no web session)
       if (!this.isInTelegram() && !webTelegramId) {
         // Clear any saved telegram_id from localStorage to force using test user
         if (typeof window !== 'undefined') {
