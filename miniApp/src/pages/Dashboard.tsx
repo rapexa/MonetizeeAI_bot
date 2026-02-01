@@ -1086,8 +1086,8 @@ const Dashboard: React.FC = () => {
 
             </div>
             
-            {/* Right Column - AI Coach (4 columns) - Desktop Only */}
-            <div className="lg:col-span-4 lg:block hidden">
+            {/* Right Column - AI Coach - Hidden on desktop (mobile-only card below) */}
+            <div className="hidden">
               <div className="sticky top-20 space-y-6">
       {/* AI Coach Chat */}
       <div>
