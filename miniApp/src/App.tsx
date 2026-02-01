@@ -185,7 +185,7 @@ function App() {
           }} />
           <ThemeProvider>
             <AppProvider>
-              <Router>
+              <Router basename="/miniapp">
                 <WebAuthGuard>
                   <AppRouter />
                 </WebAuthGuard>
