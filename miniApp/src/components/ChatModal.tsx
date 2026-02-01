@@ -69,7 +69,12 @@ const ChatModal: React.FC<ChatModalProps> = ({
 
     try {
       if (isAPIConnected) {
-        const response = await apiService.sendChatMessage(currentMessage);
+        // Short-term memory: last 5 user messages for context
+        const recentUserMessages = chatMessages
+          .filter((m) => m.sender === 'user')
+          .map((m) => m.text)
+          .slice(-5);
+        const response = await apiService.sendChatMessage(currentMessage, recentUserMessages);
         
         if (response.success && response.data) {
           // Debug logging to see what we're getting from API
@@ -140,7 +145,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [message, chatMessages.length, setChatMessages, isAPIConnected]);
+  }, [message, chatMessages, setChatMessages, isAPIConnected]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

@@ -179,8 +179,12 @@ const Chatbot: React.FC = () => {
       
       // Always try to make the API call, regardless of isAPIConnected
       if (telegramId) {
-        // ⚡ PERFORMANCE: Use apiService instead of direct fetch
-        const result = await apiService.sendChatMessage(messageToProcess);
+        // Short-term memory: last 5 user messages for context
+        const recentUserMessages = messages
+          .filter((m) => m.sender === 'user')
+          .map((m) => m.text)
+          .slice(-5);
+        const result = await apiService.sendChatMessage(messageToProcess, recentUserMessages);
         
         console.log('API Response:', result); // Debug full response
         

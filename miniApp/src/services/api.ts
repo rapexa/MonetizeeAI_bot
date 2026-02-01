@@ -356,7 +356,8 @@ class APIService {
   }
 
   // Send chat message to AI Coach
-  async sendChatMessage(message: string): Promise<APIResponse<{
+  // recentMessages: last 5 user messages for short-term memory (oldest first) - optional
+  async sendChatMessage(message: string, recentMessages?: string[]): Promise<APIResponse<{
     response: string;
     message_id?: number;
   }>> {
@@ -365,13 +366,18 @@ class APIService {
       return { success: false, error: 'No user ID available' };
     }
 
+    const body: { telegram_id: number; message: string; recent_messages?: string[] } = {
+      telegram_id: telegramId,
+      message: message
+    };
+    if (recentMessages && recentMessages.length > 0) {
+      body.recent_messages = recentMessages;
+    }
+
     return this.makeRequest<{
       response: string;
       message_id?: number;
-    }>('POST', '/chat', {
-      telegram_id: telegramId,
-      message: message
-    });
+    }>('POST', '/chat', body);
   }
 
   // Get chat history

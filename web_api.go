@@ -1127,8 +1127,9 @@ func updateUserProgress(c *gin.Context) {
 
 // ChatRequest represents the chat request payload
 type ChatRequest struct {
-	TelegramID int64  `json:"telegram_id" binding:"required"`
-	Message    string `json:"message" binding:"required"`
+	TelegramID     int64    `json:"telegram_id" binding:"required"`
+	Message        string   `json:"message" binding:"required"`
+	RecentMessages []string `json:"recent_messages"` // Last 5 user messages for short-term memory (oldest first)
 }
 
 // ChatResponse represents the chat response
@@ -1210,8 +1211,12 @@ func handleChatRequest(c *gin.Context) {
 		return
 	}
 
-	// Get response from ChatGPT
-	response := handleChatGPTMessageAPI(user, requestData.Message)
+	// Get response from ChatGPT (with short-term memory: last 5 user messages)
+	recentMsgs := requestData.RecentMessages
+	if recentMsgs == nil {
+		recentMsgs = []string{}
+	}
+	response := handleChatGPTMessageAPI(user, requestData.Message, recentMsgs)
 
 	// Increment chat message count for free trial users and users without subscription type
 	if user.SubscriptionType == "free_trial" || user.SubscriptionType == "none" || user.SubscriptionType == "" {
@@ -1245,8 +1250,8 @@ func handleChatRequest(c *gin.Context) {
 }
 
 // handleChatGPTMessageAPI handles ChatGPT requests for API (similar to handlers.go function)
-func handleChatGPTMessageAPI(user *User, message string) string {
-	return makeChatGPTRequest(user, message)
+func handleChatGPTMessageAPI(user *User, message string, recentMessages []string) string {
+	return makeChatGPTRequest(user, message, recentMessages)
 }
 
 // 📦 BACKUP: Old OpenAI implementation - kept for reference
@@ -1360,7 +1365,7 @@ func makeChatGPTRequest_OLD(user *User, message string) string {
 }
 
 // ⚡ NEW: Groq-based ChatGPT handler for API
-func makeChatGPTRequest(user *User, message string) string {
+func makeChatGPTRequest(user *User, message string, recentMessages []string) string {
 	// Check if Groq client is initialized
 	if groqClient == nil {
 		logger.Error("Groq client not initialized",
@@ -1368,8 +1373,8 @@ func makeChatGPTRequest(user *User, message string) string {
 		return "❌ سرویس هوش مصنوعی در حال حاضر در دسترس نیست. لطفا بعداً تلاش کنید."
 	}
 
-	// Generate response using Groq
-	response, err := groqClient.GenerateMonetizeAIResponse(message)
+	// Generate response using Groq (with short-term memory)
+	response, err := groqClient.GenerateMonetizeAIResponse(message, recentMessages)
 	if err != nil {
 		logger.Error("Groq API error in web_api",
 			zap.Int64("user_id", user.TelegramID),
@@ -1683,8 +1688,8 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 		return
 	}
 
-	// Call ChatGPT API
-	response := handleChatGPTMessageAPI(user, prompt)
+	// Call ChatGPT API (no recent messages for these specialized tools)
+	response := handleChatGPTMessageAPI(user, prompt, []string{})
 
 	// Extract JSON from response (handle markdown code blocks)
 	cleanResponse := extractJSONFromResponse(response)
@@ -1843,8 +1848,8 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 		return
 	}
 
-	// Call ChatGPT API
-	response := handleChatGPTMessageAPI(user, prompt)
+	// Call ChatGPT API (no recent messages for these specialized tools)
+	response := handleChatGPTMessageAPI(user, prompt, []string{})
 
 	// Extract JSON from response (handle markdown code blocks)
 	cleanResponse := extractJSONFromResponse(response)
@@ -2015,8 +2020,8 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 		return
 	}
 
-	// Call ChatGPT API
-	response := handleChatGPTMessageAPI(user, prompt)
+	// Call ChatGPT API (no recent messages for these specialized tools)
+	response := handleChatGPTMessageAPI(user, prompt, []string{})
 
 	// Extract JSON from response (handle markdown code blocks)
 	cleanResponse := extractJSONFromResponse(response)
@@ -2213,8 +2218,8 @@ IMPORTANT: پاسخ خود را دقیقاً به صورت JSON بده بدون 
 		return
 	}
 
-	// Call ChatGPT API
-	response := handleChatGPTMessageAPI(user, prompt)
+	// Call ChatGPT API (no recent messages for these specialized tools)
+	response := handleChatGPTMessageAPI(user, prompt, []string{})
 
 	// Check if response is an error message (timeout or other ChatGPT issues)
 	if strings.Contains(response, "❌") || strings.Contains(response, "خطا") {

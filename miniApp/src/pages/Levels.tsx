@@ -2216,8 +2216,12 @@ const Levels: React.FC = () => {
     
     try {
       if (isAPIConnected) {
-        // Use real ChatGPT API
-        const response = await apiService.sendChatMessage(messageToProcess);
+        // Short-term memory: last 5 user messages for context
+        const recentUserMessages = chatMessages
+          .filter((m) => m.sender === 'user')
+          .map((m) => m.text)
+          .slice(-5);
+        const response = await apiService.sendChatMessage(messageToProcess, recentUserMessages);
         
         if (response.success && response.data) {
           const aiResponse = {

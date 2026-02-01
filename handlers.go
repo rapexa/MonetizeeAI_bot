@@ -1742,8 +1742,8 @@ func handleChatGPTMessage(user *User, message string) string {
 		return "❌ سرویس هوش مصنوعی در حال حاضر در دسترس نیست. لطفا بعداً تلاش کنید."
 	}
 
-	// Generate response using Groq
-	response, err := groqClient.GenerateMonetizeAIResponse(message)
+	// Generate response using Groq (Telegram bot doesn't have recent messages context - pass empty)
+	response, err := groqClient.GenerateMonetizeAIResponse(message, []string{})
 	if err != nil {
 		logger.Error("Groq API error",
 			zap.Int64("user_id", user.TelegramID),

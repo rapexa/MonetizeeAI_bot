@@ -90,7 +90,8 @@ func (g *GroqClient) GenerateChatResponse(systemPrompt, userMessage string, maxT
 }
 
 // GenerateMonetizeAIResponse generates response for MonetizeAI bot users
-func (g *GroqClient) GenerateMonetizeAIResponse(userMessage string) (string, error) {
+// recentMessages: last 5 user messages for short-term context (oldest first)
+func (g *GroqClient) GenerateMonetizeAIResponse(userMessage string, recentMessages []string) (string, error) {
 	systemPrompt := `تو دستیار هوشمند MonetizeAI هستی و باید به «فارسیِ روان و خودمونی» جواب بدی.
 
 قوانین مهم:
@@ -106,7 +107,18 @@ func (g *GroqClient) GenerateMonetizeAIResponse(userMessage string) (string, err
 
 ماموریت: کمک عملی برای ساخت مسیر درآمد با AI، با مثال و اقدام مشخص.`
 
-	resp, err := g.GenerateChatResponse(systemPrompt, userMessage, 4000)
+	// Build user message with short-term memory context
+	finalUserMessage := userMessage
+	if len(recentMessages) > 0 {
+		contextBlock := "زمینه مکالمه (پیام‌های اخیر کاربر برای تداوم گفتگو):\n"
+		for i, msg := range recentMessages {
+			contextBlock += fmt.Sprintf("%d. %s\n", i+1, msg)
+		}
+		contextBlock += "\nپیام فعلی کاربر: "
+		finalUserMessage = contextBlock + userMessage
+	}
+
+	resp, err := g.GenerateChatResponse(systemPrompt, finalUserMessage, 4000)
 	if err != nil {
 		return "", err
 	}
