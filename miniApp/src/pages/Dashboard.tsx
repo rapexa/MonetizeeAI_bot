@@ -637,10 +637,10 @@ const Dashboard: React.FC = () => {
       {(hasRealData || (!loadingUser && !isAPIConnected)) && (
         <>
         
-          {/* Desktop: 2 Column Grid Layout, Mobile: Single Column */}
+          {/* Desktop: 2 Column Grid Layout, Mobile: Single Column - Main content centered */}
           <div className="lg:grid lg:grid-cols-12 lg:gap-6 space-y-6 lg:space-y-0">
-            {/* Left Column - Main Content (8 columns) */}
-            <div className="lg:col-span-8 space-y-6">
+            {/* Left Column - Main Content (8 columns, centered on desktop) */}
+            <div className="lg:col-span-8 lg:col-start-3 lg:w-full space-y-6">
           
           {/* Enhanced Profile Header - Mobile only (hidden on desktop) */}
               <div className="lg:hidden flex items-center justify-between backdrop-blur-xl rounded-3xl p-5 lg:p-6 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
