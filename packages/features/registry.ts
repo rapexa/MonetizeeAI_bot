@@ -7,9 +7,11 @@ import type { FeatureManifest, Platform } from './types';
 
 // Import manifests from each feature (add new features here)
 import { manifest as testPageManifest } from './test-page/manifest';
+import { manifest as aboutManifest } from './about/manifest';
 
 const allManifests: FeatureManifest[] = [
   testPageManifest,
+  aboutManifest,
 ];
 
 export { allManifests };

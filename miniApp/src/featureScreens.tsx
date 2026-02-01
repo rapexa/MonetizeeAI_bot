@@ -10,6 +10,10 @@ export const featureScreens = {
     desktop: lazy(() => import('@features/test-page/ui/Desktop')),
     mobile: lazy(() => import('@features/test-page/ui/Mobile')),
   },
+  about: {
+    desktop: lazy(() => import('@features/about/ui/Desktop')),
+    mobile: lazy(() => import('@features/about/ui/Mobile')),
+  },
 } as const;
 
 export type FeatureKey = keyof typeof featureScreens;
