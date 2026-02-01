@@ -34,15 +34,15 @@ const Layout: React.FC = () => {
       <Header />
 
       {/* Main content area - Responsive layout */}
-      <div className="flex-1 flex flex-col lg:mr-[280px] lg:pt-16 transition-all duration-300">
+      <div className="flex-1 flex flex-col lg:mr-[280px] lg:pt-16 transition-all duration-300 lg:bg-[#0e0817] lg:min-h-screen">
         {/* Main content with blur effect if subscription expired */}
         <div 
           className={`flex-1 pb-20 lg:pb-8 transition-all duration-300 ${isSubscriptionExpiredState ? 'blur-sm pointer-events-none' : ''}`}
           style={isSubscriptionExpiredState ? { filter: 'blur(8px)', userSelect: 'none' as const } : {}}
         >
-          {/* Desktop: Content with proper spacing, Mobile: Full width */}
-          <div className="w-full h-full lg:bg-[#0a0118]">
-            <div className="w-full h-full lg:p-6">
+          {/* Desktop: Seamless full-bleed background (#0e0817), Mobile: Full width */}
+          <div className="w-full h-full lg:bg-[#0e0817]">
+            <div className="w-full h-full p-4 lg:p-6">
               <Suspense fallback={<PageLoader />}>
                 <Outlet />
               </Suspense>

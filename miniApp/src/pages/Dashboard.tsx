@@ -642,8 +642,8 @@ const Dashboard: React.FC = () => {
             {/* Left Column - Main Content (8 columns) */}
             <div className="lg:col-span-8 space-y-6">
           
-          {/* Enhanced Profile Header */}
-              <div className="flex items-center justify-between backdrop-blur-xl rounded-3xl p-5 lg:p-6 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
+          {/* Enhanced Profile Header - Mobile only (hidden on desktop) */}
+              <div className="lg:hidden flex items-center justify-between backdrop-blur-xl rounded-3xl p-5 lg:p-6 border border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-500 relative overflow-hidden" style={{ backgroundColor: '#10091c' }}>
         <div 
           className="flex items-center gap-3 cursor-pointer group"
           onClick={() => navigate('/profile')}
