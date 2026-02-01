@@ -1,7 +1,7 @@
 /**
- * Renders Route elements for all enabled registry-driven features.
- * Include inside <Routes> so feature paths (e.g. /test) are handled.
- * React Router v6: only <Route> or Fragment inside <Routes>.
+ * Registry-driven feature routes: Fragment of <Route> elements.
+ * Inject directly inside <Routes> as {registryRouteElements} (NOT as a component).
+ * React Router v6: only <Route> or <React.Fragment> as children of <Routes>.
  */
 
 import React from 'react';
@@ -29,19 +29,16 @@ function getRegistryRouteEntries(): Array<{ path: string; featureKey: FeatureKey
   return Array.from(pathToKey.entries()).map(([path, featureKey]) => ({ path, featureKey }));
 }
 
-function RegistryRoutes(): React.ReactElement {
-  const entries = getRegistryRouteEntries();
-  return (
-    <>
-      {entries.map(({ path, featureKey }) => (
-        <Route
-          key={featureKey}
-          path={path}
-          element={<FeaturePageRenderer featureKey={featureKey} />}
-        />
-      ))}
-    </>
-  );
-}
+const _entries = getRegistryRouteEntries();
 
-export default RegistryRoutes;
+export const registryRouteElements: React.ReactNode = (
+  <>
+    {_entries.map(({ path, featureKey }) => (
+      <Route
+        key={featureKey}
+        path={path.startsWith('/') ? path.slice(1) : path}
+        element={<FeaturePageRenderer featureKey={featureKey} />}
+      />
+    ))}
+  </>
+);

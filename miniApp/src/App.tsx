@@ -6,6 +6,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import TelegramWebAppGuard from './components/TelegramWebAppGuard';
 import WebAuthGuard from './components/WebAuthGuard';
+import { registryRouteElements } from './components/RegistryRoutes';
 
 // ⚡ PERFORMANCE: Eager load only Dashboard (main page) and Layout
 import Dashboard from './pages/Dashboard';
@@ -34,7 +35,6 @@ const GuideTutorial = lazy(() => import('./pages/GuideTutorial'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const WebLogin = lazy(() => import('./pages/WebLogin'));
-import RegistryRoutes from './components/RegistryRoutes';
 
 // ⚡ PERFORMANCE: Simple loading component for lazy loaded pages
 const PageLoader = () => (
@@ -121,57 +121,41 @@ function AppRouter() {
   }, [navigate, location.pathname]);
 
   return (
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          {/* Admin Login - Full page without layout */}
-          <Route path="/admin-login" element={<AdminLogin />} />
-          
-          {/* Web Login - Full page without layout */}
-          <Route path="/web-login" element={<WebLogin />} />
-          
-          {/* Admin Panel - Full page without layout */}
-          <Route path="/admin-panel" element={<AdminPanel />} />
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* Full-page routes (no Layout) */}
+        <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/web-login" element={<WebLogin />} />
+        <Route path="/admin-panel" element={<AdminPanel />} />
+        <Route path="/subscription-management" element={<SubscriptionManagement />} />
+        <Route path="/guide-tutorial" element={<GuideTutorial />} />
         
-          {/* Subscription Management - Full page without layout */}
-          <Route path="/subscription-management" element={<SubscriptionManagement />} />
-          
-          {/* Guide Tutorial - Full page without layout */}
-          <Route path="/guide-tutorial" element={<GuideTutorial />} />
-          
-          {/* All other routes with Layout */}
-          <Route path="/*" element={
-            <Layout>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/levels" element={<Levels />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/ai-coach" element={<AICoach />} />
-                  <Route path="/tools" element={<Tools />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/chatbot" element={<Chatbot />} />
-                  <Route path="/growth-club" element={<SocialGrowth />} />
-                  <Route path="/messages" element={<Messages />} />
-                  <Route path="/chat/:userId" element={<Chat />} />
-                  <Route path="/energy-boost" element={<EnergyBoost />} />
-
-                  <Route path="/business-builder-ai" element={<BusinessBuilderAI />} />
-                  <Route path="/sell-kit-ai" element={<SellKitAI />} />
-                  <Route path="/client-finder-ai" element={<ClientFinderAI />} />
-                  <Route path="/sales-path-ai" element={<SalesPathAI />} />
-                  <Route path="/crm" element={<CRM />} />
-                  <Route path="/lead-profile" element={<LeadProfile />} />
-                  {/* SalesPanel removed */}
-                  <Route path="/ready-prompts" element={<ReadyPrompts />} />
-                  <Route path="/courses/:courseId" element={<CoursePlayer />} />
-                  {/* Registry-driven feature routes (e.g. /test for test-page) */}
-                  <RegistryRoutes />
-                </Routes>
-              </Suspense>
-            </Layout>
-          } />
-        </Routes>
-      </Suspense>
+        {/* Layout wrapper: all normal app routes with Outlet in Layout */}
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="levels" element={<Levels />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="ai-coach" element={<AICoach />} />
+          <Route path="tools" element={<Tools />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="chatbot" element={<Chatbot />} />
+          <Route path="growth-club" element={<SocialGrowth />} />
+          <Route path="messages" element={<Messages />} />
+          <Route path="chat/:userId" element={<Chat />} />
+          <Route path="energy-boost" element={<EnergyBoost />} />
+          <Route path="business-builder-ai" element={<BusinessBuilderAI />} />
+          <Route path="sell-kit-ai" element={<SellKitAI />} />
+          <Route path="client-finder-ai" element={<ClientFinderAI />} />
+          <Route path="sales-path-ai" element={<SalesPathAI />} />
+          <Route path="crm" element={<CRM />} />
+          <Route path="lead-profile" element={<LeadProfile />} />
+          <Route path="ready-prompts" element={<ReadyPrompts />} />
+          <Route path="courses/:courseId" element={<CoursePlayer />} />
+          {/* Registry-driven feature routes (e.g. /test for test-page) */}
+          {registryRouteElements}
+        </Route>
+      </Routes>
+    </Suspense>
   );
 }
 

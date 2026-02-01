@@ -1,14 +1,22 @@
-import React from 'react';
+import React, { Suspense } from 'react';
+import { Outlet } from 'react-router-dom';
 import BottomNav from './BottomNav';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useApp } from '../context/appContextDef';
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: '#0e0817' }}>
+    <div className="text-center space-y-4">
+      <div className="relative w-16 h-16 mx-auto">
+        <div className="w-16 h-16 border-4 border-[#5a189a]/30 border-t-[#5a189a] rounded-full animate-spin"></div>
+      </div>
+      <p className="text-white/80 text-sm">در حال بارگذاری...</p>
+    </div>
+  </div>
+);
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC = () => {
   const { telegramIdError, isSubscriptionExpired, loadingUser } = useApp();
   
   // Only check subscription expiry after data has been loaded
@@ -35,7 +43,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {/* Desktop: Content with proper spacing, Mobile: Full width */}
           <div className="w-full h-full lg:bg-[#0a0118]">
             <div className="w-full h-full lg:p-6">
-              {children}
+              <Suspense fallback={<PageLoader />}>
+                <Outlet />
+              </Suspense>
             </div>
           </div>
         </div>
