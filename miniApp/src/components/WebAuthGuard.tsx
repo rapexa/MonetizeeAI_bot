@@ -78,48 +78,38 @@ const WebAuthGuard: React.FC<WebAuthGuardProps> = ({ children }) => {
       }
 
       // First check if we're in Telegram Mini App
-      if (isInTelegramMiniApp()) {
-        // We're in Telegram - get telegram_id from various sources
-        const hasTelegramUser = typeof window !== 'undefined' && 
-                               window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-        const telegramStartParam = typeof window !== 'undefined' && 
-                                   window.Telegram?.WebApp?.initDataUnsafe?.start_param;
-        
-        // Check URL parameters (both query and hash)
+      const tryGetTelegramUserId = (): number | null => {
+        if (typeof window === 'undefined') return null;
+        // Priority 1: user.id from initDataUnsafe - the actual user opening the app (most reliable for Telegram)
+        const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+        if (userId) return userId;
+        // Priority 2: start_param (when bot passes user ID via deep link)
+        const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+        if (startParam) {
+          const parsed = parseInt(startParam);
+          if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+        // Priority 3: startapp from URL
         const urlParams = new URLSearchParams(window.location.search);
         const hashIndex = window.location.hash.indexOf('?');
         const urlHashParams = hashIndex >= 0 
           ? new URLSearchParams(window.location.hash.substring(hashIndex + 1))
           : new URLSearchParams();
-        const startappFromQuery = urlParams.get('startapp');
-        const startappFromHash = urlHashParams.get('startapp');
-        const startapp = startappFromQuery || startappFromHash;
-        
-        // Get telegram_id with priority:
-        // 1. start_param from Telegram WebApp (most reliable)
-        // 2. startapp from URL
-        // 3. user.id from Telegram WebApp
-        let telegramId: number | null = null;
-        
-        // Priority 1: Use start_param from Telegram WebApp (most reliable)
-        if (telegramStartParam) {
-          const parsedId = parseInt(telegramStartParam);
-          if (!isNaN(parsedId) && parsedId > 0) {
-            telegramId = parsedId;
-          }
+        const startapp = urlParams.get('startapp') || urlHashParams.get('startapp');
+        if (startapp) {
+          const parsed = parseInt(startapp);
+          if (!isNaN(parsed) && parsed > 0) return parsed;
         }
+        return null;
+      };
+
+      if (isInTelegramMiniApp()) {
+        let telegramId = tryGetTelegramUserId();
         
-        // Priority 2: Use startapp from URL
-        if (!telegramId && startapp) {
-          const parsedId = parseInt(startapp);
-          if (!isNaN(parsedId) && parsedId > 0) {
-            telegramId = parsedId;
-          }
-        }
-        
-        // Priority 3: Use Telegram user ID from initData
-        if (!telegramId && hasTelegramUser && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-          telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
+        // If Telegram script might not be loaded yet, wait and retry once
+        if (!telegramId && typeof window !== 'undefined' && !window.Telegram?.WebApp?.initDataUnsafe) {
+          await new Promise((r) => setTimeout(r, 400));
+          telegramId = tryGetTelegramUserId();
         }
         
         // Store telegram_id for API calls (if found)
@@ -128,9 +118,8 @@ const WebAuthGuard: React.FC<WebAuthGuardProps> = ({ children }) => {
           apiService.setWebTelegramId(telegramId);
         }
         
-        // From Telegram - allow access without web session
-        // Even if telegramId is not found, we're in Telegram so allow access
-        // The API service will handle getting telegram_id from other sources
+        // From Telegram - seamless access, no login needed
+        // Subscription type, profile, etc. come from API/backend as before
         setIsChecking(false);
         setIsAuthorized(true);
         return;
