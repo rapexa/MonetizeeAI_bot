@@ -617,7 +617,7 @@ const Dashboard: React.FC = () => {
       <div className="min-h-screen transition-colors duration-300" 
            style={{ backgroundColor: '#0e0817' }}>
       
-            <div className="p-4 lg:p-0 space-y-6 max-w-md mx-auto lg:max-w-none lg:mx-0" style={{ backgroundColor: '#0e0817' }}>
+            <div className="p-4 lg:p-0 space-y-6 max-w-md mx-auto lg:max-w-6xl lg:mx-auto" style={{ backgroundColor: '#0e0817' }}>
 
       {/* Loading State - Show when we don't have real data yet */}
       {(!hasRealData && loadingUser) && (

@@ -41,9 +41,9 @@ const Sidebar: React.FC = () => {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-violet-500/30 scrollbar-track-transparent">
-        {/* Quick Action */}
+        {/* Quick Action - Hidden on desktop */}
         <button
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 mb-4 rounded-xl bg-gradient-to-r from-[#2c189a] via-[#5a189a] to-[#7222F2] text-white font-bold text-sm hover:from-[#2c189a]/90 hover:via-[#5a189a]/90 hover:to-[#7222F2]/90 transition-all duration-300 shadow-lg shadow-[#5a189a]/40 hover:shadow-xl hover:shadow-[#5a189a]/60 hover:scale-105"
+          className="hidden w-full flex items-center justify-center gap-2 px-4 py-3 mb-4 rounded-xl bg-gradient-to-r from-[#2c189a] via-[#5a189a] to-[#7222F2] text-white font-bold text-sm hover:from-[#2c189a]/90 hover:via-[#5a189a]/90 hover:to-[#7222F2]/90 transition-all duration-300 shadow-lg shadow-[#5a189a]/40 hover:shadow-xl hover:shadow-[#5a189a]/60 hover:scale-105"
           onClick={() => navigate('/ai-coach')}
         >
           <Plus size={18} strokeWidth={2.5} />
